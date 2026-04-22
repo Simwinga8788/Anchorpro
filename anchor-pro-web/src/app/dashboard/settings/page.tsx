@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, LogOut } from 'lucide-react';
+import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, LogOut, Database, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { settingsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 export default function SettingsPage() {
@@ -12,6 +13,8 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('billing');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
   
   const tabs = [
     { id: 'profile', icon: <User size={15}/>, label: 'My Account' },
@@ -19,6 +22,7 @@ export default function SettingsPage() {
     { id: 'billing', icon: <CreditCard size={15}/>, label: 'Plans & Billing' },
     { id: 'security', icon: <Shield size={15}/>, label: 'Security' },
     { id: 'notifications', icon: <Bell size={15}/>, label: 'Notifications' },
+    { id: 'tools', icon: <Database size={15}/>, label: 'Data & Tools' },
   ];
 
   const handleAction = (action: string) => {
@@ -266,6 +270,46 @@ export default function SettingsPage() {
                  ))}
                </div>
              </div>
+          )}
+
+          {activeTab === 'tools' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
+              <div className="card-elevated" style={{ padding: 30 }}>
+                <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Database size={18} /> Demo Data Generator
+                </h3>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
+                  Instantly populate your workspace with realistic industrial assets (CAT Trucks, Komatsu Excavators), historical job cards,
+                  and stock inventory. Perfect for demos and onboarding new team members.
+                </p>
+
+                {seedResult && (
+                  <div style={{ padding: 12, borderRadius: 8, marginBottom: 16, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CheckCircle2 size={16} /> {seedResult}
+                  </div>
+                )}
+
+                <button
+                  className="btn btn-primary"
+                  disabled={seeding}
+                  onClick={async () => {
+                    setSeeding(true);
+                    setSeedResult(null);
+                    try {
+                      const res = await settingsApi.seedDemoData();
+                      setSeedResult(res.message || 'Demo data generated successfully!');
+                    } catch (err: any) {
+                      setSeedResult('Error: ' + err.message);
+                    } finally {
+                      setSeeding(false);
+                    }
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  {seeding ? <><Loader2 size={14} className="spin" /> Generating...</> : <><Database size={14} /> Generate Sample Data</>}
+                </button>
+              </div>
+            </div>
           )}
 
         </div>

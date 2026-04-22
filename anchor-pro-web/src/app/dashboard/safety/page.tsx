@@ -1,57 +1,126 @@
 'use client';
 
-import { ShieldCheck, FileText, CheckCircle2, AlertTriangle, XCircle, Plus, MoreHorizontal, Activity, Lock } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dashboardApi } from '@/lib/api';
+import { safetyApi } from '@/lib/api';
+import SlideOver from '@/components/SlideOver';
 
-const permitStatus: Record<string, string> = { 
-  'Active': 'badge-green', 
-  'Closed': 'badge-muted', 
-  'Pending': 'badge-amber', 
-  'Suspended': 'badge-rose' 
+const permitStatusMap: Record<number, { label: string; badge: string }> = {
+  0: { label: 'Active', badge: 'badge-green' },
+  1: { label: 'Suspended', badge: 'badge-rose' },
+  2: { label: 'Closed', badge: 'badge-muted' },
 };
 
 export default function SafetyPage() {
   const [permits, setPermits] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    jobCardId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '',
+    isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, toolboxTalkCompleted: false,
+  });
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
-    // Intersection of JobCards with InProgress status often indicates active high-risk work
-    dashboardApi.getJobCards()
-      .then(data => {
-        const live = (data || [])
-          .filter((j: any) => j.status === 2) // status 2 = In Progress
-          .map((j: any) => ({
-            id: `PTW-${j.jobNumber.split('-')[1] || j.id}`,
-            type: j.jobType?.name || 'Standard Maintenance',
-            jobNo: j.jobNumber,
-            tech: j.assignedTechnician?.firstName ? `${j.assignedTechnician.firstName} ${j.assignedTechnician.lastName?.[0] || ''}.` : 'Assigned',
-            issued: new Date(j.updatedAt || j.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
-            status: 'Active'
-          }));
-        setPermits(live);
-      })
-      .catch(err => console.error(err))
+    Promise.all([safetyApi.getPermits(), safetyApi.getDashboard()])
+      .then(([p, s]) => { setPermits(p || []); setStats(s); })
+      .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await safetyApi.createPermit({
+        ...form,
+        jobCardId: parseInt(form.jobCardId),
+      });
+      setShowCreate(false);
+      setForm({ jobCardId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '', isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, toolboxTalkCompleted: false });
+      loadData();
+    } catch (err: any) {
+      alert('Error creating permit: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = async (id: number) => {
+    const notes = prompt('Closure notes:');
+    if (notes === null) return;
+    try {
+      await safetyApi.updatePermitStatus(id, 2, notes); // 2 = Closed
+      loadData();
+    } catch (err: any) { alert(err.message); }
+  };
 
   return (
     <div>
+      <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Issue Permit to Work" subtitle="Safety clearance for high-risk operations.">
+        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Job Card ID</label>
+            <input className="form-input" required type="number" placeholder="e.g. 1" value={form.jobCardId} onChange={e => setForm({...form, jobCardId: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Authorized By</label>
+            <input className="form-input" required placeholder="Supervisor name" value={form.authorizedBy} onChange={e => setForm({...form, authorizedBy: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Work Scope</label>
+            <input className="form-input" placeholder="Brief description of work" value={form.workScope} onChange={e => setForm({...form, workScope: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Hazards Identified</label>
+            <textarea className="form-textarea" placeholder="List potential hazards" value={form.hazardsIdentified} onChange={e => setForm({...form, hazardsIdentified: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Control Measures</label>
+            <textarea className="form-textarea" placeholder="Mitigation steps" value={form.controlMeasures} onChange={e => setForm({...form, controlMeasures: e.target.value})} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 0' }}>
+            <label className="form-label" style={{ marginBottom: 4 }}>Safety Checks</label>
+            {[
+              { key: 'isIsolated', label: 'Equipment Isolated' },
+              { key: 'isLotoApplied', label: 'LOTO Applied' },
+              { key: 'isAreaSecure', label: 'Area Secured' },
+              { key: 'isPpeChecked', label: 'PPE Verified' },
+              { key: 'toolboxTalkCompleted', label: 'Toolbox Talk Done' },
+            ].map(check => (
+              <label key={check.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={(form as any)[check.key]} onChange={e => setForm({...form, [check.key]: e.target.checked})} style={{ transform: 'scale(1.1)' }} />
+                {check.label}
+              </label>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCreate(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>{saving ? 'Issuing...' : 'Issue Permit'}</button>
+          </div>
+        </form>
+      </SlideOver>
+
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 className="page-title">Safety & Compliance</h1>
           <p className="page-subtitle">Governance over Permit-to-Work, LOTO compliance and Incident tracking.</p>
         </div>
-        <button className="btn btn-primary"><ShieldCheck size={14}/> Issue Temporary Permit</button>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}><ShieldCheck size={14}/> Issue Permit</button>
       </div>
 
       <div className="stats-grid-4" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Active Permits',    value: permits.filter(p=>p.status==='Active').length,   color: 'var(--accent-emerald)', icon: <ShieldCheck size={16}/> },
-          { label: 'LOTO Compliance',   value: '100%',  color: 'var(--accent-blue)',    icon: <Lock size={16}/> },
-          { label: 'Open Incidents',    value: '0',     color: 'var(--accent-rose)',    icon: <AlertTriangle size={16}/> },
-          { label: 'Safety Score',      value: '98.5',  color: 'var(--accent-emerald)', icon: <Activity size={16}/> },
+          { label: 'Active Permits', value: stats?.activePermits ?? 0, color: 'var(--accent-emerald)', icon: <ShieldCheck size={16}/> },
+          { label: 'LOTO Applied', value: stats?.lotoApplied ?? 0, color: 'var(--accent-blue)', icon: <Lock size={16}/> },
+          { label: 'Suspended', value: stats?.suspendedPermits ?? 0, color: 'var(--accent-rose)', icon: <AlertTriangle size={16}/> },
+          { label: 'Compliance', value: `${stats?.compliancePercent?.toFixed(0) ?? 100}%`, color: 'var(--accent-emerald)', icon: <Activity size={16}/> },
         ].map(s => (
           <div key={s.label} className="stat-card">
             <div className="stat-icon" style={{ background: s.color + '20' }}>
@@ -63,45 +132,41 @@ export default function SafetyPage() {
         ))}
       </div>
 
-      <div className="stats-grid-2">
-        <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 className="section-title" style={{ fontSize: 14 }}>Permit-to-Work Registry</h3>
-            <button className="btn btn-ghost btn-sm"><Filter size={13}/> Filter</button>
-          </div>
-          <table className="data-table">
-            <thead>
-              <tr><th>Permit ID</th><th>Type</th><th>Linked Job</th><th>Technician</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px 0' }}>Syncing safety logs...</td></tr>
-              ) : permits.map(p => (
+      <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 className="section-title" style={{ fontSize: 14 }}>Permit-to-Work Registry</h3>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr><th>ID</th><th>Work Scope</th><th>Authorized By</th><th>Issued</th><th>LOTO</th><th>PPE</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0' }}>Loading safety records...</td></tr>
+            ) : permits.length === 0 ? (
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No permits issued yet. Click "Issue Permit" to create one.</td></tr>
+            ) : permits.map(p => {
+              const statusInfo = permitStatusMap[p.status] || { label: 'Unknown', badge: 'badge-muted' };
+              return (
                 <tr key={p.id}>
-                  <td style={{ color: 'var(--accent-blue)', fontWeight: 700, fontSize: 12 }}>{p.id}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.type}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>{p.jobNo}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.tech}</td>
-                  <td><span className={`badge ${permitStatus[p.status] ?? 'badge-muted'}`}>{p.status}</span></td>
+                  <td style={{ color: 'var(--accent-blue)', fontWeight: 700, fontSize: 12 }}>PTW-{p.id}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.workScope || '—'}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.authorizedBy}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(p.authorizedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</td>
+                  <td>{p.isLotoApplied ? <CheckCircle2 size={14} style={{ color: 'var(--accent-emerald)' }} /> : <XCircle size={14} style={{ color: 'var(--accent-rose)' }} />}</td>
+                  <td>{p.isPpeChecked ? <CheckCircle2 size={14} style={{ color: 'var(--accent-emerald)' }} /> : <XCircle size={14} style={{ color: 'var(--accent-rose)' }} />}</td>
+                  <td><span className={`badge ${statusInfo.badge}`}>{statusInfo.label}</span></td>
+                  <td style={{ textAlign: 'right' }}>
+                    {p.status === 0 && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleClose(p.id)}>Close</button>
+                    )}
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card-elevated" style={{ padding: 24 }}>
-          <h3 className="section-title" style={{ fontSize: 14, marginBottom: 16 }}>LOTO Verification Audit</h3>
-          <div style={{ padding: 20, textAlign: 'center', background: 'var(--bg-app)', borderRadius: 12, border: '1px dashed var(--border-default)' }}>
-              <CheckCircle2 size={32} style={{ color: 'var(--accent-emerald)', margin: '0 auto 12px', opacity: 0.5 }} />
-              <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Zero non-conformances detected.</p>
-              <p style={{ color: 'var(--text-muted)', fontSize: 11 }}>All active work orders have verified isolation logs.</p>
-          </div>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-}
-
-function Filter({ size }: { size: number }) {
-    return <Activity size={size} />
 }
