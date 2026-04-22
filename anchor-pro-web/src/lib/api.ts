@@ -164,6 +164,76 @@ export const dashboardApi = {
   createPurchaseOrder: (data: any) => apiPost<any>('/api/procurement/orders', data),
 };
 
+// ─── Intelligence API ───────────────────────────────────────────────────────────
+
+export const intelligenceApi = {
+  getProfitability:      (days = 30) => apiFetch<any[]>(`/api/intelligence/profitability?days=${days}`),
+  getTechUtilization:    (days = 30) => apiFetch<any[]>(`/api/intelligence/technicians?days=${days}`),
+  getRevenueByCustomer:  (days = 30) => apiFetch<any[]>(`/api/intelligence/revenue?days=${days}`),
+  getAssetPerformance:   (days = 30) => apiFetch<any[]>(`/api/intelligence/assets?days=${days}`),
+  getInventoryConsumption: (days = 30) => apiFetch<any[]>(`/api/intelligence/inventory?days=${days}`),
+  getExecutiveSummary:   () => apiFetch<any>('/api/intelligence/executive'),
+};
+
+// ─── Reports API ────────────────────────────────────────────────────────────────
+
+export const reportsApi = {
+  getScheduled:      () => apiFetch<any[]>('/api/reports/scheduled'),
+  saveScheduled:     (data: any) => apiPost<any>('/api/reports/scheduled', data),
+  deleteScheduled:   (id: number) => apiDelete(`/api/reports/scheduled/${id}`),
+  runReport:         (id: number) => apiPost<any>(`/api/reports/scheduled/${id}/run`, {}),
+  downloadExcelUrl:  (type: string, deptId?: number) =>
+    `${API_BASE}/api/reports/download/excel?type=${type}${deptId ? `&departmentId=${deptId}` : ''}`,
+  previewHtmlUrl:    (type: string, deptId?: number) =>
+    `${API_BASE}/api/reports/preview/html?type=${type}${deptId ? `&departmentId=${deptId}` : ''}`,
+};
+
+// ─── Safety API ─────────────────────────────────────────────────────────────────
+
+export const safetyApi = {
+  getPermits:       () => apiFetch<any[]>('/api/safety/permits'),
+  getPermit:        (id: number) => apiFetch<any>(`/api/safety/permits/${id}`),
+  getPermitByJob:   (jobId: number) => apiFetch<any>(`/api/safety/permits/job/${jobId}`),
+  createPermit:     (data: any) => apiPost<any>('/api/safety/permits', data),
+  updatePermitStatus: (id: number, status: number, notes?: string) =>
+    apiPatch<any>(`/api/safety/permits/${id}/status`, { status, closureNotes: notes ?? '' }),
+  getDashboard:     () => apiFetch<any>('/api/safety/dashboard'),
+};
+
+// ─── Financial API ──────────────────────────────────────────────────────────────
+
+export const financialApi = {
+  getInvoices:       () => apiFetch<any[]>('/api/financial/invoices'),
+  getInvoice:        (id: number) => apiFetch<any>(`/api/financial/invoices/${id}`),
+  createFromJob:     (jobId: number) => apiPost<any>(`/api/financial/invoices/from-job/${jobId}`, {}),
+  createAdHoc:       (data: any) => apiPost<any>('/api/financial/invoices', data),
+  updateInvoice:     (id: number, data: any) => apiPut<any>(`/api/financial/invoices/${id}`, data),
+  getPayments:       (invoiceId: number) => apiFetch<any[]>(`/api/financial/invoices/${invoiceId}/payments`),
+  recordPayment:     (invoiceId: number, data: any) => apiPost<any>(`/api/financial/invoices/${invoiceId}/payments`, data),
+  getSnapshot:       () => apiFetch<any>('/api/financial/snapshot'),
+};
+
+// ─── Settings & Seeder API ──────────────────────────────────────────────────────
+
+export const settingsApi = {
+  getAll:          () => apiFetch<any[]>('/api/settings'),
+  get:             (key: string) => apiFetch<any>(`/api/settings/${key}`),
+  set:             (key: string, value: string, description?: string, group?: string) =>
+    apiPut<any>(`/api/settings/${key}`, { value, description, group }),
+  seedDemoData:    () => apiPost<any>('/api/settings/seed-demo', {}),
+  getGlobal:       () => apiFetch<any[]>('/api/settings/global'),
+  setGlobal:       (key: string, value: string) => apiPut<any>(`/api/settings/global/${key}`, { value }),
+};
+
+async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`DELETE error ${res.status} on ${path}`);
+}
+
 async function apiPost<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
