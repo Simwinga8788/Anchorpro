@@ -1,0 +1,349 @@
+@page "/procurement/purchase-orders"
+@using AnchorPro.Data.Entities
+@using AnchorPro.Data.Enums
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin,Purchasing")]
+@inject IProcurementService ProcurementService
+@inject IInventoryService InventoryService
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Purchase Orders | Anchor Pro</PageTitle>
+
+<ApplePageHeader Title="Purchase Orders" Subtitle="Manage inventory procurement and supplier deliveries">
+    <ActionButtons>
+        <button class="btn btn-premium btn-sm" @onclick="OpenCreateModal">
+            <i class="bi bi-plus-lg me-1"></i> RAISE PO
+        </button>
+    </ActionButtons>
+</ApplePageHeader>
+
+<div class="card-premium p-0 overflow-hidden mt-3">
+    <div class="table-responsive">
+        <table class="table-premium">
+            <thead>
+                <tr>
+                    <th class="ps-4">PO NUMBER</th>
+                    <th>DATE</th>
+                    <th>SUPPLIER</th>
+                    <th>TYPE</th>
+                    <th class="text-end">TOTAL (ZMW)</th>
+                    <th class="text-center">STATUS</th>
+                    <th class="text-end pe-4">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (purchaseOrders == null)
+                {
+                    <tr><td colspan="6" class="py-5 text-center"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
+                }
+                else if (!purchaseOrders.Any())
+                {
+                    <tr><td colspan="6" class="py-5 text-center text-slate-400 fw-600">No purchase orders found.</td></tr>
+                }
+                else
+                {
+                    @foreach (var po in purchaseOrders)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-800 text-primary">@po.PoNumber</td>
+                            <td class="small text-slate-600">@po.OrderDate.ToLocalTime().ToString("dd MMM yyyy")</td>
+                            <td class="small fw-700">@(po.Supplier?.Name ?? "Unknown")</td>
+                            <td>
+                                <span class="badge-premium @GetPoTypeClass(po.PoType)">
+                                    @GetPoTypeLabel(po.PoType)
+                                </span>
+                            </td>
+                            <td class="text-end fw-800">@po.TotalAmount.ToString("N2")</td>
+                            <td class="text-center">
+                                <span class="badge-premium @GetStatusClass(po)">@po.Status.ToString().ToUpper()</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                @if (po.Status == PurchaseOrderStatus.Submitted || po.Status == PurchaseOrderStatus.PartiallyReceived)
+                                {
+                                    <button class="btn btn-premium-ghost btn-sm px-3 me-1" @onclick="() => OpenReceiveModal(po)">RECEIVE</button>
+                                }
+                                <button class="btn-action" @onclick="() => OpenDetails(po)">DETAILS</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* Raise PO Modal *@
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" style="background-color:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+                <div class="modal-header py-4 px-4 border-0">
+                    <h5 class="modal-title fw-800 text-slate-900">Raise Purchase Order</h5>
+                    <button type="button" class="btn-close" @onclick="() => showCreateModal = false"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Supplier / Vendor</label>
+                            <select @bind="newPo.SupplierId" class="form-select form-control-premium">
+                                <option value="0">-- Select Supplier --</option>
+                                @foreach (var s in suppliers ?? new())
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label x-small fw-800 text-slate-400 text-uppercase">PO Type — What is this money for?</label>
+                            <select @bind="newPo.PoType" class="form-select form-control-premium fw-700">
+                                <option value="@PurchaseOrderType.InventoryReplenishment">Inventory Replenishment (Stock Refill)</option>
+                                <option value="@PurchaseOrderType.DirectPurchase">Direct Purchase (Non-Stock Job Part)</option>
+                                <option value="@PurchaseOrderType.Subcontracting">Subcontracting (External Labor / Service)</option>
+                            </select>
+                        </div>
+                        @if (newPo.PoType != PurchaseOrderType.InventoryReplenishment)
+                        {
+                            <div class="col-12">
+                                <div class="alert alert-info x-small fw-600 mb-0 py-2">
+                                    @if (newPo.PoType == PurchaseOrderType.DirectPurchase)
+                                    {
+                                        <i class="bi bi-info-circle-fill me-2"></i>
+                                        <strong>Direct Purchase:</strong><span> These costs will be tracked as "Direct Purchase Cost" on the linked Job Card.</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-people-fill me-2"></i>
+                                        <strong>Subcontracting:</strong><span> This is an external labor/service invoice. Costs go to "Subcontracting Cost" on the Job Card.</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Link to Job Card</label>
+                                <select @bind="newPo.JobCardId" class="form-select form-control-premium text-primary fw-700">
+                                    <option value="">-- Select Job Card --</option>
+                                    @foreach (var j in activeJobs ?? new())
+                                    {
+                                        <option value="@j.Id">#@j.JobNumber — @j.Equipment?.Name (@j.JobType?.Name)</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        <div class="col-md-6">
+                            <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Notes</label>
+                            <input type="text" @bind="newPo.Notes" class="form-control form-control-premium" placeholder="Delivery instructions, scope of work..." />
+                        </div>
+                    </div>
+
+                    <h6 class="x-small fw-800 text-slate-400 text-uppercase mb-3">Order Items</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="ps-2">Item / Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit Cost</th>
+                                    <th class="text-end">Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in poItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="text" @bind="item.Description" class="form-control form-control-sm border-0 bg-light" />
+                                        </td>
+                                        <td style="width: 80px;">
+                                            <input type="number" @bind="item.QuantityOrdered" @bind:event="oninput" @onchange="RecalculateTotals" class="form-control form-control-sm border-0 bg-light" />
+                                        </td>
+                                        <td style="width: 120px;">
+                                            <input type="number" @bind="item.UnitCost" @bind:event="oninput" @onchange="RecalculateTotals" class="form-control form-control-sm border-0 bg-light" />
+                                        </td>
+                                        <td class="text-end small fw-700">@((item.QuantityOrdered * item.UnitCost).ToString("N2"))</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-link text-danger p-0" @onclick="() => poItems.Remove(item)"><i class="bi bi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-premium-ghost btn-sm" @onclick="AddEmptyItem">
+                        <i class="bi bi-plus-lg me-1"></i> ADD ITEM
+                    </button>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <div class="me-auto h5 mb-0 fw-800 text-slate-900">PO TOTAL: ZMW @newPo.TotalAmount.ToString("N2")</div>
+                    <button type="button" class="btn btn-light fw-800 px-4" style="border-radius:10px;" @onclick="() => showCreateModal = false">CANCEL</button>
+                    <button type="button" class="btn btn-premium fw-800 px-4" style="border-radius:10px;" @onclick="SavePO">
+                        <i class="bi bi-file-earmark-check me-1"></i> SUBMIT PO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Receive Goods Modal *@
+@if (selectedPo != null && showReceiveModal)
+{
+    <div class="modal fade show d-block" style="background-color:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+                <div class="modal-header py-4 px-4 border-0">
+                    <h5 class="modal-title fw-800 text-slate-900">Goods Receipt - @selectedPo.PoNumber</h5>
+                    <button type="button" class="btn-close" @onclick="() => showReceiveModal = false"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <p class="small text-slate-500 mb-4">Confirm quantity received for each line item. Received stock will be automatically added to inventory.</p>
+                    
+                    @foreach (var item in selectedPo.Items)
+                    {
+                        var remaining = item.QuantityOrdered - item.QuantityReceived;
+                        if (remaining > 0)
+                        {
+                            <div class="mb-3 p-3 rounded-3 border bg-slate-50">
+                                <div class="fw-800 text-slate-900">@item.Description</div>
+                                <div class="x-small text-slate-500 mb-2">Ordered: @item.QuantityOrdered | Already Received: @item.QuantityReceived</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small fw-700">Now Receiving:</span>
+                                    <input type="number" class="form-control form-control-sm" style="width:100px;" @bind="receiveQuantities[item.Id]" max="@remaining" />
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light fw-800 px-4" style="border-radius:10px;" @onclick="() => showReceiveModal = false">CANCEL</button>
+                    <button type="button" class="btn btn-success fw-800 px-4" style="border-radius:10px;" @onclick="ConfirmReceipt">
+                        <i class="bi bi-box-seam me-1"></i> CONFIRM RECEIPT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<PurchaseOrder>? purchaseOrders;
+    private List<Supplier>? suppliers;
+    private List<InventoryItem>? inventory;
+    
+    private List<JobCard>? activeJobs;
+    private PurchaseOrder newPo = new();
+    
+    private List<PurchaseOrderItem> poItems = new();
+    private bool showCreateModal = false;
+
+    private PurchaseOrder? selectedPo;
+    private bool showReceiveModal = false;
+    private Dictionary<int, int> receiveQuantities = new();
+    
+    [Inject] private IJobCardService JobCardService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        purchaseOrders = await ProcurementService.GetAllPurchaseOrdersAsync();
+        suppliers = await ProcurementService.GetAllSuppliersAsync();
+        inventory = await InventoryService.GetAllItemsAsync();
+        
+        // Load active jobs for linking
+        var allJobs = await JobCardService.GetAllJobCardsAsync();
+        activeJobs = allJobs.Where(j => j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled).ToList();
+    }
+
+    private void OpenCreateModal()
+    {
+        newPo = new PurchaseOrder { SupplierId = 0, OrderDate = DateTime.UtcNow, Status = PurchaseOrderStatus.Draft, PoType = PurchaseOrderType.InventoryReplenishment };
+        poItems = new List<PurchaseOrderItem>();
+        AddEmptyItem();
+        showCreateModal = true;
+    }
+
+    private void AddEmptyItem()
+    {
+        poItems.Add(new PurchaseOrderItem { Description = "New Item", QuantityOrdered = 1, UnitCost = 0 });
+    }
+
+    private void RecalculateTotals()
+    {
+        foreach(var item in poItems) item.LineTotal = item.QuantityOrdered * item.UnitCost;
+        newPo.TotalAmount = poItems.Sum(i => i.LineTotal);
+    }
+
+    private async Task SavePO()
+    {
+        if (newPo.SupplierId == 0 || !poItems.Any()) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.Identity?.Name ?? "system";
+
+        newPo.Status = PurchaseOrderStatus.Submitted; // Directly submit for demo flow
+        await ProcurementService.CreatePurchaseOrderAsync(newPo, poItems, userId);
+        
+        showCreateModal = false;
+        await LoadData();
+    }
+
+    private async Task OpenReceiveModal(PurchaseOrder po)
+    {
+        selectedPo = await ProcurementService.GetPurchaseOrderByIdAsync(po.Id);
+        receiveQuantities = new Dictionary<int, int>();
+        if (selectedPo != null)
+        {
+            foreach (var item in selectedPo.Items)
+            {
+                receiveQuantities[item.Id] = item.QuantityOrdered - item.QuantityReceived;
+            }
+        }
+        showReceiveModal = true;
+    }
+
+    private async Task ConfirmReceipt()
+    {
+        if (selectedPo == null) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.Identity?.Name ?? "system";
+
+        var list = receiveQuantities.Select(kv => (kv.Key, kv.Value)).ToList();
+        await ProcurementService.ReceiveItemsAsync(selectedPo.Id, list, userId);
+
+        showReceiveModal = false;
+        selectedPo = null;
+        await LoadData();
+    }
+
+    private void OpenDetails(PurchaseOrder po)
+    {
+        // View details logic
+    }
+
+    private string GetStatusClass(PurchaseOrder po) => po.Status switch {
+        PurchaseOrderStatus.Received => "success",
+        PurchaseOrderStatus.PartiallyReceived => "primary",
+        PurchaseOrderStatus.Cancelled => "danger",
+        PurchaseOrderStatus.Submitted => "info",
+        _ => "warning"
+    };
+
+    private string GetPoTypeClass(PurchaseOrderType t) => t switch {
+        PurchaseOrderType.DirectPurchase => "primary",
+        PurchaseOrderType.Subcontracting => "warning",
+        _ => "slate"
+    };
+
+    private string GetPoTypeLabel(PurchaseOrderType t) => t switch {
+        PurchaseOrderType.DirectPurchase => "Direct Purchase",
+        PurchaseOrderType.Subcontracting => "Subcontracting",
+        _ => "Stock Refill"
+    };
+}

@@ -1,0 +1,478 @@
+@page "/admin/settings"
+@using AnchorPro.Data.Entities
+@using AnchorPro.Data.Models
+@using AnchorPro.Services.Interfaces
+@using AnchorPro.Services // For DemoDataService
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject ISettingsService SettingsService
+@inject IEmailService EmailService
+@inject IDemoDataService DemoDataService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Admin Settings - Anchor Pro</PageTitle>
+
+<div class="admin-settings-container">
+    <div class="settings-sidebar">
+        <div class="sidebar-header">
+            <h6 class="text-uppercase fw-bold text-muted small px-3 mb-0">Administrative</h6>
+        </div>
+        <nav class="settings-nav">
+            <button class="@GetNavClass("Organization")" @onclick='() => SetTab("Organization")'>Organization</button>
+            <button class="@GetNavClass("Maintenance Rules")" @onclick='() => SetTab("Maintenance Rules")'>Maintenance Rules</button>
+            <button class="@GetNavClass("Scheduling")" @onclick='() => SetTab("Scheduling")'>Scheduling</button>
+            <button class="@GetNavClass("Inventory Rules")" @onclick='() => SetTab("Inventory Rules")'>Inventory Rules</button>
+            <button class="@GetNavClass("Safety & Compliance")" @onclick='() => SetTab("Safety & Compliance")'>Safety & Compliance</button>
+            <button class="@GetNavClass("Notifications")" @onclick='() => SetTab("Notifications")'>Notifications</button>
+            <button class="@GetNavClass("Data & Exports")" @onclick='() => SetTab("Data & Exports")'>Data & Exports</button>
+            <button class="@GetNavClass("Demo Data")" @onclick='() => SetTab("Demo Data")'>Demo Data</button>
+        </nav>
+    </div>
+
+    <div class="settings-content">
+        <header class="content-header">
+            <div>
+                <h4 class="fw-bold mb-1">@activeTab</h4>
+                <p class="text-muted small mb-0">Configure @activeTab.ToLower() for your organization.</p>
+            </div>
+            
+            @if (activeTab != "Demo Data")
+            {
+                <div class="header-actions">
+                    <button class="btn btn-primary px-4 py-2 fw-bold" @onclick="SaveAllSettings" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Save Changes
+                    </button>
+                </div>
+            }
+        </header>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner-border spinner-border-sm text-primary"></div>
+                <span class="ms-2 text-muted">Loading configurations...</span>
+            </div>
+        }
+        else
+        {
+            @if (activeTab == "Demo Data")
+            {
+                <div class="empty-tab border-primary bg-light">
+                    <i class="bi bi-database-add text-primary mb-3"></i>
+                    <h5 class="fw-bold">Populate Demo Data</h5>
+                    <p class="text-muted mb-4" style="max-width: 500px; margin: 0 auto;">
+                        This will generate sample Equipment, Jobs, and History for your organization.
+                        Use this to visualize the dashboard charts and reports. 
+                        <br/><strong class="text-primary">Existing data will not be deleted.</strong>
+                    </p>
+                    <button class="btn btn-primary btn-lg" @onclick="GenerateDemoData" disabled="@isGenerating">
+                        @if (isGenerating) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        <i class="bi bi-magic me-2"></i> Generate Sample Data
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="settings-grid">
+                    @foreach (var setting in filteredSettings)
+                    {
+                        <div class="settings-item">
+                            <div class="item-info">
+                                <label class="item-label">@FormatKey(setting.Key)</label>
+                                <p class="item-description">@setting.Description</p>
+                            </div>
+                            <div class="item-input">
+                                @if (IsToggle(setting.Key))
+                                {
+                                    <div class="form-check form-switch custom-switch">
+                                        <input class="form-check-input" type="checkbox" 
+                                               checked="@(setting.Value.ToLower() == "true")" 
+                                               @onchange="@(e => setting.Value = e.Value?.ToString()?.ToLower() ?? "false")" />
+                                    </div>
+                                }
+                                else if (IsSecret(setting.Key))
+                                {
+                                    <input type="password" class="form-control" @bind="setting.Value" placeholder="Start typing to change..." />
+                                }
+                                else if (setting.Key.EndsWith("_Hours") || setting.Key.Contains("Charge") || setting.Key.Contains("Months") || setting.Key.Contains("Days") || setting.Key.Contains("Port"))
+                                {
+                                    <input type="number" class="form-control" @bind="setting.Value" />
+                                }
+                                else
+                                {
+                                    <input type="text" class="form-control" @bind="setting.Value" />
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (!filteredSettings.Any())
+                    {
+                        <div class="empty-tab">
+                            <i class="bi bi-gear text-muted-2"></i>
+                            <p class="text-muted mt-3">No specific rules defined for this module yet.</p>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="SeedDefaultSettings">Initialize Default Rules</button>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (showSuccess)
+{
+    <div class="settings-toast success">
+        <i class="bi bi-check-circle-fill me-2"></i> Settings saved successfully.
+    </div>
+}
+
+@if (showDemoSuccess)
+{
+    <div class="settings-toast success bg-primary">
+        <i class="bi bi-check-circle-fill me-2"></i> Demo data generated successfully!
+    </div>
+}
+
+<style>
+    .admin-settings-container {
+        display: flex;
+        height: calc(100vh - 64px);
+        background: #fdfdfd;
+    }
+
+    /* Sidebar Styles */
+    .settings-sidebar {
+        width: 260px;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        padding-top: 2rem;
+    }
+
+    .sidebar-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .settings-nav {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nav-btn {
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+        color: #495057;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+        font-weight: 500;
+    }
+
+    .nav-btn:hover {
+        background: #e9ecef;
+        color: #212529;
+    }
+
+    .nav-btn.active {
+        background: #fff;
+        color: #10B981;
+        border-left-color: #10B981;
+        font-weight: 600;
+    }
+
+    /* Content Area */
+    .settings-content {
+        flex: 1;
+        background: #fff;
+        padding: 2.5rem 3rem;
+        overflow-y: auto;
+    }
+
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 3rem;
+        border-bottom: 1px solid #f1f1f1;
+        padding-bottom: 1.5rem;
+    }
+
+    .settings-grid {
+        max-width: 800px;
+    }
+
+    .settings-item {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .settings-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-info {
+        flex: 1;
+        padding-right: 2rem;
+    }
+
+    .item-label {
+        display: block;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-description {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+
+    .item-input {
+        width: 300px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .form-control {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        background-color: #fcfcfc;
+    }
+
+    .form-control:focus {
+        background-color: #fff;
+        border-color: #10B981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .custom-switch .form-check-input {
+        width: 2.5rem;
+        height: 1.25rem;
+        cursor: pointer;
+    }
+
+    .custom-switch .form-check-input:checked {
+        background-color: #10B981;
+        border-color: #10B981;
+    }
+
+    .loading-state {
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .empty-tab {
+        padding: 5rem 2rem;
+        text-align: center;
+        background: #fcfcfc;
+        border: 2px dashed #f1f1f1;
+        border-radius: 12px;
+    }
+
+    .empty-tab i {
+        font-size: 3rem;
+        opacity: 0.2;
+    }
+
+    /* Toast */
+    .settings-toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #1e293b;
+        color: #fff;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from { transform: translateY(1rem); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .text-muted-2 { color: #cbd5e1; }
+</style>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? tab { get; set; }
+
+    private List<SystemSetting> allSettings = new();
+    private string activeTab = "Organization";
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isGenerating = false;
+    private bool showSuccess = false;
+    private bool showDemoSuccess = false;
+
+    private List<SystemSetting> filteredSettings => allSettings.Where(s => s.Group == activeTab).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(tab))
+        {
+            activeTab = tab;
+        }
+        await LoadSettings();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(tab))
+        {
+            activeTab = tab;
+        }
+    }
+
+    private void SetTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private string GetNavClass(string tab)
+    {
+        return $"nav-btn {(activeTab == tab ? "active" : "")}";
+    }
+    
+    private async Task GenerateDemoData()
+    {
+        isGenerating = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.Identity?.Name ?? "Admin";
+            
+            await DemoDataService.GenerateDemoDataAsync(userId);
+            
+            showDemoSuccess = true;
+            await Task.Delay(3000);
+            showDemoSuccess = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isGenerating = false;
+        }
+    }
+
+    private async Task LoadSettings()
+    {
+        isLoading = true;
+        allSettings = await SettingsService.GetAllSettingsAsync();
+        
+        // Filter out developer settings (if any exist but don't match the groups)
+        // For now we keep all if they are in the allowed groups
+        
+        isLoading = false;
+    }
+
+    private async Task SeedDefaultSettings()
+    {
+        var defaults = new List<SystemSetting>
+        {
+            // ORGANIZATION
+            new() { Key = "Org.CompanyName", Value = "Anchor Pro Production Planning", Group = "Organization", Description = "Your organization name for documents." },
+            new() { Key = "Org.Industry", Value = "Manufacturing", Group = "Organization", Description = "Primary industry sector." },
+            new() { Key = "Org.Timezone", Value = "UTC+2", Group = "Organization", Description = "Default timezone for scheduling." },
+            new() { Key = "Org.WorkingHours", Value = "08:00 - 17:00", Group = "Organization", Description = "Default shift start and end times." },
+            
+            // MAINTENANCE
+            new() { Key = "Maint.RequireTasks", Value = "true", Group = "Maintenance Rules", Description = "All tasks must be checked before completing job." },
+            new() { Key = "Maint.RequireDowntimeReason", Value = "true", Group = "Maintenance Rules", Description = "Force downtime category selection when pausing." },
+            new() { Key = "Maint.MinLaborCharge", Value = "1.0", Group = "Maintenance Rules", Description = "Minimum decimal hours for work orders." },
+            new() { Key = "Maint.AllowBackdate", Value = "false", Group = "Maintenance Rules", Description = "Allow changing completion date after the fact." },
+
+            // SCHEDULING
+            new() { Key = "Sched.AllowDoubleBooking", Value = "false", Group = "Scheduling", Description = "Prevent overlapping job assignments per tech." },
+            new() { Key = "Sched.MaxJobsPerDay", Value = "8", Group = "Scheduling", Description = "Cap of jobs assigned to one technician daily." },
+            
+            // INVENTORY
+            new() { Key = "Inv.AllowNegativeStock", Value = "false", Group = "Inventory Rules", Description = "Restrict part usage if system count is zero." },
+            new() { Key = "Inv.LowStockBehavior", Value = "Warn", Group = "Inventory Rules", Description = "Warn or Block when item hits threshold." },
+
+            // SAFETY
+            new() { Key = "Safe.PermitRequired.Electrical", Value = "true", Group = "Safety & Compliance", Description = "Enable PTW workflow for electrical types." },
+            new() { Key = "Safe.MandatoryFields", Value = "true", Group = "Safety & Compliance", Description = "Require all safety fields before sign-off." },
+
+            // NOTIFICATIONS
+            new() { Key = "Email_Enabled", Value = "false", Group = "Notifications", Description = "Master switch for automated outbound mail." },
+            new() { Key = "Notify.JobAssignment", Value = "true", Group = "Notifications", Description = "Alert technician on new assignment." },
+            new() { Key = "Notify.JobCompletion", Value = "true", Group = "Notifications", Description = "Alert supervisor on job completion." },
+            new() { Key = "Notif.Type.JobOverdue", Value = "true", Group = "Notifications", Description = "Alert supervisor when job exceeds deadline." },
+            
+            // SMTP (Tenant Level)
+            new() { Key = "Smtp_Host", Value = "", Group = "Notifications", Description = "Custom SMTP Host (Leave empty to use System Default)." },
+            new() { Key = "Smtp_Port", Value = "587", Group = "Notifications", Description = "Custom SMTP Port." },
+            new() { Key = "Smtp_User", Value = "", Group = "Notifications", Description = "Custom SMTP Username." },
+            new() { Key = "Smtp_Pass", Value = "", Group = "Notifications", Description = "Custom SMTP Password." },
+            new() { Key = "Email_From_Address", Value = "", Group = "Notifications", Description = "Custom Sender Address." },
+
+            // DATA
+            new() { Key = "Data.RetentionMonths", Value = "24", Group = "Data & Exports", Description = "How long to keep closed orders (months)." },
+            new() { Key = "Data.ArchiveDays", Value = "30", Group = "Data & Exports", Description = "Move completed jobs to archive after X days." }
+        };
+
+        foreach (var d in defaults)
+        {
+            await SettingsService.SetSettingAsync(d.Key, d.Value, d.Description, d.Group);
+        }
+        
+        await LoadSettings();
+    }
+
+    private async Task SaveAllSettings()
+    {
+        isSaving = true;
+        foreach (var setting in allSettings)
+        {
+            await SettingsService.SetSettingAsync(setting.Key, setting.Value, setting.Description, setting.Group);
+        }
+        showSuccess = true;
+        isSaving = false;
+        await Task.Delay(3000);
+        showSuccess = false;
+        StateHasChanged();
+    }
+
+    private string FormatKey(string key)
+    {
+        if (key.Contains(".")) return key.Split('.')[1].Replace("_", " ");
+        return key.Replace("_", " ");
+    }
+
+    private bool IsToggle(string key) => 
+        key.ToLower().Contains("enabled") || 
+        key.ToLower().Contains("required") || 
+        key.ToLower().Contains("allow") ||
+        key.ToLower().Contains("mandatory") ||
+        key.ToLower().Contains("enforce") ||
+        key.ToLower().StartsWith("notify") ||
+        key.ToLower().StartsWith("notif");
+
+    private bool IsSecret(string key) => 
+        key.ToLower().Contains("password") || 
+        key.ToLower().Contains("secret") || 
+        key.ToLower().Contains("pass") && !key.ToLower().Contains("bypass");
+}

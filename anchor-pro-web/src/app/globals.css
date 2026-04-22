@@ -1,0 +1,627 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════
+   ANCHOR PRO — NOTION-STYLE DESIGN SYSTEM
+   ═══════════════════════════════════════════ */
+
+:root {
+  /* Notion Dark Mode Palette */
+  --bg-primary:    #191919;
+  --bg-secondary:  #202020;
+  --bg-card:       #1f1f1f;
+  --bg-card-hover: #252525;
+  --bg-elevated:   #252525;
+  --bg-hover:      rgba(255,255,255,0.04);
+  --bg-active:     rgba(255,255,255,0.07);
+  --bg-input:      rgba(255,255,255,0.04);
+
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.09);
+  --border-strong:  rgba(255,255,255,0.16);
+
+  --text-primary:   #E3E3E1;
+  --text-secondary: rgba(255,255,255,0.60);
+  --text-tertiary:  rgba(255,255,255,0.40);
+  --text-muted:     rgba(255,255,255,0.26);
+
+  /* Notion accent colors */
+  --accent-blue:         #2383E2;
+  --accent-blue-dim:     rgba(35,131,226,0.14);
+  --accent-blue-border:  rgba(35,131,226,0.28);
+
+  --accent-emerald:      #0F9D67;
+  --accent-emerald-dim:  rgba(15,157,103,0.14);
+
+  --accent-amber:        #DFAB01;
+  --accent-amber-dim:    rgba(223,171,1,0.14);
+
+  --accent-rose:         #EB5757;
+  --accent-rose-dim:     rgba(235,87,87,0.14);
+
+  --accent-violet:       #9065B0;
+  --accent-violet-dim:   rgba(144,101,176,0.14);
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --sidebar-bg:    #202020;
+  --topbar-bg:     rgba(25,25,25,0.92);
+
+  /* Notion uses very small radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+}
+
+/* ── Reset ──────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ──────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ── App layout ─────────────────────────── */
+.app-layout { display: flex; min-height: 100vh; }
+
+/* ══════════════════════════════════════════
+   SIDEBAR — Notion style
+   ══════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.sidebar-logo {
+  padding: 14px 12px 10px;
+}
+
+.sidebar-logo-mark {
+  width: 26px;
+  height: 26px;
+  background: var(--accent-blue);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.sidebar-logo-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+}
+
+.sidebar-section { padding: 14px 6px 4px; }
+
+.sidebar-section-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0 8px;
+  margin-bottom: 2px;
+  letter-spacing: 0.1px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+  text-decoration: none;
+  margin-bottom: 1px;
+  width: 100%;
+  line-height: 1.4;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-item.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.sidebar-nav-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+}
+
+.sidebar-nav-item.active svg,
+.sidebar-nav-item:hover svg {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════════
+   TOPBAR
+   ══════════════════════════════════════════ */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.topbar {
+  height: 48px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(12px);
+  z-index: 40;
+}
+
+.topbar-breadcrumb { font-size: 13px; color: var(--text-tertiary); }
+.topbar-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+
+/* ── Page ──────────────────────────────── */
+.page-content { padding: 28px 32px; }
+
+.page-header { margin-bottom: 28px; }
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+}
+
+/* ══════════════════════════════════════════
+   CARDS — Notion flat style
+   ══════════════════════════════════════════ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.15s ease;
+}
+
+.card:hover { border-color: var(--border-default); }
+
+.card-elevated {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+/* ── Stat Cards ────────────────────────── */
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.stat-card:hover {
+  border-color: var(--border-default);
+  background: var(--bg-card-hover);
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  letter-spacing: 0.1px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+}
+
+.stat-change {
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+}
+.stat-change.up    { color: var(--accent-emerald); }
+.stat-change.down  { color: var(--accent-rose); }
+
+.stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   BADGES — Notion color tags
+   ══════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-blue   { background: var(--accent-blue-dim);   color: var(--accent-blue); }
+.badge-green  { background: var(--accent-emerald-dim); color: var(--accent-emerald); }
+.badge-amber  { background: var(--accent-amber-dim);   color: var(--accent-amber); }
+.badge-rose   { background: var(--accent-rose-dim);    color: var(--accent-rose); }
+.badge-violet { background: var(--accent-violet-dim);  color: var(--accent-violet); }
+.badge-muted  { background: rgba(255,255,255,0.06);    color: var(--text-secondary); }
+
+/* ══════════════════════════════════════════
+   TABLE — Notion database style
+   ══════════════════════════════════════════ */
+.data-table { width: 100%; border-collapse: collapse; }
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  letter-spacing: 0.1px;
+}
+
+.data-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 14px;
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background 0.1s ease; }
+.data-table tbody tr:hover { background: var(--bg-hover); }
+
+/* ══════════════════════════════════════════
+   BUTTONS — Notion minimal style
+   ══════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+}
+.btn-primary:hover { background: #1a72d1; }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-sm { padding: 4px 10px; font-size: 12px; gap: 5px; }
+
+/* ── Grid ──────────────────────────────── */
+.stats-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stats-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stats-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+@media (max-width: 1280px) { .stats-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px)  { .stats-grid-4, .stats-grid-3, .stats-grid-2 { grid-template-columns: 1fr; } }
+
+/* ── Section header ────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.1px;
+}
+
+.section-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+/* ── Status dot ────────────────────────── */
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.green  { background: var(--accent-emerald); }
+.status-dot.amber  { background: var(--accent-amber); }
+.status-dot.rose   { background: var(--accent-rose); }
+.status-dot.blue   { background: var(--accent-blue); }
+.status-dot.muted  { background: var(--text-muted); }
+
+/* ── Animations ────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.animate-in { animation: fadeInUp 0.25s ease forwards; }
+.stagger-1  { animation-delay: 0.04s; opacity: 0; }
+.stagger-2  { animation-delay: 0.08s; opacity: 0; }
+.stagger-3  { animation-delay: 0.12s; opacity: 0; }
+.stagger-4  { animation-delay: 0.16s; opacity: 0; }
+.stagger-5  { animation-delay: 0.20s; opacity: 0; }
+
+/* ── Avatar ────────────────────────────── */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* ── Search input ──────────────────────── */
+.search-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.12s;
+  font-family: inherit;
+  width: 220px;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus { border-color: var(--accent-blue); background: rgba(35,131,226,0.05); }
+
+/* ── Priority bars ─────────────────────── */
+.priority-bar { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+.priority-bar.critical { background: var(--accent-rose); }
+.priority-bar.high     { background: var(--accent-amber); }
+.priority-bar.medium   { background: var(--accent-blue); }
+.priority-bar.low      { background: var(--text-muted); }
+
+/* ── User chip ─────────────────────────── */
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer; transition: all 0.12s;
+  background: transparent;
+}
+.user-chip:hover { background: var(--bg-hover); border-color: var(--border-default); }
+.user-chip-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+
+/* ── Trend ─────────────────────────────── */
+.trend-up   { color: var(--accent-emerald); }
+.trend-down { color: var(--accent-rose); }
+
+/* ══════════════════════════════════════════
+   SLIDE-OVER PANEL — Notion side peek
+   ══════════════════════════════════════════ */
+.slideover-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  animation: fadeBackdrop 0.2s ease forwards;
+}
+
+@keyframes fadeBackdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.slideover-panel {
+  position: fixed; top: 0; right: 0;
+  height: 100vh;
+  width: 520px;
+  max-width: 92vw;
+  background: #1f1f1f;
+  border-left: 1px solid var(--border-default);
+  display: flex; flex-direction: column;
+  z-index: 201;
+  animation: slideIn 0.22s cubic-bezier(0.32,0.72,0,1) forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.slideover-header {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.slideover-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text-primary); letter-spacing: -0.2px;
+}
+
+.slideover-body {
+  flex: 1; overflow-y: auto;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+.slideover-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Form fields ───────────────────────── */
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+
+.form-label {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-tertiary); letter-spacing: 0.1px;
+}
+
+.form-input, .form-select, .form-textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 14px; color: var(--text-primary);
+  outline: none; transition: border-color 0.12s;
+  font-family: inherit; width: 100%;
+}
+
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent-blue);
+  background: rgba(35,131,226,0.04);
+}
+
+.form-select { appearance: none; cursor: pointer; }
+
+.form-select option { background: #252525; color: var(--text-primary); }
+
+.form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── Kanban ────────────────────────────── */
+.kanban-col {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+  min-height: 200px;
+}
+
+.kanban-col-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.kanban-card {
+  padding: 12px 14px;
+  margin: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color 0.12s, background 0.12s;
+  cursor: pointer;
+}
+.kanban-card:hover {
+  border-color: var(--border-default);
+  background: #2a2a2a;
+}
+
+/* ── Divider ───────────────────────────── */
+.divider { height: 1px; background: var(--border-subtle); margin: 0; }

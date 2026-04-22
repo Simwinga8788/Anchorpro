@@ -1,0 +1,239 @@
+﻿@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using AnchorPro.Data
+@using AnchorPro.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserStore<ApplicationUser> UserStore
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IEmailSender<ApplicationUser> EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@layout AnchorPro.Components.Layout.AuthLayout
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Sign Up</PageTitle>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh; padding: 2rem 0;">
+    <div class="card shadow-lg border-0 p-5" style="width: 100%; max-width: 550px; border-radius: 12px;">
+         <div class="text-center mb-4">
+             <i class="bi bi-ui-checks-grid text-success display-4 mb-3"></i>
+             <h1 class="h3 mb-3 fw-bold text-black text-uppercase letter-spacing-1">Join Anchor Pro</h1>
+             <p class="text-muted small">Create your company workspace today.</p>
+        </div>
+
+        <StatusMessage Message="@Message" />
+
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger mb-3" role="alert" />
+            
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.CompanyName" id="Input.CompanyName" class="form-control" autocomplete="organization" aria-required="true" placeholder="Company Name" />
+                <label for="Input.CompanyName">Company Name</label>
+                <ValidationMessage For="() => Input.CompanyName" class="text-danger" />
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputText @bind-Value="Input.FirstName" id="Input.FirstName" class="form-control" autocomplete="given-name" aria-required="true" placeholder="First Name" />
+                        <label for="Input.FirstName">First Name</label>
+                        <ValidationMessage For="() => Input.FirstName" class="text-danger" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                     <div class="form-floating">
+                        <InputText @bind-Value="Input.LastName" id="Input.LastName" class="form-control" autocomplete="family-name" aria-required="true" placeholder="Last Name" />
+                        <label for="Input.LastName">Last Name</label>
+                        <ValidationMessage For="() => Input.LastName" class="text-danger" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <label for="Input.Email">Email Work Address</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="Input.Password">Password</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-4">
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="Input.ConfirmPassword">Confirm Password</label>
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+            </div>
+
+            <button type="submit" class="w-100 btn btn-primary py-3 fw-bold fs-6" style="background-color: var(--color-accent-primary); border: none;">CREATE WORKSPACE</button>
+             
+             <div class="text-center mt-4">
+                 <span class="text-muted small">Already have an account?</span>
+                 <a href="Account/Login" class="small fw-bold ms-1 text-decoration-none" style="color: var(--color-sidebar)">Log In</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
+    public async Task RegisterUser(EditContext editContext)
+    {
+        // 1. Create Tenant
+        var newTenant = new Tenant
+        {
+            Name = Input.CompanyName,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            CreatedBy = "Self-Registration",
+            ContactEmail = Input.Email
+        };
+        DbContext.Tenants.Add(newTenant);
+        await DbContext.SaveChangesAsync(); // Get Id
+
+        // 2. Create User
+        var user = CreateUser();
+        
+        user.FirstName = Input.FirstName;
+        user.LastName = Input.LastName;
+        user.TenantId = newTenant.Id; // Link to new Tenant
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        var emailStore = GetEmailStore();
+        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!result.Succeeded)
+        {
+            identityErrors = result.Errors;
+            // Rollback Tenant? Ideally yes, but lazy cleanup for MVP.
+            return;
+        }
+
+        // 3. Assign Admin Role
+        await UserManager.AddToRoleAsync(user, "Admin");
+
+        // 4. Update Tenant Owner & Add Subscription
+        newTenant.OwnerId = user.Id;
+        DbContext.Tenants.Update(newTenant);
+
+        // Add 14-Day Free Trial
+        var trialPlan = await DbContext.SubscriptionPlans.FirstOrDefaultAsync(p => p.Name == "Free Trial");
+        if (trialPlan != null)
+        {
+             var sub = new TenantSubscription
+             {
+                 TenantId = newTenant.Id,
+                 SubscriptionPlanId = trialPlan.Id,
+                 Status = "Trial",
+                 StartDate = DateTime.UtcNow,
+                 TrialEndDate = DateTime.UtcNow.AddDays(14),
+                 IsTrial = true,
+                 CreatedAt = DateTime.UtcNow,
+                 CreatedBy = "System"
+             };
+             DbContext.TenantSubscriptions.Add(sub);
+        }
+        await DbContext.SaveChangesAsync();
+
+        Logger.LogInformation("Details: Tenant {0} created for User {1}", newTenant.Id, user.Id);
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+        if (UserManager.Options.SignIn.RequireConfirmedAccount)
+        {
+            RedirectManager.RedirectTo(
+                "Account/RegisterConfirmation",
+                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+        }
+        else
+        {
+            await SignInManager.SignInAsync(user, isPersistent: false);
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+    }
+
+    private ApplicationUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<ApplicationUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
+                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<ApplicationUser> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+        return (IUserEmailStore<ApplicationUser>)UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [Display(Name = "Company Name")]
+        public string CompanyName { get; set; } = "";
+
+        [Required]
+        [Display(Name = "First Name")]
+        public string FirstName { get; set; } = "";
+
+        [Required]
+        [Display(Name = "Last Name")]
+        public string LastName { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

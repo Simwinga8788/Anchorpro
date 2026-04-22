@@ -1,0 +1,144 @@
+@page "/job-cards/edit/{Id:int}"
+@rendermode InteractiveServer
+@using AnchorPro.Data.Entities
+@using AnchorPro.Data.Enums
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJobCardService JobCardService
+@inject IJobTaskService JobTaskService
+@inject IEquipmentService EquipmentService
+@inject IReferenceDataService ReferenceDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Edit Job Card</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="mb-0">Edit Job Card</h1>
+        <p class="text-secondary">Editing @jobCard?.JobNumber</p>
+    </div>
+    <button class="btn btn-outline-secondary" @onclick="Cancel">
+        <i class="bi bi-x-lg me-2"></i>Cancel
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="glass-card p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Loading...</p>
+    </div>
+}
+else if (jobCard == null)
+{
+    <div class="alert alert-danger">Job card not found.</div>
+}
+else
+{
+    <div class="glass-card p-4">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Equipment</label>
+                <select class="form-select" @bind="jobCard.EquipmentId">
+                    @foreach (var eq in equipmentList)
+                    {
+                        <option value="@eq.Id">@eq.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Job Type</label>
+                <select class="form-select" @bind="jobCard.JobTypeId">
+                    @foreach (var jt in jobTypeList)
+                    {
+                        <option value="@jt.Id">@jt.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">Description</label>
+            <textarea class="form-control" rows="3" @bind="jobCard.Description"></textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">Priority</label>
+            <select class="form-select" @bind="jobCard.Priority">
+                @foreach (var p in Enum.GetValues<JobPriority>())
+                {
+                    <option value="@p">@p</option>
+                }
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-4 border-top">
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" @onclick="HandleSubmit" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Save Changes
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private JobCard? jobCard;
+    private List<Equipment> equipmentList = new();
+    private List<JobType> jobTypeList = new();
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            equipmentList = await EquipmentService.GetAllEquipmentAsync();
+            jobTypeList = await ReferenceDataService.GetJobTypesAsync();
+            jobCard = await JobCardService.GetJobCardByIdAsync(Id);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (jobCard == null) return;
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.Identity?.Name ?? "System";
+
+            await JobCardService.UpdateJobCardAsync(jobCard, userId);
+            NavigationManager.NavigateTo("/job-cards");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo("/job-cards");
+}

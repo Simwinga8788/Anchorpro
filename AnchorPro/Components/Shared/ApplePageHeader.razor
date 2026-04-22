@@ -1,0 +1,92 @@
+@* Apple-inspired page header with refined typography and spacing *@
+
+<div class="apple-page-header">
+    <div class="header-content">
+        <div class="header-main">
+            <h1 class="header-title">@Title</h1>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <p class="header-subtitle">@Subtitle</p>
+            }
+        </div>
+        @if (ActionButtons != null)
+        {
+            <div class="header-actions">
+                @ActionButtons
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .apple-page-header {
+        margin-bottom: 32px;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding-bottom: 12px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+    }
+
+    .header-main {
+        flex: 1;
+    }
+
+    .header-title {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--ap-slate-900);
+        letter-spacing: -0.04em;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    @@media (max-width: 991.98px) {
+        .header-title {
+            font-size: 26px;
+        }
+    }
+
+    .header-subtitle {
+        font-size: 10px;
+        color: var(--ap-slate-500);
+        margin: 8px 0 0 0;
+        line-height: 1.4;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    @@media (max-width: 767.98px) {
+        .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? ActionButtons { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,165 @@
+@page "/admin/users"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using AnchorPro.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject IJSRuntime JSRuntime
+@inject AnchorPro.Services.Interfaces.ICurrentTenantService CurrentTenantService
+
+<PageTitle>User Management</PageTitle>
+
+<ApplePageHeader Title="User Management" Subtitle="Manage team members and permissions">
+    <ActionButtons>
+        <button class="btn btn-primary btn-sm" @onclick="() => showAddModal = true">
+            <i class="bi bi-person-plus me-1"></i>Add User
+        </button>
+    </ActionButtons>
+</ApplePageHeader>
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="d-none d-md-block table-responsive">
+        <table class="table align-middle">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4 border-0 text-secondary x-small text-uppercase fw-800">User</th>
+                    <th class="border-0 text-secondary x-small text-uppercase fw-800">Man #</th>
+                    <th class="border-0 text-secondary x-small text-uppercase fw-800">Email</th>
+                    <th class="border-0 text-secondary x-small text-uppercase fw-800">Role</th>
+                    <th class="border-0 text-secondary x-small text-uppercase fw-800">Status</th>
+                    <th class="text-end pe-4 border-0 text-secondary x-small text-uppercase fw-800">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in users)
+                {
+                    <tr class="border-bottom">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle p-2 me-3 fw-800" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                                    @(user.FirstName?.Length > 0 ? user.FirstName[0] : user.Email?[0])
+                                </div>
+                                <div class="fw-800 text-slate-900">
+                                    @if(!string.IsNullOrEmpty(user.FirstName))
+                                    {
+                                        @($"{user.FirstName} {user.LastName}")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-400 x-small italic">NO NAME SET</span>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-slate-900 fw-800 small">@(user.EmployeeNumber ?? "-")</td>
+                        <td class="text-slate-500 small">@user.Email</td>
+                        <td>
+                            <span class="badge bg-slate-100 text-slate-700 fw-800 x-small">@GetUserRole(user).ToUpper()</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success fw-800 x-small px-3 py-2 rounded-2" style="letter-spacing: 0.05em;">ACTIVE</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn-action me-2" @onclick="() => EditUser(user)" title="Edit">
+                                EDIT
+                            </button>
+                            <button class="btn-action btn-action-danger" @onclick="() => DeleteUser(user)" title="Remove">
+                                REMOVE
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile View -->
+    <div class="d-md-none p-3">
+         @foreach (var user in users)
+         {
+             <div class="p-3 mb-3 border rounded-3 bg-white shadow-sm">
+                 <div class="d-flex align-items-center mb-3">
+                     <div class="bg-primary text-white rounded-circle me-3 fw-800" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                         @(user.FirstName?.Length > 0 ? user.FirstName[0] : user.Email?[0])
+                     </div>
+                     <div class="flex-grow-1">
+                         <div class="fw-800 text-slate-900">@($"{user.FirstName} {user.LastName}")</div>
+                         <div class="d-flex gap-2 align-items-center">
+                             <div class="text-slate-500 x-small fw-600">@user.Email</div>
+                             <div class="badge bg-slate-100 text-slate-500 x-small">#@user.EmployeeNumber</div>
+                         </div>
+                     </div>
+                 </div>
+                 <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                     <span class="badge bg-slate-100 text-slate-700 fw-800 x-small">@GetUserRole(user).ToUpper()</span>
+                     <div class="d-flex gap-2">
+                          <button class="btn-action" @onclick="() => EditUser(user)">EDIT</button>
+                          <button class="btn-action btn-action-danger" @onclick="() => DeleteUser(user)">REMOVE</button>
+                     </div>
+                 </div>
+             </div>
+         }
+    </div>
+</div>
+
+<AddUserModal @bind-IsVisible="showAddModal" OnUserAdded="LoadUsersAsync" />
+<EditUserModal @bind-IsVisible="showEditModal" User="selectedUser" InitialRole="@(selectedUser != null ? GetUserRole(selectedUser) : "")" OnUserUpdated="LoadUsersAsync" />
+
+@code {
+    private List<ApplicationUser> users = new();
+    private Dictionary<string, string> userRoles = new();
+    private bool showAddModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        // Enforce fresh query and filter out Platform Owner from tenant visibility
+        var currentTid = CurrentTenantService.TenantId;
+        users = UserManager.Users
+            .Where(u => u.TenantId == currentTid)
+            .Where(u => u.Email != "simwinga8788@gmail.com" && u.FirstName != "Platform Owner")
+            .OrderByDescending(u => u.CreatedAt)
+            .ToList();
+        userRoles.Clear();
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.FirstOrDefault() ?? "No Role";
+        }
+    }
+
+    private string GetUserRole(ApplicationUser user) => userRoles.TryGetValue(user.Id, out var role) ? role : "Loading...";
+
+    private bool showEditModal = false;
+    private ApplicationUser? selectedUser;
+
+    private void EditUser(ApplicationUser user)
+    {
+        selectedUser = user;
+        showEditModal = true;
+    }
+
+    private async Task DeleteUser(ApplicationUser user)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to remove {user.FirstName} {user.LastName}?");
+        if (confirmed)
+        {
+            var result = await UserManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                await LoadUsersAsync();
+            }
+            else
+            {
+                var errors = string.Join("\n", result.Errors.Select(e => e.Description));
+                await JSRuntime.InvokeVoidAsync("alert", $"Could not delete user: {errors}");
+            }
+        }
+    }
+}

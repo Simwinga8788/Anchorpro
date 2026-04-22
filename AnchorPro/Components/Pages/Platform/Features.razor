@@ -1,0 +1,84 @@
+@page "/platform/features"
+@using AnchorPro.Components.Layout
+@layout MainLayout
+@using AnchorPro.Data.Entities
+@using AnchorPro.Services.Interfaces
+@inject ISettingsService SettingsService
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Feature Registry</h3>
+            <p class="text-muted small mb-0">Manage global availability of platform capabilities.</p>
+        </div>
+        <button class="btn btn-outline-dark btn-sm" @onclick="LoadFeatures">
+            <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+        </button>
+    </div>
+    
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+             <div class="alert alert-info border-0 bg-light d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-2 fs-5 text-primary"></i>
+                <div class="small text-muted">
+                    These flags control visibility of features across ALL tenants. 
+                    <br>To override per-plan, configure the Subscription Plan.
+                </div>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table align-middle">
+                    <thead class="bg-light">
+                         <tr>
+                            <th class="ps-3">Feature Key</th>
+                            <th>Description</th>
+                            <th>Global State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach(var setting in features) {
+                             <tr>
+                                <td class="ps-3 fw-bold font-monospace text-primary">@setting.Key</td>
+                                <td>@setting.Description</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   checked="@(setting.Value.ToLower() == "true")" 
+                                                   @onchange="@(async e => await UpdateFeature(setting, e.Value?.ToString()?.ToLower() ?? "false"))" />
+                                        </div>
+                                        <span class="badge ms-3 @(setting.Value == "true" ? "bg-success" : "bg-secondary")">
+                                            @(setting.Value == "true" ? "Enabled" : "Disabled")
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    List<SystemSetting> features = new();
+
+    protected override async Task OnInitializedAsync() {
+        await LoadFeatures();
+    }
+
+    async Task LoadFeatures() {
+        var all = await SettingsService.GetGlobalSettingsAsync();
+        features = all.Where(s => s.Group == "Features").ToList();
+    }
+
+    async Task UpdateFeature(SystemSetting setting, string newValue) {
+        setting.Value = newValue;
+        await SettingsService.SetGlobalSettingAsync(setting.Key, newValue, setting.Description, setting.Group);
+        // Refresh local list to update UI state if needed
+        await LoadFeatures();
+    }
+}

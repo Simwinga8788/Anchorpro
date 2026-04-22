@@ -1,0 +1,161 @@
+@page "/downtime/history"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using AnchorPro.Data
+@using AnchorPro.Data.Entities
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Identity
+@inject IDowntimeService DowntimeService
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Downtime History</PageTitle>
+
+<ApplePageHeader Title="Downtime Log" Subtitle="Detailed history of all reported delays">
+    <ActionButtons>
+        <a href="/downtime/report" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            <span>Report delay</span>
+        </a>
+    </ActionButtons>
+</ApplePageHeader>
+
+<div class="card border-0 shadow-sm">
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center p-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (!history.Any())
+    {
+        <div class="text-center p-5 text-muted border-dashed m-4 rounded">
+            <i class="bi bi-clock-history fs-1 opacity-25"></i>
+            <p class="mt-2">No downtime records found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="d-none d-md-block table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 border-0 text-muted small text-uppercase fw-800">Reason / Category</th>
+                        <th class="border-0 text-muted small text-uppercase fw-800">Description</th>
+                        <th class="border-0 text-muted small text-uppercase fw-800">Time Range</th>
+                        <th class="border-0 text-muted small text-uppercase fw-800">Duration</th>
+                        <th class="pe-4 border-0 text-muted small text-uppercase text-end fw-800">Reported By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in history)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <span class="status-badge" style="background:#FEF2F2; color:#991B1B; border-left:3px solid #DC2626;">
+                                    @(entry.DowntimeCategory?.Name ?? "Delay")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="text-dark small text-truncate fw-500" style="max-width: 300px;" title="@entry.Notes">
+                                    @entry.Notes
+                                </div>
+                            </td>
+                            <td class="small">
+                                <div class="fw-bold">@entry.StartTime.ToLocalTime().ToString("MMM dd, HH:mm")</div>
+                                <div class="text-muted small">to @(entry.EndTime.HasValue ? entry.EndTime.Value.ToLocalTime().ToString("HH:mm") : "Ongoing")</div>
+                            </td>
+                            <td>
+                                @if (entry.EndTime.HasValue)
+                                {
+                                    <span class="fw-800" style="color:var(--ap-text-main);">@FormatDuration(entry.DurationMinutes)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark border-0 fw-800">ONGOING</span>
+                                }
+                            </td>
+                            <td class="pe-4 text-end small">
+                                <span class="fw-bold text-slate-700">@GetReporterName(entry.CreatedBy)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile View -->
+        <div class="d-md-none p-3">
+            @foreach (var entry in history)
+            {
+                <div class="p-3 mb-3 border rounded-3 bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-800 text-danger small">@(entry.DowntimeCategory?.Name ?? "Delay")</span>
+                        <span class="text-muted x-small">@entry.StartTime.ToLocalTime().ToString("MMM dd, HH:mm")</span>
+                    </div>
+                    <div class="text-slate-900 small mb-2">@entry.Notes</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                             @if (entry.EndTime.HasValue)
+                            {
+                                <span class="fw-800 small text-slate-600">@FormatDuration(entry.DurationMinutes)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark border-0 fw-800 x-small">ONGOING</span>
+                            }
+                        </div>
+                        <span class="x-small text-slate-400">@GetReporterName(entry.CreatedBy)</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .border-dashed { border: 2px dashed #e9ecef !important; }
+</style>
+
+@code {
+    private List<DowntimeEntry> history = new();
+    private Dictionary<string, string> userMap = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        history = await DowntimeService.GetAllDowntimeAsync();
+        
+        // Optimize: Fetch all unique reporters to avoid redundant queries
+        var reporterIds = history.Select(h => h.CreatedBy).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+        foreach (var id in reporterIds)
+        {
+            if (id != null)
+            {
+                var user = await UserManager.FindByIdAsync(id);
+                if (user != null)
+                {
+                    var name = !string.IsNullOrEmpty(user.FirstName) ? $"{user.FirstName} {user.LastName}" : user.Email ?? "Unknown";
+                    if (!string.IsNullOrEmpty(user.EmployeeNumber)) name += $" (#{user.EmployeeNumber})";
+                    userMap[id] = name;
+                }
+                else 
+                {
+                    userMap[id] = "System";
+                }
+            }
+        }
+        
+        isLoading = false;
+    }
+
+    private string GetReporterName(string? userId) => (userId != null && userMap.TryGetValue(userId, out var name)) ? name : "Unknown";
+
+    private string FormatDuration(int? minutes)
+    {
+        if (!minutes.HasValue) return "-";
+        if (minutes < 60) return $"{minutes}m";
+        var hours = minutes / 60;
+        var remainingMins = minutes % 60;
+        return hours > 0 ? $"{hours}h {remainingMins}m" : $"{remainingMins}m";
+    }
+}
