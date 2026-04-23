@@ -85,7 +85,10 @@ namespace AnchorPro.Services
             var jobs = new List<JobCard>();
 
             // Get a technician (or use current user if none found)
-            var techUser = await context.Users.FirstOrDefaultAsync(u => u.Email.Contains("tech") || u.UserName.Contains("tech"));
+            var techUser = await context.Users
+                .Where(u => (u.Email != null && u.Email.ToLower().Contains("tech")) ||
+                            (u.UserName != null && u.UserName.ToLower().Contains("tech")))
+                .FirstOrDefaultAsync();
             string techId = techUser?.Id ?? userId;
 
             // PREV WEEK (Completed)
