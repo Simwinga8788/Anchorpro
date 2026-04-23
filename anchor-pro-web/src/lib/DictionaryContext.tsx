@@ -27,7 +27,7 @@ export const DictionaryProvider = ({ children }: { children: React.ReactNode }) 
     }
     
     try {
-      const allSettings = await settingsApi.getAllSettings();
+      const allSettings = await settingsApi.getAll();
       const newDict: Record<string, string> = {};
       
       // Filter settings that look like dictionary overrides (e.g., "Dict.Equipment" = "Vehicle")

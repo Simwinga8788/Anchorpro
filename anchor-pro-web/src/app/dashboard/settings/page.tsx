@@ -45,7 +45,7 @@ export default function SettingsPage() {
     setSavingDict(true);
     try {
       for (const [key, value] of Object.entries(dictState)) {
-        await settingsApi.setSetting(`Dict.${key}`, value);
+        await settingsApi.set(`Dict.${key}`, value);
       }
       await refreshDictionary();
       alert("Nomenclature updated across the application.");

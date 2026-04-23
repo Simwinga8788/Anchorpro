@@ -10,7 +10,10 @@ async function apiFetch<T>(path: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`API error ${res.status} on ${path}`);
   }
-  return res.json() as Promise<T>;
+  if (res.status === 204) return null as T;
+  const text = await res.text();
+  if (!text) return null as T;
+  return JSON.parse(text) as T;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -280,7 +283,10 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`POST error ${res.status} on ${path}`);
-  return res.json() as Promise<T>;
+  if (res.status === 204) return null as T;
+  const text = await res.text();
+  if (!text) return null as T;
+  return JSON.parse(text) as T;
 }
 
 async function apiPatch<T>(path: string, body: any): Promise<T> {
@@ -292,7 +298,9 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
   });
   if (!res.ok) throw new Error(`PATCH error ${res.status} on ${path}`);
   if (res.status === 204) return {} as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return {} as T;
+  return JSON.parse(text) as T;
 }
 
 async function apiPut<T>(path: string, body: any): Promise<T> {
@@ -304,5 +312,7 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
   });
   if (!res.ok) throw new Error(`PUT error ${res.status} on ${path}`);
   if (res.status === 204) return {} as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return {} as T;
+  return JSON.parse(text) as T;
 }
