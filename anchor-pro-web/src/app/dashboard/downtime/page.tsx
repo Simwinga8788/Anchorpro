@@ -106,7 +106,17 @@ export default function DowntimePage() {
                   </td>
                   <td>
                     {isActive ? (
-                      <span className="badge badge-rose"><Play size={10} style={{ transform: 'rotate(90deg)' }}/> Live Breakdown</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="badge badge-rose"><Play size={10} style={{ transform: 'rotate(90deg)' }}/> Live Breakdown</span>
+                        <button className="btn btn-secondary btn-sm" style={{ padding: '2px 8px', fontSize: 10 }} onClick={async () => {
+                          try {
+                            const updated = { ...item, endTime: new Date().toISOString() };
+                            // Calculate duration in minutes if needed, though backend likely handles it
+                            await dashboardApi.updateDowntime(item.id, updated);
+                            fetchDowntime(); // reload
+                          } catch(err: any) { alert("Error ending downtime: " + err.message); }
+                        }}>End Now</button>
+                      </div>
                     ) : (
                       <span className="badge badge-green">Resolved</span>
                     )}

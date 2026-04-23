@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause
+  Hash, TrendingUp, Pause, DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { canAccess } from '@/lib/rbac';
@@ -44,6 +44,7 @@ const navSections = [
     items: [
       { href: '/dashboard/reports', label: 'Reports',             icon: BarChart3 },
       { href: '/dashboard/safety',  label: 'Safety & Compliance', icon: ShieldCheck },
+      { href: '/dashboard/invoices', label: 'Invoices & Billing', icon: DollarSign },
     ]
   }
 ];

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, LogOut, Database, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { settingsApi } from '@/lib/api';
+import { settingsApi, subscriptionApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 export default function SettingsPage() {
@@ -15,6 +15,15 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
+
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [allPlans, setAllPlans] = useState<any[]>([]);
+  const [upgrading, setUpgrading] = useState(false);
+
+  useEffect(() => {
+    subscriptionApi.getCurrentPlan().then(setCurrentPlan).catch(console.error);
+    subscriptionApi.getPlans().then(setAllPlans).catch(console.error);
+  }, []);
   
   const tabs = [
     { id: 'profile', icon: <User size={15}/>, label: 'My Account' },
@@ -32,36 +41,52 @@ export default function SettingsPage() {
     if (action === 'pwd') alert("Password reset link sent to your email.");
   };
 
+  const handleUpgrade = async (planId: number) => {
+    setUpgrading(true);
+    try {
+      const res = await subscriptionApi.upgrade(planId);
+      alert(res.message || "Upgrade requested.");
+      subscriptionApi.getCurrentPlan().then(setCurrentPlan);
+      setShowUpgradeModal(false);
+    } catch(err: any) {
+      alert("Error upgrading: " + err.message);
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
   return (
     <div>
       <SlideOver open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="Change Plan" subtitle="Select a subscription tier that matches your operational scale.">
          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-           {[
-             { name: 'Starter', price: 'K 1,200', desc: 'Core Work Orders & Asset Registry. Max 5 seats.', active: false },
-             { name: 'Professional', price: 'K 2,950', desc: 'Current Active Plan. Analytics, Procurement, 20 seats.', active: true },
-             { name: 'Enterprise', price: 'K 8,850', desc: 'Unlimited routing, unlimited assets, SCADA integrations.', active: false },
-             { name: 'Custom Hub', price: "Contact us", desc: 'Dedicated tenancy, custom ML prediction models.', active: false }
-           ].map(plan => (
-             <div key={plan.name} style={{ padding: 20, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: plan.active ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}
+           {allPlans.length === 0 ? (
+             <div style={{ color: 'var(--text-muted)' }}>Loading plans...</div>
+           ) : allPlans.map(plan => {
+             const active = currentPlan?.id === plan.id;
+             return (
+             <div key={plan.id} style={{ padding: 20, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: active ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = plan.active ? 'var(--accent-blue)' : 'var(--border-subtle)'}>
+                  onMouseLeave={e => e.currentTarget.style.borderColor = active ? 'var(--accent-blue)' : 'var(--border-subtle)'}>
                 <div style={{ flex: 1, paddingRight: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.name}</div>
-                    {plan.active && <span className="badge badge-blue">Current</span>}
+                    {active && <span className="badge badge-blue">Current</span>}
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{plan.desc}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{plan.description}</div>
                 </div>
                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {plan.price} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{plan.price.includes('K') ? '/ mo' : ''}</span>
+                    K {plan.priceMonthly.toLocaleString()} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>/ mo</span>
                   </div>
-                  <button className={`btn btn-sm ${plan.active ? 'btn-secondary' : 'btn-primary'}`} disabled={plan.active} style={{ minWidth: 90 }}>
-                    {plan.active ? 'Active' : 'Upgrade'}
+                  <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`} 
+                          onClick={(e) => { e.stopPropagation(); handleUpgrade(plan.id); }} 
+                          disabled={active || upgrading} style={{ minWidth: 90 }}>
+                    {active ? 'Active' : (upgrading ? 'Wait...' : 'Upgrade')}
                   </button>
                 </div>
              </div>
-           ))}
+             )
+           })}
            <div style={{ marginTop: 20, padding: 16, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
              All prices are billed monthly in Zambian Kwacha (ZMW). Annual billing saves 15%.
            </div>
@@ -117,11 +142,11 @@ export default function SettingsPage() {
                 <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                   <div style={{ padding: '24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>Current Plan: Professional</h3>
-                      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>You are on the Anchor Pro Professional tier. Features include unlimited Work Orders, 5TB data storage, and API access.</p>
+                      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>Current Plan: {currentPlan?.name || 'Loading...'}</h3>
+                      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>You are on the {currentPlan?.name || 'Anchor Pro'} tier. {currentPlan?.description}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>K 2,950<span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span></div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>K {currentPlan?.priceMonthly?.toLocaleString() || '0'}<span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span></div>
                       <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 8, fontWeight: 600 }}>Billing unmetered</div>
                     </div>
                   </div>

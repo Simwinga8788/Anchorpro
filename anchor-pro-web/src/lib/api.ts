@@ -225,6 +225,44 @@ export const settingsApi = {
   setGlobal:       (key: string, value: string) => apiPut<any>(`/api/settings/global/${key}`, { value }),
 };
 
+// ─── Subscription API ──────────────────────────────────────────────────────────
+
+export const subscriptionApi = {
+  getCurrent:       () => apiFetch<any>('/api/subscription/current'),
+  getCurrentPlan:   () => apiFetch<any>('/api/subscription/current-plan'),
+  getPlans:         () => apiFetch<any[]>('/api/subscription/plans'),
+  upgrade:          (planId: number) => apiPost<any>(`/api/subscription/upgrade/${planId}`, {}),
+  getDaysRemaining: () => apiFetch<any>('/api/subscription/days-remaining'),
+};
+
+// ─── Org / Dept API ───────────────────────────────────────────────────────────
+
+export const orgApi = {
+  getDepartments:   () => apiFetch<any[]>('/api/org/departments'),
+  getDepartment:    (id: number) => apiFetch<any>(`/api/org/departments/${id}`),
+  createDepartment: (data: any) => apiPost<any>('/api/org/departments', data),
+  updateDepartment: (id: number, data: any) => apiPut<any>(`/api/org/departments/${id}`, data),
+  deleteDepartment: (id: number) => apiDelete(`/api/org/departments/${id}`),
+};
+
+// ─── Contracts API ────────────────────────────────────────────────────────────
+
+export const contractsApi = {
+  getAll:           () => apiFetch<any[]>('/api/contracts'),
+  getById:          (id: number) => apiFetch<any>(`/api/contracts/${id}`),
+  getByCustomer:    (customerId: number) => apiFetch<any[]>(`/api/contracts/customer/${customerId}`),
+  create:           (data: any) => apiPost<any>('/api/contracts', data),
+  update:           (id: number, data: any) => apiPut<any>(`/api/contracts/${id}`, data),
+  cancel:           (id: number) => apiPatch<any>(`/api/contracts/${id}/cancel`, {}),
+  getSla:           (id: number) => apiFetch<any>(`/api/contracts/${id}/sla`),
+};
+
+// ─── Alerts API ───────────────────────────────────────────────────────────────
+
+export const alertsApi = {
+  triggerChecks:    () => apiPost<any>('/api/alerts/check', {}),
+};
+
 async function apiDelete(path: string): Promise<void> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
