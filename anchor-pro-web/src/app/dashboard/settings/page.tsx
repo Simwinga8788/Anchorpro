@@ -108,7 +108,7 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
-                    K {plan.priceMonthly.toLocaleString()} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>/ mo</span>
+                    K {(plan.priceMonthly ?? plan.monthlyPrice ?? 0).toLocaleString()} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>/ mo</span>
                   </div>
                   <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`} 
                           onClick={(e) => { e.stopPropagation(); handleUpgrade(plan.id); }} 
