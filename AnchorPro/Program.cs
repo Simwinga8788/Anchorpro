@@ -87,8 +87,8 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, An
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>(); // Custom Labels
 
-// Tenant Circuit Handler
-builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, AnchorPro.Services.TenantCircuitHandler>();
+// No longer needed
+
 
 // API & Swagger
 builder.Services.AddControllers();
@@ -137,7 +137,6 @@ app.UseStatusCodePagesWithReExecute("/not-found");
 
 app.UseStaticFiles();
 app.UseCors("ReactAppPolicy");
-app.UseAntiforgery();
 
 app.MapControllers(); // Enable API Controllers
 

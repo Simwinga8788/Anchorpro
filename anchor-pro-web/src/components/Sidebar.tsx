@@ -9,6 +9,7 @@ import {
   Hash, TrendingUp, Pause, DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { canAccess } from '@/lib/rbac';
 import { useState } from 'react';
 
@@ -53,6 +54,7 @@ export default function Sidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const { user, logout, isPlatformOwner } = useAuth();
+  const { t } = useDictionary();
   const [userExpanded, setUserExpanded] = useState(false);
 
   const userRoles   = user?.roles ?? [];
@@ -117,7 +119,7 @@ export default function Sidebar() {
 
           return (
             <div key={section.label} className="sidebar-section">
-              <div className="sidebar-section-label">{section.label}</div>
+              <div className="sidebar-section-label">{t(section.label)}</div>
               {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href
@@ -129,7 +131,7 @@ export default function Sidebar() {
                     className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={15} />
-                    <span>{item.label}</span>
+                    <span>{t(item.label)}</span>
                   </Link>
                 );
               })}

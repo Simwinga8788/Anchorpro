@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, LogOut, Database, Loader2 } from 'lucide-react';
+import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, LogOut, Database, Loader2, BookA } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { settingsApi, subscriptionApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
@@ -20,15 +21,46 @@ export default function SettingsPage() {
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [upgrading, setUpgrading] = useState(false);
 
+  const { refreshDictionary, dict } = useDictionary();
+  const [dictState, setDictState] = useState<Record<string, string>>({});
+  const [savingDict, setSavingDict] = useState(false);
+
   useEffect(() => {
     subscriptionApi.getCurrentPlan().then(setCurrentPlan).catch(console.error);
     subscriptionApi.getPlans().then(setAllPlans).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'dictionary') {
+      setDictState({
+        'Equipment': dict['Equipment'] || 'Equipment',
+        'Job Cards': dict['Job Cards'] || 'Job Cards',
+        'Technicians': dict['Technicians'] || 'Technicians',
+        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts'
+      });
+    }
+  }, [activeTab, dict]);
+
+  const handleSaveDictionary = async () => {
+    setSavingDict(true);
+    try {
+      for (const [key, value] of Object.entries(dictState)) {
+        await settingsApi.setSetting(`Dict.${key}`, value);
+      }
+      await refreshDictionary();
+      alert("Nomenclature updated across the application.");
+    } catch(err:any) {
+      alert("Failed to save terms: " + err.message);
+    } finally {
+      setSavingDict(false);
+    }
+  };
   
   const tabs = [
     { id: 'profile', icon: <User size={15}/>, label: 'My Account' },
     { id: 'workspace', icon: <Building2 size={15}/>, label: 'Workspace' },
     { id: 'billing', icon: <CreditCard size={15}/>, label: 'Plans & Billing' },
+    { id: 'dictionary', icon: <BookA size={15}/>, label: 'Nomenclature' },
     { id: 'security', icon: <Shield size={15}/>, label: 'Security' },
     { id: 'notifications', icon: <Bell size={15}/>, label: 'Notifications' },
     { id: 'tools', icon: <Database size={15}/>, label: 'Data & Tools' },
@@ -272,6 +304,43 @@ export default function SettingsPage() {
                   </div>
                 </section>
               )}
+             </div>
+          )}
+
+          {activeTab === 'dictionary' && (
+             <div className="card-elevated" style={{ padding: 30 }}>
+               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Dynamic Nomenclature</h3>
+               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>
+                 Customize how Anchor Pro reads for your team. Overwrite industry-standard terms with words your workspace uses natively.
+               </p>
+
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
+                 {[
+                   { key: 'Equipment', default: 'Equipment', hint: 'Examples: Medical Devices, Software Licenses, Vehicles' },
+                   { key: 'Job Cards', default: 'Job Cards', hint: 'Examples: Procedures, Delivery Orders, Projects' },
+                   { key: 'Technicians', default: 'Technicians', hint: 'Examples: Nurses, Drivers, Consultants' },
+                   { key: 'Inventory & Parts', default: 'Inventory & Parts', hint: 'Examples: Medical Supplies, Fuel, Ad Spend' }
+                 ].map(term => (
+                   <div key={term.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ width: '40%' }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Terminal Default: "{term.default}"</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{term.hint}</div>
+                      </div>
+                      <div style={{ width: '55%' }}>
+                        <input className="form-input" 
+                          value={dictState[term.key] || ''} 
+                          onChange={e => setDictState({...dictState, [term.key]: e.target.value})} 
+                          placeholder={term.default} />
+                      </div>
+                   </div>
+                 ))}
+               </div>
+
+               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 24 }}>
+                 <button className="btn btn-primary" onClick={handleSaveDictionary} disabled={savingDict}>
+                   {savingDict ? 'Applying...' : 'Save Vocabulary'}
+                 </button>
+               </div>
              </div>
           )}
           

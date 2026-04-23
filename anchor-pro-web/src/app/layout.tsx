@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/lib/AuthContext";
+import { DictionaryProvider } from "@/lib/DictionaryContext";
 
 export default function RootLayout({
   children,
@@ -19,9 +20,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body>
         <AuthProvider>
-          {children}
+          <DictionaryProvider>
+            {children}
+          </DictionaryProvider>
         </AuthProvider>
       </body>
     </html>
