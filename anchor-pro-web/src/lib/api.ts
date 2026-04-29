@@ -1,6 +1,5 @@
-// Empty string = relative path → Vercel rewrites proxy to Railway in production
-// Set NEXT_PUBLIC_API_URL=http://localhost:5165 for local dev
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+// Always use relative paths — Next.js rewrites proxy /api/* to Railway
+const API_BASE = '';
 
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
