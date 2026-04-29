@@ -13,8 +13,9 @@
 10. [Procurement Hub](#procurement-hub)
 11. [Downtime Reporting](#downtime-reporting)
 12. [Reporting & Analytics](#reporting--analytics)
-13. [User Management](#user-management)
-14. [Tips & Best Practices](#tips--best-practices)
+13. [Time Tracking](#time-tracking)
+14. [Team Management](#team-management)
+15. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -158,10 +159,13 @@ Kanban-style board for visual job management.
 - **Status Badge**: Current status
 
 ### Using the Board
-- Review jobs in each column
-- Identify bottlenecks
-- Plan resource allocation
-- Monitor workflow progress
+- Review jobs in each column at a glance
+- Each card shows the job number, asset name, job type, assigned technician, priority colour, and scheduled date
+- **Move a job forward**: Click the blue forward button (e.g. "In Progress →") on any card
+- **Move a job back**: Click the grey back button (e.g. "← Scheduled") to reverse a stage
+- Status updates save to the database immediately — no page refresh needed
+- Use the board during daily stand-ups to review pipeline health and spot bottlenecks
+- Click **New Job Card** to create a job directly from this page
 
 ---
 
@@ -322,21 +326,26 @@ Choose the appropriate type:
 3. Confirmation message appears
 4. Redirects to dashboard
 
-### Using the "End Now" Button
-**For Ongoing Delays:**
-1. When ready to close the delay
-2. Click green **"End Now"** button
-3. Automatically:
-   - Sets end time to current moment
-   - Changes status to "Resolved"
-   - Shows resolution notes field
-4. Add resolution notes
-5. Submit
+### Reporting a Breakdown (New Streamlined Flow)
+1. Click the red **"Report Breakdown"** button (top right)
+2. Select the **Job Card** the breakdown is linked to
+3. Select the specific **Job Task** affected
+4. Choose a **Downtime Category** (e.g. Mechanical, Electrical, Operator Error)
+5. Optionally set a **Start Time** — leave blank to use current time
+6. Add **Notes** describing the breakdown
+7. Click **Report Breakdown** to submit
+8. The record appears in the table with a **Live** status badge
+
+### Resolving an Active Breakdown
+1. Find the active record (marked **Live** in red) in the table
+2. Click the **Resolve** button on that row
+3. The system automatically calculates the duration from start to now
+4. Status changes to **Resolved** with duration displayed in minutes
 
 ### Viewing Downtime History
-- Click **View History** button (top right of form)
-- Browse past downtime reports
-- Analyze trends and patterns
+- All resolved and active breakdowns are listed in the table
+- Use the **Search** bar to filter by equipment name or notes
+- Summary cards show: Active Breakdowns, Total Hours, Resolved Today
 
 ---
 
@@ -359,44 +368,83 @@ Access and export detailed operational data for management review.
 
 ---
 
-## 👥 User Management (Admin Only)
+## ⏱️ Time Tracking
 
-### Viewing Users
-1. Click **Users** under ADMIN section
-2. See list of all system users
-3. View roles and status
+### Overview
+Time Tracking lets technicians clock in and out of job cards, creating an accurate labour log for every job. Managers can view all entries; technicians see their own.
 
-### Creating a New User
-1. Click **New User** (green button)
-2. Fill in user details:
-   - First Name
-   - Last Name
-   - Email (will be username)
-   - Password
-   - Confirm Password
-   - Role (Admin, Supervisor, Planner, Technician)
-3. Click **Create User**
+### Clocking In
+1. Click **Time Tracking** in the sidebar
+2. Click the **Clock In** button (top right)
+3. In the modal:
+   - Select a **Job Card** from the dropdown (only active jobs are shown)
+   - Optionally add a **Note** (e.g. "Starting engine diagnostics")
+4. Click **Clock In**
+5. An **Active Session** banner appears in green showing the job and start time
 
-### Deleting a User
-1. Find user in list
-2. Click **trash icon** (Delete)
-3. Confirm deletion
-   - ⚠️ **Note**: Cannot delete admin@anchor.com (protected)
+### Clocking Out
+1. While an active session is running, the top banner shows your open session
+2. Optionally type **Clock-Out Notes**
+3. Click **Clock Out**
+4. Duration is automatically calculated and saved
+
+### Viewing Time Logs
+- **My Time Log** tab: your own entries only
+- **All Entries** tab: all technicians (visible to Admin/Supervisor)
+- Filter by job using the dropdown filter
+- Summary cards show total hours logged, active sessions, and technician count
+- Delete individual entries using the trash icon (Admin only)
+
+---
+
+## 👥 Team Management (Admin Only)
+
+### Viewing Team Members
+1. Click **Team** in the sidebar under Resources
+2. Cards show each member's name, role, employee number, hourly rate, and status
+
+### Adding a New Member
+1. Click **Add Member** (top right)
+2. Fill in the form:
+   - **First & Last Name**
+   - **Email Address** (used as login username)
+   - **Employee Number** (e.g. EMP001)
+   - **Hourly Rate** in Kwacha
+   - **Role**: Technician, Admin, Supervisor, Storekeeper, Accountant, or Viewer
+   - **Password** — leave blank to use the default `Anchor@1234!`
+3. Click **Add Member**
+4. The new user can log in immediately
+
+### Deactivating a Member
+1. Click the **⋯** menu on the member card
+2. Select **Deactivate**
+3. Confirm — the member can no longer log in
+4. Their card is dimmed with a **Deactivated** badge
+
+### Reactivating a Member
+1. Click the **⋯** menu on a deactivated member's card
+2. Select **Reactivate** — access is restored immediately
+
+### Permanently Removing a Member
+1. Click the **⋯** menu → **Remove**
+2. Confirm the deletion
+   - ⚠️ Cannot delete your own account or platform-level admin users
 
 ### User Roles & Permissions
 
-| Feature | Admin | Supervisor | Planner | Technician |
-|---------|-------|------------|---------|------------|
-| Dashboard | ✅ | ✅ | ✅ | ✅ |
-| View Jobs | ✅ | ✅ | ✅ | ✅ |
-| Create Jobs | ✅ | ✅ | ❌ | ❌ |
-| Edit Jobs | ✅ | ✅ | ❌ | ❌ |
-| Delete Jobs | ✅ | ✅ | ❌ | ❌ |
-| Planning Board | ✅ | ✅ | ✅ | ❌ |
-| Task Execution | ✅ | ✅ | ✅ | ✅ |
-| Equipment CRUD | ✅ | ✅ | ❌ | ❌ |
-| Report Downtime | ✅ | ✅ | ✅ | ✅ |
-| User Management | ✅ | ❌ | ❌ | ❌ |
+| Feature | Admin | Supervisor | Storekeeper | Technician | Viewer |
+|---------|-------|------------|-------------|------------|--------|
+| Dashboard | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Create/Edit Jobs | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Planning Board | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Move Job Status | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Task Execution | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Equipment CRUD | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Inventory CRUD | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Report Downtime | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Time Tracking | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Team Management | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Reports & Analytics | ✅ | ✅ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -482,17 +530,30 @@ Include:
 
 ---
 
-## 🛠️ Implementation & Feature Roadmap (Known Gaps)
+## ✅ Release Notes — v1.3.0
 
-As of version **1.0.0**, the following items documented in this manual are currently under development or awaiting full integration in the live software build:
+### What's New in This Release
 
-1.  **⏱️ "End Now" Button (Downtime)**: The one-click automatic completion button for downtime reports is not yet active. Start and End times must currently be entered manually.
-2.  **📝 Resolution Notes Enforcement**: Strict requirement for resolution notes upon issue closure is being finalized; currently, the system allows for optional entry.
-3.  **📉 Downtime Impact Section**: The "Impact Assessment" area (Estimated Cost in Kwacha and Production Loss) on the downtime reporting form is currently a placeholder and will be functional in a future update.
-4.  **🗑️ Equipment Deletion Guard**: The automated safety check preventing deletion of equipment with active jobs is currently being hardened. Use caution when managing the equipment registry.
-5.  **🆘 Integrated Support Hub**: The "Get Help" and direct "Bug Reporting" triggers within the application UI are currently being mapped to the contact information provided in the Support section.
+| Feature | Status |
+|---------|--------|
+| Time Tracking (clock in/out per job) | ✅ Live |
+| Team Management (add, deactivate, remove members) | ✅ Live |
+| Planning Board — move jobs between stages | ✅ Live |
+| Report Breakdown modal (linked to job task + category) | ✅ Live |
+| Resolve downtime with auto-duration calculation | ✅ Live |
+| Error boundary — graceful crash recovery on all pages | ✅ Live |
+| xUnit backend test suite (12 tests, 0 failures) | ✅ Live |
+| MailKit vulnerability patched (v4.16.0) | ✅ Live |
+| EF migrations aligned with production database | ✅ Live |
 
-**Version**: 1.0.0  
-**Last Updated**: April 2026  
+### Known Remaining Items (v1.4.0 Targets)
+1. **End-to-end browser test suite** — Playwright tests exist; CI pipeline integration pending
+2. **Rate limiting** — API throttling for production hardening
+3. **2FA enforcement** — Two-factor authentication configurable per tenant
+4. **Audit log viewer** — Admin UI for browsing system activity logs
+5. **Push notifications** — In-app alerts for overdue jobs and breakdown events
+
+**Version**: 1.3.0
+**Last Updated**: April 2026
 **For**: Anchor Pro Maintenance Management System
 
