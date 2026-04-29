@@ -14,11 +14,11 @@ namespace AnchorPro.Controllers
     {
         private readonly StripeService _stripe;
         private readonly ApplicationDbContext _db;
-        private readonly UserManager<AnchorPro.Data.Entities.ApplicationUser> _userManager;
+        private readonly UserManager<AnchorPro.Data.ApplicationUser> _userManager;
         private readonly IConfiguration _config;
 
         public BillingController(StripeService stripe, ApplicationDbContext db,
-            UserManager<AnchorPro.Data.Entities.ApplicationUser> userManager, IConfiguration config)
+            UserManager<AnchorPro.Data.ApplicationUser> userManager, IConfiguration config)
         {
             _stripe = stripe;
             _db = db;

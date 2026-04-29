@@ -75,7 +75,7 @@ namespace AnchorPro.Services
         {
             return await WithKeyAsync(async () =>
             {
-                var service = new SubscriptionService();
+                var service = new Stripe.SubscriptionService();
                 return await service.GetAsync(subscriptionId);
             });
         }

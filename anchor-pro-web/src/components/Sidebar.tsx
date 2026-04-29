@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause, DollarSign
+  Hash, TrendingUp, Pause, DollarSign, Timer
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -35,9 +35,10 @@ const navSections = [
   {
     label: 'Resources',
     items: [
-      { href: '/dashboard/inventory',   label: 'Inventory & Parts', icon: Package },
-      { href: '/dashboard/procurement', label: 'Procurement',       icon: Zap },
-      { href: '/dashboard/team',        label: 'Team',              icon: Users },
+      { href: '/dashboard/inventory',      label: 'Inventory & Parts', icon: Package },
+      { href: '/dashboard/procurement',    label: 'Procurement',       icon: Zap },
+      { href: '/dashboard/team',           label: 'Team',              icon: Users },
+      { href: '/dashboard/time-tracking',  label: 'Time Tracking',     icon: Timer },
     ]
   },
   {

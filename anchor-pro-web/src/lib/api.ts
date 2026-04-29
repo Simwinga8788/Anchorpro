@@ -266,6 +266,31 @@ export const alertsApi = {
   triggerChecks:    () => apiPost<any>('/api/alerts/check', {}),
 };
 
+export const teamApi = {
+  getAll:      () => apiFetch<any[]>('/api/team'),
+  invite:      (data: { email: string; firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string; password?: string }) =>
+                 apiPost<any>('/api/team/invite', data),
+  update:      (id: string, data: { firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string }) =>
+                 apiPut<any>(`/api/team/${id}`, data),
+  deactivate:  (id: string) => apiPost<any>(`/api/team/${id}/deactivate`, {}),
+  reactivate:  (id: string) => apiPost<any>(`/api/team/${id}/reactivate`, {}),
+  remove:      (id: string) => apiDelete(`/api/team/${id}`),
+};
+
+export const timeTrackingApi = {
+  getAll:        (jobCardId?: number, technicianId?: string) => {
+    const params = new URLSearchParams();
+    if (jobCardId) params.set('jobCardId', String(jobCardId));
+    if (technicianId) params.set('technicianId', technicianId);
+    return apiFetch<any[]>(`/api/timetracking?${params}`);
+  },
+  getMine:       () => apiFetch<any[]>('/api/timetracking/my'),
+  getForJob:     (jobCardId: number) => apiFetch<any[]>(`/api/timetracking/job/${jobCardId}`),
+  clockIn:       (jobCardId: number, notes?: string) => apiPost<any>('/api/timetracking/clock-in', { jobCardId, notes }),
+  clockOut:      (entryId?: number, notes?: string) => apiPost<any>('/api/timetracking/clock-out', { entryId, notes }),
+  deleteEntry:   (id: number) => apiDelete(`/api/timetracking/${id}`),
+};
+
 async function apiDelete(path: string): Promise<void> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
