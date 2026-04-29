@@ -2,15 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy solution and project files first (layer caching)
-COPY AnchorPro.sln ./
-COPY AnchorPro/AnchorPro.csproj AnchorPro/
-COPY AnchorPro.Tests/AnchorPro.Tests.csproj AnchorPro.Tests/
+# Copy only what we need for the API project
+COPY AnchorPro/ AnchorPro/
 
 RUN dotnet restore AnchorPro/AnchorPro.csproj
-
-# Copy everything else and publish
-COPY AnchorPro/ AnchorPro/
 RUN dotnet publish AnchorPro/AnchorPro.csproj -c Release -o /app/publish --no-restore
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
