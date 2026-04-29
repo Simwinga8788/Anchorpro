@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import RouteGuard from "@/components/RouteGuard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,9 @@ export default function DashboardLayout({
         <div className="main-content">
           <Topbar title="Dashboard" breadcrumb="Anchor Pro" />
           <div className="page-content">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </div>
         </div>
       </div>

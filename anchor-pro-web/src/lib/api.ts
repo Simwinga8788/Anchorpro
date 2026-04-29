@@ -156,9 +156,11 @@ export const dashboardApi = {
   updateJobStatus:     (id: number, status: number) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
   
   // Downtime
-  getAllDowntime:      () => apiFetch<any[]>('/api/downtime'),
-  reportDowntime:      (data: any) => apiPost<any>('/api/downtime', data),
-  updateDowntime:      (id: number, data: any) => apiPut<any>(`/api/downtime/${id}`, data),
+  getAllDowntime:           () => apiFetch<any[]>('/api/downtime'),
+  reportDowntime:           (data: any) => apiPost<any>('/api/downtime', data),
+  updateDowntime:           (id: number, data: any) => apiPut<any>(`/api/downtime/${id}`, data),
+  getDowntimeCategories:    () => apiFetch<any[]>('/api/referencedata/downtimecategories'),
+  getJobTasks:              (jobCardId: number) => apiFetch<any[]>(`/api/jobtasks?jobCardId=${jobCardId}`),
 
   // POST Operations
   createCustomer:      (data: any) => apiPost<any>('/api/customers', data),
