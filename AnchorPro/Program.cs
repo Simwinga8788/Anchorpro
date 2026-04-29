@@ -61,6 +61,21 @@ builder.Services.AddAuthorization(options =>
               .RequireAssertion(context => !context.User.HasClaim(c => c.Type == "TenantId")));
 });
 
+// Return 401/403 for API routes instead of redirecting to /Account/Login
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AnchorUserClaimsPrincipalFactory>();
 // Domain Services
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEquipmentService, AnchorPro.Services.EquipmentService>();
