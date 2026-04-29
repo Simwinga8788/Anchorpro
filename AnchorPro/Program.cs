@@ -86,8 +86,8 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>(); // Custom Labels
-
-// No longer needed
+builder.Services.AddScoped<AnchorPro.Services.PlatformConfigService>();
+builder.Services.AddScoped<AnchorPro.Services.StripeService>();
 
 
 // API & Swagger
@@ -119,7 +119,6 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseWebAssemblyDebugging();
     app.UseMigrationsEndPoint();
 
     // Enable Swagger
