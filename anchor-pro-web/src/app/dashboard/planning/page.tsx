@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, MoreHorizontal, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Clock, Plus, ChevronRight, ChevronLeft, UserCheck, X } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 
 const columns = [
@@ -20,14 +20,22 @@ const priorityLabel: Record<number, string> = { 3: 'Critical', 2: 'High', 1: 'No
 
 export default function PlanningPage() {
   const [jobs, setJobs] = useState<any[]>([]);
+  const [technicians, setTechnicians] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState<number | null>(null);
+  const [reassignTarget, setReassignTarget] = useState<any>(null);
+  const [selectedTech, setSelectedTech] = useState('');
+  const [reassigning, setReassigning] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
-    dashboardApi.getJobCards()
-      .then(data => setJobs(data || []))
-      .catch(err => console.error('Could not load jobs', err))
+    Promise.all([
+      dashboardApi.getJobCards(),
+      dashboardApi.getReferenceDataTechnicians().catch(() => []),
+    ]).then(([data, techs]) => {
+      setJobs(data || []);
+      setTechnicians(techs || []);
+    }).catch(err => console.error('Could not load jobs', err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -42,6 +50,31 @@ export default function PlanningPage() {
       console.error('Failed to move job', e);
     } finally {
       setMoving(null);
+    }
+  }
+
+  async function handleReassign(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reassignTarget || !selectedTech) return;
+    setReassigning(true);
+    try {
+      await fetch(`/api/jobcards/${reassignTarget.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...reassignTarget, assignedTechnicianId: selectedTech }),
+      });
+      setJobs(prev => prev.map(j => {
+        if (j.id !== reassignTarget.id) return j;
+        const tech = technicians.find((t: any) => t.id === selectedTech);
+        return { ...j, assignedTechnicianId: selectedTech, assignedTechnician: tech ?? j.assignedTechnician };
+      }));
+      setReassignTarget(null);
+      setSelectedTech('');
+    } catch (err: any) {
+      alert('Reassign failed: ' + err.message);
+    } finally {
+      setReassigning(false);
     }
   }
 
@@ -107,7 +140,11 @@ export default function PlanningPage() {
                             <div className="avatar" style={{ width: 20, height: 20, fontSize: 9, background: priorityColor[card.priority] ?? priorityColor[0] }}>
                               {techName[0]?.toUpperCase() || '?'}
                             </div>
-                            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{techName}</span>
+                            <span style={{
+                              fontSize: 11,
+                              color: card.assignedTechnician ? 'var(--text-secondary)' : 'var(--text-muted)',
+                              fontStyle: card.assignedTechnician ? 'normal' : 'italic',
+                            }}>{techName}</span>
                           </div>
                           {card.scheduledDate && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -118,6 +155,19 @@ export default function PlanningPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Reassign button */}
+                        {col.id !== 3 && (
+                          <div style={{ marginBottom: 8 }}>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ width: '100%', fontSize: 11, gap: 5, color: 'var(--text-tertiary)' }}
+                              onClick={() => { setReassignTarget(card); setSelectedTech(card.assignedTechnicianId || ''); }}
+                            >
+                              <UserCheck size={11} /> Reassign
+                            </button>
+                          </div>
+                        )}
 
                         {/* Move buttons */}
                         <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
@@ -161,6 +211,47 @@ export default function PlanningPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Reassign Modal */}
+      {reassignTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setReassignTarget(null)}>
+          <div className="card-elevated" style={{ width: 360, padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Reassign Technician</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {reassignTarget.jobNumber} · {reassignTarget.equipment?.name}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setReassignTarget(null)}><X size={15} /></button>
+            </div>
+            <form onSubmit={handleReassign}>
+              <div className="form-field" style={{ marginBottom: 16 }}>
+                <label className="form-label">Assign to</label>
+                <select
+                  className="form-select"
+                  value={selectedTech}
+                  onChange={e => setSelectedTech(e.target.value)}
+                  required
+                >
+                  <option value="">Select technician...</option>
+                  {technicians.map((t: any) => {
+                    const name = t.firstName ? `${t.firstName} ${t.lastName || ''}`.trim() : t.userName ?? t.email;
+                    return <option key={t.id} value={t.id}>{name}</option>;
+                  })}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setReassignTarget(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={reassigning || !selectedTech}>
+                  {reassigning ? 'Reassigning...' : 'Confirm'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
