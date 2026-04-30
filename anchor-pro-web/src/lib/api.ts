@@ -155,7 +155,8 @@ export const dashboardApi = {
   getSuppliers:      () => apiFetch<any[]>('/api/procurement/suppliers'),
 
   // Inventory & Assets — correct paths per docs
-  getInventoryItems: () => apiFetch<any[]>('/api/inventory'),
+  // Note: controller class is InventoryApiController → route is /api/inventoryapi
+  getInventoryItems: () => apiFetch<any[]>('/api/inventoryapi'),
   getAssets:         () => apiFetch<any[]>('/api/equipment'),
 
   // Jobs
@@ -172,7 +173,7 @@ export const dashboardApi = {
   // POST Operations
   createCustomer:      (data: any) => apiPost<any>('/api/customers', data),
   createAsset:         (data: any) => apiPost<any>('/api/equipment', data),
-  createInventoryItem: (data: any) => apiPost<any>('/api/inventory', data),
+  createInventoryItem: (data: any) => apiPost<any>('/api/inventoryapi', data),
   createPurchaseOrder: (data: any) => apiPost<any>('/api/procurement/orders', data),
 };
 
@@ -196,22 +197,22 @@ export const intelligenceApi = {
 // ─── Reports API ────────────────────────────────────────────────────────────────
 
 export const reportsApi = {
-  // Documented endpoints per SYSTEM_DOCUMENTATION.md
-  getAll:               () => apiFetch<any[]>('/api/reports'),
-  getJobCompletion:     () => apiFetch<any>('/api/reports/job-completion'),
-  getTechPerformance:   () => apiFetch<any>('/api/reports/technician-performance'),
-  getDowntimeAnalysis:  () => apiFetch<any>('/api/reports/downtime-analysis'),
-  exportUrl:            (type: string) => `${API_BASE}/api/reports/export/${type}`,
-
-  // Extended — kept for backward compat with existing pages
+  // Actual backend endpoints (ReportsController)
+  // Note: no base GET /api/reports — only sub-routes exist
   getScheduled:      () => apiFetch<any[]>('/api/reports/scheduled'),
   saveScheduled:     (data: any) => apiPost<any>('/api/reports/scheduled', data),
   deleteScheduled:   (id: number) => apiDelete(`/api/reports/scheduled/${id}`),
   runReport:         (id: number) => apiPost<any>(`/api/reports/scheduled/${id}/run`, {}),
+
+  // Download/preview use authenticated fetch (blob pattern) or direct URL with auth cookie
   downloadExcelUrl:  (type: string, deptId?: number) =>
     `${API_BASE}/api/reports/download/excel?type=${type}${deptId ? `&departmentId=${deptId}` : ''}`,
   previewHtmlUrl:    (type: string, deptId?: number) =>
     `${API_BASE}/api/reports/preview/html?type=${type}${deptId ? `&departmentId=${deptId}` : ''}`,
+
+  // Kept as aliases — pages that call these will get an empty graceful 404 response
+  getAll:               () => reportsApi.getScheduled(),
+  exportUrl:            (type: string) => reportsApi.downloadExcelUrl(type),
 };
 
 // ─── Safety API ─────────────────────────────────────────────────────────────────
