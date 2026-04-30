@@ -84,6 +84,17 @@ namespace AnchorPro.Controllers
 
                 // 4. Set tenant owner
                 tenant.OwnerId = user.Id;
+
+                // 5. Seed default departments
+                var defaultDepts = new[] { "Operations", "Procurement", "Administration" };
+                foreach (var deptName in defaultDepts)
+                {
+                    db.Departments.Add(new Entities.Department
+                    {
+                        Name     = deptName,
+                        TenantId = tenant.Id,
+                    });
+                }
                 await db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
