@@ -50,6 +50,7 @@ namespace AnchorPro.Controllers
                     u.EmployeeNumber,
                     u.HourlyRate,
                     u.TenantId,
+                    u.DepartmentId,
                     isActive = u.LockoutEnd == null || u.LockoutEnd < DateTimeOffset.UtcNow,
                     roles,
                 });
@@ -76,6 +77,7 @@ namespace AnchorPro.Controllers
                 EmployeeNumber = req.EmployeeNumber,
                 HourlyRate = req.HourlyRate ?? 450m,
                 TenantId = caller.TenantId,
+                DepartmentId = req.DepartmentId,
                 CreatedBy = caller.Id,
             };
 
@@ -102,6 +104,7 @@ namespace AnchorPro.Controllers
             if (req.LastName   != null) member.LastName     = req.LastName;
             if (req.EmployeeNumber != null) member.EmployeeNumber = req.EmployeeNumber;
             if (req.HourlyRate.HasValue) member.HourlyRate  = req.HourlyRate.Value;
+            if (req.DepartmentId.HasValue) member.DepartmentId = req.DepartmentId.Value;
             member.UpdatedAt = DateTime.UtcNow;
             member.UpdatedBy = caller?.Id;
 
@@ -168,8 +171,8 @@ namespace AnchorPro.Controllers
         }
 
         public record InviteRequest(string Email, string? FirstName, string? LastName,
-            string? EmployeeNumber, decimal? HourlyRate, string? Role, string? Password);
+            string? EmployeeNumber, decimal? HourlyRate, string? Role, string? Password, int? DepartmentId);
         public record UpdateMemberRequest(string? FirstName, string? LastName,
-            string? EmployeeNumber, decimal? HourlyRate, string? Role);
+            string? EmployeeNumber, decimal? HourlyRate, string? Role, int? DepartmentId);
     }
 }
