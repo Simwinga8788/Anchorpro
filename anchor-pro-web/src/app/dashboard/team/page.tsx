@@ -8,6 +8,7 @@ const ROLES = ['Technician', 'Admin', 'Supervisor', 'Storekeeper', 'Accountant',
 
 export default function TeamPage() {
   const [team, setTeam] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export default function TeamPage() {
 
   const [form, setForm] = useState({
     email: '', firstName: '', lastName: '',
-    employeeNumber: '', hourlyRate: '', role: 'Technician', password: '',
+    employeeNumber: '', hourlyRate: '', role: 'Technician', password: '', departmentId: '',
   });
 
   const load = () => {
@@ -29,7 +30,13 @@ export default function TeamPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    fetch('/api/org/departments', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setDepartments(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -52,9 +59,10 @@ export default function TeamPage() {
         hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
         role: form.role,
         password: form.password || undefined,
+        departmentId: form.departmentId ? parseInt(form.departmentId) : undefined,
       });
       setShowInvite(false);
-      setForm({ email: '', firstName: '', lastName: '', employeeNumber: '', hourlyRate: '', role: 'Technician', password: '' });
+      setForm({ email: '', firstName: '', lastName: '', employeeNumber: '', hourlyRate: '', role: 'Technician', password: '', departmentId: '' });
       setSuccessMsg('Member added successfully');
       setTimeout(() => setSuccessMsg(''), 3000);
       load();
@@ -81,13 +89,13 @@ export default function TeamPage() {
   }
 
   const [editMember, setEditMember] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', employeeNumber: '', hourlyRate: '', role: 'Technician' });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', employeeNumber: '', hourlyRate: '', role: 'Technician', departmentId: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [editErr, setEditErr] = useState('');
 
   function openEdit(member: any) {
     setEditMember(member);
-    setEditForm({ firstName: member.firstName || '', lastName: member.lastName || '', employeeNumber: member.employeeNumber || '', hourlyRate: member.hourlyRate?.toString() || '', role: member.roles?.[0] || 'Technician' });
+    setEditForm({ firstName: member.firstName || '', lastName: member.lastName || '', employeeNumber: member.employeeNumber || '', hourlyRate: member.hourlyRate?.toString() || '', role: member.roles?.[0] || 'Technician', departmentId: member.departmentId?.toString() || '' });
     setMenuOpen(null);
     setEditErr('');
   }
@@ -95,7 +103,7 @@ export default function TeamPage() {
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault(); setSavingEdit(true); setEditErr('');
     try {
-      await teamApi.update(editMember.id, { firstName: editForm.firstName || undefined, lastName: editForm.lastName || undefined, employeeNumber: editForm.employeeNumber || undefined, hourlyRate: editForm.hourlyRate ? parseFloat(editForm.hourlyRate) : undefined, role: editForm.role });
+      await teamApi.update(editMember.id, { firstName: editForm.firstName || undefined, lastName: editForm.lastName || undefined, employeeNumber: editForm.employeeNumber || undefined, hourlyRate: editForm.hourlyRate ? parseFloat(editForm.hourlyRate) : undefined, role: editForm.role, departmentId: editForm.departmentId ? parseInt(editForm.departmentId) : undefined });
       setEditMember(null); load();
     } catch (ex: any) { setEditErr(ex?.message || 'Update failed'); }
     finally { setSavingEdit(false); }
@@ -196,8 +204,13 @@ export default function TeamPage() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
                     <span className="badge badge-muted">{member.roles?.[0] || 'Technician'}</span>
+                    {member.departmentId && departments.find((d: any) => d.id === member.departmentId) && (
+                      <span className="badge badge-muted" style={{ color: 'var(--accent-blue)' }}>
+                        {departments.find((d: any) => d.id === member.departmentId)?.name}
+                      </span>
+                    )}
                     <span className={`badge ${isLocked ? 'badge-rose' : 'badge-green'}`}>
                       <span className="status-dot" style={{ background: isLocked ? '#ef4444' : '#10b981' }} />
                       {isLocked ? 'Deactivated' : 'Active'}
@@ -247,11 +260,20 @@ export default function TeamPage() {
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Hourly Rate (K)</label>
                   <input style={fieldStyle} type="number" value={editForm.hourlyRate} onChange={e => setEditForm(f => ({ ...f, hourlyRate: e.target.value }))} /></div>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Role</label>
-                <select style={fieldStyle} value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Role</label>
+                  <select style={fieldStyle} value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Department</label>
+                  <select style={fieldStyle} value={editForm.departmentId} onChange={e => setEditForm(f => ({ ...f, departmentId: e.target.value }))}>
+                    <option value="">— None —</option>
+                    {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
               {editErr && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 12 }}>{editErr}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -301,11 +323,20 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Role</label>
-                <select style={fieldStyle} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Role</label>
+                  <select style={fieldStyle} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Department</label>
+                  <select style={fieldStyle} value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value }))}>
+                    <option value="">— None —</option>
+                    {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div style={{ marginBottom: 20 }}>
