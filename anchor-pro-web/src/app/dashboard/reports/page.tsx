@@ -39,15 +39,18 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const jobCompletion   = useApiData(() => reportsApi.getJobCompletion());
-  const techPerformance = useApiData(() => reportsApi.getTechPerformance());
-  const downtimeAnalysis = useApiData(() => reportsApi.getDowntimeAnalysis());
+  // These analytics endpoints not yet on backend — use scheduled reports list instead
+  const scheduledReports = useApiData(() => reportsApi.getScheduled());
+  // Stub out the chart data hooks gracefully
+  const jobCompletion   = useApiData(() => Promise.resolve(null));
+  const techPerformance = useApiData(() => Promise.resolve(null));
+  const downtimeAnalysis = useApiData(() => Promise.resolve(null));
   const [exporting, setExporting] = useState<string | null>(null);
 
   const downloadReport = async (type: string, filename: string) => {
     setExporting(type);
     try {
-      const res = await fetch(`/api/reports/export/${type}`, {
+      const res = await fetch(`/api/reports/download/excel?type=${type}`, {
         credentials: 'include',
         headers: { 'Accept': 'application/octet-stream,*/*' },
       });
