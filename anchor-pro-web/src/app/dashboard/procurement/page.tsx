@@ -25,16 +25,18 @@ export default function ProcurementPage() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const [jobs, setJobs] = useState<any[]>([]);
   const [isSlideOpen, setIsSlideOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ supplierId: '', poType: 0, items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
+  const [formData, setFormData] = useState({ supplierId: '', poType: 0, jobCardId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
 
   const fetchData = () => {
     setLoading(true);
-    Promise.all([dashboardApi.getPurchaseOrders(), dashboardApi.getSuppliers()])
-      .then(([ordersData, suppliersData]) => {
+    Promise.all([dashboardApi.getPurchaseOrders(), dashboardApi.getSuppliers(), dashboardApi.getJobCards()])
+      .then(([ordersData, suppliersData, jobsData]) => {
         setOrders(ordersData || []);
         setSuppliers(suppliersData || []);
+        setJobs(jobsData || []);
       })
       .catch(err => console.error("Failed to load data", err))
       .finally(() => setLoading(false));
@@ -48,14 +50,17 @@ export default function ProcurementPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const prefix = formData.poType === 2 ? 'PO-SUB' : 'PO';
       await dashboardApi.createPurchaseOrder({
-        poNumber: `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        poNumber: `${prefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         supplierId: parseInt(formData.supplierId),
         poType: formData.poType,
+        jobCardId: formData.jobCardId ? parseInt(formData.jobCardId) : undefined,
+        notes: formData.notes || undefined,
         items: formData.items
       });
       setIsSlideOpen(false);
-      setFormData({ supplierId: '', poType: 0, items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
+      setFormData({ supplierId: '', poType: 0, jobCardId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
       fetchData();
     } catch (err) {
       alert("Failed to raise PO");
@@ -94,7 +99,22 @@ export default function ProcurementPage() {
               ))}
             </select>
           </div>
-          
+
+          {(formData.poType === 1 || formData.poType === 2) && (
+            <div className="form-field">
+              <label className="form-label">Linked Job Card <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+              <select className="form-select" value={formData.jobCardId} onChange={e => setFormData({...formData, jobCardId: e.target.value})}>
+                <option value="">— Not linked to a job —</option>
+                {jobs.map((j: any) => <option key={j.id} value={j.id}>{j.jobNumber} · {j.equipment?.name ?? ''}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="form-field">
+            <label className="form-label">Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <input className="form-input" placeholder="Internal notes or reference..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+          </div>
+
           <div className="section-header" style={{ marginTop: 10, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
             <div><div className="section-title" style={{ fontSize: 13 }}>Order Items</div></div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddItem}><Plus size={12}/> Add Line</button>
