@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2, User, CreditCard, Check, ChevronRight, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Building2, User, Check, ChevronRight, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgData   { companyName: string; industry: string; size: string; timezone: string }
 interface AdminData { firstName: string; lastName: string; email: string; password: string; confirm: string }
-interface PlanData  { planId: number }
-
 const INDUSTRIES = [
   'Mining & Extraction', 'Manufacturing', 'Facilities Management', 'Logistics & Fleet',
   'Construction', 'Utilities & Energy', 'Healthcare & Medical', 'Agriculture', 'Other',
@@ -22,32 +20,9 @@ const TIMEZONES = [
   'Europe/London', 'Europe/Paris', 'America/New_York', 'America/Chicago', 'Asia/Dubai',
 ];
 
-const PLANS = [
-  {
-    id: 1, name: 'Starter', price: 'K 1,500', period: '/mo',
-    desc: 'For small teams getting started',
-    features: ['5 users', '50 job cards/month', 'Asset registry', 'Basic reporting'],
-    color: '#4B8FFF',
-  },
-  {
-    id: 2, name: 'Professional', price: 'K 2,500', period: '/mo',
-    desc: 'Most popular for growing teams',
-    features: ['Unlimited users & jobs', 'Planning board', 'Safety & PTW', 'Intelligence center', 'Priority support'],
-    color: '#4B8FFF',
-    popular: true,
-  },
-  {
-    id: 3, name: 'Enterprise', price: 'Custom', period: '',
-    desc: 'Dedicated instance & SLA',
-    features: ['Everything in Pro', 'Dedicated environment', 'Custom integrations', 'Account manager'],
-    color: '#22C55E',
-  },
-];
-
 const STEPS = [
   { label: 'Organisation', icon: Building2 },
   { label: 'Your account', icon: User },
-  { label: 'Choose plan',  icon: CreditCard },
 ];
 
 /* ─── Main ─────────────────────────────────────────────── */
@@ -61,7 +36,6 @@ export default function RegisterPage() {
 
   const [org, setOrg]     = useState<OrgData>({ companyName: '', industry: '', size: '', timezone: 'Africa/Lusaka' });
   const [admin, setAdmin] = useState<AdminData>({ firstName: '', lastName: '', email: '', password: '', confirm: '' });
-  const [plan, setPlan]   = useState<PlanData>({ planId: 2 });
 
   /* validation */
   const step0Valid = org.companyName.trim().length >= 2 && org.industry && org.size;
@@ -73,10 +47,14 @@ export default function RegisterPage() {
   const handleNext = () => {
     setError(null);
     if (step === 0 && !step0Valid) { setError('Please fill in all organisation fields.'); return; }
-    if (step === 1 && !step1Valid) {
-      if (admin.password.length < 8) setError('Password must be at least 8 characters.');
-      else if (admin.password !== admin.confirm) setError('Passwords do not match.');
-      else setError('Please fill in all fields.');
+    if (step === 1) {
+      if (!step1Valid) {
+        if (admin.password.length < 8) setError('Password must be at least 8 characters.');
+        else if (admin.password !== admin.confirm) setError('Passwords do not match.');
+        else setError('Please fill in all fields.');
+        return;
+      }
+      handleSubmit();
       return;
     }
     setStep(s => s + 1);
@@ -98,7 +76,7 @@ export default function RegisterPage() {
           lastName:    admin.lastName,
           email:       admin.email,
           password:    admin.password,
-          planId:      plan.planId,
+          planId:      1,
         }),
       });
 
@@ -380,54 +358,13 @@ export default function RegisterPage() {
                   <button className="rp-btn-back" onClick={()=>{setError(null);setStep(0);}}>
                     <ArrowLeft size={14}/> Back
                   </button>
-                  <button className="rp-btn-next" onClick={handleNext} disabled={!step1Valid}>
-                    Continue <ChevronRight size={15}/>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* ── STEP 2: Plan selection ── */}
-            {step === 2 && (
-              <>
-                <h2 className="rp-title">Choose a plan</h2>
-                <p className="rp-subtitle">Start with a 14-day free trial. No credit card required.</p>
-
-                <div className="rp-plans">
-                  {PLANS.map(p=>(
-                    <div key={p.id} className={`rp-plan-opt${plan.planId===p.id?' sel':''}`}
-                      onClick={()=>setPlan({planId:p.id})}>
-                      {p.popular&&<div className="rp-popular-badge">Most popular</div>}
-                      <div className="rp-plan-radio"><div className="rp-plan-dot"/></div>
-                      <div className="rp-plan-info">
-                        <div className="rp-plan-row">
-                          <span className="rp-plan-nm">{p.name}</span>
-                          <span className="rp-plan-pr">{p.price}<span>{p.period}</span></span>
-                        </div>
-                        <div className="rp-plan-ds">{p.desc}</div>
-                        <div className="rp-plan-feats">
-                          {p.features.map(f=><span key={f} className="rp-plan-feat">{f}</span>)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rp-actions" style={{marginTop:20}}>
-                  <button className="rp-btn-back" onClick={()=>{setError(null);setStep(1);}}>
-                    <ArrowLeft size={14}/> Back
-                  </button>
-                  <button className="rp-btn-submit" onClick={handleSubmit} disabled={loading}>
+                  <button className="rp-btn-submit" onClick={handleNext} disabled={!step1Valid || loading}>
                     {loading
                       ? <><Loader2 size={15} className="spin"/> Creating workspace…</>
                       : <><Check size={15}/> Create workspace</>
                     }
                   </button>
                 </div>
-
-                <p className="rp-trial-note">
-                  14-day free trial, no card needed. By continuing you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-                </p>
               </>
             )}
           </div>
