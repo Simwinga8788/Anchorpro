@@ -6,11 +6,12 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause, DollarSign, Timer
+  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { canAccess } from '@/lib/rbac';
+import { useSidebar } from '@/lib/SidebarContext';
 import { useState } from 'react';
 
 const navSections = [
@@ -46,7 +47,9 @@ const navSections = [
     items: [
       { href: '/dashboard/reports', label: 'Reports',             icon: BarChart3 },
       { href: '/dashboard/safety',  label: 'Safety & Compliance', icon: ShieldCheck },
-      { href: '/dashboard/invoices', label: 'Invoices & Billing', icon: DollarSign },
+      { href: '/dashboard/invoices',   label: 'Invoices & Billing', icon: DollarSign },
+      { href: '/dashboard/contracts',   label: 'Contracts',          icon: FileText },
+      { href: '/dashboard/roles',       label: 'Roles & Permissions',icon: Shield },
     ]
   }
 ];
@@ -56,6 +59,7 @@ export default function Sidebar() {
   const router    = useRouter();
   const { user, logout, isPlatformOwner } = useAuth();
   const { t } = useDictionary();
+  const { mobileOpen, closeSidebar } = useSidebar();
   const [userExpanded, setUserExpanded] = useState(false);
 
   const userRoles   = user?.roles ?? [];
@@ -72,9 +76,30 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <>
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`}
+        onClick={closeSidebar}
+      />
+    <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* ── Workspace header ── */}
       <div style={{ padding: '14px 10px 8px' }}>
+        {/* Mobile close button */}
+        <button
+          onClick={closeSidebar}
+          style={{
+            display: 'none',
+            position: 'absolute', top: 12, right: 10,
+            background: 'transparent', border: 'none',
+            cursor: 'pointer', color: 'var(--text-muted)',
+            padding: 4, borderRadius: 4,
+          }}
+          className="sidebar-close-btn"
+          aria-label="Close sidebar"
+        >
+          <X size={16} />
+        </button>
         {/* Workspace name */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
@@ -188,5 +213,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }
