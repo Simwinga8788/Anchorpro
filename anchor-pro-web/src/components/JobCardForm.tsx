@@ -384,7 +384,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       {/* ── Footer Actions ── */}
       <div style={{ 
         display: 'flex', justifyContent: 'flex-end', gap: 10,
-        position: 'sticky', bottom: -24, background: '#1f1f1f', padding: '16px 0', borderTop: '1px solid var(--border-subtle)' 
+        position: 'sticky', bottom: -24, background: 'var(--bg-card)', padding: '16px 0', borderTop: '1px solid var(--border-subtle)'
       }}>
         <button type="button" onClick={onCancel} className="btn btn-secondary" disabled={loading}>Cancel</button>
         <button type="submit" className="btn btn-primary" disabled={loading}>
