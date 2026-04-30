@@ -18,16 +18,15 @@ export default function DowntimePage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       dashboardApi.getAllDowntime(),
       dashboardApi.getDowntimeCategories(),
       dashboardApi.getJobCards(),
     ]).then(([dt, cats, jbs]) => {
-      setDowntime(dt || []);
-      setCategories(cats || []);
-      setJobs(jbs || []);
-    }).catch(console.error)
-      .finally(() => setLoading(false));
+      setDowntime(dt.status === 'fulfilled' ? (dt.value || []) : []);
+      setCategories(cats.status === 'fulfilled' ? (cats.value || []) : []);
+      setJobs(jbs.status === 'fulfilled' ? (jbs.value || []) : []);
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
