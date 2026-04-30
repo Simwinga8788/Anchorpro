@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, RefObject } from 'react';
 
 const NAV = ['Product', 'Solutions', 'Pricing', 'Enterprise'];
 const LOGOS = ['Nexora Group', 'Stratum Mining', 'Velaris FM', 'Kova Logistics', 'Meridian Works', 'Onyx Properties'];
@@ -30,7 +30,7 @@ const METRICS = [
 
 const WORDS = ['Maintenance', 'Operations', 'Field Teams', 'Facilities'];
 
-function useInView(ref: React.RefObject<Element | null>, threshold = 0.1) {
+function useInView(ref: RefObject<Element | null>, threshold = 0.1) {
   const [v, setV] = useState(false);
   useEffect(() => {
     const el = ref.current; if (!el) return;
@@ -55,12 +55,18 @@ function useCounter(target: number, active: boolean, duration = 1800) {
   return count;
 }
 
-function AnimatedMetric({ val, suffix, label, active }: { val: number; suffix: string; label: string; active: boolean }) {
+function AnimatedMetric({ val, suffix, label, active, bg, hoverBg, borderColor, textColor, subColor }: { val: number; suffix: string; label: string; active: boolean; bg: string; hoverBg: string; borderColor: string; textColor: string; subColor: string }) {
   const count = useCounter(val, active);
+  const [hovered, setHovered] = useState(false);
   return (
-    <div className="lp-metric">
-      <div className="lp-metric-val">{count}{suffix}</div>
-      <div className="lp-metric-lbl">{label}</div>
+    <div
+      className="lp-metric"
+      style={{ background: hovered ? hoverBg : bg, borderRight: `1px solid ${borderColor}`, cursor: 'default', transition: 'background .2s' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="lp-metric-val" style={{ color: textColor }}>{count}{suffix}</div>
+      <div className="lp-metric-lbl" style={{ color: subColor }}>{label}</div>
     </div>
   );
 }
@@ -374,15 +380,9 @@ export default function LandingPage() {
 
         <div className="lp-metrics" ref={metricsRef} style={{ border: `1px solid ${D.line}` }}>
           {METRICS.map(m => (
-            <div key={m.label} className="lp-metric"
-              style={{ background: D.bg, borderRight: `1px solid ${D.line}`, color: D.text }}
-              onMouseEnter={e => (e.currentTarget.style.background = D.metricHover)}
-              onMouseLeave={e => (e.currentTarget.style.background = D.bg)}
-            >
-              <div className="lp-metric-val" style={{ color: D.text }}>
-                <AnimatedMetric val={m.val} suffix={m.suffix} label={m.label} active={metricsVis} />
-              </div>
-            </div>
+            <AnimatedMetric key={m.label} val={m.val} suffix={m.suffix} label={m.label} active={metricsVis}
+              bg={D.bg} hoverBg={D.metricHover} borderColor={D.line} textColor={D.text} subColor={D.sub2}
+            />
           ))}
         </div>
       </section>
