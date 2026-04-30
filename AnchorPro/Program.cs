@@ -10,11 +10,22 @@ var builder = WebApplication.CreateBuilder(args);
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:5173", "http://localhost:3000" };
 
+// Always include Vercel deployment origins alongside configured origins
+var allOrigins = allowedOrigins
+    .Concat(new[] {
+        "https://anchorpro-web.vercel.app",
+        "https://anchorpro.vercel.app",
+        "https://anchor-pro-app.vercel.app",
+    })
+    .Distinct()
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactAppPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins(allOrigins)
+              .SetIsOriginAllowedToAllowWildcardSubdomains()
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Needed for cookie-based auth
