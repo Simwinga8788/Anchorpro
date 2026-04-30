@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef, RefObject } from 'react';
 
-const NAV = ['Product', 'Solutions', 'Pricing', 'Enterprise'];
+const NAV = ['Product', 'Solutions', 'Enterprise'];
 const LOGOS = ['Nexora Group', 'Stratum Mining', 'Velaris FM', 'Kova Logistics', 'Meridian Works', 'Onyx Properties'];
 
 const FEATURES = [
@@ -15,11 +15,6 @@ const FEATURES = [
   { icon: '📊', title: 'Intelligence Center', body: 'MTBF, MTTR, technician utilisation, cost per asset. AI failure risk scores before breakdowns happen.', color: '#06B6D4', demo: ['Avg MTBF: 847 hours ↑ 12%', 'Avg MTTR: 2.4 hours ↓ 18%', 'Tech utilisation: 84% this week'] },
 ];
 
-const PLANS = [
-  { name: 'Starter', price: { monthly: 'K 1,500', yearly: 'K 1,200' }, period: '/mo', desc: 'For small teams getting started', features: ['5 users', '50 job cards/month', 'Asset registry', 'Basic reporting', 'Email support'], cta: 'Start free trial', highlight: false },
-  { name: 'Professional', price: { monthly: 'K 2,500', yearly: 'K 2,000' }, period: '/mo', desc: 'For growing operations teams', features: ['Unlimited users', 'Unlimited job cards', 'Full planning board', 'Safety & PTW', 'Intelligence center', 'Priority support'], cta: 'Get started', highlight: true },
-  { name: 'Enterprise', price: { monthly: 'Custom', yearly: 'Custom' }, period: '', desc: 'Dedicated instance + SLA', features: ['Everything in Pro', 'Dedicated environment', 'Custom integrations', 'On-site training', 'Account manager'], cta: 'Contact sales', highlight: false },
-];
 
 const METRICS = [
   { val: 40, suffix: '%', label: 'Reduction in downtime' },
@@ -75,18 +70,15 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
-  const [yearly, setYearly] = useState(false);
   const [wordIdx, setWordIdx] = useState(0);
   const [wordVisible, setWordVisible] = useState(true);
   const [dark, setDark] = useState(true);
 
   const featRef    = useRef<HTMLDivElement>(null);
   const metricsRef = useRef<HTMLDivElement>(null);
-  const pricingRef = useRef<HTMLDivElement>(null);
   const ctaRef     = useRef<HTMLDivElement>(null);
   const featVis    = useInView(featRef);
   const metricsVis = useInView(metricsRef, 0.3);
-  const pricingVis = useInView(pricingRef);
   const ctaVis     = useInView(ctaRef);
 
   // Load theme from localStorage on mount
@@ -157,8 +149,6 @@ export default function LandingPage() {
     previewBg: dark ? '#111113' : '#F8F8FA',
     previewItemBg: dark ? '#0A0A0B' : '#FFFFFF',
     previewItemHoverBg: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)',
-    planBg: dark ? '#111113' : '#F8F8FA',
-    planHiBg: dark ? 'rgba(75,143,255,.06)' : 'rgba(75,143,255,.04)',
     ctaBg: dark
       ? 'linear-gradient(135deg,rgba(75,143,255,.07) 0%,rgba(75,143,255,.02) 100%)'
       : 'linear-gradient(135deg,rgba(75,143,255,.06) 0%,rgba(75,143,255,.01) 100%)',
@@ -249,30 +239,6 @@ export default function LandingPage() {
         .lp-feat-preview-item:nth-child(2){animation-delay:.08s}
         .lp-feat-preview-item:nth-child(3){animation-delay:.16s}
 
-        /* PRICING */
-        .lp-pricing-toggle{display:flex;align-items:center;gap:12px;margin-top:28px}
-        .lp-toggle-wrap{position:relative;width:44px;height:24px;cursor:pointer}
-        .lp-toggle-track{width:100%;height:100%;border-radius:12px;background:rgba(75,143,255,.25);transition:background .2s}
-        .lp-toggle-track.on{background:#4B8FFF}
-        .lp-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
-        .lp-toggle-knob.on{transform:translateX(20px)}
-        .lp-toggle-lbl{font-size:13px;font-weight:400}
-        .lp-save-badge{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#22C55E;font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;letter-spacing:.2px}
-        .lp-pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;align-items:start}
-        .lp-plan{border-radius:16px;padding:28px;position:relative;transition:border-color .2s,transform .2s,background .25s}
-        .lp-plan:hover{transform:translateY(-3px)}
-        .lp-plan-badge{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:#4B8FFF;color:#fff;font-size:10px;font-weight:700;padding:3px 14px;border-radius:0 0 8px 8px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
-        .lp-plan-name{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
-        .lp-plan-price{font-family:'Lora',serif;font-size:38px;font-weight:600;letter-spacing:-1.5px;line-height:1;transition:all .2s}
-        .lp-plan-period{font-size:13px;font-weight:300;margin-left:2px}
-        .lp-plan-desc{font-size:13px;font-weight:300;margin-top:6px;margin-bottom:22px}
-        .lp-plan-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:24px}
-        .lp-plan-features li{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:300}
-        .lp-plan-features li::before{content:'✓';color:#22C55E;font-size:12px;font-weight:700;flex-shrink:0}
-        .lp-plan-cta{display:block;text-align:center;padding:11px 20px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;font-family:'Geist',sans-serif}
-        .lp-plan-cta.pri{background:#4B8FFF;color:#fff;border:none}
-        .lp-plan-cta.pri:hover{background:#3a7ef0;transform:translateY(-1px);box-shadow:0 6px 20px rgba(75,143,255,.3)}
-
         /* CTA */
         .lp-cta-section{padding:60px 40px 120px;max-width:1100px;margin:0 auto}
         .lp-cta-inner{border-radius:20px;padding:80px 48px;text-align:center;position:relative;overflow:hidden;transition:background .25s,border-color .25s}
@@ -297,7 +263,6 @@ export default function LandingPage() {
           .lp-section{padding:72px 18px}
           .lp-feat-layout{grid-template-columns:1fr}
           .lp-feat-preview{position:static;margin-top:24px}
-          .lp-pricing-grid{grid-template-columns:1fr}
           .lp-cta-section{padding:40px 18px 80px}
           .lp-cta-inner{padding:48px 20px}
           .lp-footer{padding:22px 18px;flex-direction:column;align-items:flex-start}
@@ -443,49 +408,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <section className="lp-section" id="pricing" ref={pricingRef} style={{ paddingTop: 0 }}>
-        <div className={`rv${pricingVis ? ' in' : ''}`}>
-          <div className="lp-stag">Pricing</div>
-          <h2 className="lp-sh2" style={{ color: D.text }}>Simple, transparent pricing.</h2>
-          <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.7, color: D.sub, maxWidth: 440, marginTop: 16 }}>No hidden fees. Cancel any time. Start with a 14-day free trial on any plan.</p>
-          <div className="lp-pricing-toggle" onClick={() => setYearly(v => !v)} style={{ cursor: 'pointer' }}>
-            <span className="lp-toggle-lbl" style={{ color: D.sub }}>Monthly</span>
-            <div className="lp-toggle-wrap">
-              <div className={`lp-toggle-track${yearly ? ' on' : ''}`} />
-              <div className={`lp-toggle-knob${yearly ? ' on' : ''}`} />
-            </div>
-            <span className="lp-toggle-lbl" style={{ color: D.sub }}>Yearly</span>
-            {yearly && <span className="lp-save-badge">Save 20%</span>}
-          </div>
-        </div>
-        <div className="lp-pricing-grid">
-          {PLANS.map((p, i) => (
-            <div key={p.name}
-              className={`lp-plan${p.highlight ? ' hi' : ''} rv${pricingVis ? ' in' : ''} d${i + 2}`}
-              style={{
-                background: p.highlight ? D.planHiBg : D.planBg,
-                border: `1px solid ${p.highlight ? '#4B8FFF' : D.line}`,
-              }}
-            >
-              {p.highlight && <div className="lp-plan-badge">Most popular</div>}
-              <div className="lp-plan-name" style={{ color: D.sub }}>{p.name}</div>
-              <div>
-                <span className="lp-plan-price" style={{ color: D.text }}>{yearly ? p.price.yearly : p.price.monthly}</span>
-                {p.period && <span className="lp-plan-period" style={{ color: D.sub }}>{p.period}</span>}
-              </div>
-              <div className="lp-plan-desc" style={{ color: D.sub2 }}>{p.desc}</div>
-              <ul className="lp-plan-features">
-                {p.features.map(ft => <li key={ft} style={{ color: D.sub }}>{ft}</li>)}
-              </ul>
-              <Link href="/register" className={`lp-plan-cta${p.highlight ? ' pri' : ' sec'}`}
-                style={!p.highlight ? { background: 'transparent', color: D.sub, border: `1px solid ${D.line2}` } : {}}
-              >{p.cta}</Link>
-            </div>
-          ))}
         </div>
       </section>
 
