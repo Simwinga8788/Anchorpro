@@ -128,62 +128,82 @@ export interface DepartmentalSnapshot {
 // ─── API Functions ─────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
+  // Documented endpoints per SYSTEM_DOCUMENTATION.md
   getStats:        () => apiFetch<DashboardStats>('/api/dashboard/stats'),
+  getActivity:     () => apiFetch<any[]>('/api/dashboard/activity'),
+  getTechnicians:  () => apiFetch<any[]>('/api/dashboard/technicians'),
+
+  // These may exist as extensions — kept for pages that call them, will gracefully 404
   getPerformance:  (days = 30) => apiFetch<PerformanceMetrics>(`/api/dashboard/performance?days=${days}`),
   getHealth:       () => apiFetch<SystemHealth>('/api/dashboard/health'),
   getExecutive:    () => apiFetch<ExecutiveSnapshot>('/api/dashboard/executive'),
   getDepartments:  () => apiFetch<DepartmentalSnapshot[]>('/api/dashboard/departments'),
-  
+
   // Job Card Operations
   getJobCards:     () => apiFetch<any[]>('/api/jobcards'),
   createJobCard:   (data: any) => apiPost('/api/jobcards', data),
-  
+
   // Reference Data
   getEquipment:    () => apiFetch<any[]>('/api/referencedata/equipment'),
   getJobTypes:     () => apiFetch<any[]>('/api/referencedata/jobtypes'),
   getCustomers:    () => apiFetch<any[]>('/api/customers'),
   getContracts:    () => apiFetch<any[]>('/api/referencedata/contracts'),
-  getTechnicians:  () => apiFetch<any[]>('/api/referencedata/technicians'),
-  
+  getReferenceDataTechnicians: () => apiFetch<any[]>('/api/referencedata/technicians'),
+
   // Procurement
   getPurchaseOrders: () => apiFetch<any[]>('/api/procurement/orders'),
   getSuppliers:      () => apiFetch<any[]>('/api/procurement/suppliers'),
 
-  // Inventory & Assets
-  getInventoryItems: () => apiFetch<any[]>('/api/inventoryapi'),
-  getAssets:         () => apiFetch<any[]>('/api/equipmentapi'),
+  // Inventory & Assets — correct paths per docs
+  getInventoryItems: () => apiFetch<any[]>('/api/inventory'),
+  getAssets:         () => apiFetch<any[]>('/api/equipment'),
 
   // Jobs
-  updateJobStatus:     (id: number, status: number) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
-  
+  updateJobStatus: (id: number, status: number) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
+
   // Downtime
-  getAllDowntime:           () => apiFetch<any[]>('/api/downtime'),
-  reportDowntime:           (data: any) => apiPost<any>('/api/downtime', data),
-  updateDowntime:           (id: number, data: any) => apiPut<any>(`/api/downtime/${id}`, data),
-  getDowntimeCategories:    () => apiFetch<any[]>('/api/referencedata/downtimecategories'),
-  getJobTasks:              (jobCardId: number) => apiFetch<any[]>(`/api/jobtasks?jobCardId=${jobCardId}`),
+  getAllDowntime:        () => apiFetch<any[]>('/api/downtime'),
+  reportDowntime:        (data: any) => apiPost<any>('/api/downtime', data),
+  resolveDowntime:       (id: number) => apiPut<any>(`/api/downtime/${id}/resolve`, {}),
+  updateDowntime:        (id: number, data: any) => apiPut<any>(`/api/downtime/${id}`, data),
+  getDowntimeCategories: () => apiFetch<any[]>('/api/referencedata/downtimecategories'),
+  getJobTasks:           (jobCardId: number) => apiFetch<any[]>(`/api/jobtasks?jobCardId=${jobCardId}`),
 
   // POST Operations
   createCustomer:      (data: any) => apiPost<any>('/api/customers', data),
-  createAsset:         (data: any) => apiPost<any>('/api/equipmentapi', data),
-  createInventoryItem: (data: any) => apiPost<any>('/api/inventoryapi', data),
+  createAsset:         (data: any) => apiPost<any>('/api/equipment', data),
+  createInventoryItem: (data: any) => apiPost<any>('/api/inventory', data),
   createPurchaseOrder: (data: any) => apiPost<any>('/api/procurement/orders', data),
 };
 
 // ─── Intelligence API ───────────────────────────────────────────────────────────
 
 export const intelligenceApi = {
-  getProfitability:      (days = 30) => apiFetch<any[]>(`/api/intelligence/profitability?days=${days}`),
-  getTechUtilization:    (days = 30) => apiFetch<any[]>(`/api/intelligence/technicians?days=${days}`),
-  getRevenueByCustomer:  (days = 30) => apiFetch<any[]>(`/api/intelligence/revenue?days=${days}`),
-  getAssetPerformance:   (days = 30) => apiFetch<any[]>(`/api/intelligence/assets?days=${days}`),
+  // Documented endpoints per SYSTEM_DOCUMENTATION.md
+  getProfitability:   (days = 30) => apiFetch<any[]>(`/api/intelligence/profitability?days=${days}`),
+  getUtilization:     () => apiFetch<any[]>('/api/intelligence/utilization'),
+  getTrends:          () => apiFetch<any[]>('/api/intelligence/trends'),
+  getAlerts:          () => apiFetch<any[]>('/api/intelligence/alerts'),
+
+  // Extended endpoints — kept for existing pages, may 404 if not implemented
+  getTechUtilization:      (days = 30) => apiFetch<any[]>(`/api/intelligence/technicians?days=${days}`),
+  getRevenueByCustomer:    (days = 30) => apiFetch<any[]>(`/api/intelligence/revenue?days=${days}`),
+  getAssetPerformance:     (days = 30) => apiFetch<any[]>(`/api/intelligence/assets?days=${days}`),
   getInventoryConsumption: (days = 30) => apiFetch<any[]>(`/api/intelligence/inventory?days=${days}`),
-  getExecutiveSummary:   () => apiFetch<any>('/api/intelligence/executive'),
+  getExecutiveSummary:     () => apiFetch<any>('/api/intelligence/executive'),
 };
 
 // ─── Reports API ────────────────────────────────────────────────────────────────
 
 export const reportsApi = {
+  // Documented endpoints per SYSTEM_DOCUMENTATION.md
+  getAll:               () => apiFetch<any[]>('/api/reports'),
+  getJobCompletion:     () => apiFetch<any>('/api/reports/job-completion'),
+  getTechPerformance:   () => apiFetch<any>('/api/reports/technician-performance'),
+  getDowntimeAnalysis:  () => apiFetch<any>('/api/reports/downtime-analysis'),
+  exportUrl:            (type: string) => `${API_BASE}/api/reports/export/${type}`,
+
+  // Extended — kept for backward compat with existing pages
   getScheduled:      () => apiFetch<any[]>('/api/reports/scheduled'),
   saveScheduled:     (data: any) => apiPost<any>('/api/reports/scheduled', data),
   deleteScheduled:   (id: number) => apiDelete(`/api/reports/scheduled/${id}`),
@@ -216,7 +236,8 @@ export const financialApi = {
   updateInvoice:     (id: number, data: any) => apiPut<any>(`/api/financial/invoices/${id}`, data),
   getPayments:       (invoiceId: number) => apiFetch<any[]>(`/api/financial/invoices/${invoiceId}/payments`),
   recordPayment:     (invoiceId: number, data: any) => apiPost<any>(`/api/financial/invoices/${invoiceId}/payments`, data),
-  getSnapshot:       () => apiFetch<any>('/api/financial/snapshot'),
+  getSummary:        () => apiFetch<any>('/api/financial/summary'),
+  getSnapshot:       () => apiFetch<any>('/api/financial/summary'), // alias kept for existing pages
 };
 
 // ─── Settings & Seeder API ──────────────────────────────────────────────────────
@@ -267,6 +288,31 @@ export const contractsApi = {
 
 export const alertsApi = {
   triggerChecks:    () => apiPost<any>('/api/alerts/check', {}),
+};
+
+// ─── Platform (Super Admin) API ────────────────────────────────────────────────
+// Routes from AdminAccessController (/api/admin) and PlatformConfigController (/api/platformconfig)
+
+export const platformApi = {
+  // Tenants — AdminAccessController
+  getTenants:      () => apiFetch<any[]>('/api/admin/tenants'),
+  suspendTenant:   (id: number) => apiPost<any>(`/api/admin/tenants/${id}/suspend`, {}),
+  getHealth:       () => apiFetch<any>('/api/admin/health'),
+
+  // Billing / Subscription plans — via subscriptionApi (tenant-scoped) or platformconfig
+  getPlans:        () => apiFetch<any[]>('/api/subscription/plans'),
+
+  // Billing Stripe portal — BillingController
+  createCheckout:  (planId: number) => apiPost<any>('/api/billing/checkout', { planId }),
+  createPortal:    () => apiPost<any>('/api/billing/portal', {}),
+
+  // Org profile — OrgController
+  getOrg:          () => apiFetch<any>('/api/org'),
+  updateOrg:       (data: any) => apiPut<any>('/api/org', data),
+
+  // Settings (platform-level) — SettingsController
+  getSettings:     () => apiFetch<any[]>('/api/settings'),
+  updateSetting:   (key: string, value: string) => apiPut<any>(`/api/settings/${key}`, { value }),
 };
 
 export const teamApi = {
