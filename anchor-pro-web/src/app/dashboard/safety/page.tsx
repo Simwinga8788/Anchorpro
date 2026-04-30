@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle, PauseCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { safetyApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
@@ -48,6 +48,22 @@ export default function SafetyPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSuspend = async (id: number) => {
+    const notes = prompt('Reason for suspension:');
+    if (notes === null) return;
+    try {
+      await safetyApi.updatePermitStatus(id, 1, notes); // 1 = Suspended
+      loadData();
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const handleReactivate = async (id: number) => {
+    try {
+      await safetyApi.updatePermitStatus(id, 0, 'Reactivated'); // 0 = Active
+      loadData();
+    } catch (err: any) { alert(err.message); }
   };
 
   const handleClose = async (id: number) => {
@@ -157,9 +173,33 @@ export default function SafetyPage() {
                   <td>{p.isPpeChecked ? <CheckCircle2 size={14} style={{ color: 'var(--accent-emerald)' }} /> : <XCircle size={14} style={{ color: 'var(--accent-rose)' }} />}</td>
                   <td><span className={`badge ${statusInfo.badge}`}>{statusInfo.label}</span></td>
                   <td style={{ textAlign: 'right' }}>
-                    {p.status === 0 && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleClose(p.id)}>Close</button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      {p.status === 0 && (
+                        <>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ borderColor: 'var(--accent-amber)', color: 'var(--accent-amber)' }}
+                            title="Suspend Permit"
+                            onClick={() => handleSuspend(p.id)}
+                          >
+                            <PauseCircle size={12} /> Suspend
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleClose(p.id)}>Close</button>
+                        </>
+                      )}
+                      {p.status === 1 && (
+                        <>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ borderColor: 'var(--accent-emerald)', color: 'var(--accent-emerald)' }}
+                            onClick={() => handleReactivate(p.id)}
+                          >
+                            <ShieldCheck size={12} /> Reactivate
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleClose(p.id)}>Close</button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
