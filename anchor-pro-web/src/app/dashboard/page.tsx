@@ -91,7 +91,8 @@ export default function DashboardPage() {
   const activity   = useApiData(() => dashboardApi.getActivity());
   const profitData = useApiData(() => intelligenceApi.getProfitability(30));
   const utilData   = useApiData(() => intelligenceApi.getUtilization());
-  const techData   = useApiData(() => dashboardApi.getTechnicians());
+  // /api/dashboard/technicians not yet implemented in backend — fallback to referencedata
+  const techData   = useApiData(() => dashboardApi.getReferenceDataTechnicians());
 
   const [isNewJobOpen, setIsNewJobOpen] = useState(false);
 
