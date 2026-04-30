@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Search, Plus, Wrench, AlertTriangle, Clock,
-  CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag
+  CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag, ExternalLink, X
 } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
@@ -204,6 +204,116 @@ function JobDetailPanel({ job, technicians, onClose, onSaved }: {
   );
 }
 
+// ── Raise Subcontract Modal ────────────────────────────────────────────────────
+
+function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => void; onSaved: () => void }) {
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    supplierId: '',
+    description: '',
+    estimatedCost: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    dashboardApi.getSuppliers().then(setSuppliers).catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.supplierId || !form.description) return;
+    setSaving(true);
+    try {
+      const year = new Date().getFullYear();
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      await dashboardApi.createPurchaseOrder({
+        poNumber: `PO-SUB-${year}-${rand}`,
+        supplierId: parseInt(form.supplierId),
+        poType: 2, // Subcontracting
+        jobCardId: job.id,
+        notes: form.notes || `Subcontracted work for ${job.jobNumber} — ${job.equipment?.name ?? ''}`.trim(),
+        items: [{
+          description: form.description,
+          quantityOrdered: 1,
+          unitCost: parseFloat(form.estimatedCost) || 0,
+        }],
+      });
+      onSaved();
+      onClose();
+    } catch {
+      alert('Failed to raise subcontract PO');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', fontSize: 13, padding: '8px 12px',
+    background: 'var(--bg-app)', border: '1px solid var(--border-default)',
+    borderRadius: 6, color: 'var(--text-primary)', boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div className="card-elevated" style={{ width: 480, padding: 28, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Raise Subcontract PO</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+              Linked to <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{job.jobNumber}</span> · {job.equipment?.name}
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>External Contractor / Supplier *</label>
+            <select style={fieldStyle} required value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))}>
+              <option value="">Select supplier...</option>
+              {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            {suppliers.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>No suppliers yet — add one in Procurement first</div>
+            )}
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Scope of Work *</label>
+            <textarea style={{ ...fieldStyle, minHeight: 80, resize: 'vertical' }} required
+              placeholder="Describe the work to be subcontracted..."
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Estimated Cost (K)</label>
+            <input style={fieldStyle} type="number" min="0" step="0.01"
+              placeholder="0.00"
+              value={form.estimatedCost}
+              onChange={e => setForm(f => ({ ...f, estimatedCost: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Internal Notes</label>
+            <input style={fieldStyle} placeholder="Any internal notes or reference..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ background: 'var(--accent-violet)' }} disabled={saving || !form.supplierId}>
+              <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise Subcontract PO'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function JobCardsPage() {
@@ -216,6 +326,7 @@ export default function JobCardsPage() {
   const [isNewJobOpen, setIsNewJobOpen]   = useState(false);
   const [selectedJob, setSelectedJob]     = useState<any>(null);
   const [openMenuId, setOpenMenuId]       = useState<number | null>(null);
+  const [subcontractJob, setSubcontractJob] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchJobs = () => {
@@ -257,6 +368,15 @@ export default function JobCardsPage() {
 
   return (
     <div>
+      {/* Subcontract Modal */}
+      {subcontractJob && (
+        <SubcontractModal
+          job={subcontractJob}
+          onClose={() => setSubcontractJob(null)}
+          onSaved={fetchJobs}
+        />
+      )}
+
       {/* New Job SlideOver */}
       <SlideOver
         open={isNewJobOpen}
@@ -411,6 +531,7 @@ export default function JobCardsPage() {
                         }}>
                           {[
                             { label: 'View / Edit', action: () => { setSelectedJob(job); setOpenMenuId(null); } },
+                            { label: 'Raise Subcontract', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
                             { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
                             { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },
                             { label: 'Mark Completed', action: () => { dashboardApi.updateJobStatus(job.id, 3).then(fetchJobs); setOpenMenuId(null); } },
@@ -422,7 +543,7 @@ export default function JobCardsPage() {
                               style={{
                                 width: '100%', textAlign: 'left', padding: '9px 14px',
                                 background: 'none', border: 'none', cursor: 'pointer',
-                                fontSize: 13, color: (item as any).danger ? 'var(--accent-rose)' : 'var(--text-secondary)',
+                                fontSize: 13, color: (item as any).danger ? 'var(--accent-rose)' : (item as any).violet ? 'var(--accent-violet)' : 'var(--text-secondary)',
                                 borderBottom: '1px solid var(--border-subtle)',
                               }}
                               onMouseEnter={e => ((e.target as HTMLElement).style.background = 'var(--bg-hover)')}
