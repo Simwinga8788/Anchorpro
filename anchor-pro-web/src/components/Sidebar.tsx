@@ -47,7 +47,7 @@ const navSections = [
     items: [
       { href: '/dashboard/reports', label: 'Reports',             icon: BarChart3 },
       { href: '/dashboard/safety',  label: 'Safety & Compliance', icon: ShieldCheck },
-      { href: '/dashboard/invoices',   label: 'Invoices & Billing', icon: DollarSign },
+      // { href: '/dashboard/invoices',   label: 'Invoices & Billing', icon: DollarSign }, // hidden for now
       { href: '/dashboard/contracts',   label: 'Contracts',          icon: FileText },
       { href: '/dashboard/roles',       label: 'Roles & Permissions',icon: Shield },
     ]
