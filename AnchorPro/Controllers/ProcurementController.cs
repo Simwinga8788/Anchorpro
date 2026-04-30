@@ -62,5 +62,27 @@ namespace AnchorPro.Controllers
             using var context = await _factory.CreateDbContextAsync();
             return await context.Suppliers.AsNoTracking().ToListAsync();
         }
+
+        [HttpPost("suppliers")]
+        public async Task<ActionResult<Supplier>> CreateSupplier([FromBody] Supplier supplier)
+        {
+            using var context = await _factory.CreateDbContextAsync();
+            supplier.CreatedAt = DateTime.UtcNow;
+            supplier.CreatedBy = User.Identity?.Name ?? "API";
+            context.Suppliers.Add(supplier);
+            await context.SaveChangesAsync();
+            return Ok(supplier);
+        }
+
+        [HttpDelete("suppliers/{id}")]
+        public async Task<ActionResult> DeleteSupplier(int id)
+        {
+            using var context = await _factory.CreateDbContextAsync();
+            var supplier = await context.Suppliers.FindAsync(id);
+            if (supplier == null) return NotFound();
+            context.Suppliers.Remove(supplier);
+            await context.SaveChangesAsync();
+            return NoContent();
+        }
     }
 }
