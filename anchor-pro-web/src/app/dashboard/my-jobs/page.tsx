@@ -102,6 +102,42 @@ export default function MyJobsPage() {
 
   const activeWork = jobs.filter(j => j.status === 1 || j.status === 2);
 
+  // Task checklist state
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
+
+  const loadTasks = async (jobId: number) => {
+    setSelectedJobId(jobId);
+    setTasksLoading(true);
+    try {
+      const data = await dashboardApi.getJobTasks(jobId);
+      setTasks(Array.isArray(data) ? data : []);
+    } catch {
+      setTasks([]);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const toggleTask = async (taskId: number, currentDone: boolean) => {
+    setUpdatingTaskId(taskId);
+    try {
+      await fetch(`/api/jobtasks/${taskId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isCompleted: !currentDone }),
+      });
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, isCompleted: !currentDone } : t));
+    } catch {
+      // silent fail — UI stays optimistic
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
   return (
     <div>
       {/* Safety Permit SlideOver */}
@@ -174,14 +210,24 @@ export default function MyJobsPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {activeWork.map(job => {
               const sc = statusConfig[job.status] || statusConfig[0];
               const isWorking = job.status === 2;
+              const isSelected = selectedJobId === job.id;
 
               return (
-                <div key={job.id} className="card-elevated" style={{ padding: 0, overflow: 'hidden', borderLeft: `4px solid ${sc.color}` }}>
+                <div
+                  key={job.id}
+                  className="card-elevated"
+                  style={{
+                    padding: 0, overflow: 'hidden',
+                    borderLeft: `4px solid ${sc.color}`,
+                    outline: isSelected ? `1px solid ${sc.color}` : 'none',
+                  }}
+                  onClick={() => loadTasks(job.id)}
+                >
                   <div style={{ padding: '20px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                       <div>
@@ -193,7 +239,7 @@ export default function MyJobsPage() {
 
                     <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>{job.description || 'Routine maintenance and inspection.'}</p>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 10 }} onClick={e => e.stopPropagation()}>
                       {!isWorking ? (
                         <button onClick={() => handleStartWork(job.id)} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
                           <Play size={14} /> Start Job
@@ -215,9 +261,68 @@ export default function MyJobsPage() {
             })}
           </div>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Task Checklist</h3>
-            <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Select a job to view detailed tasks and technical documentation.</p>
+          {/* Task Checklist Panel */}
+          <div className="card" style={{ padding: 20, position: 'sticky', top: 80 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Task Checklist</h3>
+            {!selectedJobId ? (
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>Tap a job card to load its tasks.</p>
+            ) : tasksLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                {[1,2,3].map(i => (
+                  <div key={i} style={{ height: 36, borderRadius: 6, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                ))}
+              </div>
+            ) : tasks.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>No tasks defined for this job card.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                  {tasks.filter(t => t.isCompleted).length}/{tasks.length} completed
+                </div>
+                {/* Progress bar */}
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--border-subtle)', marginBottom: 10 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2, background: 'var(--accent-emerald)',
+                    width: `${Math.round((tasks.filter(t => t.isCompleted).length / tasks.length) * 100)}%`,
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                {tasks.map(task => (
+                  <label
+                    key={task.id}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+                      padding: '8px 10px', borderRadius: 6,
+                      background: task.isCompleted ? 'var(--accent-emerald-dim)' : 'var(--bg-elevated)',
+                      border: '1px solid var(--border-subtle)',
+                      opacity: updatingTaskId === task.id ? 0.6 : 1,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!task.isCompleted}
+                      disabled={updatingTaskId === task.id}
+                      onChange={() => toggleTask(task.id, task.isCompleted)}
+                      style={{ marginTop: 2, accentColor: 'var(--accent-emerald)', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{
+                        fontSize: 13, fontWeight: 500,
+                        color: task.isCompleted ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                        textDecoration: task.isCompleted ? 'line-through' : 'none',
+                      }}>
+                        {task.description ?? task.taskDescription ?? task.name ?? 'Task'}
+                      </div>
+                      {task.estimatedHours && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                          Est. {task.estimatedHours}h
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
