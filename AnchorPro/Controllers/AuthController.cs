@@ -98,6 +98,28 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// Updates the current user's profile (firstName, lastName).
+        /// Called by the Settings page as PUT /api/auth/users/profile
+        /// and also mapped to PUT /api/users/profile via alias below.
+        /// </summary>
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<ActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            if (!string.IsNullOrWhiteSpace(request.FirstName)) user.FirstName = request.FirstName.Trim();
+            if (!string.IsNullOrWhiteSpace(request.LastName))  user.LastName  = request.LastName.Trim();
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new { message = "Profile updated." });
+        }
+
+        /// <summary>
         /// Returns the currently authenticated user's profile and roles.
         /// </summary>
         [HttpGet("me")]
@@ -163,6 +185,8 @@ namespace AnchorPro.Controllers
     }
 
     public record LoginRequest(string Email, string Password);
+
+    public record UpdateProfileRequest(string? FirstName, string? LastName);
 
     public record RegisterRequest(
         string CompanyName,
