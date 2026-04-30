@@ -8,10 +8,12 @@ namespace AnchorPro.Services
     public class ReferenceDataService : IReferenceDataService
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly ICurrentTenantService _tenantService;
 
-        public ReferenceDataService(IDbContextFactory<ApplicationDbContext> factory)
+        public ReferenceDataService(IDbContextFactory<ApplicationDbContext> factory, ICurrentTenantService tenantService)
         {
             _factory = factory;
+            _tenantService = tenantService;
         }
 
         public async Task<List<JobType>> GetJobTypesAsync()
@@ -47,7 +49,12 @@ namespace AnchorPro.Services
         public async Task<List<ApplicationUser>> GetTechniciansAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Users.AsNoTracking().ToListAsync(); // Simplification: in prod filter by role
+            var tenantId = _tenantService.TenantId;
+            // Only return users that explicitly belong to the current tenant
+            return await context.Users
+                .AsNoTracking()
+                .Where(u => u.TenantId.HasValue && u.TenantId == tenantId)
+                .ToListAsync();
         }
 
         public async Task CreateJobTypeAsync(JobType jobType, string userId)
