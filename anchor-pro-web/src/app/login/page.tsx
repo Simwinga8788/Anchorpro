@@ -1,11 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
-import { Shield, Lock, User, Terminal, Loader2 } from 'lucide-react';
+import { Shield, Lock, User, Terminal, Loader2, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 
-export default function LoginPage() {
+// useSearchParams must live inside a Suspense boundary in Next.js App Router
+function RegisteredBanner() {
+  const params = useSearchParams();
+  if (params.get('registered') !== '1') return null;
+  return (
+    <div style={{ padding: '12px', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 6, color: '#22c55e', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <CheckCircle2 size={14}/> Workspace created! Sign in to get started.
+    </div>
+  );
+}
+
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,6 +51,10 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          <Suspense fallback={null}>
+            <RegisteredBanner />
+          </Suspense>
+
           {error && (
             <div className="login-error">
               <Lock size={14} /> {error}
@@ -89,6 +105,12 @@ export default function LoginPage() {
           <div className="footer-links">
             <Terminal size={12} /> <span>v1.3.2 Production</span>
           </div>
+          <div style={{ marginTop: 16, fontSize: 13, color: '#64748b' }}>
+            No account yet?{' '}
+            <Link href="/register" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+              Start free trial →
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -99,7 +121,6 @@ export default function LoginPage() {
           justify-content: center;
           min-height: 100vh;
           background: #0f172a;
-          /* Premium Radial Gradient */
           background: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
           padding: 20px;
           color: #fff;
@@ -264,5 +285,13 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
