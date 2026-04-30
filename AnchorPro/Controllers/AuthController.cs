@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 
@@ -95,6 +96,45 @@ namespace AnchorPro.Controllers
                         TenantId = tenant.Id,
                     });
                 }
+
+                // 6. Seed default job types
+                var defaultJobTypes = new[]
+                {
+                    ("Preventive Maintenance", "Scheduled maintenance to prevent failures"),
+                    ("Corrective Maintenance", "Repair after a fault or breakdown has occurred"),
+                    ("Breakdown / Emergency",  "Unplanned emergency response to a breakdown"),
+                    ("Inspection",             "Routine inspection or condition assessment"),
+                    ("Installation",           "New equipment or component installation"),
+                };
+                foreach (var (name, desc) in defaultJobTypes)
+                {
+                    db.JobTypes.Add(new Entities.JobType
+                    {
+                        Name        = name,
+                        Description = desc,
+                        TenantId    = tenant.Id,
+                    });
+                }
+
+                // 7. Seed default downtime categories
+                var defaultDowntimeCategories = new[]
+                {
+                    ("Mechanical Failure", "Failure of mechanical components"),
+                    ("Electrical Fault",   "Electrical or control system fault"),
+                    ("Planned Shutdown",   "Scheduled downtime for maintenance or inspection"),
+                    ("Operator Error",     "Downtime caused by incorrect operation"),
+                    ("External Factor",    "Power outage, weather, or other external causes"),
+                };
+                foreach (var (name, desc) in defaultDowntimeCategories)
+                {
+                    db.DowntimeCategories.Add(new Entities.DowntimeCategory
+                    {
+                        Name        = name,
+                        Description = desc,
+                        TenantId    = tenant.Id,
+                    });
+                }
+
                 await db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -164,12 +204,19 @@ namespace AnchorPro.Controllers
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null) return Unauthorized(new { message = "Invalid credentials" });
 
-            var result = await _signInManager.PasswordSignInAsync(user, request.Password, true, lockoutOnFailure: true);
-            if (!result.Succeeded)
-                return Unauthorized(new { message = result.IsLockedOut ? "Account locked" : "Invalid credentials" });
+            var checkResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (!checkResult.Succeeded)
+                return Unauthorized(new { message = checkResult.IsLockedOut ? "Account locked" : "Invalid credentials" });
 
             var roles = await _userManager.GetRolesAsync(user);
             var isPlatformOwner = !user.TenantId.HasValue && roles.Contains("Admin");
+
+            // Add TenantId as a custom claim so CurrentTenantService can resolve it from the cookie
+            var extraClaims = new List<Claim>();
+            if (user.TenantId.HasValue)
+                extraClaims.Add(new Claim("TenantId", user.TenantId.Value.ToString()));
+
+            await _signInManager.SignInWithClaimsAsync(user, isPersistent: true, extraClaims);
 
             return Ok(new UserProfileDto
             {
