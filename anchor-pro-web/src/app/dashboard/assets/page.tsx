@@ -12,7 +12,7 @@ const statusConfig: Record<number, { label: string; badge: string; dot: string }
   3: { label: 'Decommissioned', badge: 'badge-muted',  dot: 'muted' },
 };
 
-const BLANK = { name: '', model: '', serialNumber: '', manufacturer: '', departmentId: 1, status: 0 };
+const BLANK = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: 1 };
 
 export default function AssetsPage() {
   const [search, setSearch]     = useState('');
@@ -35,7 +35,7 @@ export default function AssetsPage() {
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
   const openEdit = (asset: any) => {
-    setFormData({ name: asset.name, model: asset.model || '', serialNumber: asset.serialNumber || '', manufacturer: asset.manufacturer || '', departmentId: asset.departmentId || 1, status: asset.status ?? 0 });
+    setFormData({ name: asset.name, modelNumber: asset.modelNumber || '', serialNumber: asset.serialNumber || '', manufacturer: asset.manufacturer || '', departmentId: asset.departmentId || 1 });
     setEditTarget(asset);
     setSlideMode('edit');
   };
@@ -85,20 +85,12 @@ export default function AssetsPage() {
             </div>
             <div className="form-field">
               <label className="form-label">Model</label>
-              <input className="form-input" value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} />
+              <input className="form-input" value={formData.modelNumber} onChange={e => setFormData({ ...formData, modelNumber: e.target.value })} />
             </div>
           </div>
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label">Serial Number</label>
-              <input className="form-input" required value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} />
-            </div>
-            <div className="form-field">
-              <label className="form-label">Status</label>
-              <select className="form-select" value={formData.status} onChange={e => setFormData({ ...formData, status: parseInt(e.target.value) })}>
-                {Object.entries(statusConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </div>
+          <div className="form-field">
+            <label className="form-label">Serial Number</label>
+            <input className="form-input" required value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} />
           </div>
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSlideMode(null)} disabled={saving}>Cancel</button>
