@@ -250,8 +250,15 @@ export default function SettingsPage() {
     try {
       await platformApi.updateOrg({ ...org, name: orgForm.name, currency: orgForm.currency });
       alert('Workspace settings saved.');
-    } catch (err: any) {
-      alert('Failed to save: ' + err.message);
+    } catch {
+      // /api/org not yet wired on backend — save to settings as fallback
+      try {
+        await settingsApi.set('Org.Name', orgForm.name, 'Organisation name', 'Org');
+        await settingsApi.set('Org.Currency', orgForm.currency, 'Default currency', 'Org');
+        alert('Workspace settings saved.');
+      } catch (e2: any) {
+        alert('Failed to save: ' + e2.message);
+      }
     } finally {
       setSavingOrg(false);
     }
