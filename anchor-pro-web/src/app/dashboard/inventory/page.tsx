@@ -40,7 +40,7 @@ export default function InventoryPage() {
     e.preventDefault(); setSaving(true);
     try {
       if (slideMode === 'edit' && editTarget) {
-        await fetch(`/api/inventory/${editTarget.id}`, {
+        await fetch(`/api/inventoryapi/${editTarget.id}`, {
           method: 'PUT', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...editTarget, ...formData }),
@@ -59,7 +59,7 @@ export default function InventoryPage() {
     if (isNaN(delta)) { setSaving(false); return; }
     try {
       const newQty = Math.max(0, (editTarget.quantityOnHand || 0) + delta);
-      await fetch(`/api/inventory/${editTarget.id}`, {
+      await fetch(`/api/inventoryapi/${editTarget.id}`, {
         method: 'PUT', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editTarget, quantityOnHand: newQty }),
