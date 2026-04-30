@@ -50,11 +50,12 @@ export default function DowntimePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.downtimeCategoryId || !form.jobTaskId) return;
+    if (!form.downtimeCategoryId) return;
     setSaving(true); setErr('');
     try {
       await dashboardApi.reportDowntime({
-        jobTaskId: Number(form.jobTaskId),
+        ...(form.jobTaskId ? { jobTaskId: Number(form.jobTaskId) } : {}),
+        ...(form.jobCardId ? { jobCardId: Number(form.jobCardId) } : {}),
         downtimeCategoryId: Number(form.downtimeCategoryId),
         notes: form.notes || null,
         startTime: form.startTime ? new Date(form.startTime).toISOString() : new Date().toISOString(),
@@ -190,9 +191,13 @@ export default function DowntimePage() {
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Job Task *</label>
-                <select style={fieldStyle} value={form.jobTaskId} onChange={e => setForm(f => ({ ...f, jobTaskId: e.target.value }))} required>
-                  <option value="">Select a task...</option>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>
+                  Job Task <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
+                </label>
+                <select style={fieldStyle} value={form.jobTaskId} onChange={e => setForm(f => ({ ...f, jobTaskId: e.target.value }))}>
+                  <option value="">
+                    {form.jobCardId && tasks.length === 0 ? 'No tasks — job-level downtime' : 'Select a task (optional)...'}
+                  </option>
                   {tasks.map((t: any) => <option key={t.id} value={t.id}>{t.description || 'Task #' + t.id}</option>)}
                 </select>
               </div>
@@ -219,7 +224,7 @@ export default function DowntimePage() {
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowModal(false); setErr(''); }}>Cancel</button>
-                <button type="submit" className="btn btn-danger" disabled={saving || !form.downtimeCategoryId || !form.jobTaskId}>
+                <button type="submit" className="btn btn-danger" disabled={saving || !form.downtimeCategoryId}>
                   {saving ? 'Reporting...' : 'Report Breakdown'}
                 </button>
               </div>
