@@ -1,5 +1,6 @@
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Data.Enums;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
