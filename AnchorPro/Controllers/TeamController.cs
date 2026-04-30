@@ -29,17 +29,21 @@ namespace AnchorPro.Controllers
             var caller = await _userManager.GetUserAsync(User);
             if (caller == null) return Unauthorized();
 
-            var allUsers = await _db.Users.AsNoTracking().ToListAsync();
+            // Require caller to have a tenant — platform owners can't use this endpoint
+            if (!caller.TenantId.HasValue) return Forbid();
+
+            // Pre-filter at DB level: only fetch users explicitly in this tenant
+            var allUsers = await _db.Users
+                .AsNoTracking()
+                .Where(u => u.TenantId == caller.TenantId)
+                .ToListAsync();
 
             var result = new List<object>();
             foreach (var u in allUsers)
             {
-                // Only users in the same tenant
-                if (u.TenantId != caller.TenantId) continue;
-
                 var roles = await _userManager.GetRolesAsync(u);
                 // Skip users who only have platform-level roles
-                if (roles.All(r => PlatformRoles.Contains(r))) continue;
+                if (roles.Any() && roles.All(r => PlatformRoles.Contains(r))) continue;
 
                 result.Add(new
                 {
