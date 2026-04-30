@@ -67,6 +67,36 @@ export default function SettingsPage() {
     { id: 'api',     name: 'REST API Access',     status: 'configured',     desc: 'AnchorPro public API for custom integrations',    icon: '⚙️' },
   ]);
 
+  // Departments state
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [savingDept, setSavingDept] = useState(false);
+
+  const loadDepartments = () => {
+    fetch('/api/org/departments', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : []).then(setDepartments).catch(() => setDepartments([]));
+  };
+
+  const handleAddDepartment = async () => {
+    if (!newDeptName.trim()) return;
+    setSavingDept(true);
+    try {
+      const res = await fetch('/api/org/departments', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDeptName.trim() }),
+      });
+      if (res.ok) { setNewDeptName(''); loadDepartments(); }
+      else { const b = await res.json().catch(() => ({})); alert(b.message || 'Failed to add department.'); }
+    } finally { setSavingDept(false); }
+  };
+
+  const handleDeleteDepartment = async (id: number) => {
+    if (!confirm('Delete this department?')) return;
+    await fetch(`/api/org/departments/${id}`, { method: 'DELETE', credentials: 'include' });
+    loadDepartments();
+  };
+
   const { refreshDictionary, dict } = useDictionary();
   const [dictState, setDictState] = useState<Record<string, string>>({});
   const [savingDict, setSavingDict] = useState(false);
@@ -81,6 +111,7 @@ export default function SettingsPage() {
       }
     }).catch(console.error);
     // Load reference data for config tab
+    loadDepartments();
     fetch('/api/referencedata/jobtypes', { credentials: 'include' })
       .then(r => r.ok ? r.json() : []).then(setJobTypes).catch(() => setJobTypes([]));
     fetch('/api/referencedata/downtimecategories', { credentials: 'include' })
@@ -213,6 +244,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'profile',       icon: <User size={15}/>,       label: 'My Account' },
     { id: 'workspace',     icon: <Building2 size={15}/>,  label: 'Workspace' },
+    { id: 'departments',   icon: <Building2 size={15}/>,  label: 'Departments' },
     { id: 'operations',    icon: <Sliders size={15}/>,    label: 'Operations Config' },
     { id: 'integrations',  icon: <Smartphone size={15}/>, label: 'Integrations' },
     { id: 'billing',       icon: <CreditCard size={15}/>, label: 'Plans & Billing' },
@@ -267,7 +299,7 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await fetch('/api/users/profile', {
+      await fetch('/api/auth/profile', {
         method: 'PUT', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName: profileForm.firstName, lastName: profileForm.lastName }),
@@ -515,6 +547,42 @@ export default function SettingsPage() {
                 </section>
               )}
              </div>
+          )}
+
+          {activeTab === 'departments' && (
+            <div className="card-elevated" style={{ padding: 30 }}>
+              <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Departments</h3>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>Create departments to organise your team members and job cards.</p>
+
+              <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
+                <input
+                  className="form-input"
+                  style={{ flex: 1 }}
+                  placeholder="e.g. Electrical, Mechanical, HVAC..."
+                  value={newDeptName}
+                  onChange={e => setNewDeptName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddDepartment(); }}
+                />
+                <button className="btn btn-primary" onClick={handleAddDepartment} disabled={savingDept || !newDeptName.trim()}>
+                  {savingDept ? <Loader2 size={14} className="spin"/> : <Plus size={14}/>} Add
+                </button>
+              </div>
+
+              {departments.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '32px 0' }}>No departments yet. Add one above.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {departments.map((d: any) => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
+                      <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{d.name}</span>
+                      <button onClick={() => handleDeleteDepartment(d.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+                        <Trash2 size={14}/>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === 'dictionary' && (
