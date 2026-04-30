@@ -80,6 +80,27 @@ export default function TeamPage() {
     setMenuOpen(null);
   }
 
+  const [editMember, setEditMember] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', employeeNumber: '', hourlyRate: '', role: 'Technician' });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editErr, setEditErr] = useState('');
+
+  function openEdit(member: any) {
+    setEditMember(member);
+    setEditForm({ firstName: member.firstName || '', lastName: member.lastName || '', employeeNumber: member.employeeNumber || '', hourlyRate: member.hourlyRate?.toString() || '', role: member.roles?.[0] || 'Technician' });
+    setMenuOpen(null);
+    setEditErr('');
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault(); setSavingEdit(true); setEditErr('');
+    try {
+      await teamApi.update(editMember.id, { firstName: editForm.firstName || undefined, lastName: editForm.lastName || undefined, employeeNumber: editForm.employeeNumber || undefined, hourlyRate: editForm.hourlyRate ? parseFloat(editForm.hourlyRate) : undefined, role: editForm.role });
+      setEditMember(null); load();
+    } catch (ex: any) { setEditErr(ex?.message || 'Update failed'); }
+    finally { setSavingEdit(false); }
+  }
+
   const fieldStyle: React.CSSProperties = {
     width: '100%', fontSize: 13, padding: '8px 12px',
     background: 'var(--bg-app)', border: '1px solid var(--border-default)',
@@ -145,6 +166,10 @@ export default function TeamPage() {
                           borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                           minWidth: 160, overflow: 'hidden',
                         }}>
+                                              <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, padding: '10px 14px', gap: 8, fontSize: 13 }} onClick={() => openEdit(member)}>
+                            <Star size={13} style={{ color: 'var(--accent-blue)' }} /> Edit / Change Role
+                          </button>
+                          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                           {isLocked ? (
                             <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, padding: '10px 14px', gap: 8, fontSize: 13 }} onClick={() => handleReactivate(member.id)}>
                               <UserCheck size={13} style={{ color: '#10b981' }} /> Reactivate
@@ -198,6 +223,43 @@ export default function TeamPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {editMember && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditMember(null)}>
+          <div className="card-elevated" style={{ width: 440, padding: 28 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Edit Member</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditMember(null)}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleEditSave}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>First Name</label>
+                  <input style={fieldStyle} value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Last Name</label>
+                  <input style={fieldStyle} value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Employee No.</label>
+                  <input style={fieldStyle} value={editForm.employeeNumber} onChange={e => setEditForm(f => ({ ...f, employeeNumber: e.target.value }))} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Hourly Rate (K)</label>
+                  <input style={fieldStyle} type="number" value={editForm.hourlyRate} onChange={e => setEditForm(f => ({ ...f, hourlyRate: e.target.value }))} /></div>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Role</label>
+                <select style={fieldStyle} value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              {editErr && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 12 }}>{editErr}</div>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditMember(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={savingEdit}>{savingEdit ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
