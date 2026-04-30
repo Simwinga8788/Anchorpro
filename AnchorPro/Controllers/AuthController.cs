@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 
@@ -12,16 +13,92 @@ namespace AnchorPro.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public AuthController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IDbContextFactory<ApplicationDbContext> dbFactory)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _dbFactory = dbFactory;
+        }
+
+        /// <summary>
+        /// Self-service registration: creates a new Tenant and an Admin user in one step.
+        /// </summary>
+        [HttpPost("register")]
+        [AllowAnonymous]
+        public async Task<ActionResult> Register([FromBody] RegisterRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CompanyName))
+                return BadRequest(new { message = "Company name is required." });
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "Email is required." });
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+                return BadRequest(new { message = "Password must be at least 8 characters." });
+
+            var existing = await _userManager.FindByEmailAsync(request.Email);
+            if (existing != null)
+                return Conflict(new { message = "An account with this email already exists." });
+
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            db.IgnoreTenantFilter = true;
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                // 1. Create tenant
+                var tenant = new Tenant
+                {
+                    Name         = request.CompanyName.Trim(),
+                    ContactEmail = request.Email.Trim(),
+                    IsActive     = true,
+                    CreatedAt    = DateTime.UtcNow,
+                };
+                db.Tenants.Add(tenant);
+                await db.SaveChangesAsync();
+
+                // 2. Create admin user
+                var user = new ApplicationUser
+                {
+                    UserName       = request.Email.Trim(),
+                    Email          = request.Email.Trim(),
+                    FirstName      = request.FirstName?.Trim(),
+                    LastName       = request.LastName?.Trim(),
+                    TenantId       = tenant.Id,
+                    CreatedAt      = DateTime.UtcNow,
+                    EmailConfirmed = true,
+                };
+
+                var result = await _userManager.CreateAsync(user, request.Password);
+                if (!result.Succeeded)
+                {
+                    await transaction.RollbackAsync();
+                    var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                    return BadRequest(new { message = errors });
+                }
+
+                // 3. Assign Admin role
+                await _userManager.AddToRoleAsync(user, "Admin");
+
+                // 4. Set tenant owner
+                tenant.OwnerId = user.Id;
+                await db.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Registration successful.", tenantId = tenant.Id });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { message = "Registration failed. Please try again.", detail = ex.Message });
+            }
         }
 
         /// <summary>
         /// Returns the currently authenticated user's profile and roles.
-        /// Used by the React frontend to determine what to show.
         /// </summary>
         [HttpGet("me")]
         [Authorize]
@@ -46,7 +123,7 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
-        /// Login endpoint for the React frontend (cookie-based, same as Blazor).
+        /// Login endpoint for the React frontend (cookie-based).
         /// </summary>
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest request)
@@ -86,6 +163,18 @@ namespace AnchorPro.Controllers
     }
 
     public record LoginRequest(string Email, string Password);
+
+    public record RegisterRequest(
+        string CompanyName,
+        string Email,
+        string Password,
+        string? FirstName,
+        string? LastName,
+        string? Industry,
+        string? Size,
+        string? Timezone,
+        int PlanId
+    );
 
     public class UserProfileDto
     {
