@@ -7,24 +7,32 @@ using AnchorPro.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:5173", "http://localhost:3000" };
+var allowedOrigins = new string[]
+{
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://anchorpro-web.vercel.app",
+    "https://anchorpro.vercel.app",
+    "https://anchor-pro-app.vercel.app",
+};
+
+// Merge with any additional origins from configuration
+var configOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+if (configOrigins != null)
+{
+    var merged = new System.Collections.Generic.List<string>(allowedOrigins);
+    foreach (var o in configOrigins) { if (!merged.Contains(o)) merged.Add(o); }
+    allowedOrigins = merged.ToArray();
+}
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactAppPolicy", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-        {
-            // Allow configured origins
-            if (allowedOrigins.Contains(origin)) return true;
-            // Allow any Vercel deployment for this project
-            if (origin.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)) return true;
-            return false;
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials(); // Needed for cookie-based auth
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Needed for cookie-based auth
     });
 });
 
