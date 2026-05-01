@@ -1,6 +1,20 @@
 // Always use relative paths — Next.js rewrites proxy /api/* to Railway
 const API_BASE = '';
 
+async function handleApiError(res: Response, path: string, method: string) {
+  let msg = `${method} error ${res.status} on ${path}`;
+  try {
+    const text = await res.text();
+    if (text) {
+      const data = JSON.parse(text);
+      if (data.message) msg = data.message;
+      else if (typeof data === 'string') msg = data;
+      else if (data.title) msg = data.title;
+    }
+  } catch {}
+  throw new Error(msg);
+}
+
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
@@ -8,9 +22,7 @@ async function apiFetch<T>(path: string): Promise<T> {
     cache: 'no-store',
   });
 
-  if (!res.ok) {
-    throw new Error(`API error ${res.status} on ${path}`);
-  }
+  if (!res.ok) await handleApiError(res, path, 'GET');
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
@@ -347,7 +359,7 @@ async function apiDelete(path: string): Promise<void> {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
   });
-  if (!res.ok) throw new Error(`DELETE error ${res.status} on ${path}`);
+  if (!res.ok) await handleApiError(res, path, 'DELETE');
 }
 
 async function apiPost<T>(path: string, body: any): Promise<T> {
@@ -357,7 +369,7 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`POST error ${res.status} on ${path}`);
+  if (!res.ok) await handleApiError(res, path, 'POST');
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
@@ -371,7 +383,7 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`PATCH error ${res.status} on ${path}`);
+  if (!res.ok) await handleApiError(res, path, 'PATCH');
   if (res.status === 204) return {} as T;
   const text = await res.text();
   if (!text) return {} as T;
@@ -385,7 +397,7 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`PUT error ${res.status} on ${path}`);
+  if (!res.ok) await handleApiError(res, path, 'PUT');
   if (res.status === 204) return {} as T;
   const text = await res.text();
   if (!text) return {} as T;
