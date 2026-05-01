@@ -19,41 +19,68 @@ namespace AnchorPro.Services
         public async Task<List<JobType>> GetJobTypesAsync()
         {
             using var context = _factory.CreateDbContext();
+            context.IgnoreTenantFilter = true; // JobTypes are global (no TenantId)
             return await context.JobTypes.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<DowntimeCategory>> GetDowntimeCategoriesAsync()
         {
             using var context = _factory.CreateDbContext();
+            context.IgnoreTenantFilter = true; // DowntimeCategories are global
             return await context.DowntimeCategories.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<Equipment>> GetEquipmentAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Equipment.AsNoTracking().ToListAsync();
+            var tenantId = _tenantService.TenantId;
+            context.IgnoreTenantFilter = true;
+            return await context.Equipment.AsNoTracking()
+                .Where(e => e.TenantId == tenantId)
+                .ToListAsync();
         }
 
         public async Task<List<Customer>> GetCustomersAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Customers.AsNoTracking().ToListAsync();
+            var tenantId = _tenantService.TenantId;
+            context.IgnoreTenantFilter = true;
+            return await context.Customers.AsNoTracking()
+                .Where(c => c.TenantId == tenantId)
+                .ToListAsync();
         }
 
         public async Task<List<Contract>> GetContractsAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Contracts.AsNoTracking().ToListAsync();
+            var tenantId = _tenantService.TenantId;
+            context.IgnoreTenantFilter = true;
+            return await context.Contracts.AsNoTracking()
+                .Where(c => c.TenantId == tenantId)
+                .ToListAsync();
         }
 
         public async Task<List<ApplicationUser>> GetTechniciansAsync()
         {
             using var context = _factory.CreateDbContext();
             var tenantId = _tenantService.TenantId;
-            // Only return users that explicitly belong to the current tenant
+            // IgnoreTenantFilter required since ApplicationUser has no EF global filter
+            // but we still explicitly scope to the current tenant — multi-tenant secure
+            context.IgnoreTenantFilter = true;
             return await context.Users
                 .AsNoTracking()
                 .Where(u => u.TenantId.HasValue && u.TenantId == tenantId)
+                .Select(u => new ApplicationUser
+                {
+                    Id = u.Id,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email,
+                    UserName = u.UserName,
+                    HourlyRate = u.HourlyRate,
+                    TenantId = u.TenantId,
+                    DepartmentId = u.DepartmentId
+                })
                 .ToListAsync();
         }
 
