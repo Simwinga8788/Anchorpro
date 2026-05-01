@@ -318,9 +318,9 @@ export const platformApi = {
 
 export const teamApi = {
   getAll:      () => apiFetch<any[]>('/api/team'),
-  invite:      (data: { email: string; firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string; password?: string }) =>
+  invite:      (data: { email: string; firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string; password?: string; departmentId?: number }) =>
                  apiPost<any>('/api/team/invite', data),
-  update:      (id: string, data: { firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string }) =>
+  update:      (id: string, data: { firstName?: string; lastName?: string; employeeNumber?: string; hourlyRate?: number; role?: string; departmentId?: number }) =>
                  apiPut<any>(`/api/team/${id}`, data),
   deactivate:  (id: string) => apiPost<any>(`/api/team/${id}/deactivate`, {}),
   reactivate:  (id: string) => apiPost<any>(`/api/team/${id}/reactivate`, {}),
