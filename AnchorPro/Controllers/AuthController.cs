@@ -90,7 +90,7 @@ namespace AnchorPro.Controllers
                 var defaultDepts = new[] { "Operations", "Procurement", "Administration" };
                 foreach (var deptName in defaultDepts)
                 {
-                    db.Departments.Add(new Entities.Department
+                    db.Departments.Add(new Department
                     {
                         Name     = deptName,
                         TenantId = tenant.Id,
@@ -108,7 +108,7 @@ namespace AnchorPro.Controllers
                 };
                 foreach (var (name, desc) in defaultJobTypes)
                 {
-                    db.JobTypes.Add(new Entities.JobType
+                    db.JobTypes.Add(new JobType
                     {
                         Name        = name,
                         Description = desc,
@@ -127,7 +127,7 @@ namespace AnchorPro.Controllers
                 };
                 foreach (var (name, desc) in defaultDowntimeCategories)
                 {
-                    db.DowntimeCategories.Add(new Entities.DowntimeCategory
+                    db.DowntimeCategories.Add(new DowntimeCategory
                     {
                         Name        = name,
                         Description = desc,
