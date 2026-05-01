@@ -130,7 +130,6 @@ namespace AnchorPro.Controllers
                     db.DowntimeCategories.Add(new DowntimeCategory
                     {
                         Name        = name,
-                        Description = desc,
                         TenantId    = tenant.Id,
                     });
                 }
