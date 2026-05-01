@@ -101,6 +101,14 @@ export default function AssetsPage() {
             <label className="form-label">Serial Number</label>
             <input className="form-input" required value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} />
           </div>
+          <div className="form-field">
+            <label className="form-label">Department</label>
+            <select className="form-select" value={formData.departmentId} onChange={e => setFormData({ ...formData, departmentId: parseInt(e.target.value) })}>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSlideMode(null)} disabled={saving}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>{saving ? 'Saving...' : slideMode === 'edit' ? 'Save Changes' : 'Register Asset'}</button>

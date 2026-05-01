@@ -52,7 +52,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
           dashboardApi.getJobTypes(),
           dashboardApi.getCustomers(),
           dashboardApi.getContracts(),
-          dashboardApi.getTechnicians(),
+          dashboardApi.getReferenceDataTechnicians(),
         ]);
         setRefData({ equipment: eq, jobTypes: jt, customers: cust, contracts: cont, technicians: tech });
       } catch (err) {
