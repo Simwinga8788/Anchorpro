@@ -22,6 +22,8 @@ export default function AssetsPage() {
   const [saving, setSaving]     = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [formData, setFormData] = useState(BLANK);
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [departments, setDepartments] = useState<any[]>([]);
 
   const fetchAssets = () => {
     setLoading(true);
@@ -31,7 +33,13 @@ export default function AssetsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchAssets(); }, []);
+  useEffect(() => { 
+    fetchAssets(); 
+    fetch('/api/org/departments', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setDepartments(d || []))
+      .catch(() => {});
+  }, []);
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
   const openEdit = (asset: any) => {
@@ -59,10 +67,11 @@ export default function AssetsPage() {
     finally { setSaving(false); }
   };
 
-  const filtered = assets.filter(a =>
-    a.name?.toLowerCase().includes(search.toLowerCase()) ||
-    a.serialNumber?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = assets.filter(a => {
+    const matchesSearch = a.name?.toLowerCase().includes(search.toLowerCase()) || a.serialNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchesDept = departmentFilter === 'all' || a.departmentId?.toString() === departmentFilter;
+    return matchesSearch && matchesDept;
+  });
   const uniqueDepartments = [...new Set(assets.map(a => a.departmentId))];
 
   return (
@@ -129,6 +138,14 @@ export default function AssetsPage() {
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input className="search-input" style={{ width: '100%', paddingLeft: 30 }} placeholder="Search by name or serial number…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <div style={{ width: 200 }}>
+            <select className="form-select" value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
+              <option value="all">All Departments</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <table className="data-table">
@@ -153,7 +170,7 @@ export default function AssetsPage() {
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>S/N: {asset.serialNumber || '—'}</div>
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{asset.manufacturer || '—'}</td>
-                  <td><span className="badge badge-muted">Dept #{asset.departmentId || '—'}</span></td>
+                  <td><span className="badge badge-muted">{departments.find(d => d.id === asset.departmentId)?.name || `Dept #${asset.departmentId}`}</span></td>
                   <td><span className={`badge ${sc.badge}`}><span className={`status-dot ${sc.dot}`} />{sc.label}</span></td>
                   <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => openEdit(asset)}><Edit2 size={13} /></button>

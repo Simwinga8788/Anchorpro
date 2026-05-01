@@ -144,7 +144,8 @@ export default function SettingsPage() {
         'Equipment': dict['Equipment'] || 'Equipment',
         'Job Cards': dict['Job Cards'] || 'Job Cards',
         'Technicians': dict['Technicians'] || 'Technicians',
-        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts'
+        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts',
+        'Emails.Recipients': dict['Emails.Recipients'] || ''
       });
     }
   }, [activeTab, dict]);
@@ -624,7 +625,25 @@ export default function SettingsPage() {
           
           {activeTab === 'notifications' && (
              <div className="card-elevated" style={{ padding: 30 }}>
-               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 24 }}>Notification Routing</h3>
+               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Notification & Email Routing</h3>
+               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>
+                 Configure where automated platform reports and alerts are sent.
+               </p>
+
+               <div style={{ marginBottom: 30 }}>
+                 <div className="form-field">
+                   <label className="form-label" style={{ fontWeight: 600 }}>Report Recipients (comma separated)</label>
+                   <input className="form-input" 
+                     value={dictState['Emails.Recipients'] || ''} 
+                     onChange={e => setDictState({...dictState, 'Emails.Recipients': e.target.value})} 
+                     placeholder="manager@company.com, ceo@company.com" />
+                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                     These emails will receive the End-of-Day Profitability and KPI digest.
+                   </p>
+                 </div>
+               </div>
+
+               <h4 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>In-App Notification Routing</h4>
                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                  {[
                    { label: 'Weekly Summary Emails', desc: 'Receive a digest of all jobs and downtime.', active: true },
