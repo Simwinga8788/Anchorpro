@@ -1,7 +1,9 @@
+using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 using AnchorPro.Data.Enums;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Controllers
 {
@@ -11,11 +13,22 @@ namespace AnchorPro.Controllers
     {
         private readonly IJobCardService _jobService;
         private readonly IJobTaskService _taskService;
+        private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly ICurrentTenantService _tenantService;
+        private readonly ISettingsService _settingsService;
 
-        public JobCardsController(IJobCardService jobService, IJobTaskService taskService)
+        public JobCardsController(
+            IJobCardService jobService,
+            IJobTaskService taskService,
+            IDbContextFactory<ApplicationDbContext> factory,
+            ICurrentTenantService tenantService,
+            ISettingsService settingsService)
         {
             _jobService = jobService;
             _taskService = taskService;
+            _factory = factory;
+            _tenantService = tenantService;
+            _settingsService = settingsService;
         }
 
         [HttpGet]
@@ -67,6 +80,31 @@ namespace AnchorPro.Controllers
         [HttpPatch("{id}/status")]
         public async Task<ActionResult> UpdateStatus(int id, [FromBody] JobStatus status)
         {
+            // ── Safety Gate: block InProgress if PTW required but not approved ──
+            if (status == JobStatus.InProgress)
+            {
+                var requirePermit = await _settingsService.GetSettingAsync("Op.RequireSafetyPermit", "false");
+                if (requirePermit?.ToLower() == "true")
+                {
+                    using var ctx = _factory.CreateDbContext();
+                    ctx.IgnoreTenantFilter = true;
+                    var tid = _tenantService.TenantId;
+
+                    var hasApprovedPermit = await ctx.Set<PermitToWork>()
+                        .AnyAsync(p => p.JobCardId == id
+                            && p.Status == AnchorPro.Data.Entities.PermitStatus.Active);
+
+                    if (!hasApprovedPermit)
+                    {
+                        return BadRequest(new
+                        {
+                            error = "safety_permit_required",
+                            message = "A Permit to Work (PTW) must be approved before this job can be started. Go to Safety & Compliance to issue a permit."
+                        });
+                    }
+                }
+            }
+
             var userId = User.Identity?.Name ?? "API_User";
             await _jobService.UpdateJobStatusAsync(id, status, userId);
             return NoContent();
@@ -80,3 +118,4 @@ namespace AnchorPro.Controllers
         }
     }
 }
+
