@@ -6,20 +6,20 @@ import { dashboardApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 const statusConfig: Record<number, { label: string; badge: string; dot: string }> = {
-  0: { label: 'Operational',    badge: 'badge-green',  dot: 'green' },
-  1: { label: 'Under Repair',   badge: 'badge-rose',   dot: 'rose'  },
-  2: { label: 'Scheduled PM',   badge: 'badge-amber',  dot: 'amber' },
-  3: { label: 'Decommissioned', badge: 'badge-muted',  dot: 'muted' },
+  0: { label: 'Operational', badge: 'badge-green', dot: 'green' },
+  1: { label: 'Under Repair', badge: 'badge-rose', dot: 'rose' },
+  2: { label: 'Scheduled PM', badge: 'badge-amber', dot: 'amber' },
+  3: { label: 'Decommissioned', badge: 'badge-muted', dot: 'muted' },
 };
 
 const BLANK = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: 1 };
 
 export default function AssetsPage() {
-  const [search, setSearch]     = useState('');
-  const [assets, setAssets]     = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [search, setSearch] = useState('');
+  const [assets, setAssets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [slideMode, setSlideMode] = useState<'create' | 'edit' | null>(null);
-  const [saving, setSaving]     = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [formData, setFormData] = useState(BLANK);
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -33,12 +33,12 @@ export default function AssetsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { 
-    fetchAssets(); 
+  useEffect(() => {
+    fetchAssets();
     fetch('/api/org/departments', { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(d => setDepartments(d || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
@@ -101,14 +101,6 @@ export default function AssetsPage() {
             <label className="form-label">Serial Number</label>
             <input className="form-input" required value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} />
           </div>
-          <div className="form-field">
-            <label className="form-label">Department</label>
-            <select className="form-select" value={formData.departmentId} onChange={e => setFormData({ ...formData, departmentId: parseInt(e.target.value) })}>
-              {departments.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSlideMode(null)} disabled={saving}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>{saving ? 'Saving...' : slideMode === 'edit' ? 'Save Changes' : 'Register Asset'}</button>
@@ -126,9 +118,9 @@ export default function AssetsPage() {
 
       <div className="stats-grid-3" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Operational',  value: assets.filter(a => a.status === 0).length, color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
-          { label: 'Under Repair', value: assets.filter(a => a.status === 1).length, color: 'var(--accent-rose)',    icon: <AlertTriangle size={16} /> },
-          { label: 'Scheduled PM', value: assets.filter(a => a.status === 2).length, color: 'var(--accent-amber)',   icon: <Wrench size={16} /> },
+          { label: 'Operational', value: assets.filter(a => a.status === 0).length, color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
+          { label: 'Under Repair', value: assets.filter(a => a.status === 1).length, color: 'var(--accent-rose)', icon: <AlertTriangle size={16} /> },
+          { label: 'Scheduled PM', value: assets.filter(a => a.status === 2).length, color: 'var(--accent-amber)', icon: <Wrench size={16} /> },
         ].map(s => (
           <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
             <div className="stat-icon" style={{ background: s.color + '20', marginBottom: 0 }}><span style={{ color: s.color }}>{s.icon}</span></div>

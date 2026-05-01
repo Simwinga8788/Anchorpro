@@ -58,5 +58,62 @@ namespace AnchorPro.Controllers
             // 5. Redirect to the main app
             return Redirect("/");
         }
+
+        [HttpGet("tenants")]
+        public async Task<IActionResult> GetTenants()
+        {
+            var tenants = await _context.Tenants
+                .Select(t => new
+                {
+                    id = t.Id,
+                    name = t.Name,
+                    status = t.IsActive ? "Active" : "Suspended",
+                    userCount = _context.Users.Count(u => u.TenantId == t.Id),
+                    planName = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .Select(s => s.SubscriptionPlan.Name)
+                        .FirstOrDefault() ?? "Trial",
+                    mrr = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .Select(s => s.SubscriptionPlan.Price)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Ok(tenants);
+        }
+
+        [HttpPost("tenants/{id}/suspend")]
+        public async Task<IActionResult> SuspendTenant(int id)
+        {
+            var tenant = await _context.Tenants.FindAsync(id);
+            if (tenant == null) return NotFound();
+
+            tenant.IsActive = !tenant.IsActive; // Toggle suspension
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Tenant {(tenant.IsActive ? "reactivated" : "suspended")}." });
+        }
+
+        [HttpGet("health")]
+        public async Task<IActionResult> GetHealth()
+        {
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            return Ok(new
+            {
+                memoryUsageMB = Math.Round(process.WorkingSet64 / 1024.0 / 1024.0, 2),
+                uptime = (DateTime.Now - process.StartTime).ToString(),
+                osVersion = Environment.OSVersion.ToString(),
+                processorCount = Environment.ProcessorCount,
+                serverTime = DateTime.UtcNow,
+                databaseConnection = await _context.Database.CanConnectAsync(),
+                entityCounts = new
+                {
+                    Tenants = await _context.Tenants.CountAsync(),
+                    Users = await _context.Users.CountAsync(),
+                    JobCards = await _context.JobCards.IgnoreQueryFilters().CountAsync(),
+                }
+            });
+        }
     }
 }

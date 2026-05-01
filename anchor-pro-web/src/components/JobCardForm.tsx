@@ -52,7 +52,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
           dashboardApi.getJobTypes(),
           dashboardApi.getCustomers(),
           dashboardApi.getContracts(),
-          dashboardApi.getReferenceDataTechnicians(),
+          dashboardApi.getTechnicians(),
         ]);
         setRefData({ equipment: eq, jobTypes: jt, customers: cust, contracts: cont, technicians: tech });
       } catch (err) {
@@ -414,7 +414,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       {/* ── Cost Trinity Preview ───────────────────── */}
       <div className="card-elevated" style={{ padding: 16 }}>
         <SectionHeader icon={<DollarSign size={14} />} label="Cost Trinity — Estimated Preview" color="var(--accent-indigo)" />
-        
+
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px',
           background: 'rgba(99,102,241,0.08)', borderRadius: 6, marginBottom: 14,

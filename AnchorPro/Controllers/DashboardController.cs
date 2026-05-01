@@ -22,6 +22,13 @@ namespace AnchorPro.Controllers
             return Ok(stats);
         }
 
+        [HttpGet("activity")]
+        public async Task<ActionResult> GetActivity()
+        {
+            var stats = await _dashboardService.GetDashboardStatsAsync();
+            return Ok(stats.RecentActivity);
+        }
+
         [HttpGet("performance")]
         public async Task<ActionResult<PerformanceMetrics>> GetPerformance([FromQuery] int days = 30)
         {
