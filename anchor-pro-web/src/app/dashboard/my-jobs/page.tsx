@@ -24,8 +24,11 @@ export default function MyJobsPage() {
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
   const [showPermit, setShowPermit] = useState(false);
   const [showDowntime, setShowDowntime] = useState(false);
+  const [showPart, setShowPart] = useState(false);
   const [permitData, setPermitData] = useState({ isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, hazardsIdentified: '' });
   const [downtimeData, setDowntimeData] = useState({ categoryId: 1, notes: '' });
+  const [partData, setPartData] = useState({ inventoryItemId: 0, quantity: 1 });
+  const [inventory, setInventory] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchJobs = () => {
@@ -45,6 +48,7 @@ export default function MyJobsPage() {
 
   useEffect(() => {
     fetchJobs();
+    dashboardApi.getInventoryItems().then(data => setInventory(data || []));
   }, [user]);
 
   const handleStartWork = (jobId: number) => {
@@ -97,6 +101,22 @@ export default function MyJobsPage() {
       fetchJobs();
     } catch (err) {
       alert("Error completing job.");
+    }
+  };
+
+  const consumePart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeJobId || !partData.inventoryItemId) return;
+    setSaving(true);
+    try {
+      await dashboardApi.addPartToJob(activeJobId, partData.inventoryItemId, partData.quantity);
+      setShowPart(false);
+      alert("Part added to job and deducted from inventory.");
+      fetchJobs();
+    } catch (err) {
+      alert("Failed to consume part.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -195,6 +215,29 @@ export default function MyJobsPage() {
         </form>
       </SlideOver>
 
+      {/* Consume Part SlideOver */}
+      <SlideOver open={showPart} onClose={() => setShowPart(false)} title="Consume Part" subtitle="Withdraw materials from inventory for this job.">
+        <form onSubmit={consumePart} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+           <div className="form-field">
+            <label className="form-label">Select Part / Material</label>
+            <select required className="form-select" value={partData.inventoryItemId} onChange={e => setPartData({...partData, inventoryItemId: parseInt(e.target.value)})}>
+              <option value="0">-- Select Part --</option>
+              {inventory.map(inv => (
+                <option key={inv.id} value={inv.id}>{inv.name} (In Stock: {inv.quantityOnHand})</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Quantity to Consume</label>
+            <input type="number" min="1" required className="form-input" value={partData.quantity} onChange={e => setPartData({...partData, quantity: parseInt(e.target.value)})} />
+          </div>
+          <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowPart(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>Add Part</button>
+          </div>
+        </form>
+      </SlideOver>
+
       <div className="page-header">
         <h1 className="page-title">My Assignments</h1>
         <p className="page-subtitle">Personal queue of work orders and active operations.</p>
@@ -247,10 +290,13 @@ export default function MyJobsPage() {
                       ) : (
                         <>
                           <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
-                            <CheckCircle2 size={14} /> Complete Job
+                            <CheckCircle2 size={14} /> Complete
+                          </button>
+                          <button onClick={() => { setActiveJobId(job.id); setShowPart(true); }} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}>
+                            <Check size={14} /> Add Part
                           </button>
                           <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
-                            <AlertTriangle size={14} /> Report Downtime
+                            <AlertTriangle size={14} /> Report Delay
                           </button>
                         </>
                       )}

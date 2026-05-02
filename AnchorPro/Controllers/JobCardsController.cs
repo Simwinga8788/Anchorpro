@@ -116,6 +116,20 @@ namespace AnchorPro.Controllers
             await _jobService.DeleteJobCardAsync(id);
             return NoContent();
         }
+
+        [HttpPost("{id}/parts")]
+        public async Task<ActionResult> AddPart(int id, [FromBody] AddPartRequest request)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            await _jobService.AddPartToJobAsync(id, request.InventoryItemId, request.Quantity, userId);
+            return Ok(new { message = "Part added to job" });
+        }
+    }
+
+    public class AddPartRequest
+    {
+        public int InventoryItemId { get; set; }
+        public int Quantity { get; set; }
     }
 }
 

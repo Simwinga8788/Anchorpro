@@ -131,7 +131,6 @@ export const dashboardApi = {
   // Documented endpoints per SYSTEM_DOCUMENTATION.md
   getStats: () => apiFetch<DashboardStats>('/api/dashboard/stats'),
   getActivity: () => apiFetch<any[]>('/api/dashboard/activity'),
-  getTechnicians: () => apiFetch<any[]>('/api/dashboard/technicians'),
 
   // These may exist as extensions — kept for pages that call them, will gracefully 404
   getPerformance: (days = 30) => apiFetch<PerformanceMetrics>(`/api/dashboard/performance?days=${days}`),
@@ -161,6 +160,7 @@ export const dashboardApi = {
 
   // Jobs
   updateJobStatus: (id: number, status: number) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
+  addPartToJob: (jobCardId: number, inventoryItemId: number, quantity: number) => apiPost<any>(`/api/jobcards/${jobCardId}/parts`, { inventoryItemId, quantity }),
 
   // Downtime
   getAllDowntime: () => apiFetch<any[]>('/api/downtime'),
@@ -237,8 +237,8 @@ export const financialApi = {
   updateInvoice: (id: number, data: any) => apiPut<any>(`/api/financial/invoices/${id}`, data),
   getPayments: (invoiceId: number) => apiFetch<any[]>(`/api/financial/invoices/${invoiceId}/payments`),
   recordPayment: (invoiceId: number, data: any) => apiPost<any>(`/api/financial/invoices/${invoiceId}/payments`, data),
-  getSummary: () => apiFetch<any>('/api/financial/summary'),
-  getSnapshot: () => apiFetch<any>('/api/financial/summary'), // alias kept for existing pages
+  getSummary: () => apiFetch<any>('/api/financial/snapshot'),
+  getSnapshot: () => apiFetch<any>('/api/financial/snapshot'), // alias kept for existing pages
 };
 
 // ─── Settings & Seeder API ──────────────────────────────────────────────────────
