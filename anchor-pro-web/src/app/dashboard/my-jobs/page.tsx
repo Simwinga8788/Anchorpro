@@ -7,28 +7,25 @@ import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 
 const statusConfig: Record<number, { label: string; badge: string; color: string; icon: React.ReactNode }> = {
-  0: { label: 'Unscheduled', badge: 'badge-muted',  color: '#6b6b6b', icon: <Clock size={14} /> },
-  1: { label: 'Scheduled',   badge: 'badge-amber',  color: '#f59e0b', icon: <Clock size={14} /> },
-  2: { label: 'In Progress', badge: 'badge-blue',   color: '#3b82f6', icon: <Wrench size={14} /> },
-  3: { label: 'Completed',   badge: 'badge-green',  color: '#10b981', icon: <CheckCircle2 size={14} /> },
-  4: { label: 'Confirmed',   badge: 'badge-violet', color: '#8b5cf6', icon: <CheckCircle2 size={14} /> },
-  5: { label: 'Cancelled',   badge: 'badge-rose',   color: '#f43f5e', icon: <Clock size={14} /> },
+  0: { label: 'Unscheduled', badge: 'badge-muted', color: '#6b6b6b', icon: <Clock size={14} /> },
+  1: { label: 'Scheduled', badge: 'badge-amber', color: '#f59e0b', icon: <Clock size={14} /> },
+  2: { label: 'In Progress', badge: 'badge-blue', color: '#3b82f6', icon: <Wrench size={14} /> },
+  3: { label: 'Completed', badge: 'badge-green', color: '#10b981', icon: <CheckCircle2 size={14} /> },
+  4: { label: 'Confirmed', badge: 'badge-violet', color: '#8b5cf6', icon: <CheckCircle2 size={14} /> },
+  5: { label: 'Cancelled', badge: 'badge-rose', color: '#f43f5e', icon: <Clock size={14} /> },
 };
 
 export default function MyJobsPage() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Workflows state
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
   const [showPermit, setShowPermit] = useState(false);
   const [showDowntime, setShowDowntime] = useState(false);
-  const [showPart, setShowPart] = useState(false);
   const [permitData, setPermitData] = useState({ isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, hazardsIdentified: '' });
   const [downtimeData, setDowntimeData] = useState({ categoryId: 1, notes: '' });
-  const [partData, setPartData] = useState({ inventoryItemId: 0, quantity: 1 });
-  const [inventory, setInventory] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchJobs = () => {
@@ -36,9 +33,9 @@ export default function MyJobsPage() {
     setLoading(true);
     dashboardApi.getJobCards()
       .then(data => {
-        const myTasks = (data || []).filter((j: any) => 
-            j.assignedTechnicianId === user.id || 
-            (j.assignedTechnician && j.assignedTechnician.email === user.email)
+        const myTasks = (data || []).filter((j: any) =>
+          j.assignedTechnicianId === user.id ||
+          (j.assignedTechnician && j.assignedTechnician.email === user.email)
         );
         setJobs(myTasks);
       })
@@ -48,7 +45,6 @@ export default function MyJobsPage() {
 
   useEffect(() => {
     fetchJobs();
-    dashboardApi.getInventoryItems().then(data => setInventory(data || []));
   }, [user]);
 
   const handleStartWork = (jobId: number) => {
@@ -104,22 +100,6 @@ export default function MyJobsPage() {
     }
   };
 
-  const consumePart = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeJobId || !partData.inventoryItemId) return;
-    setSaving(true);
-    try {
-      await dashboardApi.addPartToJob(activeJobId, partData.inventoryItemId, partData.quantity);
-      setShowPart(false);
-      alert("Part added to job and deducted from inventory.");
-      fetchJobs();
-    } catch (err) {
-      alert("Failed to consume part.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const activeWork = jobs.filter(j => j.status === 1 || j.status === 2);
 
   // Task checklist state
@@ -144,12 +124,7 @@ export default function MyJobsPage() {
   const toggleTask = async (taskId: number, currentDone: boolean) => {
     setUpdatingTaskId(taskId);
     try {
-      await fetch(`/api/jobtasks/${taskId}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isCompleted: !currentDone }),
-      });
+      await dashboardApi.updateJobTaskStatus(taskId, !currentDone);
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, isCompleted: !currentDone } : t));
     } catch {
       // silent fail — UI stays optimistic
@@ -175,14 +150,14 @@ export default function MyJobsPage() {
             { id: 'isPpeChecked', label: 'Standard/Special PPE Verified' },
           ].map(check => (
             <label key={check.id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: 12, border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
-              <input type="checkbox" required checked={(permitData as any)[check.id]} onChange={e => setPermitData({...permitData, [check.id]: e.target.checked})} />
+              <input type="checkbox" required checked={(permitData as any)[check.id]} onChange={e => setPermitData({ ...permitData, [check.id]: e.target.checked })} />
               <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{check.label}</span>
             </label>
           ))}
 
           <div className="form-field">
             <label className="form-label">Identified Hazards / Control Measures</label>
-            <textarea className="form-textarea" placeholder="e.g. Risk of hydraulic spray, using gloves and face shield." value={permitData.hazardsIdentified} onChange={e => setPermitData({...permitData, hazardsIdentified: e.target.value})} />
+            <textarea className="form-textarea" placeholder="e.g. Risk of hydraulic spray, using gloves and face shield." value={permitData.hazardsIdentified} onChange={e => setPermitData({ ...permitData, hazardsIdentified: e.target.value })} />
           </div>
 
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
@@ -195,9 +170,9 @@ export default function MyJobsPage() {
       {/* Downtime Report SlideOver */}
       <SlideOver open={showDowntime} onClose={() => setShowDowntime(false)} title="Report Downtime" subtitle="Log immediate equipment breakdown or operational halt.">
         <form onSubmit={reportDowntime} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-           <div className="form-field">
+          <div className="form-field">
             <label className="form-label">Breakdown Category</label>
-            <select className="form-select" value={downtimeData.categoryId} onChange={e => setDowntimeData({...downtimeData, categoryId: parseInt(e.target.value)})}>
+            <select className="form-select" value={downtimeData.categoryId} onChange={e => setDowntimeData({ ...downtimeData, categoryId: parseInt(e.target.value) })}>
               <option value="1">Equipment Breakdown</option>
               <option value="2">Power Failure</option>
               <option value="3">Supply Chain Delay</option>
@@ -206,34 +181,11 @@ export default function MyJobsPage() {
           </div>
           <div className="form-field">
             <label className="form-label">Failure Notes / Symptoms</label>
-            <textarea className="form-textarea" required placeholder="Describe what happened..." value={downtimeData.notes} onChange={e => setDowntimeData({...downtimeData, notes: e.target.value})} />
+            <textarea className="form-textarea" required placeholder="Describe what happened..." value={downtimeData.notes} onChange={e => setDowntimeData({ ...downtimeData, notes: e.target.value })} />
           </div>
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDowntime(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1, background: 'var(--accent-rose)', border: 'none' }} disabled={saving}>Submit Report</button>
-          </div>
-        </form>
-      </SlideOver>
-
-      {/* Consume Part SlideOver */}
-      <SlideOver open={showPart} onClose={() => setShowPart(false)} title="Consume Part" subtitle="Withdraw materials from inventory for this job.">
-        <form onSubmit={consumePart} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-           <div className="form-field">
-            <label className="form-label">Select Part / Material</label>
-            <select required className="form-select" value={partData.inventoryItemId} onChange={e => setPartData({...partData, inventoryItemId: parseInt(e.target.value)})}>
-              <option value="0">-- Select Part --</option>
-              {inventory.map(inv => (
-                <option key={inv.id} value={inv.id}>{inv.name} (In Stock: {inv.quantityOnHand})</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Quantity to Consume</label>
-            <input type="number" min="1" required className="form-input" value={partData.quantity} onChange={e => setPartData({...partData, quantity: parseInt(e.target.value)})} />
-          </div>
-          <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowPart(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>Add Part</button>
           </div>
         </form>
       </SlideOver>
@@ -290,13 +242,10 @@ export default function MyJobsPage() {
                       ) : (
                         <>
                           <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
-                            <CheckCircle2 size={14} /> Complete
-                          </button>
-                          <button onClick={() => { setActiveJobId(job.id); setShowPart(true); }} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}>
-                            <Check size={14} /> Add Part
+                            <CheckCircle2 size={14} /> Complete Job
                           </button>
                           <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
-                            <AlertTriangle size={14} /> Report Delay
+                            <AlertTriangle size={14} /> Report Downtime
                           </button>
                         </>
                       )}
@@ -314,7 +263,7 @@ export default function MyJobsPage() {
               <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>Tap a job card to load its tasks.</p>
             ) : tasksLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                {[1,2,3].map(i => (
+                {[1, 2, 3].map(i => (
                   <div key={i} style={{ height: 36, borderRadius: 6, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
                 ))}
               </div>

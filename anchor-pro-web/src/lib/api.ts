@@ -131,6 +131,7 @@ export const dashboardApi = {
   // Documented endpoints per SYSTEM_DOCUMENTATION.md
   getStats: () => apiFetch<DashboardStats>('/api/dashboard/stats'),
   getActivity: () => apiFetch<any[]>('/api/dashboard/activity'),
+  getTechnicians: () => apiFetch<any[]>('/api/dashboard/technicians'),
 
   // These may exist as extensions — kept for pages that call them, will gracefully 404
   getPerformance: (days = 30) => apiFetch<PerformanceMetrics>(`/api/dashboard/performance?days=${days}`),
@@ -161,6 +162,7 @@ export const dashboardApi = {
   // Jobs
   updateJobStatus: (id: number, status: number) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
   addPartToJob: (jobCardId: number, inventoryItemId: number, quantity: number) => apiPost<any>(`/api/jobcards/${jobCardId}/parts`, { inventoryItemId, quantity }),
+  updateJobTaskStatus: (taskId: number, isCompleted: boolean) => apiPatch<any>(`/api/jobtasks/${taskId}/status`, { isCompleted }),
 
   // Downtime
   getAllDowntime: () => apiFetch<any[]>('/api/downtime'),
@@ -390,4 +392,5 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
   const text = await res.text();
   if (!text) return {} as T;
   return JSON.parse(text) as T;
+}
 }
