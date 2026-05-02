@@ -75,7 +75,7 @@ namespace AnchorPro.Controllers
                         .FirstOrDefault() ?? "Trial",
                     mrr = _context.TenantSubscriptions
                         .Where(s => s.TenantId == t.Id)
-                        .Select(s => s.SubscriptionPlan.Price)
+                        .Select(s => s.SubscriptionPlan.MonthlyPrice)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
