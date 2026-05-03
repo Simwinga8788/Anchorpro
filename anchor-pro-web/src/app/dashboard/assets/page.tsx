@@ -12,7 +12,7 @@ const statusConfig: Record<number, { label: string; badge: string; dot: string }
   3: { label: 'Decommissioned', badge: 'badge-muted', dot: 'muted' },
 };
 
-const BLANK = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: 1 };
+const BLANK: { name: string; modelNumber: string; serialNumber: string; manufacturer: string; departmentId: number | null } = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: null };
 
 export default function AssetsPage() {
   const [search, setSearch] = useState('');
