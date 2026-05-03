@@ -123,48 +123,48 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
 
       // Transform tasks: filter out empty names and ensure numeric types
       const cleanedTasks = (formData.jobTasks || [])
-        .filter(t => t.name && t.name.trim() !== '')
+        .filter(t => t && t.name && t.name.trim() !== '')
         .map(t => ({
-          ...t,
-          estimatedDurationMinutes: parseInt(t.estimatedDurationMinutes as any) || 0,
-          sequence: parseInt(t.sequence as any) || 0
+          name: t.name,
+          instructions: t.instructions || '',
+          estimatedDurationMinutes: parseInt(t.estimatedDurationMinutes) || 0,
+          sequence: parseInt(t.sequence) || 0,
+          isCompleted: false
         }));
 
       // Transform parts: filter out empty IDs and map to backend property names
       const cleanedParts = (formData.jobCardParts || [])
-        .filter(p => p.inventoryItemId && p.inventoryItemId !== '')
+        .filter(p => p && p.inventoryItemId && p.inventoryItemId !== '')
         .map(p => ({
           inventoryItemId: parseInt(p.inventoryItemId),
-          quantityUsed: parseInt(p.quantity as any) || 1,
-          unitCostSnapshot: parseFloat(p.unitCost as any) || 0
+          quantityUsed: parseInt(p.quantity) || 1,
+          unitCostSnapshot: parseFloat(p.unitCost) || 0
         }));
 
-      console.log('SUBMITTING JOB CARD:', {
-        ...formData,
-        jobTasks: cleanedTasks,
-        jobCardParts: cleanedParts
-      });
-
-      await dashboardApi.createJobCard({
+      const payload = {
         jobNumber: formData.jobNumber,
         description: formData.description,
         equipmentId: parseInt(formData.equipmentId),
         jobTypeId: parseInt(formData.jobTypeId),
         customerId: formData.customerId ? parseInt(formData.customerId) : null,
         contractId: formData.contractId ? parseInt(formData.contractId) : null,
-        status: formData.status,
-        priority: formData.priority,
+        status: parseInt(formData.status as any) || 0,
+        priority: parseInt(formData.priority as any) || 1,
         scheduledStartDate: formData.scheduledStartDate || null,
         scheduledEndDate: formData.scheduledEndDate || null,
         assignedTechnicianId: formData.assignedTechnicianId || null,
         subcontractingCost: estSubcon,
         jobTasks: cleanedTasks,
         jobCardParts: cleanedParts,
-      });
+      };
+
+      console.log('API SUBMISSION:', payload);
+
+      await dashboardApi.createJobCard(payload);
       onSuccess();
-    } catch (err) {
-      console.error('Error creating job card', err);
-      alert('Failed to create job card. Check console.');
+    } catch (err: any) {
+      console.error('CRITICAL ERROR CREATING JOB CARD:', err);
+      alert(`Submission Failed: ${err.message || 'Unknown error'}. Check browser console for details.`);
     } finally {
       setLoading(false);
     }
