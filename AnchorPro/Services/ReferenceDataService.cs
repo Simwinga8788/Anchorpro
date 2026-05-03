@@ -19,8 +19,8 @@ namespace AnchorPro.Services
         public async Task<List<JobType>> GetJobTypesAsync()
         {
             using var context = _factory.CreateDbContext();
-            context.IgnoreTenantFilter = true; // JobTypes are global (no TenantId)
-            return await context.JobTypes.AsNoTracking().ToListAsync();
+            // Rely on global query filter: returns global (TenantId=null) + current tenant's job types
+            return await context.JobTypes.AsNoTracking().OrderBy(j => j.Name).ToListAsync();
         }
 
         public async Task<List<DowntimeCategory>> GetDowntimeCategoriesAsync()
@@ -33,31 +33,19 @@ namespace AnchorPro.Services
         public async Task<List<Equipment>> GetEquipmentAsync()
         {
             using var context = _factory.CreateDbContext();
-            var tenantId = _tenantService.TenantId;
-            context.IgnoreTenantFilter = true;
-            return await context.Equipment.AsNoTracking()
-                .Where(e => e.TenantId == tenantId)
-                .ToListAsync();
+            return await context.Equipment.AsNoTracking().OrderBy(e => e.Name).ToListAsync();
         }
 
         public async Task<List<Customer>> GetCustomersAsync()
         {
             using var context = _factory.CreateDbContext();
-            var tenantId = _tenantService.TenantId;
-            context.IgnoreTenantFilter = true;
-            return await context.Customers.AsNoTracking()
-                .Where(c => c.TenantId == tenantId)
-                .ToListAsync();
+            return await context.Customers.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
         }
 
         public async Task<List<Contract>> GetContractsAsync()
         {
             using var context = _factory.CreateDbContext();
-            var tenantId = _tenantService.TenantId;
-            context.IgnoreTenantFilter = true;
-            return await context.Contracts.AsNoTracking()
-                .Where(c => c.TenantId == tenantId)
-                .ToListAsync();
+            return await context.Contracts.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<ApplicationUser>> GetTechniciansAsync()
@@ -69,7 +57,7 @@ namespace AnchorPro.Services
             context.IgnoreTenantFilter = true;
             return await context.Users
                 .AsNoTracking()
-                .Where(u => u.TenantId.HasValue && u.TenantId == tenantId)
+                .Where(u => u.TenantId == tenantId)
                 .Select(u => new ApplicationUser
                 {
                     Id = u.Id,

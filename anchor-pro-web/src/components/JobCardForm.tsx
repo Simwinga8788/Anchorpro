@@ -54,7 +54,8 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
           dashboardApi.getContracts(),
           dashboardApi.getTechnicians(),
         ]);
-        setRefData({ equipment: eq, jobTypes: jt, customers: cust, contracts: cont, technicians: tech });
+        console.log('REF DATA LOADED:', { eq, jt, cust, cont, tech });
+        setRefData({ equipment: eq || [], jobTypes: jt || [], customers: cust || [], contracts: cont || [], technicians: tech || [] });
       } catch (err) {
         console.error('Failed to load ref data', err);
       }

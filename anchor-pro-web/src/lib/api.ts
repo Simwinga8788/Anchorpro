@@ -131,7 +131,7 @@ export const dashboardApi = {
   // Documented endpoints per SYSTEM_DOCUMENTATION.md
   getStats: () => apiFetch<DashboardStats>('/api/dashboard/stats'),
   getActivity: () => apiFetch<any[]>('/api/dashboard/activity'),
-  getTechnicians: () => apiFetch<any[]>('/api/dashboard/technicians'),
+  getTechnicians: () => apiFetch<any[]>('/api/referencedata/technicians'),
 
   // These may exist as extensions — kept for pages that call them, will gracefully 404
   getPerformance: (days = 30) => apiFetch<PerformanceMetrics>(`/api/dashboard/performance?days=${days}`),
@@ -392,5 +392,4 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
   const text = await res.text();
   if (!text) return {} as T;
   return JSON.parse(text) as T;
-}
 }
