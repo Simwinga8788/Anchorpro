@@ -121,6 +121,30 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         return;
       }
 
+      // Transform tasks: filter out empty names and ensure numeric types
+      const cleanedTasks = (formData.jobTasks || [])
+        .filter(t => t.name && t.name.trim() !== '')
+        .map(t => ({
+          ...t,
+          estimatedDurationMinutes: parseInt(t.estimatedDurationMinutes as any) || 0,
+          sequence: parseInt(t.sequence as any) || 0
+        }));
+
+      // Transform parts: filter out empty IDs and map to backend property names
+      const cleanedParts = (formData.jobCardParts || [])
+        .filter(p => p.inventoryItemId && p.inventoryItemId !== '')
+        .map(p => ({
+          inventoryItemId: parseInt(p.inventoryItemId),
+          quantityUsed: parseInt(p.quantity as any) || 1,
+          unitCostSnapshot: parseFloat(p.unitCost as any) || 0
+        }));
+
+      console.log('SUBMITTING JOB CARD:', {
+        ...formData,
+        jobTasks: cleanedTasks,
+        jobCardParts: cleanedParts
+      });
+
       await dashboardApi.createJobCard({
         jobNumber: formData.jobNumber,
         description: formData.description,
@@ -133,10 +157,9 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         scheduledStartDate: formData.scheduledStartDate || null,
         scheduledEndDate: formData.scheduledEndDate || null,
         assignedTechnicianId: formData.assignedTechnicianId || null,
-        additionalTechnicianIds: formData.additionalTechnicianIds,
         subcontractingCost: estSubcon,
-        jobTasks: formData.jobTasks,
-        jobCardParts: formData.jobCardParts,
+        jobTasks: cleanedTasks,
+        jobCardParts: cleanedParts,
       });
       onSuccess();
     } catch (err) {
