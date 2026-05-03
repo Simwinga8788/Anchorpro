@@ -79,6 +79,21 @@ namespace AnchorPro.Services
                 jobCard.Status = JobStatus.Scheduled;
             }
 
+            // Propagate TenantId and Audit fields to nested collections
+            foreach (var task in jobCard.JobTasks)
+            {
+                task.TenantId = jobCard.TenantId;
+                task.CreatedAt = DateTime.UtcNow;
+                task.CreatedBy = userId;
+            }
+
+            foreach (var part in jobCard.JobCardParts)
+            {
+                part.TenantId = jobCard.TenantId;
+                part.CreatedAt = DateTime.UtcNow;
+                part.CreatedBy = userId;
+            }
+
             context.JobCards.Add(jobCard);
             await context.SaveChangesAsync();
         }
