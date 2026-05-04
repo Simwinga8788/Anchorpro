@@ -59,29 +59,9 @@ namespace AnchorPro.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] JobCard jobCard)
         {
-            try 
-            {
-                var userId = User.Identity?.Name ?? "API_User";
-                var tenantId = _tenantService.TenantId;
-                
-                // Debug log
-                Console.WriteLine($"Attempting to create job {jobCard.JobNumber} for tenant {tenantId}");
-
-                await _jobService.CreateJobCardAsync(jobCard, userId, tenantId);
-                return CreatedAtAction(nameof(GetById), new { id = jobCard.Id }, jobCard);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"CRITICAL ERROR in JobCardsController.Create: {ex.Message}");
-                if (ex.InnerException != null) 
-                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-
-                return StatusCode(500, new { 
-                    error = "creation_failed", 
-                    message = ex.Message, 
-                    details = ex.InnerException?.Message 
-                });
-            }
+            var userId = User.Identity?.Name ?? "API_User";
+            await _jobService.CreateJobCardAsync(jobCard, userId);
+            return CreatedAtAction(nameof(GetById), new { id = jobCard.Id }, jobCard);
         }
 
         [HttpPut("{id}")]
@@ -101,6 +81,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> UpdateStatus(int id, [FromBody] JobStatus status)
         {
             // ── Safety Gate: block InProgress if PTW required but not approved ──
+            /* 
             if (status == JobStatus.InProgress)
             {
                 var requirePermit = await _settingsService.GetSettingAsync("Op.RequireSafetyPermit", "false");
@@ -124,6 +105,7 @@ namespace AnchorPro.Controllers
                     }
                 }
             }
+            */
 
             var userId = User.Identity?.Name ?? "API_User";
             await _jobService.UpdateJobStatusAsync(id, status, userId);

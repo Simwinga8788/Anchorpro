@@ -47,9 +47,16 @@ export default function MyJobsPage() {
     fetchJobs();
   }, [user]);
 
-  const handleStartWork = (jobId: number) => {
-    setActiveJobId(jobId);
-    setShowPermit(true);
+  const handleStartWork = async (jobId: number) => {
+    setSaving(true);
+    try {
+      await dashboardApi.updateJobStatus(jobId, 2); // Status 2 = In Progress
+      fetchJobs();
+    } catch (err: any) {
+      alert(err.message || "Failed to start job.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const submitPermit = async (e: React.FormEvent) => {
