@@ -170,7 +170,8 @@ export const dashboardApi = {
   resolveDowntime: (id: number) => apiPut<any>(`/api/downtime/${id}/resolve`, {}),
   updateDowntime: (id: number, data: any) => apiPut<any>(`/api/downtime/${id}`, data),
   getDowntimeCategories: () => apiFetch<any[]>('/api/referencedata/downtimecategories'),
-  getJobTasks: (jobCardId: number) => apiFetch<any[]>(`/api/jobtasks?jobCardId=${jobCardId}`),
+  createPermit: (data: any) => apiPost('/api/safety/permits', data),
+  getJobTasks: (jobId: number) => apiFetch<any[]>(`/api/jobtasks?jobCardId=${jobId}`),
 
   // POST Operations
   createCustomer: (data: any) => apiPost<any>('/api/customers', data),

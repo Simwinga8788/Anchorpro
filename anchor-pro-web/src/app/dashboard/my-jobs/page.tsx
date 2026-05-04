@@ -57,12 +57,21 @@ export default function MyJobsPage() {
     if (!activeJobId) return;
     setSaving(true);
     try {
-      // In prod we would call dashboardApi.createPermit({ ...permitData, jobCardId: activeJobId });
+      // 1. Create the official Permit Record
+      await dashboardApi.createPermit({ 
+        jobCardId: activeJobId,
+        ...permitData,
+        status: 1 // Approved/Active
+      });
+      
+      // 2. Start the Job
       await dashboardApi.updateJobStatus(activeJobId, 2); // Status 2 = In Progress
+      
       setShowPermit(false);
       fetchJobs();
-    } catch (err) {
-      alert("Failed to confirm safety permit.");
+    } catch (err: any) {
+      console.error('Permit Error:', err);
+      alert(err.message || "Failed to confirm safety permit.");
     } finally {
       setSaving(false);
     }
