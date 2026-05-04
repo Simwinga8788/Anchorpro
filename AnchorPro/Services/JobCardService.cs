@@ -143,6 +143,7 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var job = await context.JobCards
                 .Include(j => j.JobTasks)
+                    .ThenInclude(t => t.DowntimeEntries)
                 .Include(j => j.JobCardParts)
                     .ThenInclude(p => p.InventoryItem)
                 .FirstOrDefaultAsync(j => j.Id == jobCardId);
