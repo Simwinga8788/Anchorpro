@@ -17,12 +17,14 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     customers: any[];
     contracts: any[];
     technicians: any[];
+    inventory: any[];
   }>({
     equipment: [],
     jobTypes: [],
     customers: [],
     contracts: [],
     technicians: [],
+    inventory: [],
   });
 
   const [formData, setFormData] = useState({
@@ -47,15 +49,23 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [eq, jt, cust, cont, tech] = await Promise.all([
+        const [eq, jt, cust, cont, tech, inv] = await Promise.all([
           dashboardApi.getEquipment(),
           dashboardApi.getJobTypes(),
           dashboardApi.getCustomers(),
           dashboardApi.getContracts(),
           dashboardApi.getTechnicians(),
+          dashboardApi.getInventoryItems(),
         ]);
-        console.log('REF DATA LOADED:', { eq, jt, cust, cont, tech });
-        setRefData({ equipment: eq || [], jobTypes: jt || [], customers: cust || [], contracts: cont || [], technicians: tech || [] });
+        console.log('REF DATA LOADED:', { eq, jt, cust, cont, tech, inv });
+        setRefData({ 
+          equipment: eq || [], 
+          jobTypes: jt || [], 
+          customers: cust || [], 
+          contracts: cont || [], 
+          technicians: tech || [],
+          inventory: inv || []
+        });
       } catch (err) {
         console.error('Failed to load ref data', err);
       }
@@ -414,15 +424,24 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
                 display: 'flex', gap: 10, alignItems: 'center'
               }}>
                 <div style={{ flex: 2 }}>
-                  <input className="form-input" placeholder="Part / item description"
-                    value={part.inventoryItemId} onChange={e => updatePart(idx, 'inventoryItemId', e.target.value)} />
+                  <select className="form-select" value={part.inventoryItemId} onChange={e => {
+                    const itemId = e.target.value;
+                    const item = refData.inventory.find(i => i.id.toString() === itemId);
+                    updatePart(idx, 'inventoryItemId', itemId);
+                    if (item) updatePart(idx, 'unitCost', item.unitCost);
+                  }}>
+                    <option value="">Select Part...</option>
+                    {refData.inventory.map(i => (
+                      <option key={i.id} value={i.id}>{i.partNumber} - {i.name} (Stock: {i.quantityOnHand})</option>
+                    ))}
+                  </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <input type="number" className="form-input" placeholder="Qty"
                     value={part.quantity} onChange={e => updatePart(idx, 'quantity', parseInt(e.target.value))} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <input type="number" className="form-input" placeholder="Unit cost (ZMW)"
+                  <input type="number" className="form-input" placeholder="Unit cost"
                     value={part.unitCost} onChange={e => updatePart(idx, 'unitCost', parseFloat(e.target.value))} />
                 </div>
                 <button type="button" onClick={() => removePart(idx)}
