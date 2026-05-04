@@ -38,20 +38,38 @@ namespace AnchorPro.Services
         public async Task CreateDowntimeEntryAsync(DowntimeEntry entry, string userId)
         {
             using var context = _factory.CreateDbContext();
+            
+            // Resolve TenantId and Author
+            var user = await context.Users.FindAsync(userId);
+            entry.TenantId = user?.TenantId;
             entry.CreatedAt = DateTime.UtcNow;
             entry.CreatedBy = userId;
+
+            // Force UTC for PostgreSQL
+            entry.StartTime = DateTime.SpecifyKind(entry.StartTime, DateTimeKind.Utc);
+            if (entry.EndTime.HasValue)
+                entry.EndTime = DateTime.SpecifyKind(entry.EndTime.Value, DateTimeKind.Utc);
+
             context.DowntimeEntries.Add(entry);
             await context.SaveChangesAsync();
 
             // Trigger Alert for Delay
-            var task = await context.JobTasks.Include(t => t.JobCard).FirstOrDefaultAsync(t => t.Id == entry.JobTaskId);
-            if (task != null && task.JobCard != null)
+            string jobNumber = "Unknown";
+            if (entry.JobTaskId.HasValue && entry.JobTaskId.Value > 0)
             {
-                var category = await context.DowntimeCategories.FindAsync(entry.DowntimeCategoryId);
-                var reason = category?.Name ?? "General Delay";
-                var fullNotes = string.IsNullOrEmpty(entry.Notes) ? reason : $"{reason} - {entry.Notes}";
-                await _alertService.NotifyTechnicianDelayAsync(task.JobCard.JobNumber, userId, fullNotes);
+                var task = await context.JobTasks.Include(t => t.JobCard).FirstOrDefaultAsync(t => t.Id == entry.JobTaskId);
+                jobNumber = task?.JobCard?.JobNumber ?? "Unknown";
             }
+            else if (entry.JobCardId.HasValue && entry.JobCardId.Value > 0)
+            {
+                var job = await context.JobCards.FindAsync(entry.JobCardId);
+                jobNumber = job?.JobNumber ?? "Unknown";
+            }
+
+            var category = await context.DowntimeCategories.FindAsync(entry.DowntimeCategoryId);
+            var reason = category?.Name ?? "General Delay";
+            var fullNotes = string.IsNullOrEmpty(entry.Notes) ? reason : $"{reason} - {entry.Notes}";
+            await _alertService.NotifyTechnicianDelayAsync(jobNumber, userId, fullNotes);
         }
 
         public async Task UpdateDowntimeEntryAsync(DowntimeEntry entry, string userId)
