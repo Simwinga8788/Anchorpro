@@ -174,7 +174,13 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       onSuccess();
     } catch (err: any) {
       console.error('CRITICAL ERROR CREATING JOB CARD:', err);
-      alert(`Submission Failed: ${err.message || 'Unknown error'}. Check browser console for details.`);
+      alert(`Submission Failed: ${err.message || 'Unknown error'}`);
+      
+      // Refresh job number to avoid conflict loop
+      setFormData(prev => ({
+        ...prev,
+        jobNumber: `JOB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      }));
     } finally {
       setLoading(false);
     }

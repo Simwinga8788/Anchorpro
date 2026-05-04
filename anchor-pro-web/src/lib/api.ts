@@ -359,7 +359,15 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`POST error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errorMsg = `POST error ${res.status} on ${path}`;
+    try {
+      const errorData = await res.json();
+      if (errorData.message) errorMsg = errorData.message;
+      if (errorData.details) errorMsg += `: ${errorData.details}`;
+    } catch { /* ignore if not JSON */ }
+    throw new Error(errorMsg);
+  }
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
