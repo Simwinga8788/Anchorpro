@@ -71,6 +71,13 @@ namespace AnchorPro.Services
             jobCard.CreatedAt = DateTime.UtcNow;
             jobCard.CreatedBy = userId;
             jobCard.Status = JobStatus.Unscheduled; 
+
+            // Force UTC for PostgreSQL compatibility
+            if (jobCard.ScheduledStartDate.HasValue)
+                jobCard.ScheduledStartDate = DateTime.SpecifyKind(jobCard.ScheduledStartDate.Value, DateTimeKind.Utc);
+            
+            if (jobCard.ScheduledEndDate.HasValue)
+                jobCard.ScheduledEndDate = DateTime.SpecifyKind(jobCard.ScheduledEndDate.Value, DateTimeKind.Utc);
             
             if (jobCard.ScheduledStartDate.HasValue)
             {
