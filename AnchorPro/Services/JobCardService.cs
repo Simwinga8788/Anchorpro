@@ -146,6 +146,7 @@ namespace AnchorPro.Services
                     .ThenInclude(t => t.DowntimeEntries)
                 .Include(j => j.JobCardParts)
                     .ThenInclude(p => p.InventoryItem)
+                .Include(j => j.DowntimeEntries)
                 .FirstOrDefaultAsync(j => j.Id == jobCardId);
 
             if (job != null)
@@ -188,7 +189,10 @@ namespace AnchorPro.Services
                     var grossDurationHours = (DateTime.UtcNow - startTime).TotalHours;
                     
                     // 1.1 Job Duration (Net Processing Time) calculation for labor cost
-                    var totalDowntimeMins = job.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes);
+                    var taskDowntimeMins = job.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes);
+                    var jobDowntimeMins = job.DowntimeEntries.Sum(d => d.DurationMinutes);
+                    var totalDowntimeMins = taskDowntimeMins + jobDowntimeMins;
+
                     var netDurationHours = Math.Max(0.25, grossDurationHours - (totalDowntimeMins / 60.0));
 
                     decimal laborCost = (decimal)netDurationHours * techRate;
