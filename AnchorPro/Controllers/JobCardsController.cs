@@ -60,7 +60,8 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Create([FromBody] JobCard jobCard)
         {
             var userId = User.Identity?.Name ?? "API_User";
-            await _jobService.CreateJobCardAsync(jobCard, userId);
+            var tenantId = _tenantService.TenantId;
+            await _jobService.CreateJobCardAsync(jobCard, userId, tenantId);
             return CreatedAtAction(nameof(GetById), new { id = jobCard.Id }, jobCard);
         }
 

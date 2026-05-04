@@ -63,35 +63,39 @@ namespace AnchorPro.Services
                 .ToListAsync();
         }
 
-        public async Task CreateJobCardAsync(JobCard jobCard, string userId)
+        public async Task CreateJobCardAsync(JobCard jobCard, string userId, int? tenantId = null)
         {
             using var context = _factory.CreateDbContext();
-
-            var user = await context.Users.FindAsync(userId);
-            jobCard.TenantId = user?.TenantId;
-
+            
+            jobCard.TenantId = tenantId;
             jobCard.CreatedAt = DateTime.UtcNow;
             jobCard.CreatedBy = userId;
-            jobCard.Status = JobStatus.Unscheduled; // Default status
-
+            jobCard.Status = JobStatus.Unscheduled; 
+            
             if (jobCard.ScheduledStartDate.HasValue)
             {
                 jobCard.Status = JobStatus.Scheduled;
             }
 
-            // Propagate TenantId and Audit fields to nested collections
-            foreach (var task in jobCard.JobTasks)
+            // Safe propagation to nested collections
+            if (jobCard.JobTasks != null)
             {
-                task.TenantId = jobCard.TenantId;
-                task.CreatedAt = DateTime.UtcNow;
-                task.CreatedBy = userId;
+                foreach (var task in jobCard.JobTasks)
+                {
+                    task.TenantId = jobCard.TenantId;
+                    task.CreatedAt = DateTime.UtcNow;
+                    task.CreatedBy = userId;
+                }
             }
 
-            foreach (var part in jobCard.JobCardParts)
+            if (jobCard.JobCardParts != null)
             {
-                part.TenantId = jobCard.TenantId;
-                part.CreatedAt = DateTime.UtcNow;
-                part.CreatedBy = userId;
+                foreach (var part in jobCard.JobCardParts)
+                {
+                    part.TenantId = jobCard.TenantId;
+                    part.CreatedAt = DateTime.UtcNow;
+                    part.CreatedBy = userId;
+                }
             }
 
             context.JobCards.Add(jobCard);
