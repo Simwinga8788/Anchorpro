@@ -83,8 +83,8 @@ export default function MyJobsPage() {
       });
       setShowDowntime(false);
       alert("Downtime reported.");
-    } catch (err) {
-      alert("Failed to report downtime.");
+    } catch (err: any) {
+      alert(err.message || "Failed to report downtime.");
     } finally {
       setSaving(false);
     }
@@ -95,8 +95,8 @@ export default function MyJobsPage() {
     try {
       await dashboardApi.updateJobStatus(jobId, 3); // 3 = Completed
       fetchJobs();
-    } catch (err) {
-      alert("Error completing job.");
+    } catch (err: any) {
+      alert(err.message || "Error completing job.");
     }
   };
 
