@@ -15,30 +15,11 @@ namespace AnchorPro.Controllers
             _downtimeService = downtimeService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<DowntimeEntry>>> GetAll()
-        {
-            var result = await _downtimeService.GetAllDowntimeAsync();
-            return Ok(result);
-        }
-
         [HttpGet("task/{taskId}")]
         public async Task<ActionResult<List<DowntimeEntry>>> GetForTask(int taskId)
         {
             var result = await _downtimeService.GetDowntimeForTaskAsync(taskId);
             return Ok(result);
-        }
-
-        [HttpPut("{id}/resolve")]
-        public async Task<ActionResult> Resolve(int id)
-        {
-            var all = await _downtimeService.GetAllDowntimeAsync();
-            var entry = all.FirstOrDefault(d => d.Id == id);
-            if (entry == null) return NotFound();
-            entry.EndTime = DateTime.UtcNow;
-            var userId = User.Identity?.Name ?? "API_User";
-            await _downtimeService.UpdateDowntimeEntryAsync(entry, userId);
-            return NoContent();
         }
 
         [HttpPost]

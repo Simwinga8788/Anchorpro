@@ -1,0 +1,359 @@
+@page "/platform/payments"
+@using AnchorPro.Components.Layout
+@using AnchorPro.Data
+@using AnchorPro.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@inject AnchorPro.Services.Interfaces.ISubscriptionLifecycleService LifecycleService
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@layout MainLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = "PlatformOwner")]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Payment Governance | Anchor Pro</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.75rem; letter-spacing:1px;">Finance</h6>
+            <h2 class="fw-bold text-slate-800 mb-0">Payments & Approvals</h2>
+        </div>
+        <div>
+             <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Report</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted small fw-bold">Pending Approval</h6>
+                    <h3 class="fw-bold text-dark">@pendingCount</h3>
+                    <div class="small text-muted">Requires immediate attention</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-success">
+                 <div class="card-body">
+                    <h6 class="text-uppercase text-muted small fw-bold">This Month (Cleared)</h6>
+                    <h3 class="fw-bold text-dark">@currency @thisMonthTotal.ToString("N0")</h3>
+                    <div class="small text-success">@clearedThisMonth cleared payments</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-danger">
+                 <div class="card-body">
+                    <h6 class="text-uppercase text-muted small fw-bold">Overdue / Failed</h6>
+                    <h3 class="fw-bold text-dark">@failedCount</h3>
+                    <div class="small text-muted">@failedCount subscription(s) at risk</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="fw-bold mb-0">Payment Transactions</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Tenant</th>
+                        <th>Reference / Method</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (payments != null && payments.Any())
+                    {
+                        @foreach (var p in payments)
+                        {
+                            <tr class="@(p.Status == "Pending" ? "bg-warning bg-opacity-10" : "")">
+                                <td class="ps-4">
+                                    <div class="fw-bold">@p.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</div>
+                                    <div class="small text-muted">@((DateTime.UtcNow - p.CreatedAt).TotalHours < 24 ? "Today" : "")</div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">@p.Tenant?.Name</div>
+                                    <div class="small text-muted">Ref: @p.TransactionReference</div>
+                                    @if (p.Tenant != null && !p.Tenant.IsActive && p.Status == "Pending")
+                                    {
+                                        <div class="small mt-1">
+                                            <span class="badge badge-sm bg-danger bg-opacity-10 text-danger">
+                                                <i class="bi bi-exclamation-circle me-1"></i>Suspended - Will reactivate on approval
+                                            </span>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="font-monospace small">@p.PaymentMethod</div>
+                                    @if (!string.IsNullOrEmpty(p.ProofDocumentUrl))
+                                    {
+                                        <div class="small"><a href="@p.ProofDocumentUrl" download class="text-decoration-none"><i class="bi bi-paperclip"></i> Proof</a></div>
+                                    }
+                                </td>
+                                <td class="fw-bold">@p.Currency @p.Amount.ToString("N2")</td>
+                                <td>
+                                    @if (p.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending Review</span>
+                                    }
+                                    else if (p.Status == "Approved")
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success">Approved</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger bg-opacity-10 text-danger">@p.Status</span>
+                                    }
+                                </td>
+@inject AnchorPro.Services.Interfaces.IEmailService EmailService
+
+<!-- ... Existing UI Code ... -->
+<!-- REPLACE THE TABLE ACTION COLUMN TO OPEN MODAL -->
+                                <td class="text-end pe-4">
+                                    @if(p.Status == "Pending")
+                                    {
+                                        <button class="btn btn-sm btn-primary me-1" @onclick="() => OpenProofModal(p)" title="Review Proof">
+                                            <i class="bi bi-eye"></i> Review
+                                        </button>
+                                    }
+                                    else if (p.Status == "Approved" && p.ApprovedAt.HasValue)
+                                    {
+                                        <small class="text-muted">
+                                            Approved @p.ApprovedAt.Value.ToLocalTime().ToString("MMM dd, HH:mm")
+                                        </small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">No payment transactions found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (showProofModal && selectedPayment != null)
+{
+    <div class="modal-backdrop fade show" style="background-color: rgba(0,0,0,0.8);"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg h-100">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Review Payment Proof</h5>
+                    <button type="button" class="btn-close" @onclick="CloseProofModal"></button>
+                </div>
+                <div class="modal-body p-0 bg-light d-flex justify-content-center align-items-center" style="min-height: 400px; max-height: 60vh; overflow: auto;">
+                    @if (!string.IsNullOrEmpty(selectedPayment.ProofDocumentUrl))
+                    {
+                        @if (selectedPayment.ProofDocumentUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <iframe src="@selectedPayment.ProofDocumentUrl" width="100%" height="500px"></iframe>
+                        }
+                        else
+                        {
+                            <img src="@selectedPayment.ProofDocumentUrl" class="img-fluid" style="max-height: 100%;" />
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">No document attached.</div>
+                    }
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <div>
+                        <strong>Amount:</strong> @selectedPayment.Currency @selectedPayment.Amount.ToString("N2") <br/>
+                        <small class="text-muted">Ref: @selectedPayment.TransactionReference</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-danger me-2" @onclick="() => RejectPayment(selectedPayment)">
+                            <i class="bi bi-x-lg"></i> Reject
+                        </button>
+                        <button class="btn btn-success px-4" @onclick="() => ApprovePayment(selectedPayment)">
+                            <i class="bi bi-check-lg me-2"></i> Approve & Activate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<PaymentTransaction> payments = new();
+    private int pendingCount = 0;
+    private int clearedThisMonth = 0;
+    private int failedCount = 0;
+    private decimal thisMonthTotal = 0;
+    private string currency = "ZMW";
+
+    // Modal State
+    private bool showProofModal = false;
+    private PaymentTransaction? selectedPayment;
+
+    private void OpenProofModal(PaymentTransaction p)
+    {
+        selectedPayment = p;
+        showProofModal = true;
+    }
+
+    private void CloseProofModal()
+    {
+        showProofModal = false;
+        selectedPayment = null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        Context.IgnoreTenantFilter = true;
+        
+        payments = await Context.PaymentTransactions
+            .Include(p => p.Tenant)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+        
+        // Calculate KPIs
+        pendingCount = payments.Count(p => p.Status == "Pending");
+        failedCount = payments.Count(p => p.Status == "Failed" || p.Status == "Rejected");
+        
+        var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        var thisMonthPayments = payments.Where(p => 
+            p.CreatedAt >= startOfMonth && 
+            p.Status == "Approved");
+        
+        clearedThisMonth = thisMonthPayments.Count();
+        thisMonthTotal = thisMonthPayments.Sum(p => p.Amount);
+        
+        // Get currency from first payment or default to ZMW
+        currency = payments.FirstOrDefault()?.Currency ?? "ZMW";
+    }
+
+
+    private async Task ApprovePayment(PaymentTransaction p)
+    {
+        try
+        {
+            // Get current user for audit
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.Identity?.Name;
+
+            // 1. Update Payment Transaction
+            p.Status = "Approved";
+            p.ApprovedAt = DateTime.UtcNow;
+            p.ApprovedByUserId = userId;
+
+            // 2. Handle Subscription & Tenant Logic (Directly in this context to avoid concurrency)
+            if (p.TenantSubscriptionId.HasValue)
+            {
+                var subscription = await Context.TenantSubscriptions
+                    .Include(s => s.Tenant)
+                    .FirstOrDefaultAsync(s => s.Id == p.TenantSubscriptionId.Value);
+
+                if (subscription != null)
+                {
+                    // A. Check for Plan Upgrade based on Amount
+                    // Fetch all plans to match amount
+                    var plans = await Context.SubscriptionPlans.IgnoreQueryFilters().ToListAsync();
+                    var targetPlan = plans.FirstOrDefault(pl => Math.Abs(pl.MonthlyPrice - p.Amount) < 1.0m); // Match within 1.00 tolerance
+
+                    if (targetPlan != null && targetPlan.Id != subscription.SubscriptionPlanId)
+                    {
+                        subscription.SubscriptionPlanId = targetPlan.Id;
+                        subscription.IsTrial = false; // Definitely not a trial anymore
+                        // Also update limits if they are stored in subscription (they are usually pulled from plan)
+                    }
+                    
+                    // B. Reactivate Subscription
+                    subscription.Status = "Active";
+                    subscription.SuspendedAt = null; 
+                    subscription.SuspensionReason = null;
+                    subscription.GracePeriodEndDate = null;
+                    subscription.UpdatedAt = DateTime.UtcNow;
+                    subscription.UpdatedBy = userId;
+                    
+                    // C. Update Billing Dates
+                    subscription.LastPaymentDate = DateTime.UtcNow;
+                    subscription.NextBillingDate = DateTime.UtcNow.AddMonths(1);
+
+                    // D. Reactivate Tenant
+                    if (subscription.Tenant != null && !subscription.Tenant.IsActive)
+                    {
+                        subscription.Tenant.IsActive = true;
+                        subscription.Tenant.UpdatedAt = DateTime.UtcNow;
+                        subscription.Tenant.UpdatedBy = userId;
+                    }
+
+                    // E. Send Email Logic
+                     try {
+                        if (subscription.Tenant?.ContactEmail != null) {
+                            await EmailService.SendEmailAsync(subscription.Tenant.ContactEmail, "Subscription Upgraded", $"Your payment has been approved. You are now on the {targetPlan?.Name ?? "New"} Plan.");
+                        }
+                    } catch {}
+                }
+            }
+            else if (p.TenantId.HasValue)
+            {
+                // Update Tenant directly
+                var tenant = await Context.Tenants.FindAsync(p.TenantId.Value);
+                if (tenant != null && !tenant.IsActive)
+                {
+                    tenant.IsActive = true;
+                    tenant.UpdatedAt = DateTime.UtcNow;
+                    tenant.UpdatedBy = userId;
+                }
+            }
+
+            // 3. Save Everything in ONE transaction
+            await Context.SaveChangesAsync();
+            
+            CloseProofModal(); // Close modal if open
+            await LoadData();  // Refresh UI
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving payment: {ex.Message}");
+        }
+    }
+
+    private async Task RejectPayment(PaymentTransaction p)
+    {
+        try
+        {
+            // Get current user for audit
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.Identity?.Name;
+
+            p.Status = "Rejected";
+            p.ApprovedAt = DateTime.UtcNow; // Track when it was reviewed
+            p.ApprovedByUserId = userId;
+
+            // Logic for rejection (keep simple)
+            
+            await Context.SaveChangesAsync();
+            CloseProofModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rejecting payment: {ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,147 @@
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="nav-brand">
+    <div class="brand-icon">
+        <i class="bi bi-shield-lock-fill"></i>
+    </div>
+    <span class="brand-text">Platform Console</span>
+</div>
+
+<div class="sidebar-nav custom-scrollbar">
+    <div class="nav-section-label">Overview</div>
+    <NavLink class="nav-item" href="platform" Match="NavLinkMatch.All">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </NavLink>
+
+    <div class="nav-section-label">Governance</div>
+    <NavLink class="nav-item" href="platform/tenants">
+        <i class="bi bi-buildings"></i> Tenants
+    </NavLink>
+    <NavLink class="nav-item" href="platform/payments">
+        <i class="bi bi-credit-card"></i> Payments
+    </NavLink>
+
+    <div class="nav-section-label">Configuration</div>
+    <NavLink class="nav-item" href="platform/plans">
+        <i class="bi bi-box-seam"></i> Plans
+    </NavLink>
+    <NavLink class="nav-item" href="platform/settings">
+        <i class="bi bi-sliders"></i> Settings
+    </NavLink>
+
+    <div class="nav-section-label">Compliance</div>
+    <NavLink class="nav-item" href="platform/audit">
+        <i class="bi bi-shield-check"></i> Audit Logs
+    </NavLink>
+
+    <div class="nav-divider"></div>
+    <a href="/" class="nav-item text-danger">
+        <i class="bi bi-box-arrow-left text-danger"></i> Exit Console
+    </a>
+</div>
+
+<style>
+    /* Platform Theme: Professional Slate (#475569) */
+    .nav-brand {
+        display: flex;
+        align-items: center;
+        padding: 24px 20px;
+        margin-bottom: 8px;
+    }
+
+    .brand-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); /* Slate 800-900 */
+        border-radius: 8px; /* Slightly sharper */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        margin-right: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .brand-text {
+        font-size: 16px; /* Slightly smaller, more refined */
+        font-weight: 600;
+        color: #f8fafc; /* Slate 50 */
+        letter-spacing: -0.2px;
+    }
+
+    .sidebar-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 12px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px; /* Denser */
+        margin-bottom: 2px;
+        border-radius: 6px;
+        color: #94a3b8; /* Slate 400 */
+        text-decoration: none;
+        font-size: 13px; /* Enterprise size */
+        font-weight: 500;
+        transition: all 0.15s ease;
+        position: relative;
+    }
+
+    .nav-item i {
+        font-size: 16px;
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+        color: #64748b; /* Slate 500 */
+        transition: color 0.15s ease;
+    }
+
+    .nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+        color: #f1f5f9;
+        text-decoration: none;
+    }
+    
+    .nav-item:hover i {
+        color: #e2e8f0;
+    }
+
+    .nav-item.active {
+        background-color: rgba(30, 41, 59, 0.5); /* Semi-transparent Slate */
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .nav-item.active i {
+        color: #38bdf8; /* Light Blue Accent for active icon only */
+    }
+
+    .nav-item.active::before {
+        display: none; /* Remove side bar for cleaner look */
+    }
+
+    .nav-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.05);
+        margin: 12px 0;
+    }
+
+    .nav-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #475569; /* Slate 600 - very subtle */
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 16px 12px 6px 12px;
+    }
+    
+    /* Scrollbar */
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+</style>

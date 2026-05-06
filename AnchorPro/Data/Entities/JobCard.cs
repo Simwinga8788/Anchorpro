@@ -46,7 +46,6 @@ namespace AnchorPro.Data.Entities
         public ICollection<JobTask> JobTasks { get; set; } = new List<JobTask>();
         public ICollection<JobCardPart> JobCardParts { get; set; } = new List<JobCardPart>();
         public ICollection<JobAttachment> JobAttachments { get; set; } = new List<JobAttachment>();
-        public ICollection<DowntimeEntry> DowntimeEntries { get; set; } = new List<DowntimeEntry>();
 
         // Compliance
         public PermitToWork? PermitToWork { get; set; }

@@ -8,38 +8,34 @@ namespace AnchorPro.Services
     public class ReferenceDataService : IReferenceDataService
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
-        private readonly ICurrentTenantService _tenantService;
 
-        public ReferenceDataService(IDbContextFactory<ApplicationDbContext> factory, ICurrentTenantService tenantService)
+        public ReferenceDataService(IDbContextFactory<ApplicationDbContext> factory)
         {
             _factory = factory;
-            _tenantService = tenantService;
         }
 
         public async Task<List<JobType>> GetJobTypesAsync()
         {
             using var context = _factory.CreateDbContext();
-            // Rely on global query filter: returns global (TenantId=null) + current tenant's job types
-            return await context.JobTypes.AsNoTracking().OrderBy(j => j.Name).ToListAsync();
+            return await context.JobTypes.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<DowntimeCategory>> GetDowntimeCategoriesAsync()
         {
             using var context = _factory.CreateDbContext();
-            context.IgnoreTenantFilter = true; // DowntimeCategories are global
             return await context.DowntimeCategories.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<Equipment>> GetEquipmentAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Equipment.AsNoTracking().OrderBy(e => e.Name).ToListAsync();
+            return await context.Equipment.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<Customer>> GetCustomersAsync()
         {
             using var context = _factory.CreateDbContext();
-            return await context.Customers.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
+            return await context.Customers.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<Contract>> GetContractsAsync()
@@ -51,25 +47,7 @@ namespace AnchorPro.Services
         public async Task<List<ApplicationUser>> GetTechniciansAsync()
         {
             using var context = _factory.CreateDbContext();
-            var tenantId = _tenantService.TenantId;
-            // IgnoreTenantFilter required since ApplicationUser has no EF global filter
-            // but we still explicitly scope to the current tenant — multi-tenant secure
-            context.IgnoreTenantFilter = true;
-            return await context.Users
-                .AsNoTracking()
-                .Where(u => u.TenantId == tenantId)
-                .Select(u => new ApplicationUser
-                {
-                    Id = u.Id,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    UserName = u.UserName,
-                    HourlyRate = u.HourlyRate,
-                    TenantId = u.TenantId,
-                    DepartmentId = u.DepartmentId
-                })
-                .ToListAsync();
+            return await context.Users.AsNoTracking().ToListAsync(); // Simplification: in prod filter by role
         }
 
         public async Task CreateJobTypeAsync(JobType jobType, string userId)

@@ -1,25 +1,19 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Data;
 using AnchorPro.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class ReferenceDataController : ControllerBase
     {
         private readonly IReferenceDataService _refService;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ReferenceDataController(IReferenceDataService refService, UserManager<ApplicationUser> userManager)
+        public ReferenceDataController(IReferenceDataService refService)
         {
             _refService = refService;
-            _userManager = userManager;
         }
 
         [HttpGet("jobtypes")]
@@ -61,8 +55,7 @@ namespace AnchorPro.Controllers
         [HttpPost("jobtypes")]
         public async Task<ActionResult> CreateJobType([FromBody] JobType item)
         {
-            var user = await _userManager.GetUserAsync(User);
-            var userId = user?.Id ?? User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "API_User";
+            var userId = User.Identity?.Name ?? "API_User";
             await _refService.CreateJobTypeAsync(item, userId);
             return Ok(item);
         }
@@ -70,8 +63,7 @@ namespace AnchorPro.Controllers
         [HttpPost("downtimecategories")]
         public async Task<ActionResult> CreateDowntimeCategory([FromBody] DowntimeCategory item)
         {
-            var user = await _userManager.GetUserAsync(User);
-            var userId = user?.Id ?? User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "API_User";
+            var userId = User.Identity?.Name ?? "API_User";
             await _refService.CreateDowntimeCategoryAsync(item, userId);
             return Ok(item);
         }

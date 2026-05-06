@@ -1,0 +1,301 @@
+@page "/job-cards/create"
+@rendermode InteractiveServer
+@using AnchorPro.Data.Entities
+@using AnchorPro.Data.Enums
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJobCardService JobCardService
+@inject IJobTaskService JobTaskService
+@inject IEquipmentService EquipmentService
+@inject IReferenceDataService ReferenceDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Create Job Card</PageTitle>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="mb-0 fw-800 text-slate-900 fs-2">Create Job Card</h1>
+        <p class="text-slate-500 x-small fw-800 text-uppercase" style="letter-spacing: 0.05em;">INITIATE NEW MAINTENANCE OPERATION</p>
+    </div>
+    <button class="btn btn-outline-secondary fw-800 w-100 w-md-auto" @onclick="Cancel">
+        <i class="bi bi-x-lg me-2"></i>CANCEL
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="glass-card p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Loading...</p>
+    </div>
+}
+else
+{
+    <div class="glass-card p-4">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                <i class="bi bi-check-circle me-2"></i>@successMessage
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Priority <span class="text-danger">*</span></label>
+                <select class="form-select" @bind="selectedPriority">
+                    @foreach (var p in Enum.GetValues<JobPriority>())
+                    {
+                        <option value="@p">@p</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Equipment <span class="text-danger">*</span></label>
+                <select class="form-select" @bind="selectedEquipmentId">
+                    <option value="0">-- Select Equipment --</option>
+                    @foreach (var eq in equipmentList)
+                    {
+                        <option value="@eq.Id">@eq.Name (@eq.SerialNumber)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Job Type <span class="text-danger">*</span></label>
+                <select class="form-select" @bind="selectedJobTypeId">
+                    <option value="0">-- Select Job Type --</option>
+                    @foreach (var jt in jobTypeList)
+                    {
+                        <option value="@jt.Id">@jt.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+            <textarea class="form-control" rows="3" @bind="description" placeholder="Describe the maintenance work required..."></textarea>
+        </div>
+
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <label class="form-label fw-bold mb-0">Tasks (Optional)</label>
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddTask">
+                    <i class="bi bi-plus-lg me-1"></i>Add Task
+                </button>
+            </div>
+
+            @if (tasks.Any())
+            {
+                <div class="d-none d-md-block table-responsive">
+                    <table class="table table-sm">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 40%">Task Name</th>
+                                <th style="width: 40%">Instructions</th>
+                                <th style="width: 15%">Duration (min)</th>
+                                <th style="width: 5%"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in tasks)
+                            {
+                                <tr>
+                                    <td><input @bind="task.Name" class="form-control form-control-sm" /></td>
+                                    <td><input @bind="task.Instructions" class="form-control form-control-sm" /></td>
+                                    <td><input type="number" @bind="task.EstimatedDurationMinutes" class="form-control form-control-sm" /></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm text-danger" @onclick="() => tasks.Remove(task)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Task View -->
+                <div class="d-md-none">
+                    @foreach (var task in tasks)
+                    {
+                        <div class="p-3 mb-3 border rounded-3 bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-800 text-slate-500 x-small">TASK #@task.Sequence</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0" @onclick="() => tasks.Remove(task)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            <div class="mb-2">
+                                <label class="x-small fw-800 text-slate-500 mb-1">TASK NAME</label>
+                                <input @bind="task.Name" class="form-control form-control-sm" placeholder="e.g. Inspect oil filters" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="x-small fw-800 text-slate-500 mb-1">INSTRUCTIONS</label>
+                                <input @bind="task.Instructions" class="form-control form-control-sm" placeholder="Details..." />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="x-small fw-800 text-slate-500 mb-1">DUR (MIN)</label>
+                                    <input type="number" @bind="task.EstimatedDurationMinutes" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="d-flex flex-column flex-md-row justify-content-end gap-2 pt-4 border-top">
+            <button type="button" class="btn btn-secondary fw-800 order-2 order-md-1" @onclick="Cancel">CANCEL</button>
+            <button type="button" class="btn btn-primary fw-800 order-1 order-md-2 py-3 py-md-2" @onclick="HandleSubmit" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                <span>CREATE JOB CARD</span>
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Equipment> equipmentList = new();
+    private List<JobType> jobTypeList = new();
+    private List<TaskModel> tasks = new();
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private int selectedEquipmentId = 0;
+    private int selectedJobTypeId = 0;
+    private JobPriority selectedPriority = JobPriority.Normal;
+    private string description = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            equipmentList = await EquipmentService.GetAllEquipmentAsync();
+            jobTypeList = await ReferenceDataService.GetJobTypesAsync();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddTask()
+    {
+        tasks.Add(new TaskModel { Sequence = tasks.Count + 1 });
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        // Validation
+        if (selectedEquipmentId == 0)
+        {
+            errorMessage = "Please select equipment.";
+            return;
+        }
+
+        if (selectedJobTypeId == 0)
+        {
+            errorMessage = "Please select a job type.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            errorMessage = "Please enter a description.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.Identity?.Name ?? "System";
+
+            // Create job card
+            var jobCard = new JobCard
+            {
+                JobNumber = $"JOB-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}",
+                EquipmentId = selectedEquipmentId,
+                JobTypeId = selectedJobTypeId,
+                Description = description,
+                Priority = selectedPriority,
+                Status = JobStatus.Unscheduled,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            await JobCardService.CreateJobCardAsync(jobCard, userId);
+
+            // Get the created job card to get its ID
+            var allJobs = await JobCardService.GetAllJobCardsAsync();
+            var createdJob = allJobs.FirstOrDefault(j => j.JobNumber == jobCard.JobNumber);
+
+            if (createdJob != null && tasks.Any())
+            {
+                // Save tasks
+                foreach (var task in tasks)
+                {
+                    if (!string.IsNullOrWhiteSpace(task.Name))
+                    {
+                        var jobTask = new JobTask
+                        {
+                            JobCardId = createdJob.Id,
+                            Name = task.Name,
+                            Instructions = task.Instructions ?? "",
+                            EstimatedDurationMinutes = task.EstimatedDurationMinutes,
+                            Sequence = task.Sequence,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userId
+                        };
+
+                        await JobTaskService.CreateTaskAsync(jobTask, userId);
+                    }
+                }
+            }
+
+            successMessage = "Job card created successfully!";
+            await Task.Delay(1000);
+            NavigationManager.NavigateTo("/job-cards");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating job card: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo("/job-cards");
+
+    private class TaskModel
+    {
+        public string Name { get; set; } = "";
+        public string? Instructions { get; set; }
+        public int EstimatedDurationMinutes { get; set; } = 30;
+        public int Sequence { get; set; }
+    }
+}

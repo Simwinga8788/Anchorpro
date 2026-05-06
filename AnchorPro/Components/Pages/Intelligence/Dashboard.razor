@@ -1,0 +1,288 @@
+@page "/intelligence"
+@using AnchorPro.Data.Models.Intelligence
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin,Planner,Supervisor")]
+@inject IIntelligenceService IntelligenceService
+@inject IJSRuntime JS
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Decision Intelligence | Anchor Pro</PageTitle>
+
+<ApplePageHeader Title="Decision Intelligence" Subtitle="Operational Profitability & Performance">
+    <ActionButtons>
+        <div class="d-flex gap-2">
+            <button class="btn btn-premium-ghost btn-sm" @onclick="RefreshData">
+                <i class="bi bi-arrow-clockwise"></i> EXPORT PDF
+            </button>
+            <button class="btn btn-premium-ghost btn-sm">
+                <i class="bi bi-calendar3"></i> LAST 30 DAYS
+            </button>
+        </div>
+    </ActionButtons>
+</ApplePageHeader>
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger mx-4 mt-4">
+        <h6 class="fw-800">Intelligence Engine Error</h6>
+        <p class="mb-0 small">@errorMessage</p>
+    </div>
+}
+
+@if (summary == null && errorMessage == null)
+{
+    <div class="d-flex justify-content-center pt-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    <!-- EXECUTIVE KPI SUMMARY -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card-premium">
+                <div class="metric-label-premium">MONTHLY REVENUE</div>
+                <div class="h3 fw-800 text-slate-900 mb-0">ZMW @summary.MonthlyRevenue.ToString("N2")</div>
+                <div class="x-small text-success fw-800 mt-2"><i class="bi bi-graph-up"></i> +12.5% VS LAST MONTH</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-premium">
+                <div class="metric-label-premium">GROSS PROFIT</div>
+                <div class="h3 fw-800 text-slate-900 mb-0">ZMW @summary.MonthlyProfit.ToString("N2")</div>
+                <div class="badge-premium @(summary.AvgMarginPercent > 30 ? "success" : "info") mt-2">
+                    @summary.AvgMarginPercent% AVG MARGIN
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-premium">
+                <div class="metric-label-premium">OVERDUE JOBS</div>
+                <div class="h3 fw-800 @(summary.OverdueJobsCount > 0 ? "text-danger" : "text-slate-900") mb-0">
+                    @summary.OverdueJobsCount
+                </div>
+                <div class="x-small text-slate-400 fw-800 mt-2">REVENUE AT RISK</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-premium">
+                <div class="metric-label-premium">AVG COMPLETION</div>
+                <div class="h3 fw-800 text-slate-900 mb-0">@summary.AvgCompletionTimeHours h</div>
+                <div class="x-small text-slate-400 fw-800 mt-2">TURNAROUND EFFICIENCY</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- 1. JOB PROFITABILITY -->
+        <div class="col-lg-8">
+            <div class="card-premium h-100 p-0 overflow-hidden">
+                <div class="p-4 border-bottom">
+                    <h5 class="fw-800 text-slate-900 mb-0">JOB PROFITABILITY ANALYTICS</h5>
+                    <p class="x-small text-slate-400 mb-0">TOP PERFORMING COMPLETED JOBS</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="ps-4 x-small fw-800 text-slate-500">JOB NUMBER</th>
+                                <th class="x-small fw-800 text-slate-500">CUSTOMER</th>
+                                <th class="x-small fw-800 text-slate-500 text-end">REVENUE</th>
+                                <th class="x-small fw-800 text-slate-500 text-end">PROFIT</th>
+                                <th class="x-small fw-800 text-slate-500 text-center pe-4">MARGIN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var job in profitability.Take(6))
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-800 text-slate-900">@job.JobNumber</td>
+                                    <td class="text-slate-600 small">@job.CustomerName</td>
+                                    <td class="text-end fw-600">@job.Revenue.ToString("N0")</td>
+                                    <td class="text-end text-success fw-800">+@job.Profit.ToString("N0")</td>
+                                    <td class="text-center pe-4">
+                                        <div class="progress" style="height: 6px; width: 60px; display: inline-flex;">
+                                            <div class="progress-bar bg-success" style="width: @job.MarginPercent%"></div>
+                                        </div>
+                                        <div class="x-small fw-800 text-slate-600 mt-1">@job.MarginPercent%</div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. REVENUE BY CUSTOMER -->
+        <div class="col-lg-4">
+            <div class="card-premium h-100 p-4">
+                <h5 class="fw-800 text-slate-900 mb-1">REVENUE MIX</h5>
+                <p class="x-small text-slate-400 mb-4">CONCENTRATION BY CUSTOMER</p>
+                
+                <div class="chart-container mb-4" style="height: 200px;">
+                    <canvas id="revenueMixChart"></canvas>
+                </div>
+
+                <div class="px-2">
+                    @foreach (var cust in revenueByCustomer.Take(3))
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-slate-600 fw-800">@cust.CustomerName</span>
+                            <span class="small fw-800 text-slate-900">@cust.ConcentrationPercent%</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- 3. TECHNICIAN UTILIZATION -->
+        <div class="col-lg-6">
+            <div class="card-premium h-100 p-4">
+                <h5 class="fw-800 text-slate-900 mb-1">TECH UTILIZATION</h5>
+                <p class="x-small text-slate-400 mb-4">BILLABLE VS AVAILABLE HOURS</p>
+                
+                @foreach(var tech in technicianUtilization)
+                {
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-800 text-slate-900">@tech.TechnicianName</span>
+                            <span class="x-small fw-800 text-slate-400">@tech.HoursWorked.ToString("F1")h WORKED</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 6px; background: #F1F5F9;">
+                            <div class="progress-bar" style="width: @tech.UtilizationPercent%; background: var(--ap-primary); border-radius: 6px;"></div>
+                        </div>
+                        <div class="text-end x-small fw-800 text-slate-500 mt-1">@tech.UtilizationPercent% LOAD</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 4. INVENTORY CONSUMPTION -->
+        <div class="col-lg-6">
+            <div class="card-premium h-100 p-4">
+                <h5 class="fw-800 text-slate-900 mb-1">COSTLIEST PARTS</h5>
+                <p class="x-small text-slate-400 mb-4">INVENTORY CONSUMPTION BY VALUE</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            @foreach(var part in inventoryConsumption.Take(5))
+                            {
+                                <tr class="border-bottom-faint">
+                                    <td class="py-2">
+                                        <div class="fw-800 text-slate-900 small">@part.PartName</div>
+                                        <div class="x-small text-slate-400 fw-600">USED IN @part.JobsImpacted JOBS</div>
+                                    </td>
+                                    <td class="text-end py-2">
+                                        <div class="fw-800 text-slate-900 small">ZMW @part.TotalConsumptionCost.ToString("N0")</div>
+                                        <div class="x-small text-slate-400 fw-600">@part.QuantityUsed UNITS</div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .border-bottom-faint {
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+    .chart-container {
+        position: relative;
+    }
+</style>
+
+@code {
+    private ExecutiveKpiSummary? summary;
+    private List<JobProfitabilityReport> profitability = new();
+    private List<TechUtilizationReport> technicianUtilization = new();
+    private List<RevenueByCustomerReport> revenueByCustomer = new();
+    private List<InventoryConsumptionReport> inventoryConsumption = new();
+
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message + " | " + ex.InnerException?.Message;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var start = DateTime.UtcNow.AddDays(-30);
+        var end = DateTime.UtcNow;
+
+        summary = await IntelligenceService.GetExecutiveSummaryAsync();
+        profitability = await IntelligenceService.GetProfitabilityReportAsync(start, end);
+        technicianUtilization = await IntelligenceService.GetTechnicianUtilizationAsync(start, end);
+        revenueByCustomer = await IntelligenceService.GetRevenueByCustomerAsync(start, end);
+        inventoryConsumption = await IntelligenceService.GetInventoryConsumptionAsync(start, end);
+    }
+
+    private async Task RefreshData()
+    {
+        summary = null;
+        await LoadData();
+        StateHasChanged();
+        await RenderCharts();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || (summary != null))
+        {
+             await RenderCharts();
+        }
+    }
+
+    private async Task RenderCharts()
+    {
+        if (revenueByCustomer.Any())
+        {
+            var labels = revenueByCustomer.Take(5).Select(r => r.CustomerName).ToArray();
+            var data = revenueByCustomer.Take(5).Select(r => r.TotalRevenue).ToArray();
+
+            var config = new
+            {
+                type = "doughnut",
+                data = new
+                {
+                    labels = labels,
+                    datasets = new[]
+                    {
+                        new {
+                            data = data,
+                            backgroundColor = new[] { "#2563EB", "#7C3AED", "#DB2777", "#F59E0B", "#10B981" },
+                            borderWidth = 0
+                        }
+                    }
+                },
+                options = new
+                {
+                    cutout = "70%",
+                    plugins = new {
+                        legend = new { display = false }
+                    },
+                    maintainAspectRatio = false
+                }
+            };
+
+            await JS.InvokeVoidAsync("renderChart", "revenueMixChart", config);
+        }
+    }
+}

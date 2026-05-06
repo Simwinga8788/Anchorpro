@@ -5,11 +5,8 @@ namespace AnchorPro.Data.Entities
 {
     public class DowntimeEntry : BaseEntity
     {
-        public int? JobTaskId { get; set; }
+        public int JobTaskId { get; set; }
         public JobTask? JobTask { get; set; }
-
-        public int? JobCardId { get; set; }
-        public JobCard? JobCard { get; set; }
 
         public int DowntimeCategoryId { get; set; }
         public DowntimeCategory? DowntimeCategory { get; set; }

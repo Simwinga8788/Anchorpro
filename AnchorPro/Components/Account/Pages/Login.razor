@@ -1,0 +1,175 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using AnchorPro.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+@layout AnchorPro.Components.Layout.AuthLayout
+
+<PageTitle>Log in</PageTitle>
+
+<div class="login-wrapper w-100" style="max-width: 440px;">
+    <div class="mb-5">
+         <div class="d-flex align-items-center gap-3 mb-2">
+             <div class="brand-icon-box">⚓</div>
+             <h2 class="fw-800 text-slate-900 mb-0" style="letter-spacing: -0.02em;">Anchor Pro</h2>
+         </div>
+         <p class="text-slate-500 fw-500">Welcome to your Production Planning Tool.</p>
+    </div>
+
+    <StatusMessage Message="@errorMessage" />
+
+    <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
+        <DataAnnotationsValidator />
+        
+        <div class="mb-4">
+            <label class="form-label fw-700 text-slate-700 small mb-2">EMAIL ADDRESS</label>
+            <div class="input-group-premium">
+                <i class="bi bi-envelope"></i>
+                <InputText @bind-Value="Input.Email" class="form-control-premium" placeholder="e.g. mike@anchor.com" />
+            </div>
+            <ValidationMessage For="() => Input.Email" class="text-danger small mt-1" />
+        </div>
+
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label fw-700 text-slate-700 small mb-0">PASSWORD</label>
+                <a href="Account/ForgotPassword" class="small fw-700 text-primary text-decoration-none">Forgot?</a>
+            </div>
+            <div class="input-group-premium">
+                <i class="bi bi-lock"></i>
+                <InputText type="password" @bind-Value="Input.Password" class="form-control-premium" placeholder="••••••••" />
+            </div>
+            <ValidationMessage For="() => Input.Password" class="text-danger small mt-1" />
+        </div>
+
+        <div class="mb-4">
+             <div class="form-check custom-check">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="rememberMe" />
+                <label class="form-check-label fw-600 text-slate-600 small" for="rememberMe">Stay signed in for 30 days</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-3 fw-800 shadow-sm mb-4">
+            SIGN IN TO WORKSPACE
+        </button>
+        
+        <div class="text-center">
+             <span class="text-slate-500 small fw-500">New to the platform?</span>
+             <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" 
+                class="small fw-800 text-primary ms-1 text-decoration-none">Create an account</a>
+        </div>
+    </EditForm>
+</div>
+
+<style>
+    .brand-icon-box {
+        width: 48px;
+        height: 48px;
+        background: #0F172A;
+        color: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+    }
+    
+    .input-group-premium {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .input-group-premium i {
+        position: absolute;
+        left: 1rem;
+        color: #94A3B8;
+        font-size: 1.1rem;
+    }
+    .form-control-premium {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 3rem;
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .form-control-premium:focus {
+        background: white;
+        border-color: var(--ap-primary);
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.08);
+        outline: none;
+    }
+    
+    .custom-check .form-check-input:checked {
+        background-color: var(--ap-primary);
+        border-color: var(--ap-primary);
+    }
+</style>
+
+@code {
+    private string? errorMessage;
+    private EditContext editContext = default!;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        editContext = new EditContext(Input);
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        if (!editContext.Validate()) return;
+
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required][EmailAddress] public string Email { get; set; } = "";
+        [Required][DataType(DataType.Password)] public string Password { get; set; } = "";
+        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
+    }
+}

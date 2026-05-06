@@ -1,42 +1,35 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
+using AnchorPro.Components;
+using AnchorPro.Components.Account;
 using AnchorPro.Data;
 using AnchorPro.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var allowedOrigins = new string[]
-{
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://anchorpro-web.vercel.app",
-    "https://anchorpro.vercel.app",
-    "https://anchor-pro-app.vercel.app",
-};
-
-// Merge with any additional origins from configuration
-var configOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
-if (configOrigins != null)
-{
-    var merged = new System.Collections.Generic.List<string>(allowedOrigins);
-    foreach (var o in configOrigins) { if (!merged.Contains(o)) merged.Add(o); }
-    allowedOrigins = merged.ToArray();
-}
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactAppPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Vite and Next.js defaults
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Needed for cookie-based auth
+              .AllowCredentials(); // Needed for Authentication later
     });
 });
 
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
+
 builder.Services.AddHttpContextAccessor(); // For cookie-based impersonation
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = IdentityConstants.ApplicationScheme;
@@ -76,22 +69,10 @@ builder.Services.AddAuthorization(options =>
               .RequireAssertion(context => !context.User.HasClaim(c => c.Type == "TenantId")));
 });
 
-// Return 401/403 for API routes instead of redirecting to /Account/Login
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Events.OnRedirectToLogin = ctx =>
-    {
-        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = ctx =>
-    {
-        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-        return Task.CompletedTask;
-    };
-});
-
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AnchorUserClaimsPrincipalFactory>();
+
+builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
 // Domain Services
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEquipmentService, AnchorPro.Services.EquipmentService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobCardService, AnchorPro.Services.JobCardService>();
@@ -119,15 +100,12 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>(); // Custom Labels
-builder.Services.AddScoped<AnchorPro.Services.PlatformConfigService>();
-builder.Services.AddScoped<AnchorPro.Services.StripeService>();
 
+// Tenant Circuit Handler
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, AnchorPro.Services.TenantCircuitHandler>();
 
 // API & Swagger
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); // Use default configuration for now
 
@@ -155,6 +133,7 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseWebAssemblyDebugging();
     app.UseMigrationsEndPoint();
 
     // Enable Swagger
@@ -163,7 +142,8 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/api/error");
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found");
@@ -171,7 +151,16 @@ app.UseStatusCodePagesWithReExecute("/not-found");
 
 app.UseStaticFiles();
 app.UseCors("ReactAppPolicy");
+app.UseAntiforgery();
 
 app.MapControllers(); // Enable API Controllers
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode();
+
+// Add additional endpoints required by the Identity /Account Razor components.
+app.MapAdditionalIdentityEndpoints();
+
+
 
 app.Run();

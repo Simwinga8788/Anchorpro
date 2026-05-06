@@ -63,46 +63,20 @@ namespace AnchorPro.Services
                 .ToListAsync();
         }
 
-        public async Task CreateJobCardAsync(JobCard jobCard, string userId, int? tenantId = null)
+        public async Task CreateJobCardAsync(JobCard jobCard, string userId)
         {
             using var context = _factory.CreateDbContext();
-            
-            jobCard.TenantId = tenantId;
+
+            var user = await context.Users.FindAsync(userId);
+            jobCard.TenantId = user?.TenantId;
+
             jobCard.CreatedAt = DateTime.UtcNow;
             jobCard.CreatedBy = userId;
-            jobCard.Status = JobStatus.Unscheduled; 
+            jobCard.Status = JobStatus.Unscheduled; // Default status
 
-            // Force UTC for PostgreSQL compatibility
-            if (jobCard.ScheduledStartDate.HasValue)
-                jobCard.ScheduledStartDate = DateTime.SpecifyKind(jobCard.ScheduledStartDate.Value, DateTimeKind.Utc);
-            
-            if (jobCard.ScheduledEndDate.HasValue)
-                jobCard.ScheduledEndDate = DateTime.SpecifyKind(jobCard.ScheduledEndDate.Value, DateTimeKind.Utc);
-            
             if (jobCard.ScheduledStartDate.HasValue)
             {
                 jobCard.Status = JobStatus.Scheduled;
-            }
-
-            // Safe propagation to nested collections
-            if (jobCard.JobTasks != null)
-            {
-                foreach (var task in jobCard.JobTasks)
-                {
-                    task.TenantId = jobCard.TenantId;
-                    task.CreatedAt = DateTime.UtcNow;
-                    task.CreatedBy = userId;
-                }
-            }
-
-            if (jobCard.JobCardParts != null)
-            {
-                foreach (var part in jobCard.JobCardParts)
-                {
-                    part.TenantId = jobCard.TenantId;
-                    part.CreatedAt = DateTime.UtcNow;
-                    part.CreatedBy = userId;
-                }
             }
 
             context.JobCards.Add(jobCard);
@@ -143,10 +117,8 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var job = await context.JobCards
                 .Include(j => j.JobTasks)
-                    .ThenInclude(t => t.DowntimeEntries)
                 .Include(j => j.JobCardParts)
                     .ThenInclude(p => p.InventoryItem)
-                .Include(j => j.DowntimeEntries)
                 .FirstOrDefaultAsync(j => j.Id == jobCardId);
 
             if (job != null)
@@ -189,10 +161,7 @@ namespace AnchorPro.Services
                     var grossDurationHours = (DateTime.UtcNow - startTime).TotalHours;
                     
                     // 1.1 Job Duration (Net Processing Time) calculation for labor cost
-                    var taskDowntimeMins = job.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes);
-                    var jobDowntimeMins = job.DowntimeEntries.Sum(d => d.DurationMinutes);
-                    var totalDowntimeMins = taskDowntimeMins + jobDowntimeMins;
-
+                    var totalDowntimeMins = job.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes);
                     var netDurationHours = Math.Max(0.25, grossDurationHours - (totalDowntimeMins / 60.0));
 
                     decimal laborCost = (decimal)netDurationHours * techRate;

@@ -1,40 +1,37 @@
-# ─── .NET / C# ───────────────────────────────────────────────────
-bin/
-obj/
-*.user
+[Bb]in/
+[Oo]bj/
+# User-specific files
+*.rsuser
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
+
+# Visual Studio cache and settings
 .vs/
-*.dbmdl
-*.jfm
+[Tt]est[Rr]esults/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Core
 appsettings.Development.json
+UserSecretsId
 
-# ─── Next.js / Node ──────────────────────────────────────────────
-node_modules/
-.next/
-out/
+# Environment variables
+.env
 .env.local
-.env*.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+.env.development.local
+.env.test.local
+.env.production.local
 
-# ─── OS Files ────────────────────────────────────────────────────
+# Logs
+*.log
+build_log_final.txt
+build_error_log.txt
+
+# OS files
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# ─── IDE ─────────────────────────────────────────────────────────
-.idea/
-*.swp
-*.swo
-*~
-
-# ─── Build Artifacts ─────────────────────────────────────────────
-*.exe
-*.dll
-*.pdb
-*.cache
-*.log
-wwwroot/admin-reports/

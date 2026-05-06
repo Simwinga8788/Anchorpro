@@ -8,7 +8,7 @@ namespace AnchorPro.Services.Interfaces
         Task<List<JobCard>> GetAllJobCardsAsync();
         Task<JobCard?> GetJobCardByIdAsync(int id);
         Task<List<JobCard>> GetJobCardsByTechnicianAsync(string technicianId);
-        Task CreateJobCardAsync(JobCard jobCard, string userId, int? tenantId = null);
+        Task CreateJobCardAsync(JobCard jobCard, string userId);
         Task UpdateJobCardAsync(JobCard jobCard, string userId);
         Task DeleteJobCardAsync(int id);
         Task UpdateJobStatusAsync(int jobCardId, JobStatus status, string userId);

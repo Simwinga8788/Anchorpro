@@ -1,0 +1,170 @@
+@page "/admin/departments"
+@using AnchorPro.Data.Entities
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject IOrgService OrgService
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Departments | Anchor Pro</PageTitle>
+
+<ApplePageHeader Title="Organizational Structure" Subtitle="Manage departments, cost centres and teams">
+    <ActionButtons>
+        <button class="btn btn-premium btn-sm" @onclick="OpenCreateModal">
+            <i class="bi bi-plus-lg me-1"></i> ADD DEPARTMENT
+        </button>
+    </ActionButtons>
+</ApplePageHeader>
+
+<div class="row g-4 mt-2">
+    @if (departments == null)
+    {
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (!departments.Any())
+    {
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-building fs-1 text-slate-200"></i>
+            <p class="text-slate-400 mt-3 fw-600">No departments defined yet.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var dept in departments)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card-premium h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-box-premium">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link link-slate p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                <li><button class="dropdown-item small fw-600" @onclick="() => OpenEditModal(dept)">Edit Details</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item small fw-600 text-danger" @onclick="() => DeleteDept(dept.Id)">Remove</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h5 class="fw-800 text-slate-900 mb-1">@dept.Name</h5>
+                    <div class="badge-premium info mb-3">Cost Code: @(dept.CostCode ?? "N/A")</div>
+                    
+                    <p class="small text-slate-500 mb-4 h-fixed-2-lines">@dept.Description</p>
+                    
+                    <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                        <div class="x-small fw-800 text-slate-400">OPERATIONAL UNIT</div>
+                        <button class="btn btn-premium-ghost btn-sm px-3" @onclick="() => OpenEditModal(dept)">MANAGE</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@* Create/Edit Modal *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" style="background-color:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+                <div class="modal-header py-4 px-4 border-0">
+                    <h5 class="modal-title fw-800 text-slate-900">@(editDept.Id == 0 ? "New Department" : "Edit Department")</h5>
+                    <button type="button" class="btn-close" @onclick="() => showModal = false"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <div class="mb-3">
+                        <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Department Name</label>
+                        <input type="text" @bind="editDept.Name" class="form-control form-control-premium" placeholder="e.g. Electrical Maintenance" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Cost Code / Center</label>
+                        <input type="text" @bind="editDept.CostCode" class="form-control form-control-premium" placeholder="e.g. CC-ELECT-01" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label x-small fw-800 text-slate-400 text-uppercase">Description</label>
+                        <textarea @bind="editDept.Description" class="form-control form-control-premium" rows="3" placeholder="Brief scope of the department..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light fw-800 px-4" style="border-radius:10px;" @onclick="() => showModal = false">CANCEL</button>
+                    <button type="button" class="btn btn-premium fw-800 px-4" style="border-radius:10px;" @onclick="SaveDept">
+                        <i class="bi bi-check-lg me-1"></i> SAVE DEPARTMENT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Department>? departments;
+    private Department editDept = new();
+    private bool showModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDepartments();
+    }
+
+    private async Task LoadDepartments()
+    {
+        departments = await OrgService.GetAllDepartmentsAsync();
+    }
+
+    private void OpenCreateModal()
+    {
+        editDept = new Department();
+        showModal = true;
+    }
+
+    private void OpenEditModal(Department dept)
+    {
+        editDept = new Department 
+        { 
+            Id = dept.Id, 
+            Name = dept.Name, 
+            Description = dept.Description, 
+            CostCode = dept.CostCode 
+        };
+        showModal = true;
+    }
+
+    private async Task SaveDept()
+    {
+        if (string.IsNullOrWhiteSpace(editDept.Name)) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.Identity?.Name ?? "system";
+
+        if (editDept.Id == 0)
+            await OrgService.CreateDepartmentAsync(editDept, userId);
+        else
+            await OrgService.UpdateDepartmentAsync(editDept, userId);
+
+        showModal = false;
+        await LoadDepartments();
+    }
+
+    private async Task DeleteDept(int id)
+    {
+        await OrgService.DeleteDepartmentAsync(id);
+        await LoadDepartments();
+    }
+}
+
+<style>
+    .h-fixed-2-lines {
+        height: 3em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+</style>

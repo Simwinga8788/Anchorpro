@@ -1,0 +1,32 @@
+@* Reusable professional page header component *@
+
+<div class="page-header mb-4 pb-3 border-bottom">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 fw-bold text-black mb-1">@Title</h1>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <p class="text-muted small mb-0">@Subtitle</p>
+            }
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            @ActionButtons
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        background: linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05));
+        margin-left: -1.5rem;
+        margin-right: -1.5rem;
+        margin-top: -1.5rem;
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Subtitle { get; set; } = "";
+    [Parameter] public RenderFragment? ActionButtons { get; set; }
+}

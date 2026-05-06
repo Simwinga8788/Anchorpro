@@ -1,0 +1,134 @@
+@page "/admin/users/create"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using Microsoft.AspNetCore.Identity
+@using AnchorPro.Data
+@using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject NavigationManager NavigationManager
+@* @attribute [Authorize] *@
+
+<PageTitle>New User</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold text-black">New User</h1>
+    <a href="admin/users" class="btn btn-secondary">Cancel</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card p-4 shadow-sm border-0">
+            <EditForm Model="input" OnValidSubmit="CreateUser">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger mb-3" />
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">First Name</label>
+                        <InputText @bind-Value="input.FirstName" class="form-control" />
+                        <ValidationMessage For="() => input.FirstName" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Last Name</label>
+                        <InputText @bind-Value="input.LastName" class="form-control" />
+                        <ValidationMessage For="() => input.LastName" class="text-danger" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Email Address</label>
+                        <InputText @bind-Value="input.Email" class="form-control" type="email" />
+                        <ValidationMessage For="() => input.Email" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Role</label>
+                        <InputSelect @bind-Value="input.Role" class="form-select">
+                            <option value="">-- Select Role --</option>
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role">@role</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => input.Role" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Password</label>
+                        <InputText @bind-Value="input.Password" class="form-control" type="password" />
+                        <div class="form-text">Must be at least 6 characters.</div>
+                        <ValidationMessage For="() => input.Password" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary px-4">Create User</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateUserModel input = new();
+    private List<string> roles = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simple list of our known roles or fetch from DB
+        roles = new List<string> { "Admin", "Planner", "Supervisor", "Technician" };
+    }
+
+    private async Task CreateUser()
+    {
+        // Check if exists
+        var existing = await UserManager.FindByEmailAsync(input.Email);
+        if (existing != null)
+        {
+            errorMessage = "User with this email already exists.";
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = input.Email,
+            Email = input.Email,
+            FirstName = input.FirstName,
+            LastName = input.LastName,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "Admin" // Simplified
+        };
+
+        var result = await UserManager.CreateAsync(user, input.Password);
+        if (result.Succeeded)
+        {
+            if (!string.IsNullOrEmpty(input.Role))
+            {
+                await UserManager.AddToRoleAsync(user, input.Role);
+            }
+            NavigationManager.NavigateTo("admin/users");
+        }
+        else
+        {
+            errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    public class CreateUserModel
+    {
+        [Required] public string FirstName { get; set; } = "";
+        [Required] public string LastName { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required] public string Role { get; set; } = "";
+        [Required, MinLength(6)] public string Password { get; set; } = "";
+    }
+}

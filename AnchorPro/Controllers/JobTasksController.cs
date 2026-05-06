@@ -67,22 +67,5 @@ namespace AnchorPro.Controllers
             await _taskService.DeleteTaskAsync(id);
             return NoContent();
         }
-
-        [HttpPatch("{id}/status")]
-        public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateTaskStatusRequest request)
-        {
-            var userId = User.Identity?.Name ?? "API_User";
-            var task = await _taskService.GetTaskByIdAsync(id);
-            if (task == null) return NotFound();
-
-            task.IsCompleted = request.IsCompleted;
-            await _taskService.UpdateTaskAsync(task, userId);
-            return NoContent();
-        }
-    }
-
-    public class UpdateTaskStatusRequest
-    {
-        public bool IsCompleted { get; set; }
     }
 }

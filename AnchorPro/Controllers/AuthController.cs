@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 
@@ -14,163 +12,16 @@ namespace AnchorPro.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public AuthController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IDbContextFactory<ApplicationDbContext> dbFactory)
+        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _dbFactory = dbFactory;
-        }
-
-        /// <summary>
-        /// Self-service registration: creates a new Tenant and an Admin user in one step.
-        /// </summary>
-        [HttpPost("register")]
-        [AllowAnonymous]
-        public async Task<ActionResult> Register([FromBody] RegisterRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.CompanyName))
-                return BadRequest(new { message = "Company name is required." });
-            if (string.IsNullOrWhiteSpace(request.Email))
-                return BadRequest(new { message = "Email is required." });
-            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-                return BadRequest(new { message = "Password must be at least 8 characters." });
-
-            var existing = await _userManager.FindByEmailAsync(request.Email);
-            if (existing != null)
-                return Conflict(new { message = "An account with this email already exists." });
-
-            await using var db = await _dbFactory.CreateDbContextAsync();
-            db.IgnoreTenantFilter = true;
-            await using var transaction = await db.Database.BeginTransactionAsync();
-            try
-            {
-                // 1. Create tenant
-                var tenant = new Tenant
-                {
-                    Name         = request.CompanyName.Trim(),
-                    ContactEmail = request.Email.Trim(),
-                    IsActive     = true,
-                    CreatedAt    = DateTime.UtcNow,
-                };
-                db.Tenants.Add(tenant);
-                await db.SaveChangesAsync();
-
-                // 2. Create admin user
-                var user = new ApplicationUser
-                {
-                    UserName       = request.Email.Trim(),
-                    Email          = request.Email.Trim(),
-                    FirstName      = request.FirstName?.Trim(),
-                    LastName       = request.LastName?.Trim(),
-                    TenantId       = tenant.Id,
-                    CreatedAt      = DateTime.UtcNow,
-                    EmailConfirmed = true,
-                };
-
-                var result = await _userManager.CreateAsync(user, request.Password);
-                if (!result.Succeeded)
-                {
-                    await transaction.RollbackAsync();
-                    var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                    return BadRequest(new { message = errors });
-                }
-
-                // 3. Assign Admin role
-                await _userManager.AddToRoleAsync(user, "Admin");
-
-                // 4. Set tenant owner
-                tenant.OwnerId = user.Id;
-
-                // 5. Seed default departments
-                var defaultDepts = new[] { "Operations", "Procurement", "Administration" };
-                foreach (var deptName in defaultDepts)
-                {
-                    db.Departments.Add(new Department
-                    {
-                        Name     = deptName,
-                        TenantId = tenant.Id,
-                    });
-                }
-
-                // 6. Seed default job types
-                var defaultJobTypes = new[]
-                {
-                    ("Preventive Maintenance", "Scheduled maintenance to prevent failures"),
-                    ("Corrective Maintenance", "Repair after a fault or breakdown has occurred"),
-                    ("Breakdown / Emergency",  "Unplanned emergency response to a breakdown"),
-                    ("Inspection",             "Routine inspection or condition assessment"),
-                    ("Installation",           "New equipment or component installation"),
-                };
-                foreach (var (name, desc) in defaultJobTypes)
-                {
-                    db.JobTypes.Add(new JobType
-                    {
-                        Name        = name,
-                        Description = desc,
-                        TenantId    = tenant.Id,
-                    });
-                }
-
-                // 7. Seed default downtime categories
-                var defaultDowntimeCategories = new[]
-                {
-                    ("Mechanical Failure", "Failure of mechanical components"),
-                    ("Electrical Fault",   "Electrical or control system fault"),
-                    ("Planned Shutdown",   "Scheduled downtime for maintenance or inspection"),
-                    ("Operator Error",     "Downtime caused by incorrect operation"),
-                    ("External Factor",    "Power outage, weather, or other external causes"),
-                };
-                foreach (var (name, desc) in defaultDowntimeCategories)
-                {
-                    db.DowntimeCategories.Add(new DowntimeCategory
-                    {
-                        Name        = name,
-                        TenantId    = tenant.Id,
-                    });
-                }
-
-                await db.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-
-                return Ok(new { message = "Registration successful.", tenantId = tenant.Id });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return StatusCode(500, new { message = "Registration failed. Please try again.", detail = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Updates the current user's profile (firstName, lastName).
-        /// Called by the Settings page as PUT /api/auth/users/profile
-        /// and also mapped to PUT /api/users/profile via alias below.
-        /// </summary>
-        [HttpPut("profile")]
-        [Authorize]
-        public async Task<ActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            if (!string.IsNullOrWhiteSpace(request.FirstName)) user.FirstName = request.FirstName.Trim();
-            if (!string.IsNullOrWhiteSpace(request.LastName))  user.LastName  = request.LastName.Trim();
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-                return BadRequest(new { message = string.Join("; ", result.Errors.Select(e => e.Description)) });
-
-            return Ok(new { message = "Profile updated." });
         }
 
         /// <summary>
         /// Returns the currently authenticated user's profile and roles.
+        /// Used by the React frontend to determine what to show.
         /// </summary>
         [HttpGet("me")]
         [Authorize]
@@ -195,7 +46,7 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
-        /// Login endpoint for the React frontend (cookie-based).
+        /// Login endpoint for the React frontend (cookie-based, same as Blazor).
         /// </summary>
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest request)
@@ -203,19 +54,12 @@ namespace AnchorPro.Controllers
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null) return Unauthorized(new { message = "Invalid credentials" });
 
-            var checkResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-            if (!checkResult.Succeeded)
-                return Unauthorized(new { message = checkResult.IsLockedOut ? "Account locked" : "Invalid credentials" });
+            var result = await _signInManager.PasswordSignInAsync(user, request.Password, true, lockoutOnFailure: true);
+            if (!result.Succeeded)
+                return Unauthorized(new { message = result.IsLockedOut ? "Account locked" : "Invalid credentials" });
 
             var roles = await _userManager.GetRolesAsync(user);
             var isPlatformOwner = !user.TenantId.HasValue && roles.Contains("Admin");
-
-            // Add TenantId as a custom claim so CurrentTenantService can resolve it from the cookie
-            var extraClaims = new List<Claim>();
-            if (user.TenantId.HasValue)
-                extraClaims.Add(new Claim("TenantId", user.TenantId.Value.ToString()));
-
-            await _signInManager.SignInWithClaimsAsync(user, isPersistent: true, extraClaims);
 
             return Ok(new UserProfileDto
             {
@@ -242,20 +86,6 @@ namespace AnchorPro.Controllers
     }
 
     public record LoginRequest(string Email, string Password);
-
-    public record UpdateProfileRequest(string? FirstName, string? LastName);
-
-    public record RegisterRequest(
-        string CompanyName,
-        string Email,
-        string Password,
-        string? FirstName,
-        string? LastName,
-        string? Industry,
-        string? Size,
-        string? Timezone,
-        int PlanId
-    );
 
     public class UserProfileDto
     {

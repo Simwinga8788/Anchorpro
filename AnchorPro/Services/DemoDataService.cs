@@ -1,7 +1,6 @@
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 using AnchorPro.Data.Enums;
-using AnchorPro.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 
@@ -15,97 +14,78 @@ namespace AnchorPro.Services
     public class DemoDataService : IDemoDataService
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
-        private readonly ICurrentTenantService _tenantService;
 
-        public DemoDataService(IDbContextFactory<ApplicationDbContext> factory, ICurrentTenantService tenantService)
+        public DemoDataService(IDbContextFactory<ApplicationDbContext> factory)
         {
             _factory = factory;
-            _tenantService = tenantService;
         }
 
         public async Task GenerateDemoDataAsync(string currentUserId)
         {
             using var context = _factory.CreateDbContext();
-
-            // Manually propagate the tenant from the HTTP request context
-            var tenantId = _tenantService.TenantId;
-            if (!tenantId.HasValue)
+            
+            // Ensure we are in a tenant context
+            if (!context.CurrentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Cannot generate demo data without a tenant context.");
             }
 
-            // Set the tenant filter so all queries/inserts are scoped correctly
-            context.IgnoreTenantFilter = false;
-            // Use TenantId from the service - inject it into inserted entities manually
-            int tid = tenantId.Value;
-
             // 1. Create Job Types (if not exist)
-            var jobTypes = await EnsureJobTypes(context, currentUserId, tid);
+            var jobTypes = await EnsureJobTypes(context, currentUserId);
 
             // 2. Create Equipment
-            var equipmentList = await CreateDemoEquipment(context, currentUserId, tid);
+            var equipmentList = await CreateDemoEquipment(context, currentUserId);
 
             // 3. Create Jobs (Past & Present)
-            await CreateDemoJobs(context, currentUserId, jobTypes, equipmentList, tid);
+            await CreateDemoJobs(context, currentUserId, jobTypes, equipmentList);
 
             await context.SaveChangesAsync();
         }
 
-        private async Task<List<JobType>> EnsureJobTypes(ApplicationDbContext context, string userId, int tenantId)
+        private async Task<List<JobType>> EnsureJobTypes(ApplicationDbContext context, string userId)
         {
-            context.IgnoreTenantFilter = true;
             var types = await context.JobTypes.ToListAsync();
-            context.IgnoreTenantFilter = false;
             if (!types.Any())
             {
                 var defaults = new[] { "Preventive Maintenance", "Corrective Repair", "Emergency Breakdown", "Inspection", "Project Work" };
                 foreach (var name in defaults)
                 {
-                    context.JobTypes.Add(new JobType { Name = name, TenantId = tenantId, CreatedBy = userId, CreatedAt = DateTime.UtcNow });
+                    context.JobTypes.Add(new JobType { Name = name, CreatedBy = userId, CreatedAt = DateTime.UtcNow });
                 }
                 await context.SaveChangesAsync();
-                context.IgnoreTenantFilter = true;
                 types = await context.JobTypes.ToListAsync();
-                context.IgnoreTenantFilter = false;
             }
             return types;
         }
 
-        private async Task<List<Equipment>> CreateDemoEquipment(ApplicationDbContext context, string userId, int tenantId)
+        private async Task<List<Equipment>> CreateDemoEquipment(ApplicationDbContext context, string userId)
         {
-            context.IgnoreTenantFilter = true;
-            var existing = await context.Equipment.Where(e => e.TenantId == tenantId).ToListAsync();
-            context.IgnoreTenantFilter = false;
+            var existing = await context.Equipment.ToListAsync();
             if (existing.Count >= 5) return existing;
 
             var newEquipment = new List<Equipment>
             {
-                new() { Name = "CAT 797F Dump Truck", SerialNumber = "TRK-001", ModelNumber = "797F", Manufacturer = "Caterpillar", TenantId = tenantId, CreatedBy = userId },
-                new() { Name = "Komatsu Excavator PC8000", SerialNumber = "EXC-042", ModelNumber = "PC8000-6", Manufacturer = "Komatsu", TenantId = tenantId, CreatedBy = userId },
-                new() { Name = "Atlas Copco Drill Rig", SerialNumber = "DRL-105", ModelNumber = "SmartROC D65", Manufacturer = "Atlas Copco", TenantId = tenantId, CreatedBy = userId },
-                new() { Name = "Main Conveyor Belt 01", SerialNumber = "CV-01-A", ModelNumber = "1200mm", Manufacturer = "Fenner Dunlop", TenantId = tenantId, CreatedBy = userId },
-                new() { Name = "Diesel Generator Set A", SerialNumber = "GEN-500", ModelNumber = "C32", Manufacturer = "Caterpillar", TenantId = tenantId, CreatedBy = userId }
+                new() { Name = "CAT 797F Dump Truck", SerialNumber = "TRK-001", ModelNumber = "797F", Manufacturer = "Caterpillar", CreatedBy = userId },
+                new() { Name = "Komatsu Excavator PC8000", SerialNumber = "EXC-042", ModelNumber = "PC8000-6", Manufacturer = "Komatsu", CreatedBy = userId },
+                new() { Name = "Atlas Copco Drill Rig", SerialNumber = "DRL-105", ModelNumber = "SmartROC D65", Manufacturer = "Atlas Copco", CreatedBy = userId },
+                new() { Name = "Main Conveyor Belt 01", SerialNumber = "CV-01-A", ModelNumber = "1200mm", Manufacturer = "Fenner Dunlop", CreatedBy = userId },
+                new() { Name = "Diesel Generator Set A", SerialNumber = "GEN-500", ModelNumber = "C32", Manufacturer = "Caterpillar", CreatedBy = userId }
             };
 
             context.Equipment.AddRange(newEquipment);
             await context.SaveChangesAsync();
-
+            
             existing.AddRange(newEquipment);
             return existing;
         }
 
-        private async Task CreateDemoJobs(ApplicationDbContext context, string userId, List<JobType> types, List<Equipment> equipment, int tenantId)
+        private async Task CreateDemoJobs(ApplicationDbContext context, string userId, List<JobType> types, List<Equipment> equipment)
         {
             var rnd = new Random();
             var jobs = new List<JobCard>();
 
             // Get a technician (or use current user if none found)
-            context.IgnoreTenantFilter = true;
-            var techUser = await context.Users
-                .Where(u => (u.Email != null && u.Email.ToLower().Contains("tech")) ||
-                            (u.UserName != null && u.UserName.ToLower().Contains("tech")))
-                .FirstOrDefaultAsync();
-            context.IgnoreTenantFilter = false;
+            var techUser = await context.Users.FirstOrDefaultAsync(u => u.Email.Contains("tech") || u.UserName.Contains("tech"));
             string techId = techUser?.Id ?? userId;
 
             // PREV WEEK (Completed)
@@ -120,11 +100,10 @@ namespace AnchorPro.Services
                     JobNumber = $"JOB-{date:yyMM}-{rnd.Next(1000, 9999)}",
                     Description = $"Routine {type.Name} for {eq.Name}. Checked oil levels and belts.",
                     Status = JobStatus.Completed,
-                    Priority = (JobPriority)rnd.Next(0, 3),
+                    Priority = (JobPriority)rnd.Next(0, 3), // Low/Med/High
                     EquipmentId = eq.Id,
                     JobTypeId = type.Id,
                     AssignedTechnicianId = techId,
-                    TenantId = tenantId,
                     ScheduledStartDate = date.AddHours(-4),
                     ScheduledEndDate = date,
                     ActualStartDate = date.AddHours(-3),
@@ -145,13 +124,12 @@ namespace AnchorPro.Services
                 EquipmentId = equipment.FirstOrDefault(e => e.Name.Contains("Excavator"))?.Id ?? equipment[0].Id,
                 JobTypeId = types.FirstOrDefault(t => t.Name.Contains("Corrective"))?.Id ?? types[0].Id,
                 AssignedTechnicianId = techId,
-                TenantId = tenantId,
                 ScheduledStartDate = DateTime.UtcNow.AddHours(-2),
                 CreatedAt = DateTime.UtcNow.AddHours(-4),
                 CreatedBy = userId
             });
 
-            jobs.Add(new JobCard 
+             jobs.Add(new JobCard 
             {
                 JobNumber = $"JOB-{DateTime.UtcNow:yyMM}-OVR1",
                 Description = "Generator 500hr Service (Overdue)",
@@ -160,9 +138,8 @@ namespace AnchorPro.Services
                 EquipmentId = equipment.FirstOrDefault(e => e.Name.Contains("Generator"))?.Id ?? equipment[0].Id,
                 JobTypeId = types.FirstOrDefault(t => t.Name.Contains("Preventive"))?.Id ?? types[0].Id,
                 AssignedTechnicianId = techId,
-                TenantId = tenantId,
                 ScheduledStartDate = DateTime.UtcNow.AddDays(-2),
-                ScheduledEndDate = DateTime.UtcNow.AddDays(-1),
+                ScheduledEndDate = DateTime.UtcNow.AddDays(-1), // OVERDUE
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
                 CreatedBy = userId
             });

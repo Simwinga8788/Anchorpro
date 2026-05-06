@@ -45,17 +45,10 @@ namespace AnchorPro.Services
         public async Task CreatePermitAsync(PermitToWork permit, string userId)
         {
             using var context = _factory.CreateDbContext();
-            
-            // Resolve TenantId from the user
-            var user = await context.Users.FindAsync(userId);
-            permit.TenantId = user?.TenantId;
-
             permit.CreatedAt = DateTime.UtcNow;
             permit.CreatedBy = userId;
             permit.AuthorizedAt = DateTime.UtcNow;
-            permit.AuthorizedBy = user?.UserName ?? userId;
             permit.Status = PermitStatus.Active;
-            
             context.PermitsToWork.Add(permit);
             await context.SaveChangesAsync();
         }

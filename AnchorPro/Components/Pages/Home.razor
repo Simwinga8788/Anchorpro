@@ -1,0 +1,503 @@
+@page "/"
+@using AnchorPro.Data.Models
+@using AnchorPro.Data.Entities
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IDashboardService DashboardService
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Dashboard</PageTitle>
+
+<ApplePageHeader Title="Operational Overview" Subtitle="Tracking System Performance" />
+
+@if (stats == null)
+{
+    <div class="d-flex justify-content-center pt-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    @if (execStats != null)
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card-premium p-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h5 class="text-white fw-800 mb-0">Executive Snapshot</h5>
+                            <div class="x-small text-slate-400 fw-700">BOARD-LEVEL PERFORMANCE METRICS</div>
+                        </div>
+                        <div class="badge-premium info">REAL-TIME</div>
+                    </div>
+                    
+                    <div class="row g-4">
+                        <div class="col-6 col-md-3">
+                            <div class="metric-box">
+                                <div class="x-small text-slate-400 fw-800 text-uppercase mb-1">REVENUE MTD</div>
+                                <div class="h4 text-white fw-800 mb-0">ZMW @execStats.RevenueMTD.ToString("N0")</div>
+                                <div class="x-small text-success fw-700 mt-1">
+                                    <i class="bi bi-graph-up-arrow me-1"></i> TOP LINE
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="metric-box">
+                                <div class="x-small text-slate-400 fw-800 text-uppercase mb-1">GROSS MARGIN</div>
+                                <div class="h4 text-white fw-800 mb-0">@execStats.GrossMarginPercent%</div>
+                                <div class="x-small text-info fw-700 mt-1">
+                                    <i class="bi bi-briefcase me-1"></i> PROFITABILITY
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="metric-box">
+                                <div class="x-small text-slate-400 fw-800 text-uppercase mb-1">OUTSTANDING</div>
+                                <div class="h4 text-white fw-800 mb-0">ZMW @execStats.OutstandingInvoices.ToString("N0")</div>
+                                <div class="x-small text-warning fw-700 mt-1">
+                                    <i class="bi bi-clock-history me-1"></i> CASH AT RISK
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="metric-box">
+                                <div class="x-small text-slate-400 fw-800 text-uppercase mb-1">UTILIZATION</div>
+                                <div class="h4 text-white fw-800 mb-0">@execStats.TechnicianUtilization%</div>
+                                <div class="x-small text-primary fw-700 mt-1">
+                                    <i class="bi bi-people me-1"></i> TEAM CAPACITY
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mt-1 pt-3 border-top border-slate-700">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="exec-mini-icon"><i class="bi bi-lightning-charge"></i></div>
+                                <div>
+                                    <div class="x-small text-slate-500 fw-800">AVG RESOLUTION (MTTR)</div>
+                                    <div class="small text-white fw-700">@execStats.AverageMTTR Hours</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="exec-mini-icon"><i class="bi bi-hdd-stack"></i></div>
+                                <div>
+                                    <div class="x-small text-slate-500 fw-800">HIGHEST DOWNTIME ASSET</div>
+                                    <div class="small text-white fw-700">@execStats.HighestDowntimeAsset</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="exec-mini-icon"><i class="bi bi-shield-exclamation"></i></div>
+                                <div>
+                                    <div class="x-small text-slate-500 fw-800">SAFETY INCIDENTS MTD</div>
+                                    <div class="small text-white fw-700">@execStats.SafetyIncidents FLAG(S)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (stats.ActiveBreakdownsCount > 0)
+    {
+        <div class="alert-breakdown mb-4 p-3 p-md-4 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center">
+                <div class="alert-icon-ring me-3 me-md-4 flex-shrink-0">
+                    <i class="bi bi-exclamation-octagon-fill"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1 text-white fw-800 fs-6 fs-md-5">Critical Breakdowns Detected (@stats.ActiveBreakdownsCount)</h5>
+                    <p class="mb-0 text-white-50 small x-small-mobile">Immediate response required for: @string.Join(", ", stats.ActiveBreakdowns.Take(3).Select(b => b.Equipment?.Name))</p>
+                </div>
+            </div>
+            <a href="/planning" class="btn btn-light btn-sm fw-800 px-4 w-100 w-md-auto">
+                <i class="bi bi-lightning-fill me-1"></i> Take Action
+            </a>
+        </div>
+    }
+
+    <!-- KPI GRID -->
+    <div class="kpi-grid">
+        <div class="card-premium">
+            <div class="metric-label-premium">ACTIVE OPERATIONS</div>
+            <div class="h2 fw-800 text-slate-900 mb-0">@stats.JobsInProgress</div>
+             <div class="sparkline-container mt-2">
+                 <svg width="100%" height="30" viewBox="0 0 100 20" preserveAspectRatio="none">
+                     <defs>
+                         <linearGradient id="grad-active" x1="0%" y1="0%" x2="0%" y2="100%">
+                             <stop offset="0%" style="stop-color:var(--ap-primary);stop-opacity:0.2" />
+                             <stop offset="100%" style="stop-color:var(--ap-primary);stop-opacity:0" />
+                         </linearGradient>
+                     </defs>
+                     <path d="M0,20 L0,15 L10,12 L20,16 L30,10 L40,14 L50,8 L60,12 L70,5 L80,9 L90,4 L100,7 L100,20 Z" fill="url(#grad-active)" />
+                     <path d="M0,15 L10,12 L20,16 L30,10 L40,14 L50,8 L60,12 L70,5 L80,9 L90,4 L100,7" 
+                           fill="none" stroke="var(--ap-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                 </svg>
+             </div>
+             <div class="x-small text-slate-400 fw-800 mt-2">CURRENTLY RUNNING</div>
+        </div>
+
+        <div class="card-premium">
+            <div class="metric-label-premium">TOTAL OVERDUE</div>
+            <div class="h2 fw-800 text-danger mb-0">@stats.OverdueJobs</div>
+             <div class="sparkline-container mt-2">
+                  <svg width="100%" height="30" viewBox="0 0 100 20" preserveAspectRatio="none">
+                     <path d="M0,12 Q 25,18 50,12 T 100,12" fill="none" stroke="var(--ap-danger)" stroke-width="2" stroke-dasharray="4,2" />
+                     <circle cx="100" cy="12" r="2" fill="var(--ap-danger)" />
+                  </svg>
+             </div>
+             <div class="x-small text-slate-400 fw-800 mt-2">URGENT ATTENTION</div>
+        </div>
+
+        <div class="card-premium">
+            <div class="metric-label-premium">SCHEDULED TODAY</div>
+            <div class="h2 fw-800 text-slate-900 mb-0">@stats.JobsScheduledToday</div>
+             <div class="sparkline-container mt-2">
+                  <svg width="100%" height="30" viewBox="0 0 100 20" preserveAspectRatio="none">
+                     <rect x="0" y="8" width="14" height="12" fill="var(--ap-info)" opacity="0.1" rx="2"/>
+                     <rect x="20" y="4" width="14" height="16" fill="var(--ap-info)" opacity="0.2" rx="2"/>
+                     <rect x="40" y="10" width="14" height="10" fill="var(--ap-info)" opacity="0.4" rx="2"/>
+                     <rect x="60" y="6" width="14" height="14" fill="var(--ap-info)" opacity="0.7" rx="2"/>
+                     <rect x="80" y="2" width="14" height="18" fill="var(--ap-info)" rx="2"/>
+                  </svg>
+             </div>
+             <div class="x-small text-slate-400 fw-800 mt-2">OPERATIONAL LOAD</div>
+        </div>
+
+        <div class="card-premium">
+            <div class="metric-label-premium">EFFICIENCY</div>
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="h2 fw-800 text-slate-900 mb-0">@completionRate%</div>
+                <div class="badge-premium success">OPTIMAL</div>
+            </div>
+             <div class="mt-2">
+                 <div class="progress" style="height: 6px; background: #F1F5F9; border-radius: 6px; overflow: hidden;">
+                     <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                           style="width: @(completionRate)%; background: var(--ap-primary);"></div>
+                 </div>
+                 <div class="x-small fw-800 text-slate-400 mt-2">TARGET: 85% PERFORMANCE</div>
+             </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT ROW -->
+    <div class="row g-4 mb-4">
+        <!-- Activity Feed -->
+        <div class="col-lg-8 order-2 order-lg-1">
+            <div class="card-premium h-100 p-0 overflow-hidden">
+                <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+                    <div>
+                        <h5 class="mb-0 fw-800 text-slate-900 fs-6">DOWNTIME LOG</h5>
+                        <div class="header-subtitle mt-1">RECENT CRITICAL EVENTS</div>
+                    </div>
+                    <a href="/downtime/history" class="btn btn-premium-ghost btn-sm px-3">
+                        VIEW ALL
+                    </a>
+                </div>
+                
+                <div class="card-body p-0">
+                    @if(!stats.RecentActivity.Any()) {
+                         <div class="p-5 text-center text-slate-400 x-small fw-800">NO RECENT LOGS DETECTED</div>
+                    }
+
+                    @foreach(var job in stats.RecentActivity.Take(5)) 
+                    {
+                        <div class="d-flex align-items-center p-3 px-4 border-bottom last-child-border-0 hover-bg-slate-50 transition-all">
+                            <div class="flex-grow-1">
+                                <div class="fw-800 text-slate-900">@job.JobType?.Name</div>
+                                <div class="text-slate-500 x-small fw-600">@job.Equipment?.Name • @job.Description</div>
+                            </div>
+                            <div class="text-end ms-3">
+                                <span class="badge-premium @GetStatusClass(job)">@job.Status.ToString().ToUpper()</span>
+                                <div class="text-slate-400 x-small mt-1 fw-800">@job.UpdatedAt?.ToString("HH:mm")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (deptStats != null && deptStats.Any())
+        {
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card-premium p-4">
+                        <div class="mb-4">
+                            <h5 class="fw-800 text-slate-900 fs-6">DEPARTMENTAL PERFORMANCE</h5>
+                            <div class="header-subtitle mt-1">Cross-Functional Operational Audit</div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-slate-50 border-0">
+                                    <tr>
+                                        <th class="border-0 px-4 py-3 x-small fw-800 text-slate-400 text-uppercase">Department</th>
+                                        <th class="border-0 px-4 py-3 x-small fw-800 text-slate-400 text-uppercase text-center">Volume</th>
+                                        <th class="border-0 px-4 py-3 x-small fw-800 text-slate-400 text-uppercase text-center">Total Spend</th>
+                                        <th class="border-0 px-4 py-3 x-small fw-800 text-slate-400 text-uppercase text-center">Avg MTTR</th>
+                                        <th class="border-0 px-4 py-3 x-small fw-800 text-slate-400 text-uppercase text-center">Safety Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var dept in deptStats)
+                                    {
+                                        <tr>
+                                            <td class="px-4 py-3">
+                                                <div class="fw-800 text-slate-900">@dept.DepartmentName</div>
+                                                <div class="x-small text-slate-400 fw-600">Operational Unit</div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div class="badge-premium info">@dept.JobCount JOBS</div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div class="fw-800 text-slate-900">ZMW @dept.TotalCost.ToString("N0")</div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div class="small fw-700 text-slate-600">@dept.AverageResolutionTime hrs</div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                @if (dept.SafetyFlags > 0)
+                                                {
+                                                    <span class="badge-premium danger"><i class="bi bi-exclamation-triangle me-1"></i> @dept.SafetyFlags INCIDENTS</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge-premium success">SECURE</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Workload Distribution -->
+         <div class="col-lg-4 order-1 order-lg-2">
+            <div class="card-premium h-100 p-4">
+                 <div class="mb-4">
+                    <h5 class="mb-0 fw-800 text-slate-900 fs-6">WORKLOAD SPLIT</h5>
+                    <div class="header-subtitle mt-1">DEPARTMENTAL ALLOCATION</div>
+                 </div>
+                 
+                 <div class="d-flex justify-content-center align-items-center mb-4" style="height: 180px;">
+                     <!-- Simple CSS Donut -->
+                     <div style="width: 160px; height: 160px; border-radius: 50%; background: conic-gradient(
+                         var(--ap-primary) 0% @(preventivePercent)%, 
+                         var(--ap-info) @(preventivePercent)% @(preventivePercent + correctivePercent)%, 
+                         #F1F5F9 @(preventivePercent + correctivePercent)% 100%
+                     ); position: relative; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                         <div style="width: 120px; height: 120px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                             <div class="h3 mb-0 fw-800 text-slate-900">@stats.TotalJobs</div>
+                             <div class="text-slate-500 x-small fw-800 text-uppercase" style="letter-spacing: 0.05rem;">JOBS</div>
+                         </div>
+                     </div>
+                 </div>
+                 
+                 <div class="px-2">
+                     <div class="d-flex justify-content-between mb-2">
+                         <span class="d-flex align-items-center gap-2 text-slate-600 small fw-800"><span style="width:8px;height:8px;border-radius:2px;background:var(--ap-primary)"></span> Preventive</span>
+                         <span class="fw-800 text-slate-900 small">@preventivePercent%</span>
+                     </div>
+                     <div class="d-flex justify-content-between mb-2">
+                         <span class="d-flex align-items-center gap-2 text-slate-600 small fw-800"><span style="width:8px;height:8px;border-radius:2px;background:var(--ap-info)"></span> Corrective</span>
+                         <span class="fw-800 text-slate-900 small">@correctivePercent%</span>
+                     </div>
+                     <div class="d-flex justify-content-between">
+                         <span class="d-flex align-items-center gap-2 text-slate-600 small fw-800"><span style="width:8px;height:8px;border-radius:2px;background:#F1F5F9"></span> Others</span>
+                         <span class="fw-800 text-slate-900 small">@otherPercent%</span>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardStats? stats;
+    private ExecutiveSnapshot? execStats;
+    private List<DepartmentalSnapshot>? deptStats;
+    private int completionRate = 0;
+    private int preventivePercent = 0;
+    private int correctivePercent = 0;
+    private int otherPercent = 0;
+    
+    // Helper to map DB Enums & Job Types to CSS Classes
+    private string GetStatusClass(JobCard job) {
+        if (job.JobType?.Name.Contains("Emergency") == true || 
+            job.JobType?.Name.Contains("Corrective") == true || 
+            job.JobType?.Name.Contains("Repair") == true)
+        {
+            return "danger";
+        }
+
+        return job.Status.ToString() switch {
+            "InProgress" => "warning",
+            "Completed" => "success",
+            "Scheduled" => "info",
+            "OnHold" => "warning",
+            _ => "slate"
+        };
+    }
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] ICurrentTenantService TenantService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        var tenantClaim = user.FindFirst("TenantId");
+        var email = user.Identity?.Name?.ToLower();
+        
+        if (email == "simwinga8788@gmail.com" && tenantClaim == null && !TenantService.IsSet)
+        {
+            NavigationManager.NavigateTo("platform");
+            return;
+        }
+
+        try
+        {
+            stats = await DashboardService.GetDashboardStatsAsync();
+            execStats = await DashboardService.GetExecutiveSnapshotAsync();
+            deptStats = await DashboardService.GetDepartmentalSnapshotAsync();
+            
+            if (stats.TotalJobs > 0)
+            {
+                completionRate = (int)((stats.CompletedJobs * 100.0) / stats.TotalJobs);
+            }
+            
+            if (stats.JobTypeDistribution != null && stats.JobTypeDistribution.Count > 0)
+            {
+                // Using Find to avoid Linq dependency if missing
+                var preventive = stats.JobTypeDistribution.Find(x => x.JobTypeName?.Contains("Preventive") == true);
+                var corrective = stats.JobTypeDistribution.Find(x => x.JobTypeName?.Contains("Corrective") == true);
+                
+                var preventiveCount = preventive?.Count ?? 0;
+                var correctiveCount = corrective?.Count ?? 0;
+                
+                if (stats.TotalJobs > 0)
+                {
+                    preventivePercent = (int)((preventiveCount * 100.0) / stats.TotalJobs);
+                    correctivePercent = (int)((correctiveCount * 100.0) / stats.TotalJobs);
+                    otherPercent = 100 - preventivePercent - correctivePercent;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+            stats = new DashboardStats();
+        }
+    }
+    /*
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        // Platform Owner Redirect: Check if user has NO TenantId claim
+        // Platform Owners are NOT associated with any tenant
+        var tenantClaim = user.FindFirst("TenantId");
+        var email = user.Identity?.Name?.ToLower();
+        
+        // Only redirect to platform if:
+        // 1. User is simwinga8788@gmail.com (platform owner) AND
+        // 2. User has NO tenant claim (meaning they're not a tenant admin)
+        if (email == "simwinga8788@gmail.com" && tenantClaim == null && !TenantService.IsSet)
+        {
+            NavigationManager.NavigateTo("platform");
+            return;
+        }
+
+        try
+        {
+            // Authentication check removed for MVP
+                stats = await DashboardService.GetDashboardStatsAsync();
+                
+                // Calculate completion rate
+                if (stats.TotalJobs > 0)
+                {
+                    completionRate = (int)((stats.CompletedJobs * 100.0) / stats.TotalJobs);
+                }
+                
+                // Calculate job type distribution
+                if (stats.JobTypeDistribution != null && stats.JobTypeDistribution.Any())
+                {
+                    var preventive = stats.JobTypeDistribution.FirstOrDefault(x => x.JobTypeName?.Contains("Preventive") == true);
+                    var corrective = stats.JobTypeDistribution.FirstOrDefault(x => x.JobTypeName?.Contains("Corrective") == true);
+                    
+                    var preventiveCount = preventive?.Count ?? 0;
+                    var correctiveCount = corrective?.Count ?? 0;
+                    
+                    if (stats.TotalJobs > 0)
+                    {
+                        preventivePercent = (int)((preventiveCount * 100.0) / stats.TotalJobs);
+                        correctivePercent = (int)((correctiveCount * 100.0) / stats.TotalJobs);
+                        otherPercent = 100 - preventivePercent - correctivePercent;
+                    }
+                }
+            }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+            stats = new DashboardStats();
+        }
+        }
+    */
+}
+
+<style>
+    .alert-breakdown {
+        background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(220, 38, 38, 0.2);
+        animation: pulse-red 2s infinite ease-in-out;
+    }
+
+    .exec-mini-icon {
+        width: 38px;
+        height: 38px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ap-primary);
+        font-size: 1.1rem;
+    }
+
+    .border-slate-700 {
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+
+    .alert-icon-ring {
+        width: 50px;
+        height: 50px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        border: 2px solid rgba(255,255,255,0.4);
+    }
+
+    @@keyframes pulse-red {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+</style>

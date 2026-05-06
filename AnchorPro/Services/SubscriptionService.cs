@@ -88,7 +88,7 @@ public class SubscriptionService : ISubscriptionService
     public async Task<bool> CheckLimitAsync(string limitType, int currentCount, int tenantId = 1)
     {
         var plan = await GetCurrentPlanAsync(tenantId);
-        if (plan == null) return true; // no plan = billing disabled, allow all
+        if (plan == null) return false;
 
         var limit = limitType.ToLower() switch
         {

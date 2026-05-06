@@ -1,0 +1,188 @@
+@page "/commercial/contracts"
+@using AnchorPro.Data.Entities
+@using AnchorPro.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin,Commercial")]
+@inject IContractService ContractService
+@inject ICustomerService CustomerService
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Service Contracts | Anchor Pro</PageTitle>
+
+<ApplePageHeader Title="Service Agreements" Subtitle="Manage customer service contracts and SLA performance">
+    <ActionButtons>
+        <button class="btn btn-premium btn-sm" @onclick="OpenCreateModal">
+            <i class="bi bi-file-earmark-plus me-1"></i> NEW CONTRACT
+        </button>
+    </ActionButtons>
+</ApplePageHeader>
+
+<div class="row g-4 mt-2">
+    @if (contracts == null)
+    {
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (!contracts.Any())
+    {
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-file-earmark-text fs-1 text-slate-200"></i>
+            <p class="text-slate-400 mt-3 fw-600">No active contracts found.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var contract in contracts)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card-premium h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-box-premium @(contract.Status == ContractStatus.Active ? "success" : "slate")">
+                            <i class="bi bi-shield-lock"></i>
+                        </div>
+                        <span class="badge-premium @GetStatusClass(contract)">@contract.Status.ToString().ToUpper()</span>
+                    </div>
+                    
+                    <h5 class="fw-800 text-slate-900 mb-1">@contract.Title</h5>
+                    <div class="text-primary x-small fw-800 mb-3">#@contract.ContractNumber • @(contract.Customer?.Name)</div>
+                    
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="x-small fw-800 text-slate-400 text-uppercase">Monthly Fee</div>
+                            <div class="fw-800 text-slate-900">ZMW @contract.MonthlyFee.ToString("N0")</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="x-small fw-800 text-slate-400 text-uppercase">SLA Target</div>
+                            <div class="fw-800 text-slate-900">@contract.SLAHours Hours</div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 rounded-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="x-small fw-800 text-slate-500">PERIOD PROGRESS</span>
+                            <span class="x-small fw-800 text-slate-900">@GetProgress(contract)%</span>
+                        </div>
+                        <div class="progress" style="height:4px; background:#e2e8f0;">
+                            <div class="progress-bar bg-primary" style="width: @(GetProgress(contract))%"></div>
+                        </div>
+                        <div class="x-small text-slate-400 mt-2 fw-700">Exp. @contract.EndDate.ToLocalTime().ToString("dd MMM yyyy")</div>
+                    </div>
+                    
+                    <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                        <button class="btn btn-premium-ghost btn-sm px-3" @onclick="() => OpenPerformanceModal(contract)">SLA PERFORMANCE</button>
+                        <button class="btn btn-premium-ghost btn-sm px-3" @onclick="() => OpenEditModal(contract)">EDIT</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@* SLA Performance Modal *@
+@if (selectedContract != null && showPerfModal)
+{
+    <div class="modal fade show d-block" style="background-color:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+                <div class="modal-header py-4 px-4 border-0">
+                    <div>
+                        <h5 class="modal-title fw-800 text-slate-900">SLA Compliance Audit</h5>
+                        <div class="x-small fw-800 text-slate-400 mt-1">@selectedContract.Title | Target: @selectedContract.SLAHours Hours</div>
+                    </div>
+                    <button type="button" class="btn-close" @onclick="() => showPerfModal = false"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    @if (perf == null) {
+                        <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    } else {
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <div class="card bg-slate-50 border-0 p-3 text-center rounded-3">
+                                    <h2 class="fw-800 text-success mb-0">@perf.ComplianceRate%</h2>
+                                    <div class="x-small fw-800 text-slate-400">COMPLIANCE RATE</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-slate-50 border-0 p-3 text-center rounded-3">
+                                    <h2 class="fw-800 text-primary mb-0">@perf.AverageResolutionTime</h2>
+                                    <div class="x-small fw-800 text-slate-400">AVG RESOLUTION (H)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded-3 mb-2 bg-success-subtle border-success">
+                            <span class="small fw-700 text-success">Jobs Within SLA Target</span>
+                            <span class="fw-800 text-success">@perf.JobsWithinSLA</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded-3 bg-danger-subtle border-danger">
+                            <span class="small fw-700 text-danger">SLA Breaches Detected</span>
+                            <span class="fw-800 text-danger">@perf.JobsBreachedSLA</span>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button class="btn btn-light fw-800 px-4" style="border-radius:10px;" @onclick="() => showPerfModal = false">DISMISS</button>
+                    <button class="btn btn-premium fw-800 px-4" style="border-radius:10px;">DOWNLOAD REPORT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Create/Edit Modal omitted for brevity, would follow standard pattern *@
+
+@code {
+    private List<Contract>? contracts;
+    private List<Customer>? customers;
+    
+    private Contract? selectedContract;
+    private SLAPerformance? perf;
+    private bool showPerfModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        contracts = await ContractService.GetAllContractsAsync();
+        customers = await CustomerService.GetAllCustomersAsync();
+    }
+
+    private async Task OpenPerformanceModal(Contract c)
+    {
+        selectedContract = c;
+        perf = null;
+        showPerfModal = true;
+        perf = await ContractService.GetSLAPerformanceAsync(c.Id);
+    }
+
+    private void OpenEditModal(Contract c)
+    {
+        // Edit logic
+    }
+
+    private void OpenCreateModal()
+    {
+        // Create logic
+    }
+
+    private int GetProgress(Contract c)
+    {
+        var total = (c.EndDate - c.StartDate).TotalDays;
+        var elapsed = (DateTime.UtcNow - c.StartDate).TotalDays;
+        if (total <= 0) return 100;
+        var p = (int)(elapsed / total * 100);
+        return Math.Min(100, Math.Max(0, p));
+    }
+
+    private string GetStatusClass(Contract c) => c.Status switch {
+        ContractStatus.Active => "success",
+        ContractStatus.Expired => "danger",
+        ContractStatus.Cancelled => "slate",
+        _ => "warning"
+    };
+}

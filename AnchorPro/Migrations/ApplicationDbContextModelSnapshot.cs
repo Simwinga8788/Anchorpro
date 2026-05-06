@@ -394,9 +394,6 @@ namespace AnchorPro.Migrations
                     b.Property<int?>("DepartmentId")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("HourlyRate")
-                        .HasColumnType("numeric");
-
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -1679,61 +1676,6 @@ namespace AnchorPro.Migrations
                     b.ToTable("TenantSubscriptions");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.TimeEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ClockIn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ClockOut")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("JobCardId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("TechnicianId")
-                        .IsRequired()
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("JobCardId");
-
-                    b.HasIndex("TechnicianId");
-
-                    b.ToTable("TimeEntries");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -2123,25 +2065,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("SubscriptionPlan");
 
                     b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.TimeEntry", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.JobCard", "JobCard")
-                        .WithMany()
-                        .HasForeignKey("JobCardId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "Technician")
-                        .WithMany()
-                        .HasForeignKey("TechnicianId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("JobCard");
-
-                    b.Navigation("Technician");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

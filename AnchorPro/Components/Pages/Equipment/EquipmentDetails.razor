@@ -1,0 +1,255 @@
+@page "/equipment/details/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using AnchorPro.Data.Entities
+@using AnchorPro.Data.Models
+@using AnchorPro.Services.Interfaces
+@inject IEquipmentService EquipmentService
+@inject IDashboardService DashboardService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid p-0">
+    @if (equipment == null)
+    {
+        <div class="d-flex justify-content-center p-5">
+            <div class="spinner-border text-success" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="/equipment" class="text-decoration-none text-muted small">Equipment</a></li>
+                        <li class="breadcrumb-item active small">Details</li>
+                    </ol>
+                </nav>
+                <h2 class="text-slate-900 fw-800 mb-0 fs-2 fs-md-1">@equipment.Name</h2>
+                <div class="text-slate-500 x-small fw-800">@equipment.ModelNumber | SERIAL: @equipment.SerialNumber</div>
+            </div>
+            <div class="d-flex gap-2 w-100 w-md-auto">
+                <button class="btn btn-outline-secondary px-3 flex-grow-1 flex-md-grow-0 fw-800" @onclick="() => Edit()">
+                    <i class="bi bi-pencil me-1"></i>EDIT
+                </button>
+                <button class="btn btn-primary px-4 flex-grow-1 flex-md-grow-0 fw-800" @onclick="CreateJob">
+                    <i class="bi bi-plus-lg me-1"></i>NEW JOB
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Basic Info Card -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100 p-4">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-4">Asset Specification</h6>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted x-small d-block text-uppercase fw-bold">Manufacturer</label>
+                        <div class="text-black fw-bold">@(equipment.Manufacturer ?? "Not Specified")</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted x-small d-block text-uppercase fw-bold">Department / Location</label>
+                        <div class="text-black fw-bold">
+                            <i class="bi bi-diagram-3 me-1 text-primary"></i>
+                            @(equipment.Department?.Name ?? "General Operations")
+                            <div class="x-small text-muted fw-normal ms-4">@equipment.Location</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted x-small d-block text-uppercase fw-bold">Installed Date</label>
+                        <div class="text-black">@equipment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                    </div>
+
+                    <div class="mt-auto pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Total Jobs</span>
+                            <span class="badge bg-light text-dark border">@equipment.JobCards.Count</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance KPIs -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="fw-bold text-muted text-uppercase small mb-0">Operational Reliability (30d)</h6>
+                        <span class="badge bg-light text-muted">Last sync: @DateTime.Now.ToString("HH:mm")</span>
+                    </div>
+
+                    @if (stats == null)
+                    {
+                        <div class="text-center p-5">
+                            <div class="spinner-border text-primary mb-3"></div>
+                            <div class="text-slate-400 small fw-800">SYNCING OPERATIONAL DATA...</div>
+                        </div>
+                    }
+                    else if (stats.MTBF_Hours == 0 && stats.MTTR_Hours == 0)
+                    {
+                        <div class="text-center p-5 bg-slate-50 rounded-3 border-dashed">
+                            <i class="bi bi-graph-up text-slate-300 fs-1 mb-2"></i>
+                            <div class="text-slate-500 fw-700 small">INSUFFICIENT DATA</div>
+                            <div class="text-slate-400 x-small mt-1">Complete more jobs to generate reliability metrics.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3 text-center">
+                            <div class="col-md-4">
+                                <div class="p-3 bg-slate-50 rounded-3 border">
+                                    <div class="fs-2 fw-800 text-primary">@stats.MTBF_Hours<span class="fs-6 fw-normal ms-1">h</span></div>
+                                    <div class="text-slate-400 x-small fw-800 text-uppercase">MTBF (Reliability)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-slate-50 rounded-3 border">
+                                    <div class="fs-2 fw-800 text-success">@stats.MTTR_Hours<span class="fs-6 fw-normal ms-1">h</span></div>
+                                    <div class="text-slate-400 x-small fw-800 text-uppercase">MTTR (Repair Speed)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 @(stats.PredictedNextFailure.HasValue && stats.PredictedNextFailure < DateTime.UtcNow.AddDays(7) ? "bg-danger-subtle" : "bg-slate-50") rounded-3 border">
+                                    <div class="fs-2 fw-800 @(stats.PredictedNextFailure.HasValue && stats.PredictedNextFailure < DateTime.UtcNow.AddDays(7) ? "text-danger" : "text-slate-900")">
+                                        @(stats.PredictedNextFailure?.ToString("MMM dd") ?? "Stable")
+                                    </div>
+                                    <div class="text-slate-400 x-small fw-800 text-uppercase">Predicted Next Event</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 d-flex align-items-center">
+                            <div class="me-3 fs-4 text-primary">
+                                <i class="bi bi-activity"></i>
+                            </div>
+                            <div>
+                                <div class="fw-800 text-slate-900 small text-uppercase" style="letter-spacing: 0.05em;">Maintenance Intensity</div>
+                                <div class="text-slate-600 small">This asset represents <span class="fw-800 text-primary">@stats.UtilizationPercentage%</span> of total maintenance workload.</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Job History -->
+        <div class="card border-0 shadow-sm p-4">
+            <h6 class="fw-bold text-muted text-uppercase small mb-4">Maintenance History</h6>
+            
+            @if (!equipment.JobCards.Any())
+            {
+                <div class="text-center p-5 text-muted border-dashed rounded">
+                    <i class="bi bi-calendar-x fs-1 opacity-25"></i>
+                    <p class="mt-2">No job history found for this asset.</p>
+                </div>
+            }
+            else
+            {
+                <div class="d-none d-md-block table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 small">Job #</th>
+                                <th class="border-0 small">Type</th>
+                                <th class="border-0 small">Technician</th>
+                                <th class="border-0 small">Completed</th>
+                                <th class="border-0 small">Cost</th>
+                                <th class="border-0 small text-end">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var job in equipment.JobCards.OrderByDescending(j => j.CreatedAt))
+                            {
+                                <tr @onclick="() => ViewJob(job.Id)" style="cursor: pointer;">
+                                    <td class="fw-bold text-primary">#@job.JobNumber</td>
+                                    <td>
+                                        <div class="small fw-bold">@job.JobType?.Name</div>
+                                        <div class="x-small text-muted text-truncate" style="max-width: 200px;">@job.Description</div>
+                                    </td>
+                                    <td class="small">@(job.AssignedTechnician?.UserName ?? "Unassigned")</td>
+                                    <td class="small text-muted">@(job.ActualEndDate?.ToLocalTime().ToString("MMM dd, yyyy") ?? "-")</td>
+                                    <td>
+                                        @if(job.TotalCost > 0) {
+                                            <span class="small fw-bold">K @job.TotalCost.ToString("N2")</span>
+                                        } else {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="status-badge @GetStatusClass(job.Status)">@job.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile History View -->
+                <div class="d-md-none">
+                    @foreach (var job in equipment.JobCards.OrderByDescending(j => j.CreatedAt))
+                    {
+                        <div class="p-3 mb-3 border rounded-3 bg-white shadow-sm" @onclick="() => ViewJob(job.Id)" style="cursor: pointer;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-800 text-primary small">#@job.JobNumber</span>
+                                <span class="badge @GetStatusClass(job.Status) small">@job.Status.ToString().ToUpper()</span>
+                            </div>
+                            <div class="fw-800 text-slate-900 mb-1">@job.JobType?.Name</div>
+                            <div class="text-slate-500 x-small mb-3 text-truncate">@job.Description</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-slate-400 x-small">@(job.ActualEndDate?.ToLocalTime().ToString("MMM dd, yyyy") ?? "Ongoing")</div>
+                                <div class="fw-800 text-slate-900 small">K @(job.TotalCost > 0 ? job.TotalCost.ToString("N2") : "0.00")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .x-small { font-size: 0.7rem; }
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .status-badge.raw { background-color: #f3f4f6; color: #374151; }
+    .status-badge.scheduled { background-color: #dbeafe; color: #1e40af; }
+    .status-badge.in-progress { background-color: #fef9c3; color: #854d0e; }
+    .status-badge.completed { background-color: #dcfce7; color: #15803d; }
+    .status-badge.on-hold { background-color: #ffedd5; color: #9a3412; }
+    
+    .border-dashed { border: 2px dashed #e9ecef !important; }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Equipment? equipment;
+    private EquipmentStat? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        equipment = await EquipmentService.GetEquipmentByIdAsync(Id);
+        if (equipment != null)
+        {
+            stats = await DashboardService.GetEquipmentPerformanceAsync(Id, 90); // 90 day scope for equipment
+        }
+    }
+
+    private void Edit() => NavigationManager.NavigateTo($"/equipment/edit/{Id}");
+    private void CreateJob() => NavigationManager.NavigateTo($"/jobs/create?equipmentId={Id}");
+    private void ViewJob(int jobId) => NavigationManager.NavigateTo($"/jobs/details/{jobId}");
+
+    private string GetStatusClass(AnchorPro.Data.Enums.JobStatus s) => s.ToString().ToLower() switch {
+        "scheduled" => "scheduled",
+        "inprogress" => "in-progress",
+        "completed" => "completed",
+        "onhold" => "on-hold",
+        _ => "raw"
+    };
+}

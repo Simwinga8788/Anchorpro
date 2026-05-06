@@ -1,0 +1,160 @@
+﻿@inherits LayoutComponentBase
+@using AnchorPro.Services.Interfaces
+@using AnchorPro.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject ICurrentTenantService CurrentTenantService
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="app-container">
+    <div class="sidebar @(isSidebarCollapsed ? "collapsed" : "") @(isMobileSidebarOpen ? "show-mobile" : "")">
+        @if (NavigationManager.Uri.Contains("/platform", StringComparison.OrdinalIgnoreCase))
+        {
+            <PlatformNavMenu />
+        }
+        else
+        {
+            <NavMenu @rendermode="InteractiveServer" OnCloseSidebar="ToggleSidebar" />
+        }
+    </div>
+
+    <main class="main-content">
+        <header class="header px-4">
+            <div class="d-flex align-items-center gap-3">
+                <button class="sidebar-toggle d-lg-none" @onclick="ToggleSidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                
+                <div class="header-brand-group d-flex align-items-center">
+                    <div class="tenant-name">@TenantName</div>
+                    <div class="user-role-badge">@UserRole.ToUpper()</div>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="user-control-group">
+                            <div class="user-info d-none d-lg-flex flex-column text-end">
+                                <span class="fw-800 text-slate-900" style="font-size: 0.95rem; line-height: 1;">@context.User.Identity?.Name</span>
+                                <span class="x-small text-slate-400 fw-800">CONNECTED</span>
+                            </div>
+                            
+                            <div class="dropdown">
+                                <button class="user-avatar-btn dropdown-toggle no-caret" type="button" data-bs-toggle="dropdown">
+                                     @context.User.Identity?.Name?.Substring(0,1).ToUpper()
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 p-2" style="border-radius: 16px; min-width: 240px; box-shadow: var(--ap-shadow-lg) !important;">
+                                    <li class="px-3 py-3 bg-slate-50 mb-2" style="border-radius: 12px;">
+                                        <div class="fw-800 text-slate-900">@context.User.Identity?.Name</div>
+                                        <div class="x-small text-slate-500">@UserRole</div>
+                                    </li>
+                                    <li>
+                                        <form action="Account/Logout" method="post" class="m-0">
+                                            <AntiforgeryToken />
+                                            <input type="hidden" name="ReturnUrl" value="/" />
+                                            <button type="submit" class="dropdown-item rounded-3 text-danger d-flex align-items-center gap-2 py-2">
+                                                <i class="bi bi-box-arrow-right"></i>
+                                                <span class="fw-800">Log Out</span>
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="Account/Login" class="btn btn-premium px-4">SIGN IN</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <article class="page-content-wrapper">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private string TenantName = "Anchor Pro";
+    private string UserRole = "User";
+    private bool isSidebarCollapsed = false;
+    private bool isMobileSidebarOpen = false;
+
+    private void ToggleSidebar() 
+    {
+        isSidebarCollapsed = !isSidebarCollapsed;
+        isMobileSidebarOpen = !isMobileSidebarOpen;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CurrentTenantService.InitializeAsync();
+
+        if (authenticationStateTask != null)
+        {
+            var authState = await authenticationStateTask;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var tenantClaim = user.FindFirst("TenantId");
+                int? claimId = null;
+                if (tenantClaim != null && int.TryParse(tenantClaim.Value, out int tid))
+                {
+                    claimId = tid;
+                }
+
+                if (claimId.HasValue && !CurrentTenantService.IsSet)
+                {
+                    CurrentTenantService.TenantId = claimId;
+                }
+
+                bool isPlatform = NavigationManager.Uri.Contains("/platform", StringComparison.OrdinalIgnoreCase);
+
+                if (isPlatform)
+                {
+                    TenantName = "Platform Console";
+                }
+                else if (CurrentTenantService.IsSet) 
+                {
+                    var activeId = CurrentTenantService.TenantId;
+                    using var context = DbFactory.CreateDbContext();
+                    var tenant = await context.Tenants.FindAsync(activeId);
+                    if (tenant != null)
+                    {
+                        TenantName = tenant.Name;
+                    }
+                }
+                
+                var roleClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Role);
+                if (roleClaim != null)
+                {
+                    UserRole = roleClaim.Value;
+                }
+                else 
+                {
+                     var appUser = await UserManager.GetUserAsync(user);
+                     if (appUser != null)
+                     {
+                         var roles = await UserManager.GetRolesAsync(appUser);
+                         UserRole = roles.FirstOrDefault() ?? "User";
+                     }
+                }
+            }
+        }
+    }
+}
