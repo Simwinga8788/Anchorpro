@@ -130,6 +130,47 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
+        // ── ATTACHMENTS ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// POST /api/jobcards/{id}/attachments
+        /// Body: { "fileName": "photo.jpg", "filePath": "/uploads/...", "contentType": "image/jpeg", "fileSizeBytes": 204800 }
+        /// Links an already-uploaded file to a job card.
+        /// </summary>
+        [HttpPost("{id}/attachments")]
+        public async Task<ActionResult> AddAttachment(int id, [FromBody] JobAttachment attachment)
+        {
+            attachment.JobCardId = id;
+            attachment.CreatedAt = DateTime.UtcNow;
+            attachment.CreatedBy = User.Identity?.Name ?? "API_User";
+            await _jobService.AddAttachmentAsync(attachment);
+            return Ok(attachment);
+        }
+
+        /// <summary>DELETE /api/jobcards/attachments/{attachmentId} — Remove a file attachment from a job.</summary>
+        [HttpDelete("attachments/{attachmentId}")]
+        public async Task<ActionResult> RemoveAttachment(int attachmentId)
+        {
+            await _jobService.RemoveAttachmentAsync(attachmentId);
+            return NoContent();
+        }
+
+        // ── PERMIT TO WORK ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// POST /api/jobcards/{id}/permit
+        /// Issues a Permit to Work for the job before starting.
+        /// Body: { "jobCardId": 1, "authorizedBy": "John", "isIsolated": true, "isLotoApplied": true, "isAreaSecure": true, "isPpeChecked": true, "toolboxTalkCompleted": true, "workScope": "...", "hazardsIdentified": "..." }
+        /// </summary>
+        [HttpPost("{id}/permit")]
+        public async Task<ActionResult> CreatePermit(int id, [FromBody] JobAttachmentPermitRequest req)
+        {
+            req.Permit.JobCardId = id;
+            req.Permit.AuthorizedAt = DateTime.UtcNow;
+            await _jobService.CreatePermitAsync(req.Permit);
+            return Ok(req.Permit);
+        }
+
         // ── TASKS ─────────────────────────────────────────────────────────────
 
         /// <summary>GET /api/jobcards/{id}/tasks — All tasks belonging to this job card.</summary>
@@ -151,5 +192,10 @@ namespace AnchorPro.Controllers
     {
         public int InventoryItemId { get; set; }
         public int Quantity { get; set; }
+    }
+
+    public class JobAttachmentPermitRequest
+    {
+        public PermitToWork Permit { get; set; } = new();
     }
 }
