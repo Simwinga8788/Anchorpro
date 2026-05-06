@@ -18,31 +18,29 @@ namespace AnchorPro.Controllers
             _taskService = taskService;
         }
 
+        // ── LIST / GET ────────────────────────────────────────────────────────
+
+        /// <summary>GET /api/jobcards — All job cards for the current tenant.</summary>
         [HttpGet]
         public async Task<ActionResult<List<JobCard>>> GetAll()
-        {
-            var result = await _jobService.GetAllJobCardsAsync();
-            return Ok(result);
-        }
+            => Ok(await _jobService.GetAllJobCardsAsync());
 
+        /// <summary>GET /api/jobcards/{id}</summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<JobCard>> GetById(int id)
         {
             var result = await _jobService.GetJobCardByIdAsync(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            return Ok(result);
+            return result == null ? NotFound() : Ok(result);
         }
 
+        /// <summary>GET /api/jobcards/technician/{technicianId}</summary>
         [HttpGet("technician/{technicianId}")]
         public async Task<ActionResult<List<JobCard>>> GetByTechnician(string technicianId)
-        {
-            var result = await _jobService.GetJobCardsByTechnicianAsync(technicianId);
-            return Ok(result);
-        }
+            => Ok(await _jobService.GetJobCardsByTechnicianAsync(technicianId));
 
+        // ── CREATE / UPDATE / DELETE ──────────────────────────────────────────
+
+        /// <summary>POST /api/jobcards — Create a new job card.</summary>
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] JobCard jobCard)
         {
@@ -51,19 +49,31 @@ namespace AnchorPro.Controllers
             return CreatedAtAction(nameof(GetById), new { id = jobCard.Id }, jobCard);
         }
 
+        /// <summary>PUT /api/jobcards/{id} — Update a job card's basic fields.</summary>
         [HttpPut("{id}")]
         public async Task<ActionResult> Update(int id, [FromBody] JobCard jobCard)
         {
-            if (id != jobCard.Id)
-            {
-                return BadRequest("ID mismatch");
-            }
-
+            if (id != jobCard.Id) return BadRequest("ID mismatch.");
             var userId = User.Identity?.Name ?? "API_User";
             await _jobService.UpdateJobCardAsync(jobCard, userId);
             return NoContent();
         }
 
+        /// <summary>DELETE /api/jobcards/{id}</summary>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            await _jobService.DeleteJobCardAsync(id);
+            return NoContent();
+        }
+
+        // ── STATUS & ASSIGNMENT ───────────────────────────────────────────────
+
+        /// <summary>
+        /// PATCH /api/jobcards/{id}/status
+        /// Body: integer enum value  (0=Unscheduled, 1=Scheduled, 2=InProgress, 3=Completed, 4=Cancelled, 5=OnHold)
+        /// Completing a job triggers full financial-trinity calculation + inventory deduction.
+        /// </summary>
         [HttpPatch("{id}/status")]
         public async Task<ActionResult> UpdateStatus(int id, [FromBody] JobStatus status)
         {
@@ -72,11 +82,74 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        /// <summary>
+        /// POST /api/jobcards/{id}/assign
+        /// Body: { "technicianId": "...", "scheduledStart": "2025-01-01T08:00:00", "scheduledEnd": "2025-01-01T17:00:00" }
+        /// </summary>
+        [HttpPost("{id}/assign")]
+        public async Task<ActionResult> AssignTechnician(int id, [FromBody] AssignTechnicianRequest req)
         {
-            await _jobService.DeleteJobCardAsync(id);
+            await _jobService.AssignTechnicianAsync(id, req.TechnicianId, req.ScheduledStart, req.ScheduledEnd);
             return NoContent();
         }
+
+        /// <summary>
+        /// GET /api/jobcards/{id}/conflicts?technicianId=...&startDate=...&endDate=...
+        /// Returns scheduling conflict details for the given technician + time window.
+        /// </summary>
+        [HttpGet("{id}/conflicts")]
+        public async Task<ActionResult> CheckConflicts(int id,
+            [FromQuery] string technicianId,
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            var result = await _jobService.CheckScheduleConflictsAsync(id, technicianId, startDate, endDate);
+            return Ok(result);
+        }
+
+        // ── PARTS (INVENTORY) ─────────────────────────────────────────────────
+
+        /// <summary>
+        /// POST /api/jobcards/{id}/parts
+        /// Body: { "inventoryItemId": 5, "quantity": 2 }
+        /// Withdraws stock and creates a JobCardPart entry.
+        /// </summary>
+        [HttpPost("{id}/parts")]
+        public async Task<ActionResult> AddPart(int id, [FromBody] AddPartRequest req)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            await _jobService.AddPartToJobAsync(id, req.InventoryItemId, req.Quantity, userId);
+            return Ok();
+        }
+
+        /// <summary>DELETE /api/jobcards/parts/{jobCardPartId} — Remove a part line from a job.</summary>
+        [HttpDelete("parts/{jobCardPartId}")]
+        public async Task<ActionResult> RemovePart(int jobCardPartId)
+        {
+            await _jobService.RemovePartFromJobAsync(jobCardPartId);
+            return NoContent();
+        }
+
+        // ── TASKS ─────────────────────────────────────────────────────────────
+
+        /// <summary>GET /api/jobcards/{id}/tasks — All tasks belonging to this job card.</summary>
+        [HttpGet("{id}/tasks")]
+        public async Task<ActionResult<List<JobTask>>> GetTasks(int id)
+            => Ok(await _taskService.GetTasksForJobCardAsync(id));
+    }
+
+    // ── Request DTOs ──────────────────────────────────────────────────────────
+
+    public class AssignTechnicianRequest
+    {
+        public string TechnicianId { get; set; } = string.Empty;
+        public DateTime? ScheduledStart { get; set; }
+        public DateTime? ScheduledEnd { get; set; }
+    }
+
+    public class AddPartRequest
+    {
+        public int InventoryItemId { get; set; }
+        public int Quantity { get; set; }
     }
 }

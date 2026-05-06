@@ -1,7 +1,6 @@
-using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Controllers
 {
@@ -9,29 +8,67 @@ namespace AnchorPro.Controllers
     [ApiController]
     public class CustomersController : ControllerBase
     {
-        private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly ICustomerService _customerService;
 
-        public CustomersController(IDbContextFactory<ApplicationDbContext> factory)
+        public CustomersController(ICustomerService customerService)
         {
-            _factory = factory;
+            _customerService = customerService;
         }
 
+        /// <summary>GET /api/customers</summary>
         [HttpGet]
         public async Task<ActionResult<List<Customer>>> GetAll()
+            => Ok(await _customerService.GetAllCustomersAsync());
+
+        /// <summary>GET /api/customers/{id}</summary>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Customer>> GetById(int id)
         {
-            using var context = await _factory.CreateDbContextAsync();
-            return await context.Customers.ToListAsync();
+            var result = await _customerService.GetCustomerByIdAsync(id);
+            return result == null ? NotFound() : Ok(result);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<Customer>> Create(Customer customer)
+        /// <summary>GET /api/customers/{id}/full — Includes job card navigation.</summary>
+        [HttpGet("{id}/full")]
+        public async Task<ActionResult<Customer>> GetWithJobs(int id)
         {
-            using var context = await _factory.CreateDbContextAsync();
-            customer.CreatedAt = DateTime.UtcNow;
-            customer.CreatedBy = User.Identity?.Name ?? "API";
-            context.Customers.Add(customer);
-            await context.SaveChangesAsync();
-            return Ok(customer);
+            var result = await _customerService.GetCustomerWithJobsAsync(id);
+            return result == null ? NotFound() : Ok(result);
+        }
+
+        /// <summary>
+        /// GET /api/customers/{id}/stats
+        /// Returns: TotalJobs, CompletedJobs, OpenJobs, TotalRevenue, LastServiceDate
+        /// </summary>
+        [HttpGet("{id}/stats")]
+        public async Task<ActionResult<CustomerStats>> GetStats(int id)
+            => Ok(await _customerService.GetCustomerStatsAsync(id));
+
+        /// <summary>POST /api/customers</summary>
+        [HttpPost]
+        public async Task<ActionResult> Create([FromBody] Customer customer)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            await _customerService.CreateCustomerAsync(customer, userId);
+            return CreatedAtAction(nameof(GetById), new { id = customer.Id }, customer);
+        }
+
+        /// <summary>PUT /api/customers/{id}</summary>
+        [HttpPut("{id}")]
+        public async Task<ActionResult> Update(int id, [FromBody] Customer customer)
+        {
+            if (id != customer.Id) return BadRequest("ID mismatch.");
+            var userId = User.Identity?.Name ?? "API_User";
+            await _customerService.UpdateCustomerAsync(customer, userId);
+            return NoContent();
+        }
+
+        /// <summary>DELETE /api/customers/{id}</summary>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            await _customerService.DeleteCustomerAsync(id);
+            return NoContent();
         }
     }
 }
