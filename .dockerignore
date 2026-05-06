@@ -1,0 +1,13 @@
+**/.git
+**/.gitignore
+**/bin
+**/obj
+**/node_modules
+anchor-pro-web
+AnchorPro.Tests
+Scripts
+Tests
+*.md
+*.docx
+*.zip
+*.webp
