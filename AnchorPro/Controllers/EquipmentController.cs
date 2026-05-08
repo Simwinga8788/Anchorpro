@@ -34,6 +34,14 @@ namespace AnchorPro.Controllers
             return result == null ? NotFound() : Ok(result);
         }
 
+        /// <summary>GET /api/equipment/{id}/history</summary>
+        [HttpGet("{id}/history")]
+        public async Task<ActionResult<List<JobCard>>> GetHistory(int id)
+        {
+            var result = await _service.GetEquipmentHistoryAsync(id);
+            return Ok(result);
+        }
+
         // ── CREATE / UPDATE / DELETE ──────────────────────────────────────────
 
         /// <summary>

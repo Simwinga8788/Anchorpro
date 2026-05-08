@@ -67,11 +67,31 @@ namespace AnchorPro.Controllers
             await _inventoryService.AdjustStockAsync(id, req.QuantityAdjustment, userId, req.Reason);
             return NoContent();
         }
+
+        /// <summary>
+        /// POST /api/inventory/{id}/reserve
+        /// Body: { "quantity": 5, "jobCardId": 123 }
+        /// Deducts from available stock and adds a reservation audit log to prevent over-allocation.
+        /// </summary>
+        [HttpPost("{id}/reserve")]
+        public async Task<ActionResult> ReserveStock(int id, [FromBody] ReserveStockRequest req)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            string reason = $"Reservation for Job #{req.JobCardId}";
+            await _inventoryService.AdjustStockAsync(id, -req.Quantity, userId, reason);
+            return NoContent();
+        }
     }
 
     public class StockAdjustmentRequest
     {
         public int QuantityAdjustment { get; set; }
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class ReserveStockRequest
+    {
+        public int Quantity { get; set; }
+        public int JobCardId { get; set; }
     }
 }

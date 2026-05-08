@@ -222,6 +222,35 @@ namespace AnchorPro.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// PATCH /api/users/{id}/deactivate
+        /// Locks out a user indefinitely.
+        /// </summary>
+        [HttpPatch("{id}/deactivate")]
+        public async Task<ActionResult> DeactivateUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            await _userManager.SetLockoutEnabledAsync(user, true);
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// PATCH /api/users/{id}/activate
+        /// Removes the lockout from a user.
+        /// </summary>
+        [HttpPatch("{id}/activate")]
+        public async Task<ActionResult> ActivateUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            await _userManager.SetLockoutEndDateAsync(user, null);
+            return NoContent();
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────

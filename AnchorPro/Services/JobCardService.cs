@@ -220,9 +220,24 @@ namespace AnchorPro.Services
                     }
                 }
 
+                var oldStatus = job.Status;
                 job.Status = status;
                 job.UpdatedAt = DateTime.UtcNow;
                 job.UpdatedBy = userId;
+
+                if (oldStatus != status)
+                {
+                    context.SystemAuditLogs.Add(new SystemAuditLog
+                    {
+                        Action = $"JobStatusChange_{job.Id}",
+                        Module = "JobCards",
+                        ChangedBy = userId,
+                        OldValue = oldStatus.ToString(),
+                        NewValue = status.ToString(),
+                        Timestamp = DateTime.UtcNow,
+                        TenantId = job.TenantId
+                    });
+                }
 
                 await context.SaveChangesAsync();
             }
@@ -237,6 +252,16 @@ namespace AnchorPro.Services
                 context.JobCards.Remove(job);
                 await context.SaveChangesAsync();
             }
+        }
+
+        public async Task<List<SystemAuditLog>> GetJobHistoryAsync(int jobCardId)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.SystemAuditLogs
+                .Where(log => log.Module == "JobCards" && log.Action == $"JobStatusChange_{jobCardId}")
+                .OrderByDescending(log => log.Timestamp)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task AssignTechnicianAsync(int jobCardId, string technicianId, DateTime? scheduledStart = null, DateTime? scheduledEnd = null)

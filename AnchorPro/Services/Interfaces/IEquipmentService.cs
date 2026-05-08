@@ -9,5 +9,6 @@ namespace AnchorPro.Services.Interfaces
         Task CreateEquipmentAsync(Equipment equipment, string userId);
         Task UpdateEquipmentAsync(Equipment equipment, string userId);
         Task DeleteEquipmentAsync(int id);
+        Task<List<JobCard>> GetEquipmentHistoryAsync(int equipmentId);
     }
 }

@@ -18,6 +18,7 @@ namespace AnchorPro.Services.Interfaces
 
         // Financial Dashboard
         Task<FinancialSnapshot> GetFinancialSnapshotAsync();
+        Task<AgingReportDto> GetAgingReportAsync();
     }
 
     public class FinancialSnapshot
@@ -27,5 +28,14 @@ namespace AnchorPro.Services.Interfaces
         public decimal TotalOutstanding { get; set; }
         public decimal OverdueAmount { get; set; }
         public int UnpaidInvoiceCount { get; set; }
+    }
+
+    public class AgingReportDto
+    {
+        public decimal Current { get; set; } // 0-30 days
+        public decimal Days31To60 { get; set; }
+        public decimal Days61To90 { get; set; }
+        public decimal Days90Plus { get; set; }
+        public decimal TotalOutstanding => Current + Days31To60 + Days61To90 + Days90Plus;
     }
 }

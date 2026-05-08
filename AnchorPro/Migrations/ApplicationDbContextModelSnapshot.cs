@@ -184,7 +184,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Contracts");
+                    b.ToTable("Contracts", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Customer", b =>
@@ -239,7 +239,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Department", b =>
@@ -282,7 +282,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.DowntimeCategory", b =>
@@ -320,7 +320,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DowntimeCategories");
+                    b.ToTable("DowntimeCategories", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.DowntimeEntry", b =>
@@ -373,7 +373,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobTaskId");
 
-                    b.ToTable("DowntimeEntries");
+                    b.ToTable("DowntimeEntries", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Equipment", b =>
@@ -430,7 +430,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("Equipment");
+                    b.ToTable("Equipment", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.InventoryItem", b =>
@@ -487,7 +487,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("InventoryItems");
+                    b.ToTable("InventoryItems", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Invoice", b =>
@@ -568,7 +568,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.ToTable("Invoices");
+                    b.ToTable("Invoices", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.InvoicePayment", b =>
@@ -625,7 +625,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoicePayments");
+                    b.ToTable("InvoicePayments", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobAttachment", b =>
@@ -683,7 +683,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.ToTable("JobAttachments");
+                    b.ToTable("JobAttachments", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobCard", b =>
@@ -790,7 +790,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobTypeId");
 
-                    b.ToTable("JobCards");
+                    b.ToTable("JobCards", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobCardPart", b =>
@@ -836,7 +836,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.ToTable("JobCardParts");
+                    b.ToTable("JobCardParts", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobTask", b =>
@@ -894,7 +894,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.ToTable("JobTasks");
+                    b.ToTable("JobTasks", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobType", b =>
@@ -933,7 +933,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("JobTypes");
+                    b.ToTable("JobTypes", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PaymentTransaction", b =>
@@ -1081,7 +1081,7 @@ namespace AnchorPro.Migrations
                     b.HasIndex("JobCardId")
                         .IsUnique();
 
-                    b.ToTable("PermitsToWork");
+                    b.ToTable("PermitsToWork", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrder", b =>
@@ -1161,7 +1161,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("PurchaseOrders");
+                    b.ToTable("PurchaseOrders", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrderItem", b =>
@@ -1218,7 +1218,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderItems");
+                    b.ToTable("PurchaseOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.ReportDefinition", b =>
@@ -1279,7 +1279,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("ReportDefinitions");
+                    b.ToTable("ReportDefinitions", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.SubscriptionPlan", b =>
@@ -1357,7 +1357,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SubscriptionPlans");
+                    b.ToTable("SubscriptionPlans", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Supplier", b =>
@@ -1416,7 +1416,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.SystemAuditLog", b =>
@@ -1470,7 +1470,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SystemAuditLogs");
+                    b.ToTable("SystemAuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.SystemSetting", b =>
@@ -1506,7 +1506,7 @@ namespace AnchorPro.Migrations
                     b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
-                    b.ToTable("SystemSettings");
+                    b.ToTable("SystemSettings", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Tenant", b =>
@@ -1557,7 +1557,7 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tenants");
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.TenantSubscription", b =>
@@ -1673,7 +1673,7 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("TenantSubscriptions");
+                    b.ToTable("TenantSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

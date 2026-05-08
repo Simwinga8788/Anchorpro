@@ -27,6 +27,14 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult<FinancialSnapshot>> GetSnapshot()
             => Ok(await _financialService.GetFinancialSnapshotAsync());
 
+        /// <summary>
+        /// GET /api/financial/aging-report
+        /// Returns an accounts receivable aging report (0-30, 31-60, 61-90, 90+ days overdue).
+        /// </summary>
+        [HttpGet("aging-report")]
+        public async Task<ActionResult<AgingReportDto>> GetAgingReport()
+            => Ok(await _financialService.GetAgingReportAsync());
+
         // ── INVOICES ──────────────────────────────────────────────────────────
 
         /// <summary>GET /api/financial/invoices — All invoices.</summary>

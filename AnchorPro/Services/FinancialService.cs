@@ -182,5 +182,52 @@ namespace AnchorPro.Services
                 UnpaidInvoiceCount = allInvoices.Count(i => i.Balance > 0)
             };
         }
+        public async Task<AgingReportDto> GetAgingReportAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            var now = DateTime.UtcNow;
+
+            var unpaidInvoices = await context.Invoices
+                .Where(i => i.Balance > 0)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var report = new AgingReportDto();
+
+            foreach (var inv in unpaidInvoices)
+            {
+                if (!inv.DueDate.HasValue) 
+                {
+                    report.Current += inv.Balance;
+                    continue;
+                }
+
+                var daysOverdue = (now - inv.DueDate.Value).TotalDays;
+                
+                if (daysOverdue <= 0)
+                {
+                    // Not overdue yet, but unpaid. Consider it current or 0-30 based on invoice date.
+                    report.Current += inv.Balance;
+                }
+                else if (daysOverdue <= 30)
+                {
+                    report.Current += inv.Balance;
+                }
+                else if (daysOverdue <= 60)
+                {
+                    report.Days31To60 += inv.Balance;
+                }
+                else if (daysOverdue <= 90)
+                {
+                    report.Days61To90 += inv.Balance;
+                }
+                else
+                {
+                    report.Days90Plus += inv.Balance;
+                }
+            }
+
+            return report;
+        }
     }
 }

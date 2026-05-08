@@ -103,5 +103,17 @@ namespace AnchorPro.Services
                 await context.SaveChangesAsync();
             }
         }
+
+        public async Task<List<JobCard>> GetEquipmentHistoryAsync(int equipmentId)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.JobCards
+                .Include(j => j.JobType)
+                .Include(j => j.AssignedTechnician)
+                .Where(j => j.EquipmentId == equipmentId && (j.Status == Data.Enums.JobStatus.Completed || j.Status == Data.Enums.JobStatus.Cancelled))
+                .OrderByDescending(j => j.ActualEndDate ?? j.UpdatedAt ?? j.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }
