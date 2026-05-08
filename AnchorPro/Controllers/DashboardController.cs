@@ -49,5 +49,17 @@ namespace AnchorPro.Controllers
             var departments = await _dashboardService.GetDepartmentalSnapshotAsync();
             return Ok(departments);
         }
+
+        /// <summary>
+        /// GET /api/dashboard/equipment/{id}?days=30
+        /// Returns performance stats for a single piece of equipment.
+        /// Includes: jobs count, downtime hours, cost total, revenue generated.
+        /// </summary>
+        [HttpGet("equipment/{id}")]
+        public async Task<ActionResult> GetEquipmentPerformance(int id, [FromQuery] int days = 30)
+        {
+            var result = await _dashboardService.GetEquipmentPerformanceAsync(id, days);
+            return result == null ? NotFound() : Ok(result);
+        }
     }
 }

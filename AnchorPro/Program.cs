@@ -9,6 +9,15 @@ using AnchorPro.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fix PostgreSQL DateTime offset issues for non-UTC timestamps
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// Allow up to 10MB multipart uploads (for file attachments)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+});
+
 // Add services to the container.
 builder.Services.AddCors(options =>
 {
@@ -105,9 +114,22 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPr
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, AnchorPro.Services.TenantCircuitHandler>();
 
 // API & Swagger
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); // Use default configuration for now
+
+// Session support (used by impersonation to store original PO identity)
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(2);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 var app = builder.Build();
 
@@ -151,6 +173,7 @@ app.UseStatusCodePagesWithReExecute("/not-found");
 
 app.UseStaticFiles();
 app.UseCors("ReactAppPolicy");
+app.UseSession(); // Must be before UseAntiforgery and MapControllers
 app.UseAntiforgery();
 
 app.MapControllers(); // Enable API Controllers

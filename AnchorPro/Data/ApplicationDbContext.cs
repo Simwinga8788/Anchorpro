@@ -22,6 +22,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.JobCardPart> JobCardParts { get; set; }
     public DbSet<Entities.JobAttachment> JobAttachments { get; set; }
     public DbSet<Entities.PermitToWork> PermitsToWork { get; set; }
+    public DbSet<Entities.Alert> Alerts { get; set; }
     public DbSet<Entities.Customer> Customers { get; set; }
     public DbSet<Entities.SystemSetting> SystemSettings { get; set; }
     

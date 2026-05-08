@@ -1,0 +1,2 @@
+# This file keeps the uploads/general directory tracked in git.
+# Actual uploaded files should be added to .gitignore.

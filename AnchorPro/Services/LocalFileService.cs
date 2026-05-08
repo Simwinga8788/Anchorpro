@@ -39,10 +39,39 @@ namespace AnchorPro.Services
             }
             catch (Exception ex)
             {
-                // In production, log this error
                 Console.WriteLine($"Error uploading file: {ex.Message}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// API-side upload: accepts IFormFile from a multipart/form-data HTTP request.
+        /// Stores file in wwwroot/uploads/{subFolder}/ and returns the relative URL.
+        /// </summary>
+        public async Task<string> SaveFormFileAsync(IFormFile file, string subFolder)
+        {
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty.");
+
+            if (file.Length > MaxFileSize)
+                throw new ArgumentException($"File exceeds the maximum allowed size of {MaxFileSize / 1024 / 1024}MB.");
+
+            // Sanitize the original filename to prevent directory traversal
+            var safeOriginalName = Path.GetFileName(file.FileName);
+            var uniqueFileName = $"{Guid.NewGuid()}_{safeOriginalName}";
+
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", subFolder);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fullPath = Path.Combine(uploadsFolder, uniqueFileName);
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Return the relative URL — served by UseStaticFiles()
+            return $"/uploads/{subFolder}/{uniqueFileName}";
         }
 
         public void DeleteFile(string fileUrl)

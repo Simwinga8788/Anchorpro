@@ -47,9 +47,21 @@ namespace AnchorPro.Controllers
         }
 
         [HttpGet("technicians")]
-        public async Task<ActionResult<List<ApplicationUser>>> GetTechnicians()
+        public async Task<ActionResult> GetTechnicians()
         {
-            return Ok(await _refService.GetTechniciansAsync());
+            // Returns a safe DTO — never expose the full ApplicationUser (password hashes, security stamps etc.)
+            var technicians = await _refService.GetTechniciansAsync();
+            var result = technicians.Select(t => new
+            {
+                t.Id,
+                t.FirstName,
+                t.LastName,
+                t.Email,
+                t.EmployeeNumber,
+                t.DepartmentId,
+                t.HourlyRate
+            });
+            return Ok(result);
         }
 
         [HttpPost("jobtypes")]

@@ -35,3 +35,7 @@ build_error_log.txt
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploaded files (local storage) — keep directory structure but not files
+AnchorPro/wwwroot/uploads/**/*
+!AnchorPro/wwwroot/uploads/**/.gitkeep

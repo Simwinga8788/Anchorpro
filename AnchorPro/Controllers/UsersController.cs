@@ -30,6 +30,36 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// GET /api/users/me — Returns the currently authenticated user's profile.
+        /// Safe for all roles — no admin required.
+        /// </summary>
+        [HttpGet("me")]
+        [AllowAnonymous]
+        public async Task<ActionResult> GetMe()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return Unauthorized(new { message = "Not logged in." });
+
+            var user = await _userManager.FindByNameAsync(User.Identity.Name!);
+            if (user == null) return NotFound();
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return Ok(new
+            {
+                user.Id,
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.EmployeeNumber,
+                user.DepartmentId,
+                user.HourlyRate,
+                user.TenantId,
+                user.CreatedAt,
+                Role = roles.FirstOrDefault() ?? "No Role"
+            });
+        }
+
+        /// <summary>
         /// GET /api/users — All users for the current tenant (excludes Platform Owner).
         /// Returns user list with their assigned role.
         /// </summary>

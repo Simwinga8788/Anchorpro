@@ -83,9 +83,54 @@ namespace AnchorPro.Controllers
             await _signInManager.SignOutAsync();
             return Ok();
         }
+
+        /// <summary>
+        /// POST /api/auth/forgot-password
+        /// Generates a password reset token and returns it in the response.
+        /// In production wire this to send an email via IEmailService instead.
+        /// Body: { "email": "user@example.com" }
+        /// </summary>
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+        {
+            // Always return OK to avoid user enumeration attacks
+            var user = await _userManager.FindByEmailAsync(req.Email);
+            if (user == null) return Ok(new { message = "If that email exists, a reset link has been sent." });
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // TODO: Replace with IEmailService.SendPasswordResetAsync(user.Email, token)
+            // For now, return token directly (development only)
+            return Ok(new
+            {
+                message = "Password reset token generated. Use POST /api/auth/reset-password with this token.",
+                email = user.Email,
+                resetToken = token   // REMOVE in production — send via email instead
+            });
+        }
+
+        /// <summary>
+        /// POST /api/auth/reset-password
+        /// Resets a user's password using a token from forgot-password.
+        /// Body: { "email": "user@example.com", "token": "...", "newPassword": "NewPass!123" }
+        /// </summary>
+        [HttpPost("reset-password")]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+        {
+            var user = await _userManager.FindByEmailAsync(req.Email);
+            if (user == null) return BadRequest(new { message = "Invalid request." });
+
+            var result = await _userManager.ResetPasswordAsync(user, req.Token, req.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+            return Ok(new { message = "Password reset successfully. You may now log in." });
+        }
     }
 
     public record LoginRequest(string Email, string Password);
+    public record ForgotPasswordRequest(string Email);
+    public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
     public class UserProfileDto
     {

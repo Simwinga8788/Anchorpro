@@ -9,10 +9,12 @@ namespace AnchorPro.Controllers
     public class FinancialController : ControllerBase
     {
         private readonly IFinancialService _financialService;
+        private readonly IContractService _contractService;
 
-        public FinancialController(IFinancialService financialService)
+        public FinancialController(IFinancialService financialService, IContractService contractService)
         {
             _financialService = financialService;
+            _contractService = contractService;
         }
 
         // ── SNAPSHOT ──────────────────────────────────────────────────────────
@@ -31,6 +33,22 @@ namespace AnchorPro.Controllers
         [HttpGet("invoices")]
         public async Task<ActionResult<List<Invoice>>> GetAllInvoices()
             => Ok(await _financialService.GetAllInvoicesAsync());
+
+        /// <summary>
+        /// GET /api/financial/invoices/overdue — All invoices past their due date with an outstanding balance.
+        /// Useful for chasing payments and dunning workflows.
+        /// </summary>
+        [HttpGet("invoices/overdue")]
+        public async Task<ActionResult<List<Invoice>>> GetOverdueInvoices()
+        {
+            var all = await _financialService.GetAllInvoicesAsync();
+            var now = DateTime.UtcNow;
+            var overdue = all
+                .Where(i => i.Balance > 0 && i.DueDate.HasValue && i.DueDate.Value < now)
+                .OrderBy(i => i.DueDate)
+                .ToList();
+            return Ok(overdue);
+        }
 
         /// <summary>GET /api/financial/invoices/{id}</summary>
         [HttpGet("invoices/{id}")]
@@ -67,6 +85,68 @@ namespace AnchorPro.Controllers
             var userId = User.Identity?.Name ?? "API_User";
             await _financialService.CreateAdHocInvoiceAsync(invoice, userId);
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
+        }
+
+        /// <summary>
+        /// POST /api/financial/invoices/from-contract/{contractId}
+        /// Generates the monthly retainer invoice from an active contract's MonthlyFee.
+        /// Use this at the start of each billing cycle to bill recurring SLA clients.
+        /// </summary>
+        [HttpPost("invoices/from-contract/{contractId}")]
+        public async Task<ActionResult> CreateFromContract(int contractId)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            var contract = await _contractService.GetContractByIdAsync(contractId);
+            if (contract == null) return NotFound(new { message = $"Contract {contractId} not found." });
+            if (contract.Status != ContractStatus.Active)
+                return BadRequest(new { message = $"Contract is not Active (current status: {contract.Status})." });
+            if (contract.MonthlyFee <= 0)
+                return BadRequest(new { message = "Contract has no MonthlyFee configured." });
+
+            var now = DateTime.UtcNow;
+            var invoice = new Invoice
+            {
+                InvoiceNumber = $"INV-C{contractId}-{now:yyyyMM}",
+                ContractId = contractId,
+                CustomerId = contract.CustomerId,
+                InvoiceDate = now,
+                DueDate = now.AddDays(30),
+                Subtotal = contract.MonthlyFee,
+                TaxRate = 16.00m,
+                Notes = $"Monthly retainer for {contract.Title} — {now:MMMM yyyy}",
+                CreatedAt = now,
+                CreatedBy = userId
+            };
+            invoice.TaxAmount = Math.Round(invoice.Subtotal * (invoice.TaxRate / 100), 2);
+            invoice.Total = invoice.Subtotal + invoice.TaxAmount;
+            invoice.Balance = invoice.Total;
+            invoice.PaymentStatus = InvoicePaymentStatus.Unpaid;
+
+            await _financialService.CreateAdHocInvoiceAsync(invoice, userId);
+            return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
+        }
+
+        /// <summary>
+        /// PATCH /api/financial/invoices/{id}/cancel
+        /// Voids an invoice — sets balance to 0 and PaymentStatus to Cancelled.
+        /// Only valid for Unpaid or Partial invoices.
+        /// </summary>
+        [HttpPatch("invoices/{id}/cancel")]
+        public async Task<ActionResult> CancelInvoice(int id)
+        {
+            var userId = User.Identity?.Name ?? "API_User";
+            var invoice = await _financialService.GetInvoiceByIdAsync(id);
+            if (invoice == null) return NotFound();
+            if (invoice.PaymentStatus == InvoicePaymentStatus.Paid)
+                return BadRequest(new { message = "Cannot cancel a fully paid invoice." });
+            if (invoice.PaymentStatus == InvoicePaymentStatus.Cancelled)
+                return BadRequest(new { message = "Invoice is already cancelled." });
+
+            invoice.PaymentStatus = InvoicePaymentStatus.Cancelled;
+            invoice.Balance = 0;
+            invoice.Notes = (invoice.Notes ?? "") + $" [Cancelled by {userId} on {DateTime.UtcNow:yyyy-MM-dd}]";
+            await _financialService.UpdateInvoiceAsync(invoice, userId);
+            return Ok(new { message = $"Invoice {invoice.InvoiceNumber} cancelled." });
         }
 
         /// <summary>PUT /api/financial/invoices/{id}</summary>

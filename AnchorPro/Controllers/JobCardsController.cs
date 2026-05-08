@@ -20,10 +20,23 @@ namespace AnchorPro.Controllers
 
         // ── LIST / GET ────────────────────────────────────────────────────────
 
-        /// <summary>GET /api/jobcards — All job cards for the current tenant.</summary>
+        /// <summary>
+        /// GET /api/jobcards — All job cards for the current tenant.
+        /// Optional filter: ?status=2 (0=Unscheduled,1=Scheduled,2=InProgress,3=Completed,4=Cancelled,5=OnHold)
+        /// Optional filter: ?priority=2 (0=Low,1=Normal,2=High,3=Critical)
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<JobCard>>> GetAll()
-            => Ok(await _jobService.GetAllJobCardsAsync());
+        public async Task<ActionResult<List<JobCard>>> GetAll(
+            [FromQuery] JobStatus? status = null,
+            [FromQuery] int? priority = null)
+        {
+            var all = await _jobService.GetAllJobCardsAsync();
+            if (status.HasValue)
+                all = all.Where(j => j.Status == status.Value).ToList();
+            if (priority.HasValue)
+                all = all.Where(j => (int)j.Priority == priority.Value).ToList();
+            return Ok(all);
+        }
 
         /// <summary>GET /api/jobcards/{id}</summary>
         [HttpGet("{id}")]
@@ -177,6 +190,36 @@ namespace AnchorPro.Controllers
         [HttpGet("{id}/tasks")]
         public async Task<ActionResult<List<JobTask>>> GetTasks(int id)
             => Ok(await _taskService.GetTasksForJobCardAsync(id));
+
+        // ── ATTACHMENTS (READ) ────────────────────────────────────────────────
+
+        /// <summary>
+        /// GET /api/jobcards/{id}/attachments
+        /// Lists all file attachments (photos, PDFs, etc.) linked to this job.
+        /// Use the returned FilePath to build the download URL:
+        ///   GET http://server{filePath}  e.g. /uploads/jobs/12/abc123_photo.jpg
+        /// </summary>
+        [HttpGet("{id}/attachments")]
+        public async Task<ActionResult<List<JobAttachment>>> GetAttachments(int id)
+        {
+            var job = await _jobService.GetJobCardByIdAsync(id);
+            if (job == null) return NotFound();
+            return Ok(job.JobAttachments);
+        }
+
+        // ── PARTS (READ) ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// GET /api/jobcards/{id}/parts
+        /// Lists all inventory parts that have been issued against this job card.
+        /// </summary>
+        [HttpGet("{id}/parts")]
+        public async Task<ActionResult<List<JobCardPart>>> GetParts(int id)
+        {
+            var job = await _jobService.GetJobCardByIdAsync(id);
+            if (job == null) return NotFound();
+            return Ok(job.JobCardParts);
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
