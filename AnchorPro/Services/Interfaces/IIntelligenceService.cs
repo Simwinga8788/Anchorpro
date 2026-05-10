@@ -10,5 +10,7 @@ namespace AnchorPro.Services.Interfaces
         Task<List<AssetPerformanceReport>> GetAssetPerformanceAsync(DateTime startDate, DateTime endDate);
         Task<List<InventoryConsumptionReport>> GetInventoryConsumptionAsync(DateTime startDate, DateTime endDate);
         Task<ExecutiveKpiSummary> GetExecutiveSummaryAsync();
+        Task<List<SubcontractorDependencyReport>> GetSubcontractorDependencyAsync(DateTime startDate, DateTime endDate);
+        Task<List<DowntimeBottleneckReport>> GetDowntimeBottlenecksAsync(DateTime startDate, DateTime endDate);
     }
 }

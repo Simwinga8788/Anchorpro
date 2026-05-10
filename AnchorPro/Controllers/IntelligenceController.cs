@@ -98,5 +98,33 @@ namespace AnchorPro.Controllers
             => Ok(await _intelligenceService.GetInventoryConsumptionAsync(
                 DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
                 DateTime.SpecifyKind(endDate, DateTimeKind.Utc)));
+
+        // ── SUBCONTRACTOR DEPENDENCY ──────────────────────────────────────────
+
+        /// <summary>
+        /// GET /api/intelligence/subcontractor-dependency?startDate=...&endDate=...
+        /// Returns analysis of job costs spent on external subcontractors versus internal resources.
+        /// </summary>
+        [HttpGet("subcontractor-dependency")]
+        public async Task<ActionResult> GetSubcontractorDependency(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate)
+            => Ok(await _intelligenceService.GetSubcontractorDependencyAsync(
+                DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
+                DateTime.SpecifyKind(endDate, DateTimeKind.Utc)));
+
+        // ── DOWNTIME BOTTLENECKS ──────────────────────────────────────────────
+
+        /// <summary>
+        /// GET /api/intelligence/bottlenecks?startDate=...&endDate=...
+        /// Returns aggregated downtime minutes grouped by category (e.g., 'Waiting for Parts') to highlight shop floor bottlenecks.
+        /// </summary>
+        [HttpGet("bottlenecks")]
+        public async Task<ActionResult> GetDowntimeBottlenecks(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate)
+            => Ok(await _intelligenceService.GetDowntimeBottlenecksAsync(
+                DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
+                DateTime.SpecifyKind(endDate, DateTimeKind.Utc)));
     }
 }

@@ -216,5 +216,62 @@ namespace AnchorPro.Services
 
             return summary;
         }
+
+        public async Task<List<SubcontractorDependencyReport>> GetSubcontractorDependencyAsync(DateTime startDate, DateTime endDate)
+        {
+            using var context = _factory.CreateDbContext();
+
+            // Total operational cost during period
+            var totalSpend = await context.JobCards
+                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .SumAsync(j => j.TotalCost);
+
+            var rawData = await context.JobCards
+                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate && j.SubcontractingCost > 0)
+                // Note: Assuming supplier is tracked via PurchaseOrders or a specific Supplier table. If not explicitly linked in JobCard natively, 
+                // we'll group them as "External Subcontractors".
+                .Select(j => new
+                {
+                    j.Id,
+                    j.SubcontractingCost,
+                    // Note: If you want to link specific suppliers, we need PurchaseOrders tied to the JobCard.
+                    // For now we assume a general tracking of "SubcontractingCost"
+                })
+                .ToListAsync();
+
+            var report = new SubcontractorDependencyReport
+            {
+                SupplierName = "All External Subcontractors",
+                TotalSubcontractingSpend = rawData.Sum(x => x.SubcontractingCost),
+                JobCount = rawData.Count,
+                PercentageOfTotalSpend = totalSpend > 0 ? Math.Round((rawData.Sum(x => x.SubcontractingCost) / totalSpend) * 100, 2) : 0
+            };
+
+            return new List<SubcontractorDependencyReport> { report };
+        }
+
+        public async Task<List<DowntimeBottleneckReport>> GetDowntimeBottlenecksAsync(DateTime startDate, DateTime endDate)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            var downtimeEntries = await context.DowntimeEntries
+                .Include(d => d.DowntimeCategory)
+                .Where(d => d.StartTime >= startDate && d.StartTime <= endDate)
+                .ToListAsync();
+
+            var totalDowntimeMinutes = downtimeEntries.Sum(d => d.DurationMinutes);
+
+            return downtimeEntries
+                .GroupBy(d => d.DowntimeCategory != null ? d.DowntimeCategory.Name : "Uncategorized")
+                .Select(g => new DowntimeBottleneckReport
+                {
+                    CategoryName = g.Key,
+                    TotalDowntimeHours = Math.Round(g.Sum(d => d.DurationMinutes) / 60.0, 2),
+                    Occurrences = g.Count(),
+                    PercentageOfTotalDowntime = totalDowntimeMinutes > 0 ? Math.Round((decimal)g.Sum(d => d.DurationMinutes) / (decimal)totalDowntimeMinutes * 100, 2) : 0
+                })
+                .OrderByDescending(r => r.TotalDowntimeHours)
+                .ToList();
+        }
     }
 }

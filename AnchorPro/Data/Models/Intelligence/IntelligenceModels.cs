@@ -63,4 +63,20 @@ namespace AnchorPro.Data.Models.Intelligence
         public int OverdueJobsCount { get; set; }
         public double AvgCompletionTimeHours { get; set; }
     }
+
+    public class SubcontractorDependencyReport
+    {
+        public string SupplierName { get; set; } = "Unknown Subcontractor";
+        public decimal TotalSubcontractingSpend { get; set; }
+        public int JobCount { get; set; }
+        public decimal PercentageOfTotalSpend { get; set; }
+    }
+
+    public class DowntimeBottleneckReport
+    {
+        public string CategoryName { get; set; } = "Uncategorized";
+        public double TotalDowntimeHours { get; set; }
+        public int Occurrences { get; set; }
+        public decimal PercentageOfTotalDowntime { get; set; }
+    }
 }
