@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { reportsApi } from '@/lib/api';
+import { reportingApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 
 export default function ReportsPage() {
   // These analytics endpoints not yet on backend — use scheduled reports list instead
-  const scheduledReports = useApiData(() => reportsApi.getScheduled());
+  const scheduledReports = useApiData(() => reportingApi.getSchedules());
   // Stub out the chart data hooks gracefully
   const jobCompletion   = useApiData(() => Promise.resolve(null));
   const techPerformance = useApiData(() => Promise.resolve(null));
@@ -50,7 +50,7 @@ export default function ReportsPage() {
   const downloadReport = async (type: string, filename: string) => {
     setExporting(type);
     try {
-      const res = await fetch(`/api/reports/download/excel?type=${type}`, {
+      const res = await fetch(reportingApi.previewExcelUrl(type), {
         credentials: 'include',
         headers: { 'Accept': 'application/octet-stream,*/*' },
       });

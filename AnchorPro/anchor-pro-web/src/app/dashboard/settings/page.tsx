@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, Database, Loader2, BookA, ExternalLink, Sliders, Plus, Trash2, Smartphone } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
-import { settingsApi, subscriptionApi, platformApi } from '@/lib/api';
+import { settingsApi, subscriptionsApi, departmentsApi, usersApi, referenceDataApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 export default function SettingsPage() {
@@ -73,27 +73,23 @@ export default function SettingsPage() {
   const [savingDept, setSavingDept] = useState(false);
 
   const loadDepartments = () => {
-    fetch('/api/org/departments', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : []).then(setDepartments).catch(() => setDepartments([]));
+    departmentsApi.getAll().then(setDepartments).catch(() => setDepartments([]));
   };
 
   const handleAddDepartment = async () => {
     if (!newDeptName.trim()) return;
     setSavingDept(true);
     try {
-      const res = await fetch('/api/org/departments', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newDeptName.trim() }),
-      });
-      if (res.ok) { setNewDeptName(''); loadDepartments(); }
-      else { const b = await res.json().catch(() => ({})); alert(b.message || 'Failed to add department.'); }
+      await departmentsApi.create({ name: newDeptName.trim() });
+      setNewDeptName(''); loadDepartments();
+    } catch (e: any) {
+      alert(e.message || 'Failed to add department.');
     } finally { setSavingDept(false); }
   };
 
   const handleDeleteDepartment = async (id: number) => {
     if (!confirm('Delete this department?')) return;
-    await fetch(`/api/org/departments/${id}`, { method: 'DELETE', credentials: 'include' });
+    await departmentsApi.delete(id);
     loadDepartments();
   };
 
@@ -102,12 +98,16 @@ export default function SettingsPage() {
   const [savingDict, setSavingDict] = useState(false);
 
   useEffect(() => {
-    subscriptionApi.getCurrentPlan().then(setCurrentPlan).catch(console.error);
-    subscriptionApi.getPlans().then(setAllPlans).catch(console.error);
-    platformApi.getOrg().then((o: any) => {
-      if (o) {
+    subscriptionsApi.getCurrent().then(setCurrentPlan).catch(console.error);
+    subscriptionsApi.getPlans().then(setAllPlans).catch(console.error);
+    // Load org name from settings as fallback (no dedicated org endpoint)
+    settingsApi.getAll().then((all: any[]) => {
+      const nameEntry = all.find(s => s.key === 'Org.Name');
+      const currEntry = all.find(s => s.key === 'Org.Currency');
+      if (nameEntry || currEntry) {
+        const o = { name: nameEntry?.value || '', currency: currEntry?.value || 'ZMW' };
         setOrg(o);
-        setOrgForm({ name: o.name || '', currency: o.currency || 'ZMW' });
+        setOrgForm(o);
       }
     }).catch(console.error);
     // Load reference data for config tab
@@ -154,7 +154,7 @@ export default function SettingsPage() {
     setSavingDict(true);
     try {
       for (const [key, value] of Object.entries(dictState)) {
-        await settingsApi.set(`Dict.${key}`, value);
+        await settingsApi.upsert(`Dict.${key}`, value);
       }
       await refreshDictionary();
       alert("Nomenclature updated across the application.");
@@ -183,7 +183,7 @@ export default function SettingsPage() {
         ['Op.WorkingDaysEnd',         opSettings.workingDaysEnd],
       ];
       for (const [key, value] of entries) {
-        await settingsApi.set(key, value, '', 'Operational');
+        await settingsApi.upsert(key, value, '', 'Operational');
       }
       setOpSaved(true);
       setTimeout(() => setOpSaved(false), 3000);
@@ -258,14 +258,7 @@ export default function SettingsPage() {
   const handleOpenPortal = async () => {
     setOpeningPortal(true);
     try {
-      const res = await platformApi.createPortal();
-      if (res?.url) {
-        window.open(res.url, '_blank');
-      } else {
-        alert('Stripe billing portal opened. Check your browser for the new tab.');
-      }
-    } catch {
-      alert('Stripe billing portal is not configured yet. Contact support.');
+      alert('Billing portal is not configured yet. Contact support to manage your subscription.');
     } finally {
       setOpeningPortal(false);
     }
@@ -281,17 +274,11 @@ export default function SettingsPage() {
   const handleSaveOrg = async () => {
     setSavingOrg(true);
     try {
-      await platformApi.updateOrg({ ...org, name: orgForm.name, currency: orgForm.currency });
+      await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
+      await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
       alert('Workspace settings saved.');
-    } catch {
-      // /api/org not yet wired on backend — save to settings as fallback
-      try {
-        await settingsApi.set('Org.Name', orgForm.name, 'Organisation name', 'Org');
-        await settingsApi.set('Org.Currency', orgForm.currency, 'Default currency', 'Org');
-        alert('Workspace settings saved.');
-      } catch (e2: any) {
-        alert('Failed to save: ' + e2.message);
-      }
+    } catch (e2: any) {
+      alert('Failed to save: ' + e2.message);
     } finally {
       setSavingOrg(false);
     }
@@ -300,11 +287,9 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await fetch('/api/auth/profile', {
-        method: 'PUT', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName: profileForm.firstName, lastName: profileForm.lastName }),
-      });
+      if (user?.id) {
+        await usersApi.update(user.id, { firstName: profileForm.firstName, lastName: profileForm.lastName });
+      }
       alert('Profile updated.');
     } catch (err: any) {
       alert('Failed to save profile: ' + err.message);
@@ -316,9 +301,9 @@ export default function SettingsPage() {
   const handleUpgrade = async (planId: number) => {
     setUpgrading(true);
     try {
-      const res = await subscriptionApi.upgrade(planId);
-      alert(res.message || "Upgrade requested.");
-      subscriptionApi.getCurrentPlan().then(setCurrentPlan);
+      const res = await subscriptionsApi.upgrade({ planId });
+      alert((res as any)?.message || "Upgrade requested.");
+      subscriptionsApi.getCurrent().then(setCurrentPlan);
       setShowUpgradeModal(false);
     } catch(err: any) {
       alert("Error upgrading: " + err.message);
@@ -904,7 +889,8 @@ export default function SettingsPage() {
                     setSeeding(true);
                     setSeedResult(null);
                     try {
-                      const res = await settingsApi.seedDemoData();
+                      // seed-demo endpoint not in backend — no-op
+                      const res = { message: 'Demo seeding not available in this build.' };
                       setSeedResult(res.message || 'Demo data generated successfully!');
                     } catch (err: any) {
                       setSeedResult('Error: ' + err.message);

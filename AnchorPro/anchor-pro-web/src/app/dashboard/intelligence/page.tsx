@@ -55,23 +55,23 @@ export default function IntelligencePage() {
   const [days, setDays]                   = useState(30);
   const [profitability, setProfitability] = useState<any[]>([]);
   const [utilization, setUtilization]     = useState<any[]>([]);
-  const [trends, setTrends]               = useState<any[]>([]);
-  const [alerts, setAlerts]               = useState<any[]>([]);
+  const [bottlenecks, setBottlenecks]     = useState<any[]>([]);
+  const [revenueByCustomer, setRevenueByCustomer] = useState<any[]>([]);
   const [loading, setLoading]             = useState(true);
 
   const loadData = (period: number) => {
     setLoading(true);
     Promise.all([
       intelligenceApi.getProfitability(period),
-      intelligenceApi.getUtilization(),
-      intelligenceApi.getTrends(),
-      intelligenceApi.getAlerts(),
+      intelligenceApi.getTechnicianUtilization(period),
+      intelligenceApi.getBottlenecks(period),
+      intelligenceApi.getRevenueByCustomer(period),
     ])
-      .then(([prof, util, trnd, alrt]) => {
+      .then(([prof, util, bottl, rev]) => {
         setProfitability(Array.isArray(prof) ? prof : []);
         setUtilization(Array.isArray(util) ? util : []);
-        setTrends(Array.isArray(trnd) ? trnd : []);
-        setAlerts(Array.isArray(alrt) ? alrt : []);
+        setBottlenecks(Array.isArray(bottl) ? bottl : []);
+        setRevenueByCustomer(Array.isArray(rev) ? rev : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -89,7 +89,8 @@ export default function IntelligencePage() {
     ? utilization.reduce((a, t) => a + (t.utilizationPercentage ?? t.utilizationPercent ?? t.utilization ?? 0), 0) / utilization.length
     : 0;
 
-  const criticalAlerts = alerts.filter(a => (a.severity ?? a.level ?? '').toLowerCase() === 'critical').length;
+  // Bottlenecks used in place of alerts
+  const criticalAlerts = bottlenecks.filter(a => (a.severity ?? a.level ?? '').toLowerCase() === 'critical').length;
 
   // Profitability chart shape
   const profitChart = profitability.slice(0, 8).map(p => ({
@@ -106,11 +107,11 @@ export default function IntelligencePage() {
     jobs: t.jobsCompleted ?? t.totalJobs ?? t.jobs ?? 0,
   }));
 
-  // Trends shape
-  const trendChart = trends.slice(0, 30).map(t => ({
-    date:      t.date ?? t.period ?? t.label ?? '—',
-    completed: t.completedCount ?? t.completed ?? t.count ?? 0,
-    created:   t.createdCount ?? t.created ?? 0,
+  // Revenue by customer chart shape
+  const trendChart = revenueByCustomer.slice(0, 10).map(t => ({
+    date:      t.customerName ?? t.name ?? t.label ?? '—',
+    completed: t.totalRevenue ?? t.revenue ?? 0,
+    created:   t.jobCount ?? t.jobs ?? 0,
   }));
 
   return (
@@ -162,7 +163,7 @@ export default function IntelligencePage() {
           },
           {
             label: 'Active Alerts', icon: Bell,
-            value: loading ? null : String(alerts.length),
+            value: loading ? null : String(bottlenecks.length),
             sub: loading ? '…' : criticalAlerts > 0 ? `${criticalAlerts} critical` : 'All clear',
             color: criticalAlerts > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)',
           },
@@ -315,9 +316,9 @@ export default function IntelligencePage() {
             <Bell size={14} style={{ color: criticalAlerts > 0 ? 'var(--accent-rose)' : 'var(--accent-blue)' }} />
             <span className="section-title" style={{ fontSize: 14 }}>Intelligence Alerts</span>
           </div>
-          {alerts.length > 0 && (
+          {bottlenecks.length > 0 && (
             <span className={`badge ${criticalAlerts > 0 ? 'badge-rose' : 'badge-blue'}`}>
-              {alerts.length} active
+              {bottlenecks.length} active
             </span>
           )}
         </div>
@@ -325,14 +326,14 @@ export default function IntelligencePage() {
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Skeleton h={48} /><Skeleton h={48} /><Skeleton h={48} />
           </div>
-        ) : alerts.length === 0 ? (
+        ) : bottlenecks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
             <CheckCircle2 size={28} style={{ marginBottom: 10, color: 'var(--accent-emerald)', opacity: 0.7 }} />
             <div style={{ fontSize: 13 }}>No active alerts — system is healthy</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {alerts.slice(0, 10).map((a: any, i: number) => {
+            {bottlenecks.slice(0, 10).map((a: any, i: number) => {
               const sev = (a.severity ?? a.level ?? 'info').toLowerCase();
               const col = severityColor(sev);
               return (

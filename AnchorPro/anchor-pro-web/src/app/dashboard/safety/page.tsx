@@ -24,7 +24,7 @@ export default function SafetyPage() {
 
   const loadData = () => {
     setLoading(true);
-    Promise.all([safetyApi.getPermits(), safetyApi.getDashboard()])
+    Promise.all([safetyApi.getPermits(), safetyApi.getStats()])
       .then(([p, s]) => { setPermits(p || []); setStats(s); })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -54,14 +54,14 @@ export default function SafetyPage() {
     const notes = prompt('Reason for suspension:');
     if (notes === null) return;
     try {
-      await safetyApi.updatePermitStatus(id, 1, notes); // 1 = Suspended
+      await safetyApi.updatePermitStatus(id, { status: 1, closureNotes: notes }); // 1 = Suspended
       loadData();
     } catch (err: any) { alert(err.message); }
   };
 
   const handleReactivate = async (id: number) => {
     try {
-      await safetyApi.updatePermitStatus(id, 0, 'Reactivated'); // 0 = Active
+      await safetyApi.updatePermitStatus(id, { status: 0, closureNotes: 'Reactivated' }); // 0 = Active
       loadData();
     } catch (err: any) { alert(err.message); }
   };
@@ -70,7 +70,7 @@ export default function SafetyPage() {
     const notes = prompt('Closure notes:');
     if (notes === null) return;
     try {
-      await safetyApi.updatePermitStatus(id, 2, notes); // 2 = Closed
+      await safetyApi.updatePermitStatus(id, { status: 2, closureNotes: notes }); // 2 = Closed
       loadData();
     } catch (err: any) { alert(err.message); }
   };

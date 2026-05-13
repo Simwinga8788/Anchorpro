@@ -35,7 +35,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAssets();
-    fetch('/api/org/departments', { credentials: 'include' })
+    fetch('/api/departments', { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(d => setDepartments(d || []))
       .catch(() => { });

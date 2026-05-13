@@ -71,7 +71,7 @@ export default function InvoicesPage() {
     if (!selectedInvoice) return;
     setSavingPayment(true);
     try {
-      await financialApi.recordPayment(selectedInvoice.id, {
+      await financialApi.recordPayment({invoiceId: selectedInvoice.id,
         amount: parseFloat(paymentAmount),
         paymentMethod,
         paymentDate: new Date().toISOString(),

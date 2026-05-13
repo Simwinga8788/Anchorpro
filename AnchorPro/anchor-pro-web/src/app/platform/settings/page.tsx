@@ -97,7 +97,7 @@ export default function PlatformSettingsPage() {
       for (const [localKey, value] of entries) {
         const apiKey = KEY_MAP[localKey];
         if (apiKey) {
-          await settingsApi.setGlobal(apiKey, String(value));
+          await settingsApi.upsertGlobal(apiKey, String(value));
         }
       }
       setSaved(true);

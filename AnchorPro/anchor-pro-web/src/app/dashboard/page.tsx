@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   Tooltip, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { dashboardApi, intelligenceApi, DashboardStats } from '@/lib/api';
+import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import SlideOver from '@/components/SlideOver';
 import JobCardForm from '@/components/JobCardForm';
@@ -88,11 +88,9 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 export default function DashboardPage() {
   // Only documented endpoints
   const stats      = useApiData(() => dashboardApi.getStats());
-  const activity   = useApiData(() => dashboardApi.getActivity());
   const profitData = useApiData(() => intelligenceApi.getProfitability(30));
-  const utilData   = useApiData(() => intelligenceApi.getUtilization());
-  // /api/dashboard/technicians not yet implemented in backend — fallback to referencedata
-  const techData   = useApiData(() => dashboardApi.getReferenceDataTechnicians());
+  const utilData   = useApiData(() => intelligenceApi.getTechnicianUtilization(30));
+  const techData   = useApiData(() => referenceDataApi.getTechnicians());
 
   const [isNewJobOpen, setIsNewJobOpen] = useState(false);
 
@@ -100,7 +98,6 @@ export default function DashboardPage() {
 
   const refresh = () => {
     stats.refresh();
-    activity.refresh();
     profitData.refresh();
     utilData.refresh();
     techData.refresh();
@@ -113,9 +110,6 @@ export default function DashboardPage() {
   }));
 
   const PIE_COLORS = ['#2383E2', '#0F9D67', '#DFAB01', '#9065B0', '#EB5757', '#3b82f6'];
-
-  // Activity feed from /api/dashboard/activity
-  const activityFeed = (activity.data ?? []).slice(0, 6);
 
   // Profitability trend from /api/intelligence/profitability
   const profitChart = (profitData.data ?? []).slice(0, 8).map((p: any) => ({

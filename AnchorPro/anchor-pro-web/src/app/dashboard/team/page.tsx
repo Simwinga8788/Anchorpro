@@ -2,7 +2,7 @@
 
 import { Users, Plus, CheckCircle2, Clock, MoreHorizontal, Star, Hash, UserX, UserCheck, Trash2, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { dashboardApi, teamApi } from '@/lib/api';
+import { usersApi, departmentsApi } from '@/lib/api';
 
 const ROLES = ['Technician', 'Admin', 'Supervisor', 'Storekeeper', 'Accountant', 'Viewer'];
 
@@ -24,16 +24,15 @@ export default function TeamPage() {
 
   const load = () => {
     setLoading(true);
-    teamApi.getAll()
+    usersApi.getAll()
       .then(data => setTeam(data || []))
-      .catch(() => dashboardApi.getTechnicians().then((d: any[]) => setTeam(d || [])))
+      .catch(() => setTeam([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
-    fetch('/api/org/departments', { credentials: 'include' })
-      .then(r => r.json())
+    departmentsApi.getAll()
       .then(d => setDepartments(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, []);
@@ -51,14 +50,14 @@ export default function TeamPage() {
     if (!form.email) return;
     setSaving(true); setErr('');
     try {
-      await teamApi.invite({
+      await usersApi.create({
         email: form.email,
         firstName: form.firstName || undefined,
         lastName: form.lastName || undefined,
         employeeNumber: form.employeeNumber || undefined,
         hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
         role: form.role,
-        password: form.password || undefined,
+        password: form.password || 'Anchor@1234!',
         departmentId: form.departmentId ? parseInt(form.departmentId) : undefined,
       });
       setShowInvite(false);
@@ -73,18 +72,18 @@ export default function TeamPage() {
 
   async function handleDeactivate(id: string) {
     if (!confirm('Deactivate this member?')) return;
-    try { await teamApi.deactivate(id); load(); } catch (ex) { console.error(ex); }
+    try { await usersApi.deactivate(id); load(); } catch (ex) { console.error(ex); }
     setMenuOpen(null);
   }
 
   async function handleReactivate(id: string) {
-    try { await teamApi.reactivate(id); load(); } catch (ex) { console.error(ex); }
+    try { await usersApi.activate(id); load(); } catch (ex) { console.error(ex); }
     setMenuOpen(null);
   }
 
   async function handleRemove(id: string) {
     if (!confirm('Permanently remove this member? This cannot be undone.')) return;
-    try { await teamApi.remove(id); load(); } catch (ex) { console.error(ex); }
+    try { await usersApi.delete(id); load(); } catch (ex) { console.error(ex); }
     setMenuOpen(null);
   }
 
@@ -103,7 +102,7 @@ export default function TeamPage() {
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault(); setSavingEdit(true); setEditErr('');
     try {
-      await teamApi.update(editMember.id, { firstName: editForm.firstName || undefined, lastName: editForm.lastName || undefined, employeeNumber: editForm.employeeNumber || undefined, hourlyRate: editForm.hourlyRate ? parseFloat(editForm.hourlyRate) : undefined, role: editForm.role, departmentId: editForm.departmentId ? parseInt(editForm.departmentId) : undefined });
+      await usersApi.update(editMember.id, { firstName: editForm.firstName || undefined, lastName: editForm.lastName || undefined, employeeNumber: editForm.employeeNumber || undefined, hourlyRate: editForm.hourlyRate ? parseFloat(editForm.hourlyRate) : undefined, role: editForm.role, departmentId: editForm.departmentId ? parseInt(editForm.departmentId) : undefined });
       setEditMember(null); load();
     } catch (ex: any) { setEditErr(ex?.message || 'Update failed'); }
     finally { setSavingEdit(false); }

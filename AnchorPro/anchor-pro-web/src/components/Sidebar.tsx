@@ -26,30 +26,28 @@ const navSections = [
   {
     label: 'Operations',
     items: [
-      { href: '/dashboard/jobs',      label: 'Job Cards',      icon: ClipboardList },
-      { href: '/dashboard/planning',  label: 'Planning Board', icon: Hash },
-      { href: '/dashboard/assets',    label: 'Asset Registry', icon: Building2 },
+      { href: '/dashboard/jobs',      label: 'Job Cards',       icon: ClipboardList },
+      { href: '/dashboard/assets',    label: 'Asset Registry',  icon: Building2 },
       { href: '/dashboard/downtime',  label: 'Downtime Log',    icon: Pause },
-      { href: '/dashboard/customers', label: 'CRM & Customers',        icon: Users },
+      { href: '/dashboard/customers', label: 'CRM & Customers', icon: Users },
     ]
   },
   {
     label: 'Resources',
     items: [
-      { href: '/dashboard/inventory',      label: 'Inventory & Parts', icon: Package },
-      { href: '/dashboard/procurement',    label: 'Procurement',       icon: Zap },
-      { href: '/dashboard/team',           label: 'Team',              icon: Users },
-      { href: '/dashboard/time-tracking',  label: 'Time Tracking',     icon: Timer },
+      { href: '/dashboard/inventory',   label: 'Inventory & Parts', icon: Package },
+      { href: '/dashboard/procurement', label: 'Procurement',       icon: Zap },
+      { href: '/dashboard/team',        label: 'Team',              icon: Users },
     ]
   },
   {
     label: 'Governance',
     items: [
-      { href: '/dashboard/reports', label: 'Reports',             icon: BarChart3 },
-      { href: '/dashboard/safety',  label: 'Safety & Compliance', icon: ShieldCheck },
-      // { href: '/dashboard/invoices',   label: 'Invoices & Billing', icon: DollarSign }, // hidden for now
-      { href: '/dashboard/contracts',   label: 'Contracts',          icon: FileText },
-      { href: '/dashboard/roles',       label: 'Roles & Permissions',icon: Shield },
+      { href: '/dashboard/reports',   label: 'Reports',             icon: BarChart3 },
+      { href: '/dashboard/safety',    label: 'Safety & Compliance', icon: ShieldCheck },
+      { href: '/dashboard/invoices',  label: 'Invoices & Billing',  icon: DollarSign },
+      { href: '/dashboard/contracts', label: 'Contracts',           icon: FileText },
+      { href: '/dashboard/roles',     label: 'Roles & Permissions', icon: Shield },
     ]
   }
 ];
