@@ -94,7 +94,12 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDashboardService, Anch
 builder.Services.AddScoped<IDemoDataService, DemoDataService>(); // Demo Data Generator
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IInventoryService, AnchorPro.Services.InventoryService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFileService, AnchorPro.Services.LocalFileService>();
-builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.SmtpEmailService>();
+// Use DevEmailService (writes to file) when no SMTP is configured — prevents Railway timeout on login/alerts
+var smtpHost = builder.Configuration["Smtp_Host"] ?? "";
+if (string.IsNullOrWhiteSpace(smtpHost))
+    builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.DevEmailService>();
+else
+    builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.SmtpEmailService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IExportService, AnchorPro.Services.CsvExportService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ISettingsService, AnchorPro.Services.SettingsService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ISubscriptionService, AnchorPro.Services.SubscriptionService>();
