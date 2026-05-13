@@ -52,24 +52,23 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-var isProduction = !builder.Environment.IsDevelopment();
-
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = IdentityConstants.ApplicationScheme;
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
     })
-    .AddIdentityCookies(cookies =>
+    .AddIdentityCookies();
+
+// In production, cookies must be SameSite=None + Secure so they survive
+// the cross-origin Next.js proxy (Vercel → Railway).
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.ConfigureApplicationCookie(o =>
     {
-        if (isProduction)
-        {
-            cookies.ApplicationCookie!.Configure(o =>
-            {
-                o.Cookie.SameSite = SameSiteMode.None;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            });
-        }
+        o.Cookie.SameSite = SameSiteMode.None;
+        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
+}
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
