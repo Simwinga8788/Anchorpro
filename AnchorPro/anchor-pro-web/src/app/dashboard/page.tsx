@@ -118,7 +118,7 @@ export default function DashboardPage() {
     cost: p.cost ?? p.totalCost ?? 0,
   }));
 
-  // Utilization from /api/intelligence/utilization
+  // Utilization from /api/intelligence/technician-utilization
   const utilChart = (utilData.data ?? []).slice(0, 6).map((u: any) => ({
     name: u.technicianName ?? u.name ?? '—',
     pct: u.utilizationPercentage ?? u.utilization ?? u.percentage ?? 0,
@@ -442,7 +442,7 @@ export default function DashboardPage() {
         {/* Right Panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {/* Technician Utilization — from /api/intelligence/utilization */}
+          {/* Technician Utilization — from /api/intelligence/technician-utilization */}
           <div className="card" style={{ padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div className="section-title">Technician Utilization</div>

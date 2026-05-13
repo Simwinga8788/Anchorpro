@@ -86,8 +86,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const fetchAlerts = useCallback(async () => {
     try {
-      // Fetch from documented GET /api/intelligence/alerts endpoint
-      const res = await fetch('/api/intelligence/alerts', {
+      // Fetch from real GET /api/alerts endpoint
+      const res = await fetch('/api/alerts', {
         credentials: 'include',
         cache: 'no-store',
       });
