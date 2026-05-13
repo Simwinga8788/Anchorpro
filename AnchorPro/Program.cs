@@ -12,6 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Fix PostgreSQL DateTime offset issues for non-UTC timestamps
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+// Railway (and most PaaS) inject a PORT env var. Bind to it so traffic routes correctly.
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5165";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Allow up to 10MB multipart uploads (for file attachments)
 builder.WebHost.ConfigureKestrel(options =>
 {
