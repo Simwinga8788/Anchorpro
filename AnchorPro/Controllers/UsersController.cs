@@ -1,8 +1,10 @@
 using AnchorPro.Data;
+using AnchorPro.Data.Enums;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Controllers
 {
@@ -18,15 +20,18 @@ namespace AnchorPro.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ICurrentTenantService _tenantService;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
         public UsersController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            ICurrentTenantService tenantService)
+            ICurrentTenantService tenantService,
+            IDbContextFactory<ApplicationDbContext> dbFactory)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _tenantService = tenantService;
+            _dbFactory = dbFactory;
         }
 
         /// <summary>
@@ -72,10 +77,36 @@ namespace AnchorPro.Controllers
                 .OrderByDescending(u => u.CreatedAt)
                 .ToList();
 
+            // Build job stats per technician from completed jobs
+            using var db = _dbFactory.CreateDbContext();
+            var jobStats = await db.JobCards
+                .Where(j => j.TenantId == tenantId && j.Status == JobStatus.Completed && j.AssignedTechnicianId != null)
+                .Select(j => new
+                {
+                    j.AssignedTechnicianId,
+                    j.ActualStartDate,
+                    j.ActualEndDate
+                })
+                .ToListAsync();
+
+            var statsByUser = jobStats
+                .GroupBy(j => j.AssignedTechnicianId!)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        CompletedJobsCount = g.Count(),
+                        TotalHours = Math.Round(g.Sum(j =>
+                            j.ActualStartDate.HasValue && j.ActualEndDate.HasValue
+                                ? (j.ActualEndDate.Value - j.ActualStartDate.Value).TotalHours
+                                : 0), 1)
+                    });
+
             var result = new List<object>();
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
+                statsByUser.TryGetValue(user.Id, out var stats);
                 result.Add(new
                 {
                     user.Id,
@@ -87,7 +118,10 @@ namespace AnchorPro.Controllers
                     user.HourlyRate,
                     user.TenantId,
                     user.CreatedAt,
-                    Role = roles.FirstOrDefault() ?? "No Role"
+                    user.LockoutEnd,
+                    Role = roles.FirstOrDefault() ?? "No Role",
+                    CompletedJobsCount = stats?.CompletedJobsCount ?? 0,
+                    TotalHours = stats?.TotalHours ?? 0.0
                 });
             }
 

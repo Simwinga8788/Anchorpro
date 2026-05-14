@@ -94,7 +94,7 @@ export default function TeamPage() {
 
   function openEdit(member: any) {
     setEditMember(member);
-    setEditForm({ firstName: member.firstName || '', lastName: member.lastName || '', employeeNumber: member.employeeNumber || '', hourlyRate: member.hourlyRate?.toString() || '', role: member.roles?.[0] || 'Technician', departmentId: member.departmentId?.toString() || '' });
+    setEditForm({ firstName: member.firstName || '', lastName: member.lastName || '', employeeNumber: member.employeeNumber || '', hourlyRate: member.hourlyRate?.toString() || '', role: member.role || 'Technician', departmentId: member.departmentId?.toString() || '' });
     setMenuOpen(null);
     setEditErr('');
   }
@@ -143,8 +143,8 @@ export default function TeamPage() {
       ) : (
         <div ref={menuRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))', gap: 14 }}>
           {team.map(member => {
-            const displayName = member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.userName;
-            const initials = (member.firstName || member.userName || '?')[0]?.toUpperCase();
+            const displayName = member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email;
+            const initials = (member.firstName || member.email || '?')[0]?.toUpperCase();
             const manNumber = member.employeeNumber || 'UNASSIGNED';
             const isLocked = member.lockoutEnd && new Date(member.lockoutEnd) > new Date();
             const isOpen = menuOpen === member.id;
@@ -159,7 +159,7 @@ export default function TeamPage() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 14 }}>{displayName}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{member.roles?.[0] || 'Technician'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{member.role || 'Technician'}</div>
                       </div>
                     </div>
                     <div style={{ position: 'relative' }}>
@@ -204,7 +204,7 @@ export default function TeamPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-                    <span className="badge badge-muted">{member.roles?.[0] || 'Technician'}</span>
+                    <span className="badge badge-muted">{member.role || 'Technician'}</span>
                     {member.departmentId && departments.find((d: any) => d.id === member.departmentId) && (
                       <span className="badge badge-muted" style={{ color: 'var(--accent-blue)' }}>
                         {departments.find((d: any) => d.id === member.departmentId)?.name}
@@ -218,9 +218,9 @@ export default function TeamPage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                     {[
-                      { label: 'Total Jobs', value: member.completedJobsCount ?? '—', icon: <CheckCircle2 size={11} /> },
-                      { label: 'Hours',      value: member.totalHours ?? '—',         icon: <Clock size={11} /> },
-                      { label: 'Rating',     value: member.rating ?? '5.0',           icon: <Star size={11} /> },
+                      { label: 'Jobs Done', value: member.completedJobsCount ?? 0, icon: <CheckCircle2 size={11} /> },
+                      { label: 'Hours',     value: member.totalHours != null ? `${member.totalHours}h` : '0h', icon: <Clock size={11} /> },
+                      { label: 'Hourly',    value: member.hourlyRate ? `K${member.hourlyRate}` : '—', icon: <Star size={11} /> },
                     ].map(s => (
                       <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 8px', textAlign: 'center', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--text-muted)', marginBottom: 4 }}>
