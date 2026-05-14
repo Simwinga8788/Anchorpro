@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Clock, Wrench, CheckCircle2, Play, Check, ChevronRight, AlertTriangle, ShieldCheck, XCircle } from 'lucide-react';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, referenceDataApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 
@@ -25,8 +25,18 @@ export default function MyJobsPage() {
   const [showPermit, setShowPermit] = useState(false);
   const [showDowntime, setShowDowntime] = useState(false);
   const [permitData, setPermitData] = useState({ isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, hazardsIdentified: '' });
-  const [downtimeData, setDowntimeData] = useState({ categoryId: 1, notes: '' });
+  const [downtimeData, setDowntimeData] = useState({ categoryId: '', notes: '' });
+  const [downtimeCategories, setDowntimeCategories] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    referenceDataApi.getDowntimeCategories()
+      .then(cats => {
+        setDowntimeCategories(Array.isArray(cats) ? cats : []);
+        if (cats && cats.length > 0) setDowntimeData(d => ({ ...d, categoryId: cats[0].id.toString() }));
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchJobs = () => {
     if (!user) return;
@@ -96,7 +106,7 @@ export default function MyJobsPage() {
 
       await dashboardApi.reportDowntime({
         jobTaskId,
-        downtimeCategoryId: downtimeData.categoryId,
+        downtimeCategoryId: parseInt(downtimeData.categoryId),
         notes: downtimeData.notes,
         startTime: new Date().toISOString(),
       });
@@ -204,11 +214,11 @@ export default function MyJobsPage() {
         <form onSubmit={reportDowntime} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="form-field">
             <label className="form-label">Breakdown Category</label>
-            <select className="form-select" value={downtimeData.categoryId} onChange={e => setDowntimeData({ ...downtimeData, categoryId: parseInt(e.target.value) })}>
-              <option value="1">Equipment Breakdown</option>
-              <option value="2">Power Failure</option>
-              <option value="3">Supply Chain Delay</option>
-              <option value="4">External Factor</option>
+            <select className="form-select" required value={downtimeData.categoryId} onChange={e => setDowntimeData({ ...downtimeData, categoryId: e.target.value })}>
+              <option value="">Select category...</option>
+              {downtimeCategories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </div>
           <div className="form-field">

@@ -157,10 +157,16 @@ namespace AnchorPro.Services
                     var technician = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == job.AssignedTechnicianId);
                     decimal techRate = technician?.HourlyRate ?? 500.00m; 
 
-                    var startTime = job.ActualStartDate ?? job.ScheduledStartDate ?? job.CreatedAt;
-                    var grossDurationHours = (DateTime.UtcNow - startTime).TotalHours;
-                    
-                    // 1.1 Job Duration (Net Processing Time) calculation for labor cost
+                    // Use ActualStartDate only — ScheduledStartDate is a planning date and must NOT
+                    // be used as the labor clock start (it could be days in the past).
+                    // If somehow ActualStartDate is missing, cap labor at a minimum of 0.25h.
+                    double grossDurationHours = 0.25;
+                    if (job.ActualStartDate.HasValue)
+                    {
+                        grossDurationHours = Math.Max(0.25, (DateTime.UtcNow - job.ActualStartDate.Value).TotalHours);
+                    }
+
+                    // 1.1 Job Duration (Net Processing Time) — subtract logged downtime
                     var totalDowntimeMins = job.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes);
                     var netDurationHours = Math.Max(0.25, grossDurationHours - (totalDowntimeMins / 60.0));
 

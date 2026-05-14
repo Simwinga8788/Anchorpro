@@ -1,10 +1,12 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/procurement")]
+    [Authorize]
     [ApiController]
     public class ProcurementController : ControllerBase
     {
@@ -41,6 +43,7 @@ namespace AnchorPro.Controllers
         /// Service calculates LineTotals and TotalAmount automatically.
         /// </summary>
         [HttpPost("orders")]
+        [Authorize(Roles = "Admin,Purchasing,Storeman")]
         public async Task<ActionResult<PurchaseOrder>> CreatePurchaseOrder([FromBody] CreatePurchaseOrderRequest req)
         {
             var userId = User.Identity?.Name ?? "API_User";
@@ -66,6 +69,7 @@ namespace AnchorPro.Controllers
         /// For InventoryReplenishment POs this automatically adds stock to inventory.
         /// </summary>
         [HttpPost("orders/{id}/receive")]
+        [Authorize(Roles = "Admin,Purchasing,Storeman")]
         public async Task<ActionResult> ReceiveItems(int id, [FromBody] List<ReceiveItemRequest> items)
         {
             var userId = User.Identity?.Name ?? "API_User";
@@ -110,6 +114,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>DELETE /api/procurement/suppliers/{id}</summary>
         [HttpDelete("suppliers/{id}")]
+        [Authorize(Roles = "Admin,Purchasing")]
         public async Task<ActionResult> DeleteSupplier(int id)
         {
             await _procurementService.DeleteSupplierAsync(id);

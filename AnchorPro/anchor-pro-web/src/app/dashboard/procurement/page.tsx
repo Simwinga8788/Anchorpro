@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X, PackageCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { dashboardApi, procurementApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
@@ -36,6 +36,12 @@ export default function ProcurementPage() {
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [supplierForm, setSupplierForm] = useState(SUPPLIER_BLANK);
   const [savingSupplier, setSavingSupplier] = useState(false);
+
+  // Receive PO state
+  const [receivePO, setReceivePO] = useState<any | null>(null);
+  const [receiveItems, setReceiveItems] = useState<{ id: number; description: string; quantityOrdered: number; quantityReceived: number }[]>([]);
+  const [receiving, setReceiving] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   const fetchData = () => {
     setLoading(true);
@@ -99,6 +105,35 @@ export default function ProcurementPage() {
     fetchData();
   };
 
+  const openReceive = (order: any) => {
+    const items = (order.items || []).map((item: any) => ({
+      id: item.id,
+      description: item.description,
+      quantityOrdered: item.quantityOrdered,
+      quantityReceived: item.quantityOrdered, // default to full receipt
+    }));
+    setReceiveItems(items);
+    setReceivePO(order);
+  };
+
+  const handleReceive = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receivePO) return;
+    setReceiving(true);
+    try {
+      await procurementApi.receiveItems(
+        receivePO.id,
+        receiveItems.map(i => ({ itemId: i.id, quantity: i.quantityReceived }))
+      );
+      setReceivePO(null);
+      fetchData();
+    } catch (err: any) {
+      alert('Failed to receive PO: ' + (err.message || 'Unknown error'));
+    } finally {
+      setReceiving(false);
+    }
+  };
+
   const filtered = orders.filter(o =>
     o.poNumber?.toLowerCase().includes(search.toLowerCase()) ||
     o.supplier?.name?.toLowerCase().includes(search.toLowerCase())
@@ -110,6 +145,62 @@ export default function ProcurementPage() {
 
   return (
     <div>
+      {/* ── Receive PO Modal ─────────────────────────────────────────────────── */}
+      {receivePO && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setReceivePO(null)}>
+          <div className="card-elevated" style={{ width: 520, padding: 28, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Receive Goods — {receivePO.poNumber}</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{receivePO.supplier?.name} · {typeConfig[receivePO.poType]?.label}</p>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setReceivePO(null)}><X size={16}/></button>
+            </div>
+
+            {receivePO.jobCardId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 6, background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue)', marginBottom: 16, marginTop: 10 }}>
+                <PackageCheck size={13} style={{ color: 'var(--accent-blue)' }} />
+                <span style={{ fontSize: 12, color: 'var(--accent-blue)' }}>
+                  Cost will auto-sync to Job #{receivePO.jobCardId} ({typeConfig[receivePO.poType]?.label})
+                </span>
+              </div>
+            )}
+
+            <form onSubmit={handleReceive} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Confirm quantities received:</div>
+              {receiveItems.map((item, idx) => (
+                <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px', gap: 10, alignItems: 'center', padding: '10px 12px', border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--bg-elevated)' }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{item.description}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>Ordered: {item.quantityOrdered}</div>
+                  <div>
+                    <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Qty Received</label>
+                    <input
+                      type="number" min={0} max={item.quantityOrdered} className="form-input"
+                      style={{ textAlign: 'center', padding: '4px 8px' }}
+                      value={item.quantityReceived}
+                      onChange={e => {
+                        const copy = [...receiveItems];
+                        copy[idx].quantityReceived = Math.min(item.quantityOrdered, Math.max(0, parseInt(e.target.value) || 0));
+                        setReceiveItems(copy);
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {receiveItems.length === 0 && (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No line items on this PO.</p>
+              )}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setReceivePO(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={receiving || receiveItems.length === 0} style={{ background: 'var(--accent-emerald)', border: 'none' }}>
+                  <PackageCheck size={13} /> {receiving ? 'Processing...' : 'Confirm Receipt'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <SlideOver open={isSlideOpen} onClose={() => setIsSlideOpen(false)} title="Raise Purchase Order" subtitle="Create a new PO for external suppliers.">
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-field">
@@ -264,22 +355,59 @@ export default function ProcurementPage() {
             ) : filtered.map(order => {
               const typeCfg = typeConfig[order.poType] || { label: 'Unknown', badge: 'badge-muted' };
               const statCfg = statusConfig[order.status] || { label: 'Unknown', badge: 'badge-muted' };
-              
+              const canReceive = order.status === 0 || order.status === 1 || order.status === 2; // Draft, Submitted, Partial
+              const isExpanded = expandedOrderId === order.id;
+
               return (
-                <tr key={order.id} style={{ cursor: 'pointer' }}>
-                  <td style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: 13 }}>{order.poNumber}</td>
-                  <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.supplier?.name || 'Unknown Supplier'}</td>
-                  <td><span className={`badge ${typeCfg.badge}`}>{typeCfg.label}</span></td>
-                  <td style={{ color: order.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontSize: 13, fontWeight: order.jobCardId ? 600 : 400 }}>
-                    {order.jobCardId ? `Job #${order.jobCardId}` : '—'}
-                  </td>
-                  <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(order.orderDate).toLocaleDateString()}</td>
-                  <td><span className={`badge ${statCfg.badge}`}>{statCfg.label}</span></td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    K {order.totalAmount?.toLocaleString() || '0'}
-                  </td>
-                  <td><button className="btn btn-ghost btn-sm" style={{ padding: 4 }}><MoreHorizontal size={14}/></button></td>
-                </tr>
+                <>
+                  <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}>
+                    <td style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: 13 }}>{order.poNumber}</td>
+                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.supplier?.name || 'Unknown Supplier'}</td>
+                    <td><span className={`badge ${typeCfg.badge}`}>{typeCfg.label}</span></td>
+                    <td style={{ color: order.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontSize: 13, fontWeight: order.jobCardId ? 600 : 400 }}>
+                      {order.jobCardId ? `Job #${order.jobCardId}` : '—'}
+                    </td>
+                    <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(order.orderDate).toLocaleDateString()}</td>
+                    <td><span className={`badge ${statCfg.badge}`}>{statCfg.label}</span></td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      K {order.totalAmount?.toLocaleString() || '0'}
+                    </td>
+                    <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {canReceive && (
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 5 }}
+                            onClick={() => openReceive(order)}
+                            title="Receive goods against this PO"
+                          >
+                            <PackageCheck size={12} /> Receive
+                          </button>
+                        )}
+                        <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}>
+                          {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (order.items || []).length > 0 && (
+                    <tr key={`${order.id}-items`}>
+                      <td colSpan={8} style={{ padding: '0 16px 14px 16px', background: 'var(--bg-app)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: 8 }}>LINE ITEMS</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {order.items.map((item: any) => (
+                            <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
+                              <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
+                              <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
+                              <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.unitCost?.toLocaleString()}/u</span>
+                              <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.unitCost * item.quantityOrdered)?.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>

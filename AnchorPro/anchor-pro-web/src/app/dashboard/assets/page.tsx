@@ -1,8 +1,8 @@
 'use client';
 
-import { Search, Plus, Wrench, AlertTriangle, TrendingUp, Edit2, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Wrench, AlertTriangle, TrendingUp, Edit2, CheckCircle2, DollarSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dashboardApi, equipmentApi, departmentsApi } from '@/lib/api';
+import { dashboardApi, equipmentApi, departmentsApi, intelligenceApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 // Equipment entity has no status field — all assets default to Operational
@@ -21,6 +21,7 @@ export default function AssetsPage() {
   const [formData, setFormData] = useState(BLANK);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [departments, setDepartments] = useState<any[]>([]);
+  const [assetCosts, setAssetCosts] = useState<Record<number, number>>({});
 
   const fetchAssets = () => {
     setLoading(true);
@@ -34,6 +35,14 @@ export default function AssetsPage() {
     fetchAssets();
     departmentsApi.getAll()
       .then(d => setDepartments(d || []))
+      .catch(() => {});
+    // Load lifetime maintenance costs per asset (all-time: 3 years back)
+    intelligenceApi.getAssetPerformance(365 * 3)
+      .then((perf: any[]) => {
+        const map: Record<number, number> = {};
+        (perf || []).forEach((p: any) => { map[p.equipmentId] = p.totalMaintenanceCost || 0; });
+        setAssetCosts(map);
+      })
       .catch(() => {});
   }, []);
 
@@ -121,9 +130,9 @@ export default function AssetsPage() {
 
       <div className="stats-grid-3" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Total Assets',    value: assets.length,                                            color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
-          { label: 'Departments',     value: [...new Set(assets.map(a => a.departmentId).filter(Boolean))].length, color: 'var(--accent-blue)',    icon: <Wrench size={16} /> },
-          { label: 'Unassigned Dept', value: assets.filter(a => !a.departmentId).length,               color: 'var(--accent-amber)',   icon: <AlertTriangle size={16} /> },
+          { label: 'Total Assets',        value: assets.length,                                            color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
+          { label: 'Total Maintenance $', value: `K ${Object.values(assetCosts).reduce((a,b)=>a+b,0).toLocaleString(undefined,{maximumFractionDigits:0})}`, color: 'var(--accent-blue)', icon: <DollarSign size={16} /> },
+          { label: 'Highest Cost Asset',  value: (() => { const top = Object.entries(assetCosts).sort((a,b)=>b[1]-a[1])[0]; if (!top) return '—'; const a = assets.find(x=>x.id===parseInt(top[0])); return a ? a.name.split(' ').slice(0,2).join(' ') : '—'; })(), color: 'var(--accent-rose)', icon: <AlertTriangle size={16} /> },
         ].map(s => (
           <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
             <div className="stat-icon" style={{ background: s.color + '20', marginBottom: 0 }}><span style={{ color: s.color }}>{s.icon}</span></div>
@@ -153,20 +162,27 @@ export default function AssetsPage() {
 
         <table className="data-table">
           <thead>
-            <tr><th>Asset</th><th>Model / Serial</th><th>Manufacturer</th><th>Department</th><th>Status</th><th></th></tr>
+            <tr><th>Asset</th><th>Model / Serial</th><th>Manufacturer</th><th>Department</th><th>Status</th><th style={{ textAlign: 'right' }}>Lifetime Cost</th><th></th></tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0' }}>Loading assets...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0' }}>Loading assets...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No assets found</td></tr>
-            ) : filtered.map(asset => {
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No assets found</td></tr>
+            ) : filtered.sort((a,b) => (assetCosts[b.id]||0) - (assetCosts[a.id]||0)).map(asset => {
               const sc = getAssetStatus(asset);
+              const lifetimeCost = assetCosts[asset.id] || 0;
+              const isTopCost = lifetimeCost > 0 && lifetimeCost === Math.max(...Object.values(assetCosts));
               return (
                 <tr key={asset.id} style={{ cursor: 'pointer' }} onClick={() => openEdit(asset)}>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ID: {asset.id}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isTopCost && <span title="Highest maintenance cost asset" style={{ fontSize: 10, background: 'var(--accent-rose-dim)', color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>⚠ HIGH</span>}
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ID: {asset.id}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 13 }}>{asset.modelNumber || '—'}</div>
@@ -175,6 +191,9 @@ export default function AssetsPage() {
                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{asset.manufacturer || '—'}</td>
                   <td><span className="badge badge-muted">{departments.find(d => d.id === asset.departmentId)?.name || (asset.departmentId ? `Dept #${asset.departmentId}` : '—')}</span></td>
                   <td><span className={`badge ${sc.badge}`}><span className={`status-dot ${sc.dot}`} />{sc.label}</span></td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: lifetimeCost > 0 ? (isTopCost ? 'var(--accent-rose)' : 'var(--text-primary)') : 'var(--text-muted)', fontSize: 13 }}>
+                    {lifetimeCost > 0 ? `K ${lifetimeCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                  </td>
                   <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => openEdit(asset)}><Edit2 size={13} /></button>
                   </td>

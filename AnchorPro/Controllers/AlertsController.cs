@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnchorPro.Controllers
 {
     [Route("api/alerts")]
+    [Authorize]
     [ApiController]
     public class AlertsController : ControllerBase
     {

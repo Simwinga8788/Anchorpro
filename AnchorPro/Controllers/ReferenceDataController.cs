@@ -1,11 +1,13 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Data;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class ReferenceDataController : ControllerBase
     {

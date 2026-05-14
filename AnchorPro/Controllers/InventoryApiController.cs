@@ -1,10 +1,12 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/inventory")]
+    [Authorize]
     [ApiController]
     public class InventoryApiController : ControllerBase
     {
@@ -30,6 +32,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>POST /api/inventory — Create a new inventory item.</summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Storeman,Purchasing")]
         public async Task<ActionResult> Create([FromBody] InventoryItem item)
         {
             var userId = User.Identity?.Name ?? "API_User";
@@ -39,6 +42,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>PUT /api/inventory/{id} — Update item details (not stock levels).</summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing")]
         public async Task<ActionResult> Update(int id, [FromBody] InventoryItem item)
         {
             if (id != item.Id) return BadRequest("ID mismatch.");
@@ -49,6 +53,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>DELETE /api/inventory/{id}</summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Delete(int id)
         {
             await _inventoryService.DeleteItemAsync(id);
@@ -61,6 +66,7 @@ namespace AnchorPro.Controllers
         /// Use positive values to add stock, negative to deduct.
         /// </summary>
         [HttpPost("{id}/adjust")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing")]
         public async Task<ActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest req)
         {
             var userId = User.Identity?.Name ?? "API_User";

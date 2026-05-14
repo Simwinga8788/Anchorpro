@@ -1,12 +1,14 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Data.Enums;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]  // All job card endpoints require authentication
     public class JobCardsController : ControllerBase
     {
         private readonly IJobCardService _jobService;
@@ -63,6 +65,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>POST /api/jobcards — Create a new job card.</summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Supervisor,Planner")]
         public async Task<ActionResult> Create([FromBody] JobCard jobCard)
         {
             var userId = User.Identity?.Name ?? "API_User";
@@ -72,6 +75,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>PUT /api/jobcards/{id} — Update a job card's basic fields.</summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Supervisor,Planner")]
         public async Task<ActionResult> Update(int id, [FromBody] JobCard jobCard)
         {
             if (id != jobCard.Id) return BadRequest("ID mismatch.");
@@ -82,6 +86,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>DELETE /api/jobcards/{id}</summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Delete(int id)
         {
             await _jobService.DeleteJobCardAsync(id);

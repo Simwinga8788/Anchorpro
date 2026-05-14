@@ -1,5 +1,6 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
@@ -9,6 +10,7 @@ namespace AnchorPro.Controllers
     /// (Replaces the old split between EquipmentApiController and EquipmentController)
     /// </summary>
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class EquipmentController : ControllerBase
     {

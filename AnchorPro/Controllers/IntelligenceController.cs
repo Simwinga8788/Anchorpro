@@ -1,4 +1,5 @@
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
@@ -8,6 +9,7 @@ namespace AnchorPro.Controllers
     /// All date ranges are UTC. Format: 2025-01-01T00:00:00Z
     /// </summary>
     [Route("api/intelligence")]
+    [Authorize]
     [ApiController]
     public class IntelligenceController : ControllerBase
     {

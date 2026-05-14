@@ -1,10 +1,12 @@
 using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/financial")]
+    [Authorize]
     [ApiController]
     public class FinancialController : ControllerBase
     {

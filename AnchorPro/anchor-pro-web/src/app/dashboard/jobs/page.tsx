@@ -127,6 +127,60 @@ function JobDetailPanel({ job, technicians, onClose, onSaved }: {
         </div>
       </div>
 
+      {/* Cost Trinity — only show for completed jobs */}
+      {job.status === 3 && job.totalCost > 0 && (
+        <div style={{ padding: 16, background: 'var(--bg-app)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+            Cost Trinity — Financial Breakdown
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { label: 'Internal Labor',    value: job.laborCost,           color: 'var(--accent-blue)',    desc: 'Technician hours × rate' },
+              { label: 'Stock Parts',       value: job.partsCost,           color: 'var(--accent-amber)',   desc: 'Inventory items used' },
+              { label: 'Direct Purchase',   value: job.directPurchaseCost,  color: 'var(--accent-violet)',  desc: 'Non-stock items bought' },
+              { label: 'Subcontracting',    value: job.subcontractingCost,  color: 'var(--accent-rose)',    desc: 'External contractors' },
+            ].map(row => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{row.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{row.desc}</div>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: row.value > 0 ? row.color : 'var(--text-muted)' }}>
+                  K {(row.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 4, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Total Cost</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              {job.invoiceAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Invoice Amount</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>K {(job.invoiceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: 8, marginTop: 4, background: job.profit >= 0 ? 'var(--accent-emerald-dim)' : 'var(--accent-rose-dim)', border: `1px solid ${job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'}` }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                  {job.profit >= 0 ? 'Net Profit' : 'Net Loss'}
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                    K {Math.abs(job.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  {job.profitMarginPercent !== undefined && (
+                    <div style={{ fontSize: 11, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', opacity: 0.8 }}>
+                      Margin: {job.profitMarginPercent?.toFixed(1)}%
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status change */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>

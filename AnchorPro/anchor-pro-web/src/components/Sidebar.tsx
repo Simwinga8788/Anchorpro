@@ -26,10 +26,12 @@ const navSections = [
   {
     label: 'Operations',
     items: [
-      { href: '/dashboard/jobs',      label: 'Job Cards',       icon: ClipboardList },
-      { href: '/dashboard/assets',    label: 'Asset Registry',  icon: Building2 },
-      { href: '/dashboard/downtime',  label: 'Downtime Log',    icon: Pause },
-      { href: '/dashboard/customers', label: 'CRM & Customers', icon: Users },
+      { href: '/dashboard/jobs',          label: 'Job Cards',       icon: ClipboardList },
+      { href: '/dashboard/planning',      label: 'Planning Board',  icon: Activity },
+      { href: '/dashboard/time-tracking', label: 'Time Tracking',   icon: Timer },
+      { href: '/dashboard/assets',        label: 'Asset Registry',  icon: Building2 },
+      { href: '/dashboard/downtime',      label: 'Downtime Log',    icon: Pause },
+      { href: '/dashboard/customers',     label: 'CRM & Customers', icon: Users },
     ]
   },
   {

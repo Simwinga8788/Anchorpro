@@ -1,10 +1,12 @@
 using AnchorPro.Data.Models;
 using AnchorPro.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnchorPro.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class DashboardController : ControllerBase
     {

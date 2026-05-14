@@ -57,6 +57,7 @@ export default function IntelligencePage() {
   const [utilization, setUtilization]     = useState<any[]>([]);
   const [bottlenecks, setBottlenecks]     = useState<any[]>([]);
   const [revenueByCustomer, setRevenueByCustomer] = useState<any[]>([]);
+  const [assetPerformance, setAssetPerformance]   = useState<any[]>([]);
   const [loading, setLoading]             = useState(true);
 
   const loadData = (period: number) => {
@@ -66,12 +67,14 @@ export default function IntelligencePage() {
       intelligenceApi.getTechnicianUtilization(period),
       intelligenceApi.getBottlenecks(period),
       intelligenceApi.getRevenueByCustomer(period),
+      intelligenceApi.getAssetPerformance(period),
     ])
-      .then(([prof, util, bottl, rev]) => {
+      .then(([prof, util, bottl, rev, assetPerf]) => {
         setProfitability(Array.isArray(prof) ? prof : []);
         setUtilization(Array.isArray(util) ? util : []);
         setBottlenecks(Array.isArray(bottl) ? bottl : []);
         setRevenueByCustomer(Array.isArray(rev) ? rev : []);
+        setAssetPerformance(Array.isArray(assetPerf) ? assetPerf.sort((a: any, b: any) => (b.totalMaintenanceCost || 0) - (a.totalMaintenanceCost || 0)) : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -373,6 +376,55 @@ export default function IntelligencePage() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* Asset Cost Ranking — "Money Pit" Identifier */}
+      <div className="card-elevated" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Asset Maintenance Cost Ranking</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Identifies "money pit" assets — sorted by total maintenance spend</div>
+          </div>
+        </div>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[1,2,3].map(i => <Skeleton key={i} h={48} />)}
+          </div>
+        ) : assetPerformance.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>No completed jobs in this period.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(() => {
+              const maxCost = assetPerformance[0]?.totalMaintenanceCost || 1;
+              return assetPerformance.slice(0, 10).map((a: any, i: number) => {
+                const pct = Math.round(((a.totalMaintenanceCost || 0) / maxCost) * 100);
+                const isTop = i === 0;
+                return (
+                  <div key={a.equipmentId} style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--bg-elevated)', border: `1px solid ${isTop ? 'var(--accent-rose)' : 'var(--border-subtle)'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', minWidth: 20 }}>#{i + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: isTop ? 'var(--accent-rose)' : 'var(--text-primary)' }}>
+                          {a.equipmentName}
+                        </span>
+                        {isTop && <span style={{ fontSize: 10, background: 'var(--accent-rose-dim)', color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', borderRadius: 4, padding: '1px 6px', fontWeight: 700 }}>⚠ HIGHEST</span>}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: isTop ? 'var(--accent-rose)' : 'var(--text-primary)' }}>
+                          K {(a.totalMaintenanceCost || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {a.failureCount ?? 0} failures · MTTR {(a.mTTR ?? a.mttr ?? 0).toFixed(1)}h
+                        </div>
+                      </div>
+                    </div>
+                    <HealthBar value={pct} color={isTop ? '#f43f5e' : '#3b82f6'} />
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>
