@@ -205,6 +205,9 @@ app.UseCors("ReactAppPolicy");
 app.UseSession(); // Must be before UseAntiforgery and MapControllers
 app.UseAntiforgery();
 
+// Public health check — no auth required, used by Railway TCP/HTTP probe
+app.MapGet("/ping", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
 app.MapControllers(); // Enable API Controllers
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
