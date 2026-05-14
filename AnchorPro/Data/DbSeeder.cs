@@ -447,16 +447,16 @@ namespace AnchorPro.Data
                 await context.SaveChangesAsync();
             }
 
-            // Seed Downtime Categories (Global)
-            if (!await context.DowntimeCategories.AnyAsync())
+            // Seed Downtime Categories — scoped to this tenant
+            if (!await context.DowntimeCategories.AnyAsync(c => c.TenantId == tenantId))
             {
                 var categories = new[]
                 {
-                    new DowntimeCategory { Name = "Waiting for Parts", IsPaidTime = true, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new DowntimeCategory { Name = "Waiting for Instructions", IsPaidTime = true, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new DowntimeCategory { Name = "Break Time", IsPaidTime = true, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new DowntimeCategory { Name = "Equipment Breakdown", IsPaidTime = false, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new DowntimeCategory { Name = "Safety Issue", IsPaidTime = true, CreatedAt = DateTime.UtcNow, CreatedBy = "System" }
+                    new DowntimeCategory { Name = "Waiting for Parts", IsPaidTime = true, TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new DowntimeCategory { Name = "Waiting for Instructions", IsPaidTime = true, TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new DowntimeCategory { Name = "Break Time", IsPaidTime = true, TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new DowntimeCategory { Name = "Equipment Breakdown", IsPaidTime = false, TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new DowntimeCategory { Name = "Safety Issue", IsPaidTime = true, TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" }
                 };
 
                 context.DowntimeCategories.AddRange(categories);

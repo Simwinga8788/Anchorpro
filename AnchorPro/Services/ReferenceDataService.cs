@@ -31,7 +31,7 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var tenantId = _tenantService.TenantId;
             return await context.DowntimeCategories
-                .Where(d => d.TenantId == tenantId)
+                .Where(d => d.TenantId == tenantId || d.TenantId == null)
                 .AsNoTracking().ToListAsync();
         }
 
