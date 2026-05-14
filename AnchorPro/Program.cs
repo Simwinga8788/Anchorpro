@@ -175,6 +175,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Return JSON error details in production so the frontend gets a readable message
+    app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
+    {
+        ctx.Response.StatusCode = 500;
+        ctx.Response.ContentType = "application/json";
+        var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var msg = ex?.Error?.Message ?? "An unexpected error occurred.";
+        await ctx.Response.WriteAsJsonAsync(new { message = msg });
+    }));
+}
 
 app.UseHsts();
 app.UseStaticFiles();
