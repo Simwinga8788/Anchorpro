@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 
@@ -12,11 +13,13 @@ namespace AnchorPro.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ApplicationDbContext _db;
 
-        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ApplicationDbContext db)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _db = db;
         }
 
         /// <summary>
@@ -126,11 +129,63 @@ namespace AnchorPro.Controllers
 
             return Ok(new { message = "Password reset successfully. You may now log in." });
         }
+
+        /// <summary>
+        /// POST /api/auth/register
+        /// Creates a new tenant + admin user. Used by the self-service registration page
+        /// and by platform owners creating new tenants.
+        /// </summary>
+        [HttpPost("register")]
+        public async Task<ActionResult> Register([FromBody] RegisterRequest req)
+        {
+            // Check email not already taken
+            if (await _userManager.FindByEmailAsync(req.Email) != null)
+                return Conflict(new { message = "An account with that email already exists." });
+
+            // Create tenant
+            _db.IgnoreTenantFilter = true;
+            var tenant = new Tenant
+            {
+                Name         = req.CompanyName,
+                ContactEmail = req.Email,
+                IsActive     = true,
+            };
+            _db.Set<Tenant>().Add(tenant);
+            await _db.SaveChangesAsync();
+
+            // Create admin user linked to the tenant
+            var user = new ApplicationUser
+            {
+                UserName          = req.Email,
+                Email             = req.Email,
+                FirstName         = req.FirstName,
+                LastName          = req.LastName,
+                TenantId          = tenant.Id,
+                EmailConfirmed    = true, // skip email confirmation for self-service
+            };
+
+            var createResult = await _userManager.CreateAsync(user, req.Password);
+            if (!createResult.Succeeded)
+            {
+                _db.Set<Tenant>().Remove(tenant);
+                await _db.SaveChangesAsync();
+                return BadRequest(new { errors = createResult.Errors.Select(e => e.Description) });
+            }
+
+            await _userManager.AddToRoleAsync(user, "Admin");
+
+            // Update tenant owner
+            tenant.OwnerId = user.Id;
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Account created successfully.", tenantId = tenant.Id });
+        }
     }
 
     public record LoginRequest(string Email, string Password);
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+    public record RegisterRequest(string CompanyName, string Email, string Password, string FirstName, string LastName, string? Industry = null, string? Size = null, string? Timezone = null, int? PlanId = null);
 
     public class UserProfileDto
     {
