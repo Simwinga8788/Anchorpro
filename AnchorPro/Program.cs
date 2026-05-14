@@ -1,9 +1,6 @@
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-using AnchorPro.Components;
-using AnchorPro.Components.Account;
 using AnchorPro.Data;
 using AnchorPro.Services;
 
@@ -22,7 +19,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
 });
 
-// Add services to the container.
+// CORS — allow Next.js frontend (Vercel) and local dev
 var allowedOrigins = new List<string>
 {
     "http://localhost:5173",
@@ -43,14 +40,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
-
-builder.Services.AddHttpContextAccessor(); // For cookie-based impersonation
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<IdentityRedirectManager>();
-builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAuthentication(options =>
     {
@@ -78,32 +68,26 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
-        // Relax password requirements for development convenience
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireUppercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequiredLength = 6;
     })
-    .AddRoles<IdentityRole>() // Add Roles service MUST be before EF Stores to register RoleStore
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthorization(options =>
 {
-    // Regular Admin Policy (Already implicit via Roles attribute, but good to have)
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-
-    // Strict Platform Owner Policy
-    // Must be Admin AND must NOT have a TenantId claim
-    options.AddPolicy("PlatformOwner", policy => 
+    options.AddPolicy("PlatformOwner", policy =>
         policy.RequireRole("Admin")
               .RequireAssertion(context => !context.User.HasClaim(c => c.Type == "TenantId")));
 });
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AnchorUserClaimsPrincipalFactory>();
-
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 // Domain Services
@@ -112,13 +96,12 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobCardService, Anchor
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobTaskService, AnchorPro.Services.JobTaskService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IReferenceDataService, AnchorPro.Services.ReferenceDataService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDowntimeService, AnchorPro.Services.DowntimeService>();
-    builder.Services.AddScoped<AnchorPro.Services.Interfaces.IReportingService, AnchorPro.Services.ReportingService>();
-    builder.Services.AddHostedService<AnchorPro.Services.ReportingWorker>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IReportingService, AnchorPro.Services.ReportingService>();
+builder.Services.AddHostedService<AnchorPro.Services.ReportingWorker>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDashboardService, AnchorPro.Services.DashboardService>();
-builder.Services.AddScoped<IDemoDataService, DemoDataService>(); // Demo Data Generator
+builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IInventoryService, AnchorPro.Services.InventoryService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFileService, AnchorPro.Services.LocalFileService>();
-// Use DevEmailService (writes to file) when no SMTP is configured — prevents Railway timeout on login/alerts
 var smtpHost = builder.Configuration["Smtp_Host"] ?? "";
 if (string.IsNullOrWhiteSpace(smtpHost))
     builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.DevEmailService>();
@@ -137,10 +120,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFinancialService, Anch
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.Services.OrgService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
-builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>(); // Custom Labels
-
-// Tenant Circuit Handler
-builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, AnchorPro.Services.TenantCircuitHandler>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>();
 
 // API & Swagger
 builder.Services.AddControllers()
@@ -149,7 +129,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(); // Use default configuration for now
+builder.Services.AddSwaggerGen();
 
 // Session support (used by impersonation to store original PO identity)
 builder.Services.AddDistributedMemoryCache();
@@ -170,8 +150,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.IgnoreTenantFilter = true;
-        await context.Database.MigrateAsync(); // Apply any pending migrations on startup
-
+        await context.Database.MigrateAsync();
         await DbSeeder.SeedRolesAndAdminAsync(services);
     }
     catch (Exception ex)
@@ -181,42 +160,22 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseWebAssemblyDebugging();
-    app.UseMigrationsEndPoint();
-
-    // Enable Swagger
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-else
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-app.UseStatusCodePagesWithReExecute("/not-found");
-// app.UseHttpsRedirection();
 
+app.UseHsts();
 app.UseStaticFiles();
 app.UseCors("ReactAppPolicy");
 app.UseSession();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Public health check — no auth required, used by Railway TCP/HTTP probe
+// Public health check
 app.MapGet("/ping", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
-app.MapControllers(); // Enable API Controllers — must be before UseAntiforgery so PATCH/POST/PUT from Next.js are not blocked
-
-app.UseAntiforgery(); // Blazor antiforgery — applies only to Razor components mapped after this line
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode();
-
-// Add additional endpoints required by the Identity /Account Razor components.
-app.MapAdditionalIdentityEndpoints();
-
-
+app.MapControllers();
 
 app.Run();
