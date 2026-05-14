@@ -376,16 +376,16 @@ namespace AnchorPro.Data
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Seed Job Types (Global or Tenant? Let's make them Global for now, TenantId=null)
-            if (!await context.JobTypes.AnyAsync())
+            // Seed Job Types — scoped to this tenant
+            if (!await context.JobTypes.AnyAsync(j => j.TenantId == tenantId))
             {
                 var jobTypes = new[]
                 {
-                    new JobType { Name = "Preventive Maintenance", Description = "Scheduled routine maintenance", CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new JobType { Name = "Corrective Maintenance", Description = "Repair of broken equipment", CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new JobType { Name = "Inspection", Description = "Equipment inspection and assessment", CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new JobType { Name = "Calibration", Description = "Equipment calibration", CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
-                    new JobType { Name = "Emergency Repair", Description = "Urgent breakdown repair", CreatedAt = DateTime.UtcNow, CreatedBy = "System" }
+                    new JobType { Name = "Preventive Maintenance", Description = "Scheduled routine maintenance", TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new JobType { Name = "Corrective Maintenance", Description = "Repair of broken equipment", TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new JobType { Name = "Inspection", Description = "Equipment inspection and assessment", TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new JobType { Name = "Calibration", Description = "Equipment calibration", TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" },
+                    new JobType { Name = "Emergency Repair", Description = "Urgent breakdown repair", TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = "System" }
                 };
 
                 context.JobTypes.AddRange(jobTypes);

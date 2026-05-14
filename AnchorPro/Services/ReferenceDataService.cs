@@ -20,8 +20,9 @@ namespace AnchorPro.Services
         {
             using var context = _factory.CreateDbContext();
             var tenantId = _tenantService.TenantId;
+            // Include tenant-specific types AND legacy null-tenanted global types
             return await context.JobTypes
-                .Where(j => j.TenantId == tenantId)
+                .Where(j => j.TenantId == tenantId || j.TenantId == null)
                 .AsNoTracking().ToListAsync();
         }
 
