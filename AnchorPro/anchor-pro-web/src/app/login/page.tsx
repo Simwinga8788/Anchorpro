@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
+import { getDefaultRoute } from '@/lib/rbac';
 import { Lock, Mail, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,7 +31,8 @@ function LoginForm() {
     setError(null);
     const res = await login(email, password);
     if (res.ok) {
-      router.push('/dashboard');
+      const dest = getDefaultRoute(res.user?.roles ?? [], res.user?.isPlatformOwner ?? false);
+      router.push(dest);
     } else {
       setError(res.error || 'Invalid credentials');
       setLoading(false);

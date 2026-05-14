@@ -17,7 +17,7 @@ export interface UserProfile {
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; user?: UserProfile; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (...roles: string[]) => boolean;
   isAdmin: boolean;
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const data: UserProfile = await res.json();
       setUser(data);
-      return { ok: true };
+      return { ok: true, user: data };
     } catch {
       return { ok: false, error: 'Cannot reach server' };
     }
