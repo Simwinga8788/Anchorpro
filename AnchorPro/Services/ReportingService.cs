@@ -15,19 +15,22 @@ namespace AnchorPro.Services
         private readonly IEmailService _emailService;
         private readonly ILogger<ReportingService> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly ICurrentTenantService _tenantService;
 
         public ReportingService(
             IDbContextFactory<ApplicationDbContext> factory,
             IDashboardService dashboardService,
             IEmailService emailService,
             ILogger<ReportingService> logger,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            ICurrentTenantService tenantService)
         {
             _factory = factory;
             _dashboardService = dashboardService;
             _emailService = emailService;
             _logger = logger;
             _env = env;
+            _tenantService = tenantService;
         }
 
         public async Task<List<ReportDefinition>> GetScheduledReportsAsync()
@@ -217,9 +220,9 @@ namespace AnchorPro.Services
 
         public async Task<string> GenerateReportHtmlAsync(ReportType type, int? tenantId = null, int? departmentId = null)
         {
-            // We need to manually fetch data because DashboardService relies on CurrentTenantService which might not be set correctly in background.
-            // OR we can rely on `IgnoreTenantFilter` on the context and manually filter by TenantId.
-            
+            // Fall back to the current HTTP-request tenant when not called from background scheduler
+            tenantId ??= _tenantService.TenantId;
+
             using var context = _factory.CreateDbContext();
             context.IgnoreTenantFilter = true; // Use global access, then filter clause
 
@@ -727,6 +730,9 @@ namespace AnchorPro.Services
         }
         public async Task<byte[]> GenerateReportExcelAsync(ReportType type, int? tenantId = null, int? departmentId = null)
         {
+            // Fall back to the current HTTP-request tenant when not called from background scheduler
+            tenantId ??= _tenantService.TenantId;
+
             using var context = _factory.CreateDbContext();
             context.IgnoreTenantFilter = true;
 
