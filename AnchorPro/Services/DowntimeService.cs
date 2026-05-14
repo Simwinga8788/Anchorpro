@@ -89,6 +89,9 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             return await context.DowntimeEntries
                 .Include(d => d.DowntimeCategory)
+                .Include(d => d.JobTask)
+                    .ThenInclude(t => t.JobCard)
+                        .ThenInclude(j => j.Equipment)
                 .OrderByDescending(d => d.StartTime)
                 .AsNoTracking()
                 .ToListAsync();
