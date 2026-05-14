@@ -4,7 +4,7 @@ import { Users, Plus, CheckCircle2, Clock, MoreHorizontal, Star, Hash, UserX, Us
 import { useState, useEffect, useRef } from 'react';
 import { usersApi, departmentsApi } from '@/lib/api';
 
-const ROLES = ['Technician', 'Admin', 'Supervisor', 'Storekeeper', 'Accountant', 'Viewer'];
+const ROLES = ['Technician', 'Admin', 'Supervisor', 'Planner', 'Purchasing', 'Storeman'];
 
 export default function TeamPage() {
   const [team, setTeam] = useState<any[]>([]);

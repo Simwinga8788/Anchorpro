@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Shield, Users, CheckCircle2, XCircle, AlertTriangle,
   Lightbulb, Crown, Wrench, ClipboardList, Eye, Settings,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, ShoppingCart, Package
 } from 'lucide-react';
 import { teamApi } from '@/lib/api';
 
@@ -181,6 +181,82 @@ const ROLE_DEFINITIONS: RoleDefinition[] = [
     ],
     recommendation: 'Default role for all field staff. Most teams will have the majority of their headcount here.',
     idealCount: '5–50+',
+  },
+  {
+    id: 'Purchasing',
+    label: 'Purchasing Officer',
+    color: '#7C3AED',
+    icon: <ShoppingCart size={18} />,
+    tagline: 'Manages suppliers and purchase orders',
+    description: 'Purchasing Officers handle all external spending. They raise and receive purchase orders, manage the supplier registry, and ensure costs are correctly synced to job cards.',
+    bestFor: 'Purchasing Officer, Procurement Officer, Buyer',
+    pages: [
+      { label: 'Dashboard Overview', access: true },
+      { label: 'Procurement Hub', access: true },
+      { label: 'Inventory & Parts', access: true },
+      { label: 'Job Cards (view only)', access: true },
+      { label: 'Intelligence Center', access: false },
+      { label: 'Planning Board', access: false },
+      { label: 'Asset Registry', access: false },
+      { label: 'Team Management', access: false },
+      { label: 'Reports & Analytics', access: false },
+      { label: 'Safety & Compliance', access: false },
+      { label: 'Invoices & Billing', access: false },
+      { label: 'Contracts', access: false },
+      { label: 'Settings', access: false },
+    ],
+    capabilities: [
+      'Create and manage purchase orders (all PO types)',
+      'Receive goods and sync costs to job cards',
+      'Manage supplier registry',
+      'Adjust inventory stock levels',
+      'View job cards to link POs correctly',
+    ],
+    restrictions: [
+      'Cannot create or modify job cards',
+      'Cannot access financial intelligence or revenue data',
+      'Cannot manage team roles or settings',
+      'Cannot access safety permits',
+    ],
+    recommendation: 'Assign to your dedicated procurement staff. Pair with a Storeman if goods receipt is handled separately from purchasing.',
+    idealCount: '1–3',
+  },
+  {
+    id: 'Storeman',
+    label: 'Storeman',
+    color: '#D97706',
+    icon: <Package size={18} />,
+    tagline: 'Controls physical stock and goods receipt',
+    description: 'Storemen are responsible for the physical warehouse — receiving goods against purchase orders, maintaining stock accuracy, and ensuring parts are available for technicians.',
+    bestFor: 'Storeman, Warehouse Controller, Stock Clerk',
+    pages: [
+      { label: 'Inventory & Parts', access: true },
+      { label: 'Procurement Hub (receive only)', access: true },
+      { label: 'Dashboard Overview', access: true },
+      { label: 'Intelligence Center', access: false },
+      { label: 'Job Cards', access: false },
+      { label: 'Planning Board', access: false },
+      { label: 'Asset Registry', access: false },
+      { label: 'Team Management', access: false },
+      { label: 'Reports & Analytics', access: false },
+      { label: 'Safety & Compliance', access: false },
+      { label: 'Invoices & Billing', access: false },
+      { label: 'Contracts', access: false },
+      { label: 'Settings', access: false },
+    ],
+    capabilities: [
+      'Receive goods against open purchase orders',
+      'Adjust and update inventory stock levels',
+      'View current stock levels and reorder points',
+    ],
+    restrictions: [
+      'Cannot create purchase orders or manage suppliers',
+      'Cannot view or edit job cards',
+      'No access to financial data or reports',
+      'Cannot manage team or settings',
+    ],
+    recommendation: 'Use when your warehouse staff are separate from the purchasing team. The Storeman physically receives goods while the Purchasing Officer raises the orders.',
+    idealCount: '1–4',
   },
 ];
 
