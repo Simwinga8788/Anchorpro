@@ -117,7 +117,7 @@ export default function ReportsPage() {
             <RefreshCw size={13} /> Refresh
           </button>
           <button className="btn btn-primary btn-sm" disabled={!!exporting}
-            onClick={() => downloadReport('maintenance', 'maintenance-report.xlsx')}>
+            onClick={() => downloadReport('0', 'maintenance-report.xlsx')}>
             <Download size={13} /> {exporting === 'maintenance' ? 'Downloading...' : 'Export'}
           </button>
         </div>
@@ -393,9 +393,10 @@ export default function ReportsPage() {
       {/* ── Quick Export ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {[
-          { label: 'Job Completion Report', type: 'job-completion',          file: 'job-completion.xlsx' },
-          { label: 'Technician Performance', type: 'technician-performance', file: 'tech-performance.xlsx' },
-          { label: 'Downtime Analysis',      type: 'downtime-analysis',      file: 'downtime-analysis.xlsx' },
+              // Backend ReportType enum: 0=MonthlyMaintenanceSummary, 1=AssetPerformance, 2=TechnicianProductivity, 3=CostAnalysis, 4=ProcurementSummary, 5=DepartmentalAudit
+          { label: 'Monthly Maintenance Summary', type: '0', file: 'maintenance-summary.xlsx' },
+          { label: 'Technician Productivity',     type: '2', file: 'tech-productivity.xlsx' },
+          { label: 'Cost Analysis',               type: '3', file: 'cost-analysis.xlsx' },
         ].map(r => (
           <div key={r.type} className="card" style={{ padding: 20, textAlign: 'center' }}>
             <FileSpreadsheet size={22} style={{ color: 'var(--accent-blue)', marginBottom: 10 }} />
