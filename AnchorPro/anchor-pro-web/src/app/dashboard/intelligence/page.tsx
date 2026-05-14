@@ -80,38 +80,40 @@ export default function IntelligencePage() {
   useEffect(() => { loadData(days); }, [days]);
 
   // ── Derived metrics ──────────────────────────────────────────────────────────
-  const totalRevenue  = profitability.reduce((a, c) => a + (c.revenue  ?? c.totalRevenue ?? 0), 0);
-  const totalCost     = profitability.reduce((a, c) => a + (c.cost     ?? c.totalCost    ?? 0), 0);
-  const totalProfit   = profitability.reduce((a, c) => a + (c.profit   ?? c.grossProfit  ?? (c.revenue ?? 0) - (c.cost ?? 0)), 0);
+  // JobProfitabilityReport: jobId, jobNumber, customerName, description, revenue, totalCost, profit, marginPercent, completedAt
+  const totalRevenue  = profitability.reduce((a, c) => a + (c.revenue ?? 0), 0);
+  const totalCost     = profitability.reduce((a, c) => a + (c.totalCost ?? 0), 0);
+  const totalProfit   = profitability.reduce((a, c) => a + (c.profit ?? 0), 0);
   const avgMargin     = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
+  // TechUtilizationReport: technicianId, technicianName, totalJobs, hoursWorked, totalLaborCost, utilizationPercent
   const avgUtil = utilization.length > 0
-    ? utilization.reduce((a, t) => a + (t.utilizationPercentage ?? t.utilizationPercent ?? t.utilization ?? 0), 0) / utilization.length
+    ? utilization.reduce((a, t) => a + Number(t.utilizationPercent ?? 0), 0) / utilization.length
     : 0;
 
-  // Bottlenecks used in place of alerts
-  const criticalAlerts = bottlenecks.filter(a => (a.severity ?? a.level ?? '').toLowerCase() === 'critical').length;
+  // Bottlenecks: categoryName, totalDowntimeHours, occurrences, percentageOfTotalDowntime
+  const criticalAlerts = bottlenecks.filter(a => Number(a.percentageOfTotalDowntime ?? 0) > 30).length;
 
   // Profitability chart shape
   const profitChart = profitability.slice(0, 8).map(p => ({
-    label: p.jobNumber ?? p.label ?? p.period ?? '—',
-    revenue: p.revenue ?? p.totalRevenue ?? 0,
-    cost:    p.cost    ?? p.totalCost    ?? 0,
-    profit:  p.profit  ?? p.grossProfit  ?? (p.revenue ?? 0) - (p.cost ?? 0),
+    label:   p.jobNumber ?? '—',
+    revenue: p.revenue ?? 0,
+    cost:    p.totalCost ?? 0,
+    profit:  p.profit ?? 0,
   }));
 
   // Utilization chart shape
   const utilChart = utilization.slice(0, 8).map(t => ({
-    name: t.technicianName ?? t.name ?? '—',
-    util: Math.round(t.utilizationPercentage ?? t.utilizationPercent ?? t.utilization ?? 0),
-    jobs: t.jobsCompleted ?? t.totalJobs ?? t.jobs ?? 0,
+    name: t.technicianName ?? '—',
+    util: Math.round(Number(t.utilizationPercent ?? 0)),
+    jobs: t.totalJobs ?? 0,
   }));
 
-  // Revenue by customer chart shape
+  // Revenue by customer chart shape (RevenueByCustomerReport: customerName, jobCount, totalRevenue, totalCost, totalProfit, concentrationPercent)
   const trendChart = revenueByCustomer.slice(0, 10).map(t => ({
-    date:      t.customerName ?? t.name ?? t.label ?? '—',
-    completed: t.totalRevenue ?? t.revenue ?? 0,
-    created:   t.jobCount ?? t.jobs ?? 0,
+    date:      t.customerName ?? '—',
+    completed: t.totalRevenue ?? 0,
+    created:   t.jobCount ?? 0,
   }));
 
   return (
@@ -334,11 +336,12 @@ export default function IntelligencePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {bottlenecks.slice(0, 10).map((a: any, i: number) => {
-              const sev = (a.severity ?? a.level ?? 'info').toLowerCase();
-              const col = severityColor(sev);
+              const pct = Number(a.percentageOfTotalDowntime ?? 0);
+              const col = pct > 30 ? 'var(--accent-rose)' : pct > 15 ? 'var(--accent-amber)' : 'var(--accent-blue)';
+              const sev = pct > 30 ? 'critical' : pct > 15 ? 'high' : 'medium';
               return (
                 <div
-                  key={a.id ?? i}
+                  key={i}
                   style={{
                     padding: '14px 20px',
                     borderBottom: '1px solid var(--border-subtle)',
@@ -352,14 +355,14 @@ export default function IntelligencePage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {a.title ?? a.alertType ?? 'Alert'}
+                        {a.categoryName ?? 'Uncategorized'}
                       </span>
                       <span className={`badge`} style={{ background: col + '20', color: col, fontSize: 10 }}>
                         {sev}
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {a.message ?? a.description ?? ''}
+                      {a.occurrences ?? 0} occurrences · {Math.round(a.totalDowntimeHours ?? 0)}h downtime · {pct.toFixed(1)}% of total
                     </div>
                     {(a.createdAt ?? a.timestamp) && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>

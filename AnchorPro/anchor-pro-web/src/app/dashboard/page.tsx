@@ -111,18 +111,20 @@ export default function DashboardPage() {
 
   const PIE_COLORS = ['#2383E2', '#0F9D67', '#DFAB01', '#9065B0', '#EB5757', '#3b82f6'];
 
-  // Profitability trend from /api/intelligence/profitability
+  // Profitability trend from /api/intelligence/profitability (JobProfitabilityReport[])
+  // Fields: jobNumber, customerName, description, revenue, totalCost, profit, marginPercent, completedAt
   const profitChart = (profitData.data ?? []).slice(0, 8).map((p: any) => ({
-    name: p.jobTypeName ?? p.name ?? p.label ?? '—',
-    revenue: p.revenue ?? p.totalRevenue ?? 0,
-    cost: p.cost ?? p.totalCost ?? 0,
+    name: p.jobNumber ?? p.description ?? '—',
+    revenue: p.revenue ?? 0,
+    cost: p.totalCost ?? 0,
   }));
 
-  // Utilization from /api/intelligence/technician-utilization
+  // Utilization from /api/intelligence/technician-utilization (TechUtilizationReport[])
+  // Fields: technicianId, technicianName, totalJobs, hoursWorked, totalLaborCost, utilizationPercent
   const utilChart = (utilData.data ?? []).slice(0, 6).map((u: any) => ({
-    name: u.technicianName ?? u.name ?? '—',
-    pct: u.utilizationPercentage ?? u.utilization ?? u.percentage ?? 0,
-    jobs: u.jobsCompleted ?? u.jobs ?? 0,
+    name: u.technicianName ?? '—',
+    pct: Number(u.utilizationPercent ?? 0),
+    jobs: u.totalJobs ?? 0,
   }));
 
   return (
