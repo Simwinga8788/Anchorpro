@@ -202,13 +202,14 @@ app.UseStatusCodePagesWithReExecute("/not-found");
 
 app.UseStaticFiles();
 app.UseCors("ReactAppPolicy");
-app.UseSession(); // Must be before UseAntiforgery and MapControllers
-app.UseAntiforgery();
+app.UseSession();
 
 // Public health check — no auth required, used by Railway TCP/HTTP probe
 app.MapGet("/ping", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
-app.MapControllers(); // Enable API Controllers
+app.MapControllers(); // Enable API Controllers — must be before UseAntiforgery so PATCH/POST/PUT from Next.js are not blocked
+
+app.UseAntiforgery(); // Blazor antiforgery — applies only to Razor components mapped after this line
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode();
