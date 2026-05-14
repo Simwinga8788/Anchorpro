@@ -359,15 +359,21 @@ export const safetyApi = {
 };
 
 // ─── Intelligence API ── /api/intelligence ─────────────────────────────────────
+function dateRange(days: number) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  return `startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+}
 export const intelligenceApi = {
   getSummary:               ()            => apiFetch<any>('/api/intelligence/summary'),
-  getProfitability:         (days = 30)   => apiFetch<any[]>(`/api/intelligence/profitability?days=${days}`),
-  getTechnicianUtilization: (days = 30)   => apiFetch<any[]>(`/api/intelligence/technician-utilization?days=${days}`),
-  getRevenueByCustomer:     (days = 30)   => apiFetch<any[]>(`/api/intelligence/revenue-by-customer?days=${days}`),
-  getAssetPerformance:      (days = 30)   => apiFetch<any[]>(`/api/intelligence/asset-performance?days=${days}`),
-  getInventoryConsumption:  (days = 30)   => apiFetch<any[]>(`/api/intelligence/inventory-consumption?days=${days}`),
-  getSubcontractorDependency:(days = 30)  => apiFetch<any[]>(`/api/intelligence/subcontractor-dependency?days=${days}`),
-  getBottlenecks:           (days = 30)   => apiFetch<any[]>(`/api/intelligence/bottlenecks?days=${days}`),
+  getProfitability:         (days = 30)   => apiFetch<any[]>(`/api/intelligence/profitability?${dateRange(days)}`),
+  getTechnicianUtilization: (days = 30)   => apiFetch<any[]>(`/api/intelligence/technician-utilization?${dateRange(days)}`),
+  getRevenueByCustomer:     (days = 30)   => apiFetch<any[]>(`/api/intelligence/revenue-by-customer?${dateRange(days)}`),
+  getAssetPerformance:      (days = 30)   => apiFetch<any[]>(`/api/intelligence/asset-performance?${dateRange(days)}`),
+  getInventoryConsumption:  (days = 30)   => apiFetch<any[]>(`/api/intelligence/inventory-consumption?${dateRange(days)}`),
+  getSubcontractorDependency:(days = 30)  => apiFetch<any[]>(`/api/intelligence/subcontractor-dependency?${dateRange(days)}`),
+  getBottlenecks:           (days = 30)   => apiFetch<any[]>(`/api/intelligence/bottlenecks?${dateRange(days)}`),
 };
 
 // ─── Reporting API ── /api/reporting ───────────────────────────────────────────

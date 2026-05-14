@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { reportingApi } from '@/lib/api';
+import { reportingApi, intelligenceApi, downtimeApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -39,12 +39,10 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  // These analytics endpoints not yet on backend — use scheduled reports list instead
   const scheduledReports = useApiData(() => reportingApi.getSchedules());
-  // Stub out the chart data hooks gracefully
-  const jobCompletion   = useApiData(() => Promise.resolve(null));
-  const techPerformance = useApiData(() => Promise.resolve(null));
-  const downtimeAnalysis = useApiData(() => Promise.resolve(null));
+  const jobCompletion    = useApiData(() => intelligenceApi.getSummary());
+  const techPerformance  = useApiData(() => intelligenceApi.getTechnicianUtilization(90));
+  const downtimeAnalysis = useApiData(() => intelligenceApi.getBottlenecks(90));
   const [exporting, setExporting] = useState<string | null>(null);
 
   const downloadReport = async (type: string, filename: string) => {
@@ -75,41 +73,32 @@ export default function ReportsPage() {
     downtimeAnalysis.refresh();
   };
 
-  // ── Job Completion derived data ──
+  // ── Job Completion derived data (ExecutiveKpiSummary) ──
   const jc = jobCompletion.data as any;
-  const completionTrend: Array<{ date: string; count: number }> =
-    (jc?.completionTrend ?? jc?.trend ?? []).map((d: any) => ({
-      date: d.date ?? d.label ?? '—',
-      count: d.completedCount ?? d.count ?? d.value ?? 0,
-    }));
+  const completionTrend: Array<{ date: string; count: number }> = []; // summary endpoint has no trend array
+  const typeDistribution: Array<{ name: string; value: number }> = []; // no type breakdown in summary
 
-  const typeDistribution: Array<{ name: string; value: number }> =
-    (jc?.jobTypeDistribution ?? jc?.byType ?? []).map((d: any) => ({
-      name: d.jobTypeName ?? d.type ?? d.name ?? 'Other',
-      value: d.count ?? d.value ?? 0,
-    }));
+  const completionRate: number = jc?.avgMarginPercent ?? 0;
+  const totalCompleted: number = jc?.activeJobsCount ?? 0;
+  const avgLeadTime: number   = jc?.avgCompletionTimeHours ?? 0;
 
-  const completionRate: number = jc?.onTimeCompletionPercentage ?? jc?.completionRate ?? 0;
-  const totalCompleted: number = jc?.totalCompleted ?? jc?.completedJobsInPeriod ?? 0;
-  const avgLeadTime: number   = jc?.avgLeadTimeHours ?? jc?.averageLeadTime ?? 0;
-
-  // ── Technician Performance derived data ──
+  // ── Technician Performance derived data (TechUtilizationReport[]) ──
   const tp = techPerformance.data as any;
   const techStats: Array<{ name: string; jobs: number; hours: number; util: number }> =
-    (tp?.technicianStats ?? tp?.technicians ?? tp ?? []).map((t: any) => ({
-      name: t.technicianName ?? t.name ?? '—',
-      jobs: t.jobsCompleted ?? t.jobs ?? 0,
-      hours: Math.round(t.totalHoursWorked ?? t.hours ?? 0),
-      util: Math.round(t.utilizationPercentage ?? t.utilization ?? 0),
+    (Array.isArray(tp) ? tp : []).map((t: any) => ({
+      name: t.technicianName ?? '—',
+      jobs: t.totalJobs ?? 0,
+      hours: Math.round(t.hoursWorked ?? 0),
+      util: Math.round(Number(t.utilizationPercent ?? 0)),
     })).slice(0, 8);
 
-  // ── Downtime Analysis derived data ──
+  // ── Downtime Analysis derived data (DowntimeBottleneckReport[]) ──
   const da = downtimeAnalysis.data as any;
   const downtimeBreakdown: Array<{ name: string; occurrences: number; hours: number }> =
-    (da?.globalDowntime ?? da?.categories ?? da ?? []).map((d: any) => ({
-      name: d.category ?? d.categoryName ?? d.name ?? 'Unknown',
-      occurrences: d.occurrenceCount ?? d.count ?? 0,
-      hours: Math.round(d.totalDurationHours ?? d.hours ?? 0),
+    (Array.isArray(da) ? da : []).map((d: any) => ({
+      name: d.categoryName ?? d.category ?? 'Unknown',
+      occurrences: d.occurrences ?? 0,
+      hours: Math.round(d.totalDowntimeHours ?? 0),
     })).slice(0, 6);
 
   const totalDowntimeHours: number = downtimeBreakdown.reduce((a, b) => a + b.hours, 0);

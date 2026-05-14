@@ -98,7 +98,9 @@ export default function SettingsPage() {
   const [savingDict, setSavingDict] = useState(false);
 
   useEffect(() => {
-    subscriptionsApi.getCurrent().then(setCurrentPlan).catch(console.error);
+    subscriptionsApi.getCurrent()
+      .then(res => setCurrentPlan(res?.plan ?? { name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }))
+      .catch(() => setCurrentPlan({ name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }));
     subscriptionsApi.getPlans().then(setAllPlans).catch(console.error);
     // Load org name from settings as fallback (no dedicated org endpoint)
     settingsApi.getAll().then((all: any[]) => {
@@ -112,10 +114,8 @@ export default function SettingsPage() {
     }).catch(console.error);
     // Load reference data for config tab
     loadDepartments();
-    fetch('/api/referencedata/jobtypes', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : []).then(setJobTypes).catch(() => setJobTypes([]));
-    fetch('/api/referencedata/downtimecategories', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : []).then(setDowntimeCategories).catch(() => setDowntimeCategories([]));
+    referenceDataApi.getJobTypes().then(setJobTypes).catch(() => setJobTypes([]));
+    referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => setDowntimeCategories([]));
     // Load operational settings
     settingsApi.getAll().then((all: any[]) => {
       if (!Array.isArray(all)) return;
@@ -198,14 +198,9 @@ export default function SettingsPage() {
     if (!newJobType.trim()) return;
     setSavingJobType(true);
     try {
-      await fetch('/api/referencedata/jobtypes', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newJobType.trim() }),
-      });
+      await referenceDataApi.createJobType({ name: newJobType.trim() });
       setNewJobType('');
-      const updated = await fetch('/api/referencedata/jobtypes', { credentials: 'include' }).then(r => r.json());
-      setJobTypes(updated || []);
+      referenceDataApi.getJobTypes().then(setJobTypes).catch(() => {});
     } catch (err: any) {
       alert('Failed: ' + err.message);
     } finally { setSavingJobType(false); }
@@ -215,14 +210,9 @@ export default function SettingsPage() {
     if (!newDtCat.trim()) return;
     setSavingDtCat(true);
     try {
-      await fetch('/api/referencedata/downtimecategories', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newDtCat.trim() }),
-      });
+      await referenceDataApi.createDowntimeCategory({ name: newDtCat.trim() });
       setNewDtCat('');
-      const updated = await fetch('/api/referencedata/downtimecategories', { credentials: 'include' }).then(r => r.json());
-      setDowntimeCategories(updated || []);
+      referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => {});
     } catch (err: any) {
       alert('Failed: ' + err.message);
     } finally { setSavingDtCat(false); }
@@ -303,7 +293,9 @@ export default function SettingsPage() {
     try {
       const res = await subscriptionsApi.upgrade({ planId });
       alert((res as any)?.message || "Upgrade requested.");
-      subscriptionsApi.getCurrent().then(setCurrentPlan);
+      subscriptionsApi.getCurrent()
+        .then(res => setCurrentPlan(res?.plan ?? { name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }))
+        .catch(() => {});
       setShowUpgradeModal(false);
     } catch(err: any) {
       alert("Error upgrading: " + err.message);

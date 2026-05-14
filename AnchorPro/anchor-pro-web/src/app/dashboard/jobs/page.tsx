@@ -5,11 +5,11 @@ import {
   Search, Plus, Wrench, AlertTriangle, Clock,
   CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag, ExternalLink, X
 } from 'lucide-react';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, jobCardsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import JobCardForm from '@/components/JobCardForm';
 
-const STATUSES = ['All', 'Unscheduled', 'Scheduled', 'In Progress', 'Completed', 'Confirmed', 'Cancelled'];
+const STATUSES = ['All', 'Unscheduled', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'];
 const PRIORITIES = ['All', 'Low', 'Normal', 'High', 'Critical'];
 
 const statusConfig: Record<number, { label: string; badge: string; dot: string; icon: React.ReactNode; value: number }> = {
@@ -17,8 +17,8 @@ const statusConfig: Record<number, { label: string; badge: string; dot: string; 
   1: { label: 'Scheduled',   badge: 'badge-amber',   dot: 'amber',   icon: <Clock size={12} />,         value: 1 },
   2: { label: 'In Progress', badge: 'badge-blue',    dot: 'blue',    icon: <Wrench size={12} />,        value: 2 },
   3: { label: 'Completed',   badge: 'badge-green',   dot: 'green',   icon: <CheckCircle2 size={12} />,  value: 3 },
-  4: { label: 'Confirmed',   badge: 'badge-violet',  dot: 'violet',  icon: <CheckCircle2 size={12} />,  value: 4 },
-  5: { label: 'Cancelled',   badge: 'badge-rose',    dot: 'rose',    icon: <XCircle size={12} />,       value: 5 },
+  4: { label: 'Cancelled',   badge: 'badge-rose',    dot: 'rose',    icon: <XCircle size={12} />,       value: 4 },
+  5: { label: 'On Hold',     badge: 'badge-amber',   dot: 'amber',   icon: <Clock size={12} />,         value: 5 },
 };
 
 const priorityConfig: Record<number, { label: string; badge: string }> = {
@@ -49,18 +49,12 @@ function JobDetailPanel({ job, technicians, onClose, onSaved }: {
     e.preventDefault();
     setSaving(true);
     try {
-      // PATCH /api/jobcards/{id} — update assignedTechnicianId + scheduling
-      await fetch(`/api/jobcards/${job.id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...job,
-          assignedTechnicianId: form.assignedTechnicianId || null,
-          scheduledStartDate: form.scheduledStartDate || null,
-          scheduledEndDate: form.scheduledEndDate || null,
-          priority: form.priority,
-        }),
+      await jobCardsApi.update(job.id, {
+        ...job,
+        assignedTechnicianId: form.assignedTechnicianId || null,
+        scheduledStartDate: form.scheduledStartDate || null,
+        scheduledEndDate: form.scheduledEndDate || null,
+        priority: form.priority,
       });
       onSaved();
     } catch (err: any) {
@@ -73,10 +67,25 @@ function JobDetailPanel({ job, technicians, onClose, onSaved }: {
   const changeStatus = async (newStatus: number) => {
     setStatusUpdating(true);
     try {
+      if (newStatus === 3) {
+        // Pre-check: load tasks and warn if any are incomplete
+        const tasks: any[] = await jobCardsApi.getById(job.id).then((j: any) => j?.jobTasks ?? []).catch(() => []);
+        const pending = tasks.filter((t: any) => !t.isCompleted);
+        if (pending.length > 0) {
+          alert(`Cannot complete job — ${pending.length} task${pending.length > 1 ? 's' : ''} still pending:\n${pending.slice(0, 5).map((t: any) => `• ${t.description}`).join('\n')}\n\nComplete all tasks first.`);
+          setStatusUpdating(false);
+          return;
+        }
+      }
       await dashboardApi.updateJobStatus(job.id, newStatus);
       onSaved();
     } catch (err: any) {
-      alert('Status update failed: ' + err.message);
+      const msg = err.message ?? '';
+      if (msg.includes('tasks must be completed') || msg.includes('All tasks')) {
+        alert('Cannot complete job — all tasks must be marked complete first.');
+      } else {
+        alert('Status update failed: ' + msg);
+      }
     } finally {
       setStatusUpdating(false);
     }
@@ -535,7 +544,7 @@ export default function JobCardsPage() {
                             { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
                             { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },
                             { label: 'Mark Completed', action: () => { dashboardApi.updateJobStatus(job.id, 3).then(fetchJobs); setOpenMenuId(null); } },
-                            { label: 'Cancel Job', action: () => { if (confirm('Cancel this job?')) dashboardApi.updateJobStatus(job.id, 5).then(fetchJobs); setOpenMenuId(null); }, danger: true },
+                            { label: 'Cancel Job', action: () => { if (confirm('Cancel this job?')) dashboardApi.updateJobStatus(job.id, 4).then(fetchJobs); setOpenMenuId(null); }, danger: true },
                           ].map(item => (
                             <button
                               key={item.label}

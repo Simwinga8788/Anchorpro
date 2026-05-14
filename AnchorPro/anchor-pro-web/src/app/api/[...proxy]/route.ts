@@ -6,15 +6,30 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname, search } = req.nextUrl;
   const target = `${BACKEND}${pathname}${search}`;
 
-  const headers = new Headers(req.headers);
-  headers.delete('host');
+  const headers = new Headers();
+
+  // Forward only safe, relevant headers — skip host, content-length (recomputed), connection
+  const skipHeaders = new Set(['host', 'content-length', 'connection', 'transfer-encoding']);
+  req.headers.forEach((value, key) => {
+    if (!skipHeaders.has(key.toLowerCase())) {
+      headers.set(key, value);
+    }
+  });
+
+  const hasBody = !['GET', 'HEAD'].includes(req.method);
+  let body: ArrayBuffer | undefined;
+  if (hasBody) {
+    try {
+      body = await req.arrayBuffer();
+    } catch {
+      body = undefined;
+    }
+  }
 
   const upstream = await fetch(target, {
     method: req.method,
     headers,
-    body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
-    // @ts-expect-error — Node 18 fetch supports duplex for streaming bodies
-    duplex: 'half',
+    body: hasBody ? body : undefined,
     redirect: 'manual',
   });
 
@@ -23,13 +38,14 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
     statusText: upstream.statusText,
   });
 
-  // Forward all response headers, stripping Domain= from Set-Cookie so the
-  // cookie binds to the Next.js/Vercel domain instead of Railway's domain.
+  // Forward response headers, stripping Domain= from Set-Cookie so the
+  // cookie binds to the Vercel domain instead of Railway's domain.
   upstream.headers.forEach((value, key) => {
     if (key.toLowerCase() === 'set-cookie') {
       const cleaned = value.replace(/;\s*domain=[^;]*/i, '');
       response.headers.append('set-cookie', cleaned);
-    } else {
+    } else if (key.toLowerCase() !== 'content-encoding') {
+      // Skip content-encoding — Next.js handles compression itself
       response.headers.set(key, value);
     }
   });

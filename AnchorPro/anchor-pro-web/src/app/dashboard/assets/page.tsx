@@ -2,15 +2,12 @@
 
 import { Search, Plus, Wrench, AlertTriangle, TrendingUp, Edit2, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, equipmentApi, departmentsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
-const statusConfig: Record<number, { label: string; badge: string; dot: string }> = {
-  0: { label: 'Operational', badge: 'badge-green', dot: 'green' },
-  1: { label: 'Under Repair', badge: 'badge-rose', dot: 'rose' },
-  2: { label: 'Scheduled PM', badge: 'badge-amber', dot: 'amber' },
-  3: { label: 'Decommissioned', badge: 'badge-muted', dot: 'muted' },
-};
+// Equipment entity has no status field — all assets default to Operational
+const getAssetStatus = (_asset: any): { label: string; badge: string; dot: string } =>
+  ({ label: 'Operational', badge: 'badge-green', dot: 'green' });
 
 const BLANK: { name: string; modelNumber: string; serialNumber: string; manufacturer: string; departmentId: number | null } = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: null };
 
@@ -35,10 +32,9 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAssets();
-    fetch('/api/departments', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
+    departmentsApi.getAll()
       .then(d => setDepartments(d || []))
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
@@ -53,11 +49,7 @@ export default function AssetsPage() {
     setSaving(true);
     try {
       if (slideMode === 'edit' && editTarget) {
-        await fetch(`/api/equipment/${editTarget.id}`, {
-          method: 'PUT', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...editTarget, ...formData }),
-        });
+        await equipmentApi.update(editTarget.id, { ...editTarget, ...formData });
       } else {
         await dashboardApi.createAsset(formData);
       }
@@ -129,9 +121,9 @@ export default function AssetsPage() {
 
       <div className="stats-grid-3" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Operational', value: assets.filter(a => a.status === 0).length, color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
-          { label: 'Under Repair', value: assets.filter(a => a.status === 1).length, color: 'var(--accent-rose)', icon: <AlertTriangle size={16} /> },
-          { label: 'Scheduled PM', value: assets.filter(a => a.status === 2).length, color: 'var(--accent-amber)', icon: <Wrench size={16} /> },
+          { label: 'Total Assets',    value: assets.length,                                            color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
+          { label: 'Departments',     value: [...new Set(assets.map(a => a.departmentId).filter(Boolean))].length, color: 'var(--accent-blue)',    icon: <Wrench size={16} /> },
+          { label: 'Unassigned Dept', value: assets.filter(a => !a.departmentId).length,               color: 'var(--accent-amber)',   icon: <AlertTriangle size={16} /> },
         ].map(s => (
           <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
             <div className="stat-icon" style={{ background: s.color + '20', marginBottom: 0 }}><span style={{ color: s.color }}>{s.icon}</span></div>
@@ -169,7 +161,7 @@ export default function AssetsPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No assets found</td></tr>
             ) : filtered.map(asset => {
-              const sc = statusConfig[asset.status] ?? statusConfig[0];
+              const sc = getAssetStatus(asset);
               return (
                 <tr key={asset.id} style={{ cursor: 'pointer' }} onClick={() => openEdit(asset)}>
                   <td>
@@ -177,11 +169,11 @@ export default function AssetsPage() {
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ID: {asset.id}</div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 13 }}>{asset.model || '—'}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 13 }}>{asset.modelNumber || '—'}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>S/N: {asset.serialNumber || '—'}</div>
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{asset.manufacturer || '—'}</td>
-                  <td><span className="badge badge-muted">{departments.find(d => d.id === asset.departmentId)?.name || `Dept #${asset.departmentId}`}</span></td>
+                  <td><span className="badge badge-muted">{departments.find(d => d.id === asset.departmentId)?.name || (asset.departmentId ? `Dept #${asset.departmentId}` : '—')}</span></td>
                   <td><span className={`badge ${sc.badge}`}><span className={`status-dot ${sc.dot}`} />{sc.label}</span></td>
                   <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => openEdit(asset)}><Edit2 size={13} /></button>

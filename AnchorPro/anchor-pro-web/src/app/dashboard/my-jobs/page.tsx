@@ -7,12 +7,12 @@ import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 
 const statusConfig: Record<number, { label: string; badge: string; color: string; icon: React.ReactNode }> = {
-  0: { label: 'Unscheduled', badge: 'badge-muted', color: '#6b6b6b', icon: <Clock size={14} /> },
-  1: { label: 'Scheduled', badge: 'badge-amber', color: '#f59e0b', icon: <Clock size={14} /> },
-  2: { label: 'In Progress', badge: 'badge-blue', color: '#3b82f6', icon: <Wrench size={14} /> },
-  3: { label: 'Completed', badge: 'badge-green', color: '#10b981', icon: <CheckCircle2 size={14} /> },
-  4: { label: 'Confirmed', badge: 'badge-violet', color: '#8b5cf6', icon: <CheckCircle2 size={14} /> },
-  5: { label: 'Cancelled', badge: 'badge-rose', color: '#f43f5e', icon: <Clock size={14} /> },
+  0: { label: 'Unscheduled', badge: 'badge-muted',  color: '#6b6b6b', icon: <Clock size={14} /> },
+  1: { label: 'Scheduled',   badge: 'badge-amber',  color: '#f59e0b', icon: <Clock size={14} /> },
+  2: { label: 'In Progress', badge: 'badge-blue',   color: '#3b82f6', icon: <Wrench size={14} /> },
+  3: { label: 'Completed',   badge: 'badge-green',  color: '#10b981', icon: <CheckCircle2 size={14} /> },
+  4: { label: 'Cancelled',   badge: 'badge-rose',   color: '#f43f5e', icon: <XCircle size={14} /> },
+  5: { label: 'On Hold',     badge: 'badge-amber',  color: '#f59e0b', icon: <Clock size={14} /> },
 };
 
 export default function MyJobsPage() {
@@ -80,30 +80,55 @@ export default function MyJobsPage() {
     if (!activeJobId) return;
     setSaving(true);
     try {
-      const job = jobs.find(j => j.id === activeJobId);
+      // Backend requires jobTaskId — load tasks for this job to get one
+      let jobTaskId: number | null = null;
+      let jobTasks: any[] = [];
+      try { jobTasks = await dashboardApi.getJobTasks(activeJobId); } catch { jobTasks = []; }
+      // Prefer the first incomplete task, fall back to any task
+      const target = jobTasks.find((t: any) => !t.isCompleted) ?? jobTasks[0];
+      jobTaskId = target?.id ?? null;
+
+      if (!jobTaskId) {
+        alert('Cannot report downtime — no tasks exist on this job card. Add a task first.');
+        setSaving(false);
+        return;
+      }
+
       await dashboardApi.reportDowntime({
-        equipmentId: job?.equipmentId,
-        jobCardId: activeJobId,
+        jobTaskId,
         downtimeCategoryId: downtimeData.categoryId,
         notes: downtimeData.notes,
-        startTime: new Date().toISOString()
+        startTime: new Date().toISOString(),
       });
       setShowDowntime(false);
-      alert("Downtime reported.");
+      alert('Downtime reported.');
     } catch (err: any) {
-      alert(err.message || "Failed to report downtime.");
+      alert(err.message || 'Failed to report downtime.');
     } finally {
       setSaving(false);
     }
   };
 
   const completeJob = async (jobId: number) => {
+    // If we have tasks loaded for this job, check upfront
+    if (selectedJobId === jobId && tasks.length > 0) {
+      const pending = tasks.filter(t => !t.isCompleted);
+      if (pending.length > 0) {
+        alert(`Cannot complete job — ${pending.length} task${pending.length > 1 ? 's' : ''} still pending.\n\nUse the checklist on the right to complete all tasks first.`);
+        return;
+      }
+    }
     if (!confirm("Confirm job completion?")) return;
     try {
       await dashboardApi.updateJobStatus(jobId, 3); // 3 = Completed
       fetchJobs();
     } catch (err: any) {
-      alert(err.message || "Error completing job.");
+      const msg = err.message ?? '';
+      if (msg.includes('tasks must be completed') || msg.includes('All tasks')) {
+        alert('Cannot complete job — all tasks must be marked complete first.\n\nUse the task checklist to complete all tasks.');
+      } else {
+        alert(msg || "Error completing job.");
+      }
     }
   };
 

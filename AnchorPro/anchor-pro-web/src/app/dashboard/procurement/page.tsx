@@ -2,7 +2,7 @@
 
 import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, procurementApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 const typeConfig: Record<number, { label: string; badge: string; color: string }> = {
@@ -85,11 +85,7 @@ export default function ProcurementPage() {
     if (!supplierForm.name.trim()) return;
     setSavingSupplier(true);
     try {
-      await fetch('/api/procurement/suppliers', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(supplierForm),
-      });
+      await procurementApi.createSupplier(supplierForm);
       setSupplierForm(SUPPLIER_BLANK);
       setShowSupplierForm(false);
       fetchData();
@@ -99,7 +95,7 @@ export default function ProcurementPage() {
 
   const handleDeleteSupplier = async (id: number) => {
     if (!confirm('Remove this supplier?')) return;
-    await fetch(`/api/procurement/suppliers/${id}`, { method: 'DELETE', credentials: 'include' });
+    await procurementApi.deleteSupplier(id);
     fetchData();
   };
 

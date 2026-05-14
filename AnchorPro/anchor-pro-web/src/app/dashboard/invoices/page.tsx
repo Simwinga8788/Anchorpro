@@ -55,10 +55,10 @@ export default function InvoicesPage() {
     setJobsLoading(true);
     Promise.all([dashboardApi.getJobCards(), dashboardApi.getCustomers()])
       .then(([jobs, custs]) => {
-        // Show completed (status 3) and confirmed (status 4) jobs that don't already have invoices
+        // Show only completed (status 3) jobs that don't already have invoices
         const invoicedJobIds = new Set(invoices.map((i: any) => i.jobCardId).filter(Boolean));
         setCompletedJobs(
-          (jobs || []).filter((j: any) => (j.status === 3 || j.status === 4) && !invoicedJobIds.has(j.id))
+          (jobs || []).filter((j: any) => j.status === 3 && !invoicedJobIds.has(j.id))
         );
         setCustomers(custs || []);
       })

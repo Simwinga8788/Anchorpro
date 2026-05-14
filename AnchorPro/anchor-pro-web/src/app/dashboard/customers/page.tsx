@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Building2, Mail, Phone, MapPin, Edit2, FileText } from 'lucide-react';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, customersApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 const BLANK = { name: '', contactPerson: '', email: '', phone: '', address: '' };
@@ -35,11 +35,7 @@ export default function CustomersPage() {
     e.preventDefault(); setSaving(true);
     try {
       if (slideMode === 'edit' && editTarget) {
-        await fetch(`/api/customers/${editTarget.id}`, {
-          method: 'PUT', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...editTarget, ...formData }),
-        });
+        await customersApi.update(editTarget.id, { ...editTarget, ...formData });
       } else {
         await dashboardApi.createCustomer(formData);
       }

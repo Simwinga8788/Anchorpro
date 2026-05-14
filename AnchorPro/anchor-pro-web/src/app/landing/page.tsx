@@ -160,9 +160,8 @@ export default function LandingPage() {
   return (
     <div className="lp" style={{ background: D.bg, color: D.text }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        .lp{font-family:'Geist','Helvetica Neue',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+        .lp{font-family:'Barlow','Helvetica Neue',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
         ::selection{background:rgba(75,143,255,.25)}
 
         /* NAV */
@@ -184,14 +183,14 @@ export default function LandingPage() {
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
         @keyframes riseUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .lp-h1{font-family:'Lora','Georgia',serif;font-size:clamp(42px,7vw,84px);font-weight:600;line-height:.98;letter-spacing:-1.5px;max-width:820px;margin-bottom:24px;animation:riseUp .65s .1s ease both}
+        .lp-h1{font-family:'Barlow Semi Condensed','Helvetica Neue',sans-serif;font-size:clamp(42px,7vw,84px);font-weight:700;line-height:.98;letter-spacing:-1.5px;max-width:820px;margin-bottom:24px;animation:riseUp .65s .1s ease both}
         .lp-h1-word{display:inline-block;color:#6AA3FF;font-style:italic;font-weight:400;transition:opacity .35s,transform .35s;min-width:260px}
         .lp-h1-word.out{opacity:0;transform:translateY(-10px)}
         .lp-h1-word.in{opacity:1;transform:translateY(0)}
         .lp-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;animation:riseUp .65s .3s ease both}
-        .btn-hero{display:inline-flex;align-items:center;gap:8px;padding:14px 30px;border-radius:9px;background:#4B8FFF;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;text-decoration:none;transition:all .18s;font-family:'Geist',sans-serif;letter-spacing:-.2px;box-shadow:0 1px 0 #2a5ebf,0 4px 20px rgba(75,143,255,.2)}
+        .btn-hero{display:inline-flex;align-items:center;gap:8px;padding:14px 30px;border-radius:9px;background:#4D9EFF;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;text-decoration:none;transition:all .18s;font-family:'Barlow',sans-serif;letter-spacing:-.2px;box-shadow:0 1px 0 #2a5ebf,0 4px 20px rgba(77,158,255,.2)}
         .btn-hero:hover{background:#3a7ef0;transform:translateY(-2px);box-shadow:0 3px 0 #2a5ebf,0 10px 32px rgba(75,143,255,.35)}
-        .btn-blue{padding:7px 18px;border-radius:7px;background:#4B8FFF;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;text-decoration:none;transition:all .15s;font-family:'Geist',sans-serif}
+        .btn-blue{padding:7px 18px;border-radius:7px;background:#4D9EFF;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;text-decoration:none;transition:all .15s;font-family:'Barlow',sans-serif}
         .btn-blue:hover{background:#3a7ef0;transform:translateY(-1px);box-shadow:0 6px 20px rgba(75,143,255,.3)}
 
         /* LOGOS */
@@ -201,13 +200,13 @@ export default function LandingPage() {
         /* METRICS */
         .lp-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-radius:14px;overflow:hidden;max-width:860px;width:100%;margin:64px auto 0;animation:riseUp .65s .5s ease both}
         .lp-metric{padding:32px 24px;text-align:center;cursor:default;transition:background .2s}
-        .lp-metric-val{font-family:'Lora',serif;font-size:46px;font-weight:600;line-height:1;letter-spacing:-1.5px;margin-bottom:6px}
+        .lp-metric-val{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:700;line-height:1;letter-spacing:-1.5px;margin-bottom:6px}
         .lp-metric-lbl{font-size:12px;font-weight:400}
 
         /* SECTIONS */
         .lp-section{max-width:1100px;margin:0 auto;padding:110px 40px}
         .lp-stag{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#4B8FFF;margin-bottom:14px}
-        .lp-sh2{font-family:'Lora',serif;font-size:clamp(32px,4vw,52px);font-weight:600;line-height:1.06;letter-spacing:-1px;max-width:560px}
+        .lp-sh2{font-family:'Barlow Semi Condensed',sans-serif;font-size:clamp(32px,4vw,52px);font-weight:700;line-height:1.06;letter-spacing:-1px;max-width:560px}
 
         .rv{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
         .rv.in{opacity:1;transform:translateY(0)}
@@ -217,7 +216,7 @@ export default function LandingPage() {
         /* FEATURE TABS */
         .lp-feat-layout{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:52px;align-items:start}
         .lp-feat-tabs{display:flex;flex-direction:column;gap:4px}
-        .lp-feat-tab{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:all .2s;text-align:left;background:transparent;width:100%;font-family:'Geist',sans-serif}
+        .lp-feat-tab{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:all .2s;text-align:left;background:transparent;width:100%;font-family:'Barlow',sans-serif}
         .lp-feat-tab-icon{font-size:20px;flex-shrink:0;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .2s}
         .lp-feat-tab-text{flex:1;min-width:0}
         .lp-feat-tab-body{font-size:11.5px;font-weight:300;line-height:1.5;margin-top:2px;display:none}
@@ -243,7 +242,7 @@ export default function LandingPage() {
         .lp-cta-section{padding:60px 40px 120px;max-width:1100px;margin:0 auto}
         .lp-cta-inner{border-radius:20px;padding:80px 48px;text-align:center;position:relative;overflow:hidden;transition:background .25s,border-color .25s}
         .lp-cta-inner::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:480px;height:220px;border-radius:50%;background:radial-gradient(ellipse,rgba(75,143,255,.12) 0%,transparent 70%);pointer-events:none}
-        .lp-cta-h2{font-family:'Lora',serif;font-size:clamp(32px,5vw,58px);font-weight:600;letter-spacing:-1px;line-height:1.05;margin-bottom:14px;position:relative;z-index:1}
+        .lp-cta-h2{font-family:'Barlow Semi Condensed',sans-serif;font-size:clamp(32px,5vw,58px);font-weight:700;letter-spacing:-1px;line-height:1.05;margin-bottom:14px;position:relative;z-index:1}
         .lp-cta-h2 em{font-style:italic;font-weight:400;color:#6AA3FF}
         .lp-cta-btns{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;position:relative;z-index:1}
 

@@ -50,11 +50,24 @@ export default function DowntimePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.downtimeCategoryId) return;
+
+    // jobTaskId is required by the backend — resolve it
+    let jobTaskId = form.jobTaskId ? Number(form.jobTaskId) : null;
+    if (!jobTaskId && form.jobCardId) {
+      // Auto-pick first task for the selected job card
+      const jobTasks = tasks.length > 0 ? tasks : await dashboardApi.getJobTasks(Number(form.jobCardId)).catch(() => []);
+      const first = (jobTasks as any[])[0];
+      jobTaskId = first?.id ?? null;
+    }
+    if (!jobTaskId) {
+      setErr('A job task is required. Select a job card that has tasks, then pick a task.');
+      return;
+    }
+
     setSaving(true); setErr('');
     try {
       await dashboardApi.reportDowntime({
-        ...(form.jobTaskId ? { jobTaskId: Number(form.jobTaskId) } : {}),
-        ...(form.jobCardId ? { jobCardId: Number(form.jobCardId) } : {}),
+        jobTaskId,
         downtimeCategoryId: Number(form.downtimeCategoryId),
         notes: form.notes || null,
         startTime: form.startTime ? new Date(form.startTime).toISOString() : new Date().toISOString(),
@@ -142,8 +155,9 @@ export default function DowntimePage() {
               return (
                 <tr key={item.id}>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.equipment?.name || item.jobTask?.jobCard?.equipment?.name || 'Unknown Asset'}</div>
-                    {item.jobTask && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.jobTask.description || 'Task #' + item.jobTaskId}</div>}
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.jobTask?.jobCard?.equipment?.name || item.equipment?.name || '—'}</div>
+                    {item.jobTask?.jobCard && <div style={{ fontSize: 11, color: 'var(--accent-blue)', fontWeight: 600 }}>{item.jobTask.jobCard.jobNumber}</div>}
+                    {item.jobTask && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.jobTask.description || item.jobTask.taskDescription || 'Task #' + item.jobTaskId}</div>}
                   </td>
                   <td><span className="badge badge-muted">{item.downtimeCategory?.name || item.category?.name || 'General'}</span></td>
                   <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{new Date(item.startTime).toLocaleString()}</td>
@@ -183,7 +197,7 @@ export default function DowntimePage() {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Job Card</label>
                 <select style={fieldStyle} value={form.jobCardId} onChange={e => setForm(f => ({ ...f, jobCardId: e.target.value, jobTaskId: '' }))}>
                   <option value="">Select a job...</option>
-                  {jobs.filter(j => j.status !== 3).map((j: any) => (
+                  {jobs.filter(j => j.status === 0 || j.status === 1 || j.status === 2).map((j: any) => (
                     <option key={j.id} value={j.id}>{j.jobNumber} — {j.equipment?.name || 'Unknown'}</option>
                   ))}
                 </select>
@@ -191,11 +205,11 @@ export default function DowntimePage() {
 
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>
-                  Job Task <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
+                  Job Task <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{tasks.length > 0 ? '(leave blank to auto-select first task)' : ''}</span>
                 </label>
                 <select style={fieldStyle} value={form.jobTaskId} onChange={e => setForm(f => ({ ...f, jobTaskId: e.target.value }))}>
                   <option value="">
-                    {form.jobCardId && tasks.length === 0 ? 'No tasks — job-level downtime' : 'Select a task (optional)...'}
+                    {form.jobCardId && tasks.length === 0 ? 'No tasks on this job' : 'Auto-select first task...'}
                   </option>
                   {tasks.map((t: any) => <option key={t.id} value={t.id}>{t.description || 'Task #' + t.id}</option>)}
                 </select>
