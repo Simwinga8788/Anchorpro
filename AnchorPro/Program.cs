@@ -49,16 +49,26 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-// In production, cookies must be SameSite=None + Secure so they survive
-// the cross-origin Next.js proxy (Vercel → Railway).
-if (!builder.Environment.IsDevelopment())
+// Cookie config: return 401/403 for API requests instead of redirecting to a login page.
+// In production also set SameSite=None + Secure so cookies survive the Vercel → Railway cross-origin proxy.
+builder.Services.ConfigureApplicationCookie(o =>
 {
-    builder.Services.ConfigureApplicationCookie(o =>
+    if (!builder.Environment.IsDevelopment())
     {
         o.Cookie.SameSite = SameSiteMode.None;
         o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    });
-}
+    }
+    o.Events.OnRedirectToLogin = ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    o.Events.OnRedirectToAccessDenied = ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
