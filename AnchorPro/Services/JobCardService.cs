@@ -98,6 +98,7 @@ namespace AnchorPro.Services
                 existing.ScheduledStartDate = jobCard.ScheduledStartDate;
                 existing.ScheduledEndDate = jobCard.ScheduledEndDate;
                 existing.AssignedTechnicianId = jobCard.AssignedTechnicianId;
+                existing.InvoiceAmount = jobCard.InvoiceAmount;
 
                 // Logic: If transitioning from Unscheduled to having a date, update status
                 if (existing.Status == JobStatus.Unscheduled && jobCard.ScheduledStartDate.HasValue)

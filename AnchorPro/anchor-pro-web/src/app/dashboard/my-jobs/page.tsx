@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Wrench, CheckCircle2, Play, Check, ChevronRight, AlertTriangle, ShieldCheck, XCircle } from 'lucide-react';
-import { dashboardApi, referenceDataApi } from '@/lib/api';
+import { Clock, Wrench, CheckCircle2, Play, AlertTriangle, ShieldCheck, XCircle, Package, Search } from 'lucide-react';
+import { dashboardApi, referenceDataApi, inventoryApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 
@@ -28,6 +28,15 @@ export default function MyJobsPage() {
   const [downtimeData, setDowntimeData] = useState({ categoryId: '', notes: '' });
   const [downtimeCategories, setDowntimeCategories] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Add Part state
+  const [showAddPart, setShowAddPart]           = useState(false);
+  const [addPartJobId, setAddPartJobId]         = useState<number | null>(null);
+  const [inventoryItems, setInventoryItems]     = useState<any[]>([]);
+  const [partSearch, setPartSearch]             = useState('');
+  const [selectedPartId, setSelectedPartId]     = useState<number | null>(null);
+  const [partQty, setPartQty]                   = useState(1);
+  const [addingPart, setAddingPart]             = useState(false);
 
   useEffect(() => {
     referenceDataApi.getDowntimeCategories()
@@ -175,6 +184,35 @@ export default function MyJobsPage() {
     }
   };
 
+  const openAddPart = async (jobId: number) => {
+    setAddPartJobId(jobId);
+    setSelectedPartId(null);
+    setPartQty(1);
+    setPartSearch('');
+    setShowAddPart(true);
+    if (inventoryItems.length === 0) {
+      try {
+        const items = await inventoryApi.getAll();
+        setInventoryItems(Array.isArray(items) ? items : []);
+      } catch { setInventoryItems([]); }
+    }
+  };
+
+  const submitAddPart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addPartJobId || !selectedPartId) return;
+    setAddingPart(true);
+    try {
+      await dashboardApi.addPartToJob(addPartJobId, selectedPartId, partQty);
+      setShowAddPart(false);
+      alert(`Part added to job. Stock deducted from inventory.`);
+    } catch (err: any) {
+      alert('Failed to add part: ' + (err.message || 'Unknown error'));
+    } finally {
+      setAddingPart(false);
+    }
+  };
+
   return (
     <div>
       {/* Safety Permit SlideOver */}
@@ -205,6 +243,92 @@ export default function MyJobsPage() {
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowPermit(false)}>Abort</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>Confirm & Start Job</button>
+          </div>
+        </form>
+      </SlideOver>
+
+      {/* Add Part SlideOver */}
+      <SlideOver open={showAddPart} onClose={() => setShowAddPart(false)} title="Add Part to Job" subtitle="Select a stocked item — it will be deducted from inventory and added to the job cost.">
+        <form onSubmit={submitAddPart} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              className="form-input"
+              style={{ paddingLeft: 30 }}
+              placeholder="Search parts by name..."
+              value={partSearch}
+              onChange={e => { setPartSearch(e.target.value); setSelectedPartId(null); }}
+            />
+          </div>
+
+          {/* Part list */}
+          <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {inventoryItems
+              .filter(i => i.name?.toLowerCase().includes(partSearch.toLowerCase()) || i.partNumber?.toLowerCase().includes(partSearch.toLowerCase()))
+              .map((item: any) => {
+                const selected = selectedPartId === item.id;
+                const outOfStock = (item.currentStock ?? item.quantityInStock ?? 0) <= 0;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={outOfStock}
+                    onClick={() => setSelectedPartId(selected ? null : item.id)}
+                    style={{
+                      textAlign: 'left', padding: '10px 12px', borderRadius: 8, cursor: outOfStock ? 'not-allowed' : 'pointer',
+                      background: selected ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                      border: `1px solid ${selected ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
+                      opacity: outOfStock ? 0.45 : 1,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: selected ? 'var(--accent-blue)' : 'var(--text-primary)' }}>{item.name}</div>
+                        {item.partNumber && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.partNumber}</div>}
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: outOfStock ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                          {outOfStock ? 'Out of stock' : `${item.currentStock ?? item.quantityInStock} in stock`}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>K {(item.unitCost ?? item.costPerUnit ?? 0).toLocaleString()}/u</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            {inventoryItems.filter(i => i.name?.toLowerCase().includes(partSearch.toLowerCase())).length === 0 && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No parts found.</p>
+            )}
+          </div>
+
+          {/* Quantity */}
+          {selectedPartId && (() => {
+            const item = inventoryItems.find(i => i.id === selectedPartId);
+            const maxStock = item?.currentStock ?? item?.quantityInStock ?? 1;
+            return (
+              <div style={{ padding: 14, borderRadius: 8, background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue)' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+                  {item?.name} — K {((item?.unitCost ?? item?.costPerUnit ?? 0) * partQty).toLocaleString(undefined, { maximumFractionDigits: 2 })} total
+                </div>
+                <div className="form-field" style={{ margin: 0 }}>
+                  <label className="form-label">Quantity to Use</label>
+                  <input
+                    type="number" min={1} max={maxStock} className="form-input"
+                    value={partQty}
+                    onChange={e => setPartQty(Math.min(maxStock, Math.max(1, parseInt(e.target.value) || 1)))}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{maxStock} available in warehouse</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddPart(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={!selectedPartId || addingPart}>
+              <Package size={13} /> {addingPart ? 'Adding...' : 'Add Part'}
+            </button>
           </div>
         </form>
       </SlideOver>
@@ -282,14 +406,19 @@ export default function MyJobsPage() {
                           <Play size={14} /> Start Job
                         </button>
                       ) : (
-                        <>
-                          <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
-                            <CheckCircle2 size={14} /> Complete Job
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
+                              <CheckCircle2 size={14} /> Complete Job
+                            </button>
+                            <button onClick={() => openAddPart(job.id)} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
+                              <Package size={14} /> Add Part
+                            </button>
+                          </div>
+                          <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
+                            <AlertTriangle size={14} /> Report Downtime / Delay
                           </button>
-                          <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
-                            <AlertTriangle size={14} /> Report Downtime
-                          </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
