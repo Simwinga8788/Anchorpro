@@ -96,14 +96,17 @@ namespace AnchorPro.Services
 
             // Fetch completed jobs in the period. Exclude jobs assigned to cross-tenant users
             // (e.g. Platform Owner who impersonated and self-assigned a job).
+            // Include jobs where ActualEndDate is null but UpdatedAt (completion timestamp) falls in range.
             var completedJobs = await context.JobCards
-                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed
+                         && (j.ActualEndDate >= startDate || (j.ActualEndDate == null && j.UpdatedAt >= startDate))
                          && (j.AssignedTechnicianId == null || j.AssignedTechnician!.TenantId == TenantId))
-                .Select(j => new 
+                .Select(j => new
                 {
                     j.JobNumber,
                     j.Description,
                     j.CreatedAt,
+                    j.UpdatedAt,
                     j.ActualStartDate,
                     j.ScheduledStartDate,
                     j.ScheduledEndDate,
@@ -247,9 +250,9 @@ namespace AnchorPro.Services
                     });
                 }
 
-                // Calculate Daily Trends
+                // Calculate Daily Trends — use ActualEndDate if set, else UpdatedAt, else CreatedAt
                 var trendGroups = completedJobs
-                    .GroupBy(j => j.ActualEndDate!.Value.Date)
+                    .GroupBy(j => (j.ActualEndDate?.Date ?? j.UpdatedAt?.Date ?? j.CreatedAt.Date))
                     .OrderBy(g => g.Key);
 
                 for (int i = 0; i < days; i++)

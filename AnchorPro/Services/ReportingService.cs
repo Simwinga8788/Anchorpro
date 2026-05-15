@@ -1074,6 +1074,282 @@ namespace AnchorPro.Services
                 }
                 dataSheet.Columns().AdjustToContents();
             }
+            else if (type == ReportType.TechnicianProductivity)
+            {
+                var today = DateTime.UtcNow;
+                var startDate = today.AddDays(-90);
+
+                var jobs = await context.JobCards
+                    .Where(j => j.TenantId == tenantId && j.CreatedAt >= startDate)
+                    .Include(j => j.AssignedTechnician)
+                    .Include(j => j.JobType)
+                    .ToListAsync();
+
+                dashboard.Cell("B2").Value = "TECHNICIAN PRODUCTIVITY REPORT";
+                dashboard.Range("B2:K2").Merge().Style.Font.SetBold(true).Font.SetFontSize(22).Font.SetFontColor(XLColor.AirForceBlue);
+                dashboard.Cell("B3").Value = $"Period: {startDate:yyyy-MM-dd} to {today:yyyy-MM-dd}  |  {jobs.Count} total jobs";
+                dashboard.Range("B3:K3").Merge().Style.Font.SetFontSize(11).Font.SetFontColor(XLColor.SlateGray);
+
+                // KPI row
+                var totalCompleted = jobs.Count(j => j.Status == JobStatus.Completed);
+                var techsActive = jobs.Where(j => j.AssignedTechnicianId != null).Select(j => j.AssignedTechnicianId).Distinct().Count();
+                dashboard.Cell("B5").Value = "COMPLETED JOBS"; dashboard.Cell("B6").Value = totalCompleted;
+                dashboard.Cell("E5").Value = "ACTIVE TECHNICIANS"; dashboard.Cell("E6").Value = techsActive;
+                foreach (var cell in new[] { dashboard.Cell("B6"), dashboard.Cell("E6") })
+                    cell.Style.Font.SetBold(true).Font.SetFontSize(22).Font.SetFontColor(XLColor.RoyalBlue);
+
+                // Summary table
+                dashboard.Cell(9, 2).Value = "Technician";
+                dashboard.Cell(9, 3).Value = "Total Jobs";
+                dashboard.Cell(9, 4).Value = "Completed";
+                dashboard.Cell(9, 5).Value = "On Time";
+                dashboard.Cell(9, 6).Value = "On-Time %";
+                dashboard.Cell(9, 7).Value = "Labor Cost";
+                dashboard.Range(9, 2, 9, 7).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+
+                var techGroups = jobs
+                    .Where(j => j.AssignedTechnician != null)
+                    .GroupBy(j => new { j.AssignedTechnicianId, Name = (j.AssignedTechnician!.FirstName + " " + (j.AssignedTechnician.LastName ?? "")).Trim() })
+                    .OrderByDescending(g => g.Count(x => x.Status == JobStatus.Completed))
+                    .ToList();
+
+                int tRow = 10;
+                foreach (var g in techGroups)
+                {
+                    var done = g.Count(x => x.Status == JobStatus.Completed);
+                    var onTime = g.Count(x => x.Status == JobStatus.Completed && x.ActualEndDate <= x.ScheduledEndDate);
+                    var rate = done > 0 ? (double)onTime / done : 0;
+                    var laborCost = g.Sum(x => x.LaborCost);
+
+                    dashboard.Cell(tRow, 2).Value = g.Key.Name;
+                    dashboard.Cell(tRow, 3).Value = g.Count();
+                    dashboard.Cell(tRow, 4).Value = done;
+                    dashboard.Cell(tRow, 5).Value = onTime;
+                    dashboard.Cell(tRow, 6).Value = rate;
+                    dashboard.Cell(tRow, 6).Style.NumberFormat.Format = "0%";
+                    dashboard.Cell(tRow, 7).Value = laborCost;
+                    dashboard.Cell(tRow, 7).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    tRow++;
+                }
+                dashboard.Range(9, 2, tRow - 1, 7).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                dashboard.Range(9, 2, tRow - 1, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                dashboard.Columns().AdjustToContents();
+                dashboard.Column(2).Width = 28;
+                dashboard.ShowGridLines = false;
+
+                // Detail sheet
+                var detail = workbook.Worksheets.Add("Job Detail");
+                var hdrs = new[] { "Job #", "Description", "Type", "Status", "Priority", "Technician", "Asset", "Created", "Scheduled End", "Actual End", "Timeliness", "Labor Cost" };
+                for (int i = 0; i < hdrs.Length; i++) detail.Cell(1, i + 1).Value = hdrs[i];
+                detail.Range(1, 1, 1, hdrs.Length).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+                detail.SheetView.FreezeRows(1);
+
+                int dRow = 2;
+                foreach (var job in jobs.OrderByDescending(j => j.CreatedAt))
+                {
+                    detail.Cell(dRow, 1).Value = job.JobNumber;
+                    detail.Cell(dRow, 2).Value = job.Description ?? "";
+                    detail.Cell(dRow, 3).Value = job.JobType?.Name ?? "-";
+                    detail.Cell(dRow, 4).Value = job.Status.ToString();
+                    detail.Cell(dRow, 5).Value = job.Priority.ToString();
+                    detail.Cell(dRow, 6).Value = job.AssignedTechnician != null
+                        ? (job.AssignedTechnician.FirstName + " " + (job.AssignedTechnician.LastName ?? "")).Trim()
+                        : "Unassigned";
+                    detail.Cell(dRow, 7).Value = job.Equipment?.Name ?? "-";
+                    detail.Cell(dRow, 8).Value = job.CreatedAt;
+                    detail.Cell(dRow, 9).Value = job.ScheduledEndDate;
+                    detail.Cell(dRow, 10).Value = job.ActualEndDate;
+                    var tl = job.Status == JobStatus.Completed && job.ActualEndDate.HasValue && job.ScheduledEndDate.HasValue
+                        ? (job.ActualEndDate <= job.ScheduledEndDate ? "On Time" : "Late") : "-";
+                    detail.Cell(dRow, 11).Value = tl;
+                    if (tl == "Late") detail.Cell(dRow, 11).Style.Font.FontColor = XLColor.Red;
+                    detail.Cell(dRow, 12).Value = job.LaborCost;
+                    detail.Cell(dRow, 12).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    foreach (var c in new[] { 8, 9, 10 }) detail.Cell(dRow, c).Style.DateFormat.Format = "yyyy-MM-dd";
+                    dRow++;
+                }
+                detail.Columns().AdjustToContents();
+                detail.Column(2).Width = 40;
+            }
+            else if (type == ReportType.CostAnalysis)
+            {
+                var today = DateTime.UtcNow;
+                var startDate = today.AddDays(-90);
+
+                var jobs = await context.JobCards
+                    .Where(j => j.TenantId == tenantId && j.CreatedAt >= startDate)
+                    .Include(j => j.JobType)
+                    .Include(j => j.Equipment)
+                    .ToListAsync();
+
+                var totalLabor  = jobs.Sum(j => j.LaborCost);
+                var totalParts  = jobs.Sum(j => j.PartsCost);
+                var totalDirect = jobs.Sum(j => j.DirectPurchaseCost);
+                var totalSub    = jobs.Sum(j => j.SubcontractingCost);
+                var grandTotal  = totalLabor + totalParts + totalDirect + totalSub;
+
+                dashboard.Cell("B2").Value = "COST ANALYSIS REPORT";
+                dashboard.Range("B2:K2").Merge().Style.Font.SetBold(true).Font.SetFontSize(22).Font.SetFontColor(XLColor.AirForceBlue);
+                dashboard.Cell("B3").Value = $"Period: {startDate:yyyy-MM-dd} to {today:yyyy-MM-dd}  |  {jobs.Count} jobs";
+                dashboard.Range("B3:K3").Merge().Style.Font.SetFontSize(11).Font.SetFontColor(XLColor.SlateGray);
+
+                // Cost breakdown KPIs
+                var kpis = new (string Label, decimal Value, XLColor Color)[]
+                {
+                    ("GRAND TOTAL",   grandTotal,  XLColor.RoyalBlue),
+                    ("LABOUR",        totalLabor,  XLColor.DarkGreen),
+                    ("PARTS",         totalParts,  XLColor.Orange),
+                    ("DIRECT PURCH.", totalDirect, XLColor.Purple),
+                    ("SUBCONTRACT",   totalSub,    XLColor.Red),
+                };
+
+                int kCol = 2;
+                foreach (var (label, value, color) in kpis)
+                {
+                    dashboard.Cell(5, kCol).Value = label;
+                    dashboard.Cell(6, kCol).Value = value;
+                    dashboard.Cell(6, kCol).Style.NumberFormat.Format = "\"K\"#,##0";
+                    dashboard.Cell(6, kCol).Style.Font.SetBold(true).Font.SetFontSize(18).Font.SetFontColor(color);
+                    kCol += 2;
+                }
+
+                // Cost by job type
+                dashboard.Cell(9, 2).Value = "Job Type";
+                dashboard.Cell(9, 3).Value = "Job Count";
+                dashboard.Cell(9, 4).Value = "Total Cost";
+                dashboard.Cell(9, 5).Value = "% of Total";
+                dashboard.Range(9, 2, 9, 5).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+
+                var byType = jobs
+                    .GroupBy(j => j.JobType?.Name ?? "Unassigned")
+                    .Select(g => new { Type = g.Key, Count = g.Count(), Cost = g.Sum(j => j.LaborCost + j.PartsCost + j.DirectPurchaseCost + j.SubcontractingCost) })
+                    .OrderByDescending(x => x.Cost).ToList();
+
+                int bRow = 10;
+                foreach (var t in byType)
+                {
+                    dashboard.Cell(bRow, 2).Value = t.Type;
+                    dashboard.Cell(bRow, 3).Value = t.Count;
+                    dashboard.Cell(bRow, 4).Value = t.Cost;
+                    dashboard.Cell(bRow, 4).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    dashboard.Cell(bRow, 5).Value = grandTotal > 0 ? (double)(t.Cost / grandTotal) : 0;
+                    dashboard.Cell(bRow, 5).Style.NumberFormat.Format = "0.0%";
+                    bRow++;
+                }
+                dashboard.Range(9, 2, bRow - 1, 5).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                dashboard.Range(9, 2, bRow - 1, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+
+                // Cost by asset
+                int assetColStart = 7;
+                dashboard.Cell(9, assetColStart).Value = "Asset";
+                dashboard.Cell(9, assetColStart + 1).Value = "Jobs";
+                dashboard.Cell(9, assetColStart + 2).Value = "Total Cost";
+                dashboard.Range(9, assetColStart, 9, assetColStart + 2).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+
+                var byAsset = jobs
+                    .Where(j => j.Equipment != null)
+                    .GroupBy(j => j.Equipment!.Name)
+                    .Select(g => new { Asset = g.Key, Count = g.Count(), Cost = g.Sum(j => j.LaborCost + j.PartsCost + j.DirectPurchaseCost + j.SubcontractingCost) })
+                    .OrderByDescending(x => x.Cost).Take(15).ToList();
+
+                int aRow = 10;
+                foreach (var a in byAsset)
+                {
+                    dashboard.Cell(aRow, assetColStart).Value = a.Asset;
+                    dashboard.Cell(aRow, assetColStart + 1).Value = a.Count;
+                    dashboard.Cell(aRow, assetColStart + 2).Value = a.Cost;
+                    dashboard.Cell(aRow, assetColStart + 2).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    aRow++;
+                }
+                dashboard.Range(9, assetColStart, aRow - 1, assetColStart + 2).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                dashboard.Range(9, assetColStart, aRow - 1, assetColStart + 2).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+
+                dashboard.Columns().AdjustToContents();
+                dashboard.Column(2).Width = 28; dashboard.Column(7).Width = 28;
+                dashboard.ShowGridLines = false;
+
+                // Detail sheet
+                var detail = workbook.Worksheets.Add("Cost Detail");
+                var hdrs = new[] { "Job #", "Description", "Type", "Status", "Asset", "Created", "Labour", "Parts", "Direct", "Subcontract", "Total" };
+                for (int i = 0; i < hdrs.Length; i++) detail.Cell(1, i + 1).Value = hdrs[i];
+                detail.Range(1, 1, 1, hdrs.Length).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+                detail.SheetView.FreezeRows(1);
+
+                int cRow = 2;
+                foreach (var job in jobs.OrderByDescending(j => j.CreatedAt))
+                {
+                    detail.Cell(cRow, 1).Value = job.JobNumber;
+                    detail.Cell(cRow, 2).Value = job.Description ?? "";
+                    detail.Cell(cRow, 3).Value = job.JobType?.Name ?? "-";
+                    detail.Cell(cRow, 4).Value = job.Status.ToString();
+                    detail.Cell(cRow, 5).Value = job.Equipment?.Name ?? "-";
+                    detail.Cell(cRow, 6).Value = job.CreatedAt;
+                    detail.Cell(cRow, 6).Style.DateFormat.Format = "yyyy-MM-dd";
+                    detail.Cell(cRow, 7).Value = job.LaborCost;
+                    detail.Cell(cRow, 8).Value = job.PartsCost;
+                    detail.Cell(cRow, 9).Value = job.DirectPurchaseCost;
+                    detail.Cell(cRow, 10).Value = job.SubcontractingCost;
+                    detail.Cell(cRow, 11).Value = job.LaborCost + job.PartsCost + job.DirectPurchaseCost + job.SubcontractingCost;
+                    for (int c = 7; c <= 11; c++) detail.Cell(cRow, c).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    cRow++;
+                }
+                detail.Columns().AdjustToContents();
+                detail.Column(2).Width = 40;
+            }
+            else if (type == ReportType.AssetPerformance)
+            {
+                var today = DateTime.UtcNow;
+                var startDate = today.AddDays(-90);
+
+                var jobs = await context.JobCards
+                    .Where(j => j.TenantId == tenantId && j.ActualEndDate >= startDate)
+                    .Include(j => j.Equipment)
+                    .Include(j => j.JobType)
+                    .ToListAsync();
+
+                dashboard.Cell("B2").Value = "ASSET PERFORMANCE REPORT";
+                dashboard.Range("B2:K2").Merge().Style.Font.SetBold(true).Font.SetFontSize(22).Font.SetFontColor(XLColor.AirForceBlue);
+                dashboard.Cell("B3").Value = $"Period: {startDate:yyyy-MM-dd} to {today:yyyy-MM-dd}";
+                dashboard.Range("B3:K3").Merge().Style.Font.SetFontSize(11).Font.SetFontColor(XLColor.SlateGray);
+
+                dashboard.Cell(6, 2).Value = "Asset";
+                dashboard.Cell(6, 3).Value = "Total Jobs";
+                dashboard.Cell(6, 4).Value = "Failures";
+                dashboard.Cell(6, 5).Value = "Avg Repair Time (h)";
+                dashboard.Cell(6, 6).Value = "Total Cost";
+                dashboard.Range(6, 2, 6, 6).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
+
+                var byAsset = jobs
+                    .Where(j => j.Equipment != null)
+                    .GroupBy(j => j.Equipment!.Name)
+                    .Select(g => new
+                    {
+                        Name = g.Key,
+                        Count = g.Count(),
+                        Failures = g.Count(j => j.JobType?.Name.Contains("Corrective") == true || j.JobType?.Name.Contains("Emergency") == true),
+                        AvgRepair = g.Average(j => j.ActualStartDate.HasValue && j.ActualEndDate.HasValue
+                            ? (j.ActualEndDate.Value - j.ActualStartDate.Value).TotalHours : 0),
+                        Cost = g.Sum(j => j.LaborCost + j.PartsCost + j.DirectPurchaseCost + j.SubcontractingCost)
+                    })
+                    .OrderByDescending(x => x.Cost).ToList();
+
+                int aRow = 7;
+                foreach (var a in byAsset)
+                {
+                    dashboard.Cell(aRow, 2).Value = a.Name;
+                    dashboard.Cell(aRow, 3).Value = a.Count;
+                    dashboard.Cell(aRow, 4).Value = a.Failures;
+                    dashboard.Cell(aRow, 5).Value = Math.Round(a.AvgRepair, 1);
+                    dashboard.Cell(aRow, 6).Value = a.Cost;
+                    dashboard.Cell(aRow, 6).Style.NumberFormat.Format = "\"K\"#,##0.00";
+                    if (a.Failures > 2) dashboard.Cell(aRow, 4).Style.Font.FontColor = XLColor.Red;
+                    aRow++;
+                }
+                dashboard.Range(6, 2, aRow - 1, 6).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                dashboard.Range(6, 2, aRow - 1, 6).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                dashboard.Columns().AdjustToContents(); dashboard.Column(2).Width = 30;
+                dashboard.ShowGridLines = false;
+            }
             else if (type == ReportType.DepartmentalAudit)
             {
                 var today = DateTime.UtcNow;
@@ -1112,7 +1388,7 @@ namespace AnchorPro.Services
                     dashboard.Cell(row, 4).Value = deptSpend;
                     dashboard.Cell(row, 4).Style.NumberFormat.Format = "\"K\"#,##0.00";
                     dashboard.Cell(row, 5).Value = safetyFlags;
-                    
+
                     if (safetyFlags > 0) dashboard.Cell(row, 5).Style.Font.FontColor = XLColor.Red;
                     row++;
                 }
