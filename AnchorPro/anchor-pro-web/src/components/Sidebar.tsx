@@ -12,7 +12,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { canAccess } from '@/lib/rbac';
 import { useSidebar } from '@/lib/SidebarContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { adminAccessApi } from '@/lib/api';
 
 const navSections = [
   {
@@ -61,6 +62,13 @@ export default function Sidebar() {
   const { t } = useDictionary();
   const { mobileOpen, closeSidebar } = useSidebar();
   const [userExpanded, setUserExpanded] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
+
+  useEffect(() => {
+    adminAccessApi.getStatus()
+      .then((s: any) => setImpersonating(s?.isImpersonating ?? false))
+      .catch(() => {});
+  }, []);
 
   const userRoles   = user?.roles ?? [];
   const displayName = user
@@ -132,6 +140,33 @@ export default function Sidebar() {
           </Link>
         )}
       </div>
+
+      {/* ── Impersonation banner ── */}
+      {impersonating && (
+        <div style={{
+          margin: '4px 10px',
+          background: 'rgba(245,158,11,0.12)',
+          border: '1px solid rgba(245,158,11,0.3)',
+          borderRadius: 8,
+          padding: '8px 10px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-amber)' }}>Viewing as tenant admin</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>Platform Owner session active</div>
+          </div>
+          <button
+            className="btn btn-sm"
+            style={{ fontSize: 10, background: 'rgba(245,158,11,0.2)', color: 'var(--accent-amber)', border: '1px solid rgba(245,158,11,0.3)', whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={async () => {
+              await adminAccessApi.exitImpersonation();
+              window.location.href = '/platform/tenants';
+            }}
+          >
+            Exit ↩
+          </button>
+        </div>
+      )}
 
       <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
 

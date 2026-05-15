@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Building2, Users, DollarSign, X, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Building2, Users, DollarSign, X, Loader2, RefreshCw, AlertTriangle, LogIn } from 'lucide-react';
 import { platformApi } from '@/lib/api';
 
 interface NewTenantForm {
@@ -26,7 +26,8 @@ export default function TenantsPage() {
   const [form,    setForm]        = useState<NewTenantForm>(BLANK);
   const [saving,  setSaving]      = useState(false);
   const [saveErr, setSaveErr]     = useState<string | null>(null);
-  const [actId,   setActId]       = useState<number | null>(null);
+  const [actId,      setActId]      = useState<number | null>(null);
+  const [enteringId, setEnteringId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -96,6 +97,17 @@ export default function TenantsPage() {
     }
   };
 
+  const handleEnterWorkspace = async (id: number) => {
+    setEnteringId(id);
+    try {
+      await platformApi.impersonate(id);
+      window.location.href = '/dashboard';
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to enter workspace');
+      setEnteringId(null);
+    }
+  };
+
   const totalMrr   = tenants.reduce((a, t) => a + (t.mrr ?? 0), 0);
   const totalUsers = tenants.reduce((a, t) => a + (t.userCount ?? t.users ?? 0), 0);
 
@@ -162,7 +174,7 @@ export default function TenantsPage() {
           <div className="table-scroll">
           <table className="data-table">
             <thead>
-              <tr><th>Company</th><th>Plan</th><th>Users</th><th>MRR</th><th>Joined</th><th>Status</th><th>Control</th></tr>
+              <tr><th>Company</th><th>Plan</th><th>Users</th><th>MRR</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filtered.map((t: any) => (
@@ -187,17 +199,29 @@ export default function TenantsPage() {
                     </span>
                   </td>
                   <td>
-                    {(t.status ?? '').toLowerCase() === 'active' ? (
-                      <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--accent-amber)' }}
-                        disabled={actId === t.id}
-                        onClick={() => handleSuspend(t.id, t.status)}>
-                        {actId === t.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }}/> : 'Suspend'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: 4 }}
+                        disabled={enteringId === t.id}
+                        onClick={() => handleEnterWorkspace(t.id)}
+                        title="Enter this tenant's workspace as their admin"
+                      >
+                        {enteringId === t.id
+                          ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }}/>
+                          : <LogIn size={12}/>}
+                        {enteringId === t.id ? 'Entering…' : 'Enter'}
                       </button>
-                    ) : (
-                      <button className="btn btn-ghost btn-sm" style={{ padding: 4 }}>
-                        <MoreHorizontal size={14}/>
-                      </button>
-                    )}
+                      {(t.status ?? '').toLowerCase() === 'active' ? (
+                        <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--accent-amber)' }}
+                          disabled={actId === t.id}
+                          onClick={() => handleSuspend(t.id, t.status)}>
+                          {actId === t.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }}/> : 'Suspend'}
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Suspended</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
