@@ -268,7 +268,7 @@ export default function MyJobsPage() {
               .filter(i => i.name?.toLowerCase().includes(partSearch.toLowerCase()) || i.partNumber?.toLowerCase().includes(partSearch.toLowerCase()))
               .map((item: any) => {
                 const selected = selectedPartId === item.id;
-                const outOfStock = (item.currentStock ?? item.quantityInStock ?? 0) <= 0;
+                const outOfStock = (item.currentStock ?? item.quantityInStock ?? item.quantityOnHand ?? 0) <= 0;
                 return (
                   <button
                     key={item.id}
@@ -289,7 +289,7 @@ export default function MyJobsPage() {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: outOfStock ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
-                          {outOfStock ? 'Out of stock' : `${item.currentStock ?? item.quantityInStock} in stock`}
+                          {outOfStock ? 'Out of stock' : `${item.currentStock ?? item.quantityInStock ?? item.quantityOnHand} in stock`}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>K {(item.unitCost ?? item.costPerUnit ?? 0).toLocaleString()}/u</div>
                       </div>
@@ -305,7 +305,7 @@ export default function MyJobsPage() {
           {/* Quantity */}
           {selectedPartId && (() => {
             const item = inventoryItems.find(i => i.id === selectedPartId);
-            const maxStock = item?.currentStock ?? item?.quantityInStock ?? 1;
+            const maxStock = item?.currentStock ?? item?.quantityInStock ?? item?.quantityOnHand ?? 1;
             return (
               <div style={{ padding: 14, borderRadius: 8, background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue)' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
