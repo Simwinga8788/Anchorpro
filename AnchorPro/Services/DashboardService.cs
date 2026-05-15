@@ -94,9 +94,11 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var startDate = DateTime.UtcNow.AddDays(-days);
 
-            // Fetch completed jobs in the period with related tasks and downtime for Net Calculation
+            // Fetch completed jobs in the period. Exclude jobs assigned to cross-tenant users
+            // (e.g. Platform Owner who impersonated and self-assigned a job).
             var completedJobs = await context.JobCards
-                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate
+                         && (j.AssignedTechnicianId == null || j.AssignedTechnician!.TenantId == TenantId))
                 .Select(j => new 
                 {
                     j.JobNumber,

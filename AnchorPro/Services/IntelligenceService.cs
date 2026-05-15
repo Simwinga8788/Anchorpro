@@ -50,14 +50,16 @@ namespace AnchorPro.Services
             if (daysCount < 1) daysCount = 1;
             var availableHours = daysCount * 8.0;
 
-            // Fetch summary data to memory to avoid translation issues with TotalHours calculation in SQL
+            // Fetch summary data to memory to avoid translation issues with TotalHours calculation in SQL.
+            // Also filter out cross-tenant technicians (e.g. Platform Owner who impersonated and self-assigned).
             var data = await context.JobCards
-                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate
+                         && j.AssignedTechnician != null && j.AssignedTechnician.TenantId == TenantId)
                 .Select(j => new
                 {
                     j.AssignedTechnicianId,
-                    FirstName = j.AssignedTechnician != null ? j.AssignedTechnician.FirstName : "Unassigned",
-                    LastName = j.AssignedTechnician != null ? j.AssignedTechnician.LastName : "",
+                    FirstName = j.AssignedTechnician!.FirstName,
+                    LastName = j.AssignedTechnician!.LastName ?? "",
                     j.ActualStartDate,
                     j.ActualEndDate,
                     j.LaborCost
