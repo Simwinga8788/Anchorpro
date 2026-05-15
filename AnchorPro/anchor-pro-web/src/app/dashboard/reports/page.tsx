@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { reportingApi, intelligenceApi, downtimeApi } from '@/lib/api';
+import { reportingApi, intelligenceApi, dashboardApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -39,10 +39,12 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const scheduledReports = useApiData(() => reportingApi.getSchedules());
-  const jobCompletion    = useApiData(() => intelligenceApi.getSummary());
-  const techPerformance  = useApiData(() => intelligenceApi.getTechnicianUtilization(90));
-  const downtimeAnalysis = useApiData(() => intelligenceApi.getBottlenecks(90));
+  const scheduledReports  = useApiData(() => reportingApi.getSchedules());
+  const jobCompletion     = useApiData(() => intelligenceApi.getSummary());
+  const techPerformance   = useApiData(() => intelligenceApi.getTechnicianUtilization(90));
+  const downtimeAnalysis  = useApiData(() => intelligenceApi.getBottlenecks(90));
+  const performanceData   = useApiData(() => dashboardApi.getPerformance(90));
+  const dashboardStats    = useApiData(() => dashboardApi.getStats());
   const [exporting, setExporting] = useState<string | null>(null);
 
   const downloadReport = async (type: string, filename: string) => {
@@ -71,12 +73,26 @@ export default function ReportsPage() {
     jobCompletion.refresh();
     techPerformance.refresh();
     downtimeAnalysis.refresh();
+    performanceData.refresh();
+    dashboardStats.refresh();
   };
 
   // ── Job Completion derived data (ExecutiveKpiSummary) ──
   const jc = jobCompletion.data as any;
-  const completionTrend: Array<{ date: string; count: number }> = []; // summary endpoint has no trend array
-  const typeDistribution: Array<{ name: string; value: number }> = []; // no type breakdown in summary
+
+  const perf = performanceData.data as any;
+  const completionTrend: Array<{ date: string; count: number }> =
+    (Array.isArray(perf?.completionTrend) ? perf.completionTrend : []).map((t: any) => ({
+      date: t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '',
+      count: t.completedCount ?? 0,
+    }));
+
+  const ds = dashboardStats.data as any;
+  const typeDistribution: Array<{ name: string; value: number }> =
+    (Array.isArray(ds?.jobTypeDistribution) ? ds.jobTypeDistribution : []).map((t: any) => ({
+      name: t.jobTypeName ?? 'Unknown',
+      value: t.count ?? 0,
+    }));
 
   const completionRate: number = jc?.avgMarginPercent ?? 0;
   const totalCompleted: number = jc?.activeJobsCount ?? 0;
@@ -185,7 +201,7 @@ export default function ReportsPage() {
             <span className="badge badge-green">Live</span>
           </div>
           <div style={{ padding: '16px 4px 10px' }}>
-            {jobCompletion.loading ? (
+            {performanceData.loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 16px' }}>
                 <Skeleton /><Skeleton w="80%" /><Skeleton w="60%" />
               </div>
@@ -225,7 +241,7 @@ export default function ReportsPage() {
             <span className="badge badge-blue">Analytics</span>
           </div>
           <div style={{ padding: '16px 0 10px' }}>
-            {jobCompletion.loading ? (
+            {dashboardStats.loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 16px' }}>
                 <Skeleton /><Skeleton w="80%" /><Skeleton w="60%" />
               </div>

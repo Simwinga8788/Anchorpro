@@ -9,17 +9,21 @@ namespace AnchorPro.Services
     public class IntelligenceService : IIntelligenceService
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly ICurrentTenantService _tenant;
 
-        public IntelligenceService(IDbContextFactory<ApplicationDbContext> factory)
+        public IntelligenceService(IDbContextFactory<ApplicationDbContext> factory, ICurrentTenantService tenant)
         {
             _factory = factory;
+            _tenant  = tenant;
         }
+
+        private int? TenantId => _tenant.TenantId;
 
         public async Task<List<JobProfitabilityReport>> GetProfitabilityReportAsync(DateTime startDate, DateTime endDate)
         {
             using var context = _factory.CreateDbContext();
             return await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .Include(j => j.Customer)
                 .Select(j => new JobProfitabilityReport
                 {
@@ -48,7 +52,7 @@ namespace AnchorPro.Services
 
             // Fetch summary data to memory to avoid translation issues with TotalHours calculation in SQL
             var data = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .Select(j => new
                 {
                     j.AssignedTechnicianId,
@@ -84,11 +88,11 @@ namespace AnchorPro.Services
         {
             using var context = _factory.CreateDbContext();
             var totalRevenue = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .SumAsync(j => j.InvoiceAmount);
 
             var report = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .Include(j => j.Customer)
                 .GroupBy(j => j.Customer != null ? j.Customer.Name : "Walk-in/Internal")
                 .Select(g => new RevenueByCustomerReport
@@ -120,7 +124,7 @@ namespace AnchorPro.Services
 
             // Fetch to memory to handle complex calculations and string filtering
             var data = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .Select(j => new
                 {
                     j.EquipmentId,
@@ -162,7 +166,7 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             
             var data = await context.JobCardParts
-                .Where(p => p.JobCard!.Status == JobStatus.Completed && p.JobCard.ActualEndDate >= startDate && p.JobCard.ActualEndDate <= endDate)
+                .Where(p => p.JobCard!.TenantId == TenantId && p.JobCard.Status == JobStatus.Completed && p.JobCard.ActualEndDate >= startDate && p.JobCard.ActualEndDate <= endDate)
                 .Select(p => new
                 {
                     PartName = p.InventoryItem != null ? p.InventoryItem.Name : "Unknown Item",
@@ -192,15 +196,15 @@ namespace AnchorPro.Services
             var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
             
             var completedThisMonth = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startOfMonth)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startOfMonth)
                 .ToListAsync();
 
             var summary = new ExecutiveKpiSummary
             {
                 MonthlyRevenue = completedThisMonth.Sum(j => j.InvoiceAmount),
                 MonthlyProfit = completedThisMonth.Sum(j => j.Profit),
-                ActiveJobsCount = await context.JobCards.CountAsync(j => j.Status == JobStatus.InProgress),
-                OverdueJobsCount = await context.JobCards.CountAsync(j => j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled && j.ScheduledEndDate < DateTime.UtcNow)
+                ActiveJobsCount = await context.JobCards.CountAsync(j => j.TenantId == TenantId && j.Status == JobStatus.InProgress),
+                OverdueJobsCount = await context.JobCards.CountAsync(j => j.TenantId == TenantId && j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled && j.ScheduledEndDate < DateTime.UtcNow)
             };
 
             if (summary.MonthlyRevenue > 0)
@@ -223,11 +227,11 @@ namespace AnchorPro.Services
 
             // Total operational cost during period
             var totalSpend = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate)
                 .SumAsync(j => j.TotalCost);
 
             var rawData = await context.JobCards
-                .Where(j => j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate && j.SubcontractingCost > 0)
+                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.ActualEndDate >= startDate && j.ActualEndDate <= endDate && j.SubcontractingCost > 0)
                 // Note: Assuming supplier is tracked via PurchaseOrders or a specific Supplier table. If not explicitly linked in JobCard natively, 
                 // we'll group them as "External Subcontractors".
                 .Select(j => new
@@ -256,7 +260,7 @@ namespace AnchorPro.Services
             
             var downtimeEntries = await context.DowntimeEntries
                 .Include(d => d.DowntimeCategory)
-                .Where(d => d.StartTime >= startDate && d.StartTime <= endDate)
+                .Where(d => d.JobTask!.JobCard!.TenantId == TenantId && d.StartTime >= startDate && d.StartTime <= endDate)
                 .ToListAsync();
 
             var totalDowntimeMinutes = downtimeEntries.Sum(d => d.DurationMinutes);
