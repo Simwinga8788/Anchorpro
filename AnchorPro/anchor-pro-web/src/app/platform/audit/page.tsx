@@ -133,7 +133,7 @@ export default function AuditLogsPage() {
             {logs.map((log: any, i: number) => {
               const level = levelFromAction(log.action ?? '');
               const lc = levelConfig[level] ?? levelConfig['info'];
-              const module = log.module ?? 'System';
+              const logModule = log.module ?? 'System';
               return (
                 <div key={log.id ?? i} style={{
                   padding: '14px 20px',
@@ -146,7 +146,7 @@ export default function AuditLogsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{log.action}</span>
                       <span className="badge badge-muted" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
-                        {categoryIcon[module] ?? <Activity size={11}/>} {module}
+                        {categoryIcon[logModule] ?? <Activity size={11}/>} {logModule}
                       </span>
                     </div>
                     {(log.oldValue || log.newValue) && (

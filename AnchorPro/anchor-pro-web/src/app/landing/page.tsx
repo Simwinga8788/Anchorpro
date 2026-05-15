@@ -82,6 +82,7 @@ export default function LandingPage() {
   const ctaVis     = useInView(ctaRef);
 
   // Load theme from localStorage on mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ap-theme');

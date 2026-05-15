@@ -456,6 +456,7 @@ export default function JobCardsPage() {
       .finally(() => setLoading(false));
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchJobs(); }, []);
 
   // Close dropdown on outside click

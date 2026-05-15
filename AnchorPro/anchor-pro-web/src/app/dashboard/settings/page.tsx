@@ -350,7 +350,7 @@ export default function SettingsPage() {
              This action cannot be undone. This will permanently delete the <strong>Anchor Pro</strong> workspace, all job cards, inventory databases, and remove all team member associations.
            </p>
            <div className="form-field">
-             <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type "PERMANENTLY DELETE" to confirm</label>
+             <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type &quot;PERMANENTLY DELETE&quot; to confirm</label>
              <input className="form-input" placeholder="" />
            </div>
            <button className="btn btn-primary" style={{ background: 'var(--accent-rose)', border: 'none', width: '100%', marginTop: 20 }}>Delete Everything</button>
@@ -579,7 +579,7 @@ export default function SettingsPage() {
                  ].map(term => (
                    <div key={term.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ width: '40%' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Terminal Default: "{term.default}"</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Terminal Default: &quot;{term.default}&quot;</div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{term.hint}</div>
                       </div>
                       <div style={{ width: '55%' }}>

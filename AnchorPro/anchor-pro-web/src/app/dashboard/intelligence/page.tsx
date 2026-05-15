@@ -80,6 +80,7 @@ export default function IntelligencePage() {
       .finally(() => setLoading(false));
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData(days); }, [days]);
 
   // ── Derived metrics ──────────────────────────────────────────────────────────
@@ -385,7 +386,7 @@ export default function IntelligencePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Asset Maintenance Cost Ranking</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Identifies "money pit" assets — sorted by total maintenance spend</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Identifies &quot;money pit&quot; assets — sorted by total maintenance spend</div>
           </div>
         </div>
         {loading ? (

@@ -160,7 +160,7 @@ export default function SafetyPage() {
             {loading ? (
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0' }}>Loading safety records...</td></tr>
             ) : permits.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No permits issued yet. Click "Issue Permit" to create one.</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No permits issued yet. Click &quot;Issue Permit&quot; to create one.</td></tr>
             ) : permits.map(p => {
               const statusInfo = permitStatusMap[p.status] || { label: 'Unknown', badge: 'badge-muted' };
               return (

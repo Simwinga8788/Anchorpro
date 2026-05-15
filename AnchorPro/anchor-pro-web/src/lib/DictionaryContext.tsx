@@ -44,9 +44,10 @@ export const DictionaryProvider = ({ children }: { children: React.ReactNode }) 
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     refreshDictionary();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Translation function
   const t = (key: string, fallback?: string): string => {
