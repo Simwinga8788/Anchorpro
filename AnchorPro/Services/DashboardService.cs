@@ -24,37 +24,38 @@ namespace AnchorPro.Services
         {
             using var context = _factory.CreateDbContext();
             var today = DateTime.UtcNow.Date;
+            var tid = TenantId;
 
             // Run these efficiently
             var stats = new DashboardStats();
 
             stats.JobsScheduledToday = await context.JobCards
-                .CountAsync(j => j.TenantId == TenantId && j.Status == JobStatus.Scheduled && j.ScheduledStartDate.HasValue && j.ScheduledStartDate.Value.Date == today);
+                .CountAsync(j => (tid == null || j.TenantId == tid) && j.Status == JobStatus.Scheduled && j.ScheduledStartDate.HasValue && j.ScheduledStartDate.Value.Date == today);
 
             stats.JobsInProgress = await context.JobCards
-                .CountAsync(j => j.TenantId == TenantId && j.Status == JobStatus.InProgress);
+                .CountAsync(j => (tid == null || j.TenantId == tid) && j.Status == JobStatus.InProgress);
 
             stats.JobsCompletedToday = await context.JobCards
-                .CountAsync(j => j.TenantId == TenantId && j.Status == JobStatus.Completed && j.UpdatedAt.HasValue && j.UpdatedAt.Value.Date == today);
+                .CountAsync(j => (tid == null || j.TenantId == tid) && j.Status == JobStatus.Completed && j.UpdatedAt.HasValue && j.UpdatedAt.Value.Date == today);
 
             // Active Techs: Technicians who have at least one InProgress job
             stats.ActiveTechnicians = await context.JobCards
-                .Where(j => j.TenantId == TenantId && j.Status == JobStatus.InProgress && j.AssignedTechnicianId != null)
+                .Where(j => (tid == null || j.TenantId == tid) && j.Status == JobStatus.InProgress && j.AssignedTechnicianId != null)
                 .Select(j => j.AssignedTechnicianId)
                 .Distinct()
                 .CountAsync();
 
             stats.OverdueJobs = await context.JobCards
-                .CountAsync(j => j.TenantId == TenantId && j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled
+                .CountAsync(j => (tid == null || j.TenantId == tid) && j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled
                                  && j.ScheduledEndDate.HasValue && j.ScheduledEndDate.Value < DateTime.UtcNow);
 
             // 3.2 Delayed Job: Status is OnHold OR has active (open-ended) DowntimeEntry
             stats.DelayedJobs = await context.JobCards
-                .CountAsync(j => j.TenantId == TenantId && (j.Status == JobStatus.OnHold ||
+                .CountAsync(j => (tid == null || j.TenantId == tid) && (j.Status == JobStatus.OnHold ||
                                  j.JobTasks.Any(t => t.DowntimeEntries.Any(d => !d.EndTime.HasValue))));
 
             stats.RecentActivity = await context.JobCards
-                .Where(j => j.TenantId == TenantId)
+                .Where(j => (tid == null || j.TenantId == tid))
                 .Include(j => j.JobType)
                 .Include(j => j.Equipment)
                 .Include(j => j.AssignedTechnician)
@@ -64,7 +65,7 @@ namespace AnchorPro.Services
                 .ToListAsync();
 
             var distribution = await context.JobCards
-                .Where(j => j.TenantId == TenantId)
+                .Where(j => (tid == null || j.TenantId == tid))
                 .Include(j => j.JobType)
                 .GroupBy(j => j.JobType != null ? j.JobType.Name : "Unassigned")
                 .Select(g => new JobTypeStat { JobTypeName = g.Key, Count = g.Count() })
@@ -72,12 +73,12 @@ namespace AnchorPro.Services
 
             stats.JobTypeDistribution = distribution;
 
-            stats.TotalJobs = await context.JobCards.CountAsync(j => j.TenantId == TenantId);
-            stats.CompletedJobs = await context.JobCards.CountAsync(j => j.TenantId == TenantId && j.Status == JobStatus.Completed);
+            stats.TotalJobs = await context.JobCards.CountAsync(j => (tid == null || j.TenantId == tid));
+            stats.CompletedJobs = await context.JobCards.CountAsync(j => (tid == null || j.TenantId == tid) && j.Status == JobStatus.Completed);
 
             // Fetch Active Breakdowns (Corrective, Emergency, or Repair that are not completed)
             stats.ActiveBreakdowns = await context.JobCards
-                .Where(j => j.TenantId == TenantId && j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled)
+                .Where(j => (tid == null || j.TenantId == tid) && j.Status != JobStatus.Completed && j.Status != JobStatus.Cancelled)
                 .Include(j => j.JobType)
                 .Include(j => j.Equipment)
                 .Where(j => j.JobType.Name.Contains("Corrective") || j.JobType.Name.Contains("Emergency") || j.JobType.Name.Contains("Repair"))
