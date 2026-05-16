@@ -49,7 +49,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("{id}/read")]
         public async Task<ActionResult> MarkAsRead(int id)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _alertService.MarkAsReadAsync(id, userId);
             return Ok(new { message = $"Alert {id} marked as read." });
         }
@@ -62,7 +62,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("dismiss-all")]
         public async Task<ActionResult> DismissAll()
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _alertService.DismissAllAsync(userId);
             return Ok(new { message = "All alerts dismissed." });
         }

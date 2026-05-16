@@ -54,7 +54,7 @@ namespace AnchorPro.Controllers
         [HttpPost("permits")]
         public async Task<ActionResult> Create([FromBody] PermitToWork permit)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _safetyService.CreatePermitAsync(permit, userId);
             return CreatedAtAction(nameof(GetById), new { id = permit.Id }, permit);
         }
@@ -67,7 +67,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("permits/{id}/status")]
         public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdatePermitStatusRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _safetyService.UpdatePermitStatusAsync(id, req.Status, req.ClosureNotes, userId);
             return NoContent();
         }

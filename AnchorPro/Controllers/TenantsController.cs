@@ -103,7 +103,7 @@ namespace AnchorPro.Controllers
                 return StatusCode(403, new { message = "Platform Owner access required." });
 
             tenant.CreatedAt = DateTime.UtcNow;
-            tenant.CreatedBy = User.Identity?.Name ?? "API_User";
+            tenant.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             _context.Tenants.Add(tenant);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = tenant.Id }, tenant);
@@ -129,7 +129,7 @@ namespace AnchorPro.Controllers
             existing.ContactEmail = tenant.ContactEmail;
             existing.ContactPhone = tenant.ContactPhone;
             existing.UpdatedAt = DateTime.UtcNow;
-            existing.UpdatedBy = User.Identity?.Name ?? "API_User";
+            existing.UpdatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -150,7 +150,7 @@ namespace AnchorPro.Controllers
 
             tenant.IsActive = false;
             tenant.UpdatedAt = DateTime.UtcNow;
-            tenant.UpdatedBy = User.Identity?.Name ?? "API_User";
+            tenant.UpdatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Tenant '{tenant.Name}' deactivated." });
@@ -171,7 +171,7 @@ namespace AnchorPro.Controllers
 
             tenant.IsActive = true;
             tenant.UpdatedAt = DateTime.UtcNow;
-            tenant.UpdatedBy = User.Identity?.Name ?? "API_User";
+            tenant.UpdatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Tenant '{tenant.Name}' activated." });
@@ -218,7 +218,7 @@ namespace AnchorPro.Controllers
                 NextBillingDate = now.AddMonths(1),
                 TrialEndDate = req.IsTrial ? now.AddDays(30) : null,
                 CreatedAt = now,
-                CreatedBy = User.Identity?.Name ?? "API_User"
+                CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User"
             };
 
             _context.TenantSubscriptions.Add(subscription);

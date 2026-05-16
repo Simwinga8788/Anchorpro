@@ -69,7 +69,7 @@ namespace AnchorPro.Controllers
         [HttpPost("jobtypes")]
         public async Task<ActionResult> CreateJobType([FromBody] JobType item)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _refService.CreateJobTypeAsync(item, userId);
             return Ok(item);
         }
@@ -77,7 +77,7 @@ namespace AnchorPro.Controllers
         [HttpPost("downtimecategories")]
         public async Task<ActionResult> CreateDowntimeCategory([FromBody] DowntimeCategory item)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _refService.CreateDowntimeCategoryAsync(item, userId);
             return Ok(item);
         }

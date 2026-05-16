@@ -68,7 +68,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,Supervisor,Planner")]
         public async Task<ActionResult> Create([FromBody] JobCard jobCard)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _jobService.CreateJobCardAsync(jobCard, userId);
             return CreatedAtAction(nameof(GetById), new { id = jobCard.Id }, jobCard);
         }
@@ -79,7 +79,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Update(int id, [FromBody] JobCard jobCard)
         {
             if (id != jobCard.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _jobService.UpdateJobCardAsync(jobCard, userId);
             return NoContent();
         }
@@ -103,7 +103,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("{id}/status")]
         public async Task<ActionResult> UpdateStatus(int id, [FromBody] JobStatus status)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _jobService.UpdateJobStatusAsync(id, status, userId);
             return NoContent();
         }
@@ -143,7 +143,7 @@ namespace AnchorPro.Controllers
         [HttpPost("{id}/parts")]
         public async Task<ActionResult> AddPart(int id, [FromBody] AddPartRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _jobService.AddPartToJobAsync(id, req.InventoryItemId, req.Quantity, userId);
             return Ok();
         }
@@ -168,7 +168,7 @@ namespace AnchorPro.Controllers
         {
             attachment.JobCardId = id;
             attachment.CreatedAt = DateTime.UtcNow;
-            attachment.CreatedBy = User.Identity?.Name ?? "API_User";
+            attachment.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _jobService.AddAttachmentAsync(attachment);
             return Ok(attachment);
         }

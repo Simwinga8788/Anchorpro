@@ -40,7 +40,7 @@ namespace AnchorPro.Controllers
         [HttpPost("schedules")]
         public async Task<ActionResult> CreateSchedule([FromBody] ReportDefinition report)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             report.CreatedAt = DateTime.UtcNow;
             report.CreatedBy = userId;
             await _reportingService.SaveReportDefinitionAsync(report);

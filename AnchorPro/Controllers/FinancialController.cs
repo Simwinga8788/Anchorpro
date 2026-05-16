@@ -83,7 +83,7 @@ namespace AnchorPro.Controllers
         [HttpPost("invoices/from-job/{jobId}")]
         public async Task<ActionResult<Invoice>> CreateFromJob(int jobId)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var invoice = await _financialService.CreateInvoiceFromJobAsync(jobId, userId);
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
         }
@@ -92,7 +92,7 @@ namespace AnchorPro.Controllers
         [HttpPost("invoices")]
         public async Task<ActionResult> CreateAdHoc([FromBody] Invoice invoice)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _financialService.CreateAdHocInvoiceAsync(invoice, userId);
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
         }
@@ -105,7 +105,7 @@ namespace AnchorPro.Controllers
         [HttpPost("invoices/from-contract/{contractId}")]
         public async Task<ActionResult> CreateFromContract(int contractId)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var contract = await _contractService.GetContractByIdAsync(contractId);
             if (contract == null) return NotFound(new { message = $"Contract {contractId} not found." });
             if (contract.Status != ContractStatus.Active)
@@ -144,7 +144,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("invoices/{id}/cancel")]
         public async Task<ActionResult> CancelInvoice(int id)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var invoice = await _financialService.GetInvoiceByIdAsync(id);
             if (invoice == null) return NotFound();
             if (invoice.PaymentStatus == InvoicePaymentStatus.Paid)
@@ -164,7 +164,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> UpdateInvoice(int id, [FromBody] Invoice invoice)
         {
             if (id != invoice.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _financialService.UpdateInvoiceAsync(invoice, userId);
             return NoContent();
         }
@@ -183,7 +183,7 @@ namespace AnchorPro.Controllers
         [HttpPost("payments")]
         public async Task<ActionResult> RecordPayment([FromBody] InvoicePayment payment)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _financialService.RecordPaymentAsync(payment, userId);
             return Ok();
         }

@@ -46,7 +46,7 @@ namespace AnchorPro.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] DowntimeEntry entry)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _downtimeService.CreateDowntimeEntryAsync(entry, userId);
             return Ok(entry);
         }
@@ -59,7 +59,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Update(int id, [FromBody] DowntimeEntry entry)
         {
             if (id != entry.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _downtimeService.UpdateDowntimeEntryAsync(entry, userId);
             return NoContent();
         }

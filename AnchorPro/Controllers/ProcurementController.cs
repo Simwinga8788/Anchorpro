@@ -46,7 +46,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,Purchasing,Storeman")]
         public async Task<ActionResult<PurchaseOrder>> CreatePurchaseOrder([FromBody] CreatePurchaseOrderRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var created = await _procurementService.CreatePurchaseOrderAsync(req.PurchaseOrder, req.Items, userId);
             return CreatedAtAction(nameof(GetPurchaseOrderById), new { id = created.Id }, created);
         }
@@ -58,7 +58,7 @@ namespace AnchorPro.Controllers
         [HttpPatch("orders/{id}/status")]
         public async Task<ActionResult> UpdateOrderStatus(int id, [FromBody] PurchaseOrderStatus status)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _procurementService.UpdatePurchaseOrderStatusAsync(id, status, userId);
             return NoContent();
         }
@@ -72,7 +72,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,Purchasing,Storeman")]
         public async Task<ActionResult> ReceiveItems(int id, [FromBody] List<ReceiveItemRequest> items)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var tuples = items.Select(i => (i.ItemId, i.Quantity)).ToList();
             await _procurementService.ReceiveItemsAsync(id, tuples, userId);
             return NoContent();
@@ -97,7 +97,7 @@ namespace AnchorPro.Controllers
         [HttpPost("suppliers")]
         public async Task<ActionResult> CreateSupplier([FromBody] Supplier supplier)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _procurementService.CreateSupplierAsync(supplier, userId);
             return CreatedAtAction(nameof(GetSupplierById), new { id = supplier.Id }, supplier);
         }
@@ -107,7 +107,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> UpdateSupplier(int id, [FromBody] Supplier supplier)
         {
             if (id != supplier.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _procurementService.UpdateSupplierAsync(supplier, userId);
             return NoContent();
         }

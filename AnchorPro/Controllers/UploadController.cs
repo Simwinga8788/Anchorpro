@@ -192,7 +192,7 @@ namespace AnchorPro.Controllers
             // Save to disk: wwwroot/uploads/jobs/{jobId}/
             var safeFile = new PhoneSafeFormFile(file, safeFileName, resolvedMime);
             var relativePath = await _fileService.SaveFormFileAsync(safeFile, $"jobs/{jobId}");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
 
             var attachment = new JobAttachment
             {

@@ -35,7 +35,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,Storeman,Purchasing")]
         public async Task<ActionResult> Create([FromBody] InventoryItem item)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _inventoryService.CreateItemAsync(item, userId);
             return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
         }
@@ -46,7 +46,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Update(int id, [FromBody] InventoryItem item)
         {
             if (id != item.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _inventoryService.UpdateItemAsync(item, userId);
             return NoContent();
         }
@@ -69,7 +69,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,Storeman,Purchasing")]
         public async Task<ActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _inventoryService.AdjustStockAsync(id, req.QuantityAdjustment, userId, req.Reason);
             return NoContent();
         }
@@ -82,7 +82,7 @@ namespace AnchorPro.Controllers
         [HttpPost("{id}/reserve")]
         public async Task<ActionResult> ReserveStock(int id, [FromBody] ReserveStockRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             string reason = $"Reservation for Job #{req.JobCardId}";
             await _inventoryService.AdjustStockAsync(id, -req.Quantity, userId, reason);
             return NoContent();

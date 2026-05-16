@@ -53,7 +53,7 @@ namespace AnchorPro.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] Equipment equipment)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _service.CreateEquipmentAsync(equipment, userId);
             return CreatedAtAction(nameof(GetById), new { id = equipment.Id }, equipment);
         }
@@ -63,7 +63,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Update(int id, [FromBody] Equipment equipment)
         {
             if (id != equipment.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _service.UpdateEquipmentAsync(equipment, userId);
             return NoContent();
         }

@@ -47,7 +47,7 @@ namespace AnchorPro.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] Contract contract)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _contractService.CreateContractAsync(contract, userId);
             return CreatedAtAction(nameof(GetById), new { id = contract.Id }, contract);
         }
@@ -57,7 +57,7 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Update(int id, [FromBody] Contract contract)
         {
             if (id != contract.Id) return BadRequest("ID mismatch.");
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _contractService.UpdateContractAsync(contract, userId);
             return NoContent();
         }
@@ -66,7 +66,7 @@ namespace AnchorPro.Controllers
         [HttpPost("{id}/cancel")]
         public async Task<ActionResult> Cancel(int id)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _contractService.CancelContractAsync(id, userId);
             return NoContent();
         }

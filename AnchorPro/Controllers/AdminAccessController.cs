@@ -177,7 +177,7 @@ namespace AnchorPro.Controllers
             {
                 isImpersonating,
                 originalPlatformOwner = isImpersonating ? impersonatorEmail : null,
-                currentUser = User.Identity?.Name
+                currentUser = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
             });
         }
 

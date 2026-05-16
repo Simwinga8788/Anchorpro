@@ -172,7 +172,7 @@ namespace AnchorPro.Controllers
                 DepartmentId = req.DepartmentId,
                 EmailConfirmed = true,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = User.Identity?.Name ?? "API_User"
+                CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User"
             };
 
             var result = await _userManager.CreateAsync(user, req.Password);
@@ -205,7 +205,7 @@ namespace AnchorPro.Controllers
             user.HourlyRate = req.HourlyRate;
             user.DepartmentId = req.DepartmentId;
             user.UpdatedAt = DateTime.UtcNow;
-            user.UpdatedBy = User.Identity?.Name ?? "API_User";
+            user.UpdatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

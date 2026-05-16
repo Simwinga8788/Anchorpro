@@ -65,7 +65,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,PlatformOwner")]
         public async Task<ActionResult> Upgrade([FromBody] UpgradeRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var success = await _subscriptionService.UpgradeSubscriptionAsync(1, req.NewPlanId, userId);
             return success ? Ok(new { message = "Subscription upgraded." }) : BadRequest("Upgrade failed.");
         }
@@ -116,7 +116,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "PlatformOwner")]
         public async Task<ActionResult> Suspend(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _lifecycleService.SuspendSubscriptionAsync(subscriptionId, req.Reason, userId);
             return NoContent();
         }
@@ -129,7 +129,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "PlatformOwner")]
         public async Task<ActionResult> Reactivate(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _lifecycleService.ReactivateSubscriptionAsync(subscriptionId, userId, req.Reason);
             return NoContent();
         }
@@ -142,7 +142,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "PlatformOwner")]
         public async Task<ActionResult> Cancel(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _lifecycleService.CancelSubscriptionAsync(subscriptionId, req.Reason, userId);
             return NoContent();
         }
@@ -156,7 +156,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "PlatformOwner")]
         public async Task<ActionResult> ConvertTrial(int subscriptionId, [FromBody] UpgradeRequest req)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _lifecycleService.ConvertTrialToPaidAsync(subscriptionId, req.NewPlanId, userId);
             return NoContent();
         }

@@ -38,7 +38,7 @@ namespace AnchorPro.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] JobTask task)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _taskService.CreateTaskAsync(task, userId);
             return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
         }
@@ -50,7 +50,7 @@ namespace AnchorPro.Controllers
             {
                 return BadRequest("ID mismatch");
             }
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _taskService.UpdateTaskAsync(task, userId);
             return NoContent();
         }
@@ -58,7 +58,7 @@ namespace AnchorPro.Controllers
         [HttpPost("{id}/complete")]
         public async Task<ActionResult> Complete(int id)
         {
-            var userId = User.Identity?.Name ?? "API_User";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             await _taskService.CompleteTaskAsync(id, userId);
             return NoContent();
         }
