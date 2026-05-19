@@ -9,7 +9,7 @@ namespace AnchorPro.Services.Interfaces
         Task CreateTaskAsync(JobTask jobTask, string userId);
         Task UpdateTaskAsync(JobTask jobTask, string userId);
         Task DeleteTaskAsync(int id);
-        Task CompleteTaskAsync(int taskId, string userId);
+        Task CompleteTaskAsync(int taskId, string userId, bool isCompleted = true);
         Task<List<JobTask>> GetAllTasksAsync();
     }
 }

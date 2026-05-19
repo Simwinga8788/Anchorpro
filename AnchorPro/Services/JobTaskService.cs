@@ -73,14 +73,14 @@ namespace AnchorPro.Services
             }
         }
 
-        public async Task CompleteTaskAsync(int taskId, string userId)
+        public async Task CompleteTaskAsync(int taskId, string userId, bool isCompleted = true)
         {
             using var context = _factory.CreateDbContext();
             var task = await context.JobTasks.FindAsync(taskId);
             if (task != null)
             {
-                task.IsCompleted = true;
-                task.CompletedAt = DateTime.UtcNow;
+                task.IsCompleted = isCompleted;
+                task.CompletedAt = isCompleted ? DateTime.UtcNow : null;
                 task.UpdatedAt = DateTime.UtcNow;
                 task.UpdatedBy = userId;
                 await context.SaveChangesAsync();

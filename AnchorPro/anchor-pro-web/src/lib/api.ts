@@ -218,7 +218,7 @@ export const dashboardApi = {
   updateJobStatus:             (id: number, status: any) => jobCardsApi.updateStatus(id, status),
   addPartToJob:                (jobCardId: number, inventoryItemId: number, quantity: number) =>
     jobCardsApi.addPart(jobCardId, { inventoryItemId, quantity }),
-  updateJobTaskStatus:         (taskId: number, _isCompleted: boolean) => jobTasksApi.complete(taskId),
+  updateJobTaskStatus:         (taskId: number, isCompleted: boolean) => jobTasksApi.complete(taskId, isCompleted),
   getAllDowntime:               ()                    => downtimeApi.getAll(),
   reportDowntime:              (data: any)           => downtimeApi.create(data),
   resolveDowntime:             (id: number)          => downtimeApi.update(id, { resolved: true }),
@@ -259,7 +259,7 @@ export const jobTasksApi = {
   getById:   (id: number)            => apiFetch<any>(`/api/jobtasks/${id}`),
   create:    (data: any)             => apiPost<any>('/api/jobtasks', data),
   update:    (id: number, data: any) => apiPut<any>(`/api/jobtasks/${id}`, data),
-  complete:  (id: number)            => apiPost<any>(`/api/jobtasks/${id}/complete`, {}),
+  complete:  (id: number, isCompleted: boolean) => apiPost<any>(`/api/jobtasks/${id}/complete?isCompleted=${isCompleted}`, {}),
   delete:    (id: number)            => apiDelete(`/api/jobtasks/${id}`),
 };
 

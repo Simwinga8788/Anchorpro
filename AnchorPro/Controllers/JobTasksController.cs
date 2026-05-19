@@ -56,10 +56,10 @@ namespace AnchorPro.Controllers
         }
 
         [HttpPost("{id}/complete")]
-        public async Task<ActionResult> Complete(int id)
+        public async Task<ActionResult> Complete(int id, [FromQuery] bool isCompleted = true)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            await _taskService.CompleteTaskAsync(id, userId);
+            await _taskService.CompleteTaskAsync(id, userId, isCompleted);
             return NoContent();
         }
 

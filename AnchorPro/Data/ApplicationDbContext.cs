@@ -94,4 +94,31 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // When no tenant is set (Platform Owner): show everything.
         builder.Entity<T>().HasQueryFilter(e => IgnoreTenantFilter || CurrentTenantId == null || e.TenantId == CurrentTenantId);
     }
+
+    public override int SaveChanges()
+    {
+        SetTenantIdOnBaseEntities();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        SetTenantIdOnBaseEntities();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void SetTenantIdOnBaseEntities()
+    {
+        var entries = ChangeTracker.Entries<BaseEntity>()
+            .Where(e => e.State == EntityState.Added);
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity.TenantId == null && CurrentTenantId.HasValue)
+            {
+                entry.Entity.TenantId = CurrentTenantId;
+            }
+        }
+    }
 }
+

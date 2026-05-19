@@ -66,6 +66,12 @@ export default function MyJobsPage() {
     fetchJobs();
   }, [user]);
 
+  useEffect(() => {
+    if (jobs.length > 0 && !selectedJobId) {
+      loadTasks(jobs[0].id);
+    }
+  }, [jobs]);
+
   const handleStartWork = async (jobId: number) => {
     setSaving(true);
     try {
@@ -468,20 +474,27 @@ export default function MyJobsPage() {
                       type="checkbox"
                       checked={!!task.isCompleted}
                       disabled={updatingTaskId === task.id}
-                      onChange={() => toggleTask(task.id, task.isCompleted)}
+                      onChange={() => toggleTask(task.id, !!task.isCompleted)}
                       style={{ marginTop: 2, accentColor: 'var(--accent-emerald)', flexShrink: 0 }}
                     />
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{
                         fontSize: 13, fontWeight: 500,
                         color: task.isCompleted ? 'var(--text-tertiary)' : 'var(--text-primary)',
                         textDecoration: task.isCompleted ? 'line-through' : 'none',
                       }}>
-                        {task.description ?? task.taskDescription ?? task.name ?? 'Task'}
+                        {task.name ?? task.description ?? task.taskDescription ?? 'Task'}
                       </div>
-                      {task.estimatedHours && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                          Est. {task.estimatedHours}h
+                      
+                      {task.instructions && (
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, fontStyle: 'italic', whiteSpace: 'pre-line' }}>
+                          Instructions: {task.instructions}
+                        </div>
+                      )}
+                      
+                      {(task.estimatedDurationMinutes !== undefined || task.estimatedHours) && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                          Est. {task.estimatedDurationMinutes !== undefined ? `${task.estimatedDurationMinutes} mins` : `${task.estimatedHours}h`}
                         </div>
                       )}
                     </div>
