@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag, ExternalLink, X
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 import JobCardForm from '@/components/JobCardForm';
 
@@ -30,9 +31,10 @@ const priorityConfig: Record<number, { label: string; badge: string }> = {
 
 // ── Job Detail / Edit Panel ────────────────────────────────────────────────────
 
-function JobDetailPanel({ job, technicians, onClose, onSaved }: {
+function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
   job: any;
   technicians: any[];
+  isTechnician: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -201,118 +203,128 @@ function JobDetailPanel({ job, technicians, onClose, onSaved }: {
       )}
 
       {/* Status change */}
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-          Change Status
+      {!isTechnician && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+            Change Status
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {Object.values(statusConfig).filter(s => s.value !== job.status).map(s => (
+              <button
+                key={s.value}
+                className={`badge ${s.badge}`}
+                disabled={statusUpdating}
+                onClick={() => changeStatus(s.value)}
+                style={{ cursor: 'pointer', border: '1px solid transparent', padding: '5px 10px', fontSize: 12, opacity: statusUpdating ? 0.5 : 1 }}
+              >
+                {s.icon} <span style={{ marginLeft: 4 }}>{s.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {Object.values(statusConfig).filter(s => s.value !== job.status).map(s => (
-            <button
-              key={s.value}
-              className={`badge ${s.badge}`}
-              disabled={statusUpdating}
-              onClick={() => changeStatus(s.value)}
-              style={{ cursor: 'pointer', border: '1px solid transparent', padding: '5px 10px', fontSize: 12, opacity: statusUpdating ? 0.5 : 1 }}
-            >
-              {s.icon} <span style={{ marginLeft: 4 }}>{s.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Invoice Amount — editable by Planner/Manager, used for profit calculation */}
-      <form onSubmit={handleSaveInvoice}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
-          Invoice Amount
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <div className="form-field" style={{ flex: 1, marginBottom: 0 }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              Agreed Invoice (K)
-              {job.invoiceAmount > 0 && job.status !== 3 && (
-                <span style={{ fontSize: 10, color: 'var(--accent-amber)', fontWeight: 400, marginLeft: 4 }}>
-                  currently K {job.invoiceAmount.toLocaleString()} — auto-estimate
-                </span>
-              )}
-            </label>
-            <input
-              type="number" min={0} step="0.01" className="form-input"
-              placeholder={job.totalCost > 0 ? `Estimated: K ${(job.totalCost * 1.35).toFixed(0)}` : 'Enter agreed invoice value...'}
-              value={invoiceAmount}
-              onChange={e => setInvoiceAmount(e.target.value)}
-            />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-              Set this before completing the job — profit is calculated as Invoice − Total Cost.
-            </div>
+      {!isTechnician && (
+        <form onSubmit={handleSaveInvoice}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+            Invoice Amount
           </div>
-          <button type="submit" className="btn btn-secondary" style={{ marginBottom: 1 }} disabled={savingInvoice || !invoiceAmount}>
-            {savingInvoice ? 'Saving...' : 'Set'}
-          </button>
-        </div>
-      </form>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <div className="form-field" style={{ flex: 1, marginBottom: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                Agreed Invoice (K)
+                {job.invoiceAmount > 0 && job.status !== 3 && (
+                  <span style={{ fontSize: 10, color: 'var(--accent-amber)', fontWeight: 400, marginLeft: 4 }}>
+                    currently K {job.invoiceAmount.toLocaleString()} — auto-estimate
+                  </span>
+                )}
+              </label>
+              <input
+                type="number" min={0} step="0.01" className="form-input"
+                placeholder={job.totalCost > 0 ? `Estimated: K ${(job.totalCost * 1.35).toFixed(0)}` : 'Enter agreed invoice value...'}
+                value={invoiceAmount}
+                onChange={e => setInvoiceAmount(e.target.value)}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Set this before completing the job — profit is calculated as Invoice − Total Cost.
+              </div>
+            </div>
+            <button type="submit" className="btn btn-secondary" style={{ marginBottom: 1 }} disabled={savingInvoice || !invoiceAmount}>
+              {savingInvoice ? 'Saving...' : 'Set'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Reassign form */}
-      <form onSubmit={handleReassign}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-          Assignment & Scheduling
-        </div>
-
-        <div className="form-field" style={{ marginBottom: 14 }}>
-          <label className="form-label"><User size={11} style={{ marginRight: 4 }} />Assigned Technician</label>
-          <select
-            className="form-select"
-            value={form.assignedTechnicianId}
-            onChange={e => setForm({ ...form, assignedTechnicianId: e.target.value })}
-          >
-            <option value="">Unassigned</option>
-            {technicians.map(t => (
-              <option key={t.id} value={t.id}>{t.userName ?? t.firstName + ' ' + t.lastName}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-field" style={{ marginBottom: 14 }}>
-          <label className="form-label">Priority</label>
-          <select
-            className="form-select"
-            value={form.priority}
-            onChange={e => setForm({ ...form, priority: parseInt(e.target.value) })}
-          >
-            <option value={0}>Low</option>
-            <option value={1}>Normal</option>
-            <option value={2}>High</option>
-            <option value={3}>Critical</option>
-          </select>
-        </div>
-
-        <div className="form-row" style={{ marginBottom: 14 }}>
-          <div className="form-field">
-            <label className="form-label"><Calendar size={11} style={{ marginRight: 4 }} />Scheduled Start</label>
-            <input
-              type="datetime-local"
-              className="form-input"
-              value={form.scheduledStartDate}
-              onChange={e => setForm({ ...form, scheduledStartDate: e.target.value })}
-            />
+      {!isTechnician ? (
+        <form onSubmit={handleReassign}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+            Assignment & Scheduling
           </div>
-          <div className="form-field">
-            <label className="form-label">Deadline</label>
-            <input
-              type="datetime-local"
-              className="form-input"
-              value={form.scheduledEndDate}
-              onChange={e => setForm({ ...form, scheduledEndDate: e.target.value })}
-            />
-          </div>
-        </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-          <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
+          <div className="form-field" style={{ marginBottom: 14 }}>
+            <label className="form-label"><User size={11} style={{ marginRight: 4 }} />Assigned Technician</label>
+            <select
+              className="form-select"
+              value={form.assignedTechnicianId}
+              onChange={e => setForm({ ...form, assignedTechnicianId: e.target.value })}
+            >
+              <option value="">Unassigned</option>
+              {technicians.map(t => (
+                <option key={t.id} value={t.id}>{t.userName ?? t.firstName + ' ' + t.lastName}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field" style={{ marginBottom: 14 }}>
+            <label className="form-label">Priority</label>
+            <select
+              className="form-select"
+              value={form.priority}
+              onChange={e => setForm({ ...form, priority: parseInt(e.target.value) })}
+            >
+              <option value={0}>Low</option>
+              <option value={1}>Normal</option>
+              <option value={2}>High</option>
+              <option value={3}>Critical</option>
+            </select>
+          </div>
+
+          <div className="form-row" style={{ marginBottom: 14 }}>
+            <div className="form-field">
+              <label className="form-label"><Calendar size={11} style={{ marginRight: 4 }} />Scheduled Start</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={form.scheduledStartDate}
+                onChange={e => setForm({ ...form, scheduledStartDate: e.target.value })}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Deadline</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={form.scheduledEndDate}
+                onChange={e => setForm({ ...form, scheduledEndDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>
+          Close Details
+        </button>
+      )}
     </div>
   );
 }
@@ -430,6 +442,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function JobCardsPage() {
+  const { isTechnician } = useAuth();
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -516,6 +529,7 @@ export default function JobCardsPage() {
           <JobDetailPanel
             job={selectedJob}
             technicians={technicians}
+            isTechnician={isTechnician}
             onClose={() => setSelectedJob(null)}
             onSaved={() => { fetchJobs(); setSelectedJob(null); }}
           />
@@ -528,9 +542,11 @@ export default function JobCardsPage() {
           <h1 className="page-title">Job Cards</h1>
           <p className="page-subtitle">{jobs.length} total operations · {jobs.filter(j => j.status === 2).length} active</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)}>
-          <Plus size={14} /> New Job Card
-        </button>
+        {!isTechnician && (
+          <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)}>
+            <Plus size={14} /> New Job Card
+          </button>
+        )}
       </div>
 
       {/* Quick Stats */}
@@ -586,14 +602,14 @@ export default function JobCardsPage() {
               <th>Priority</th>
               <th>Status</th>
               <th style={{ textAlign: 'right' }}>Est. Cost</th>
-              <th></th>
+              {!isTechnician && <th></th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px 0' }}>Loading job cards...</td></tr>
+              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0' }}>Loading job cards...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No jobs found</td></tr>
+              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No jobs found</td></tr>
             ) : filtered.map(job => {
               const sc = statusConfig[job.status] ?? statusConfig[0];
               const pc = priorityConfig[job.priority] ?? priorityConfig[1];
@@ -628,48 +644,50 @@ export default function JobCardsPage() {
                   <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {job.totalCost > 0 ? `K ${job.totalCost.toLocaleString()}` : '—'}
                   </td>
-                  <td style={{ textAlign: 'right', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                    <div ref={openMenuId === job.id ? menuRef : undefined} style={{ position: 'relative', display: 'inline-block' }}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: 4 }}
-                        onClick={() => setOpenMenuId(openMenuId === job.id ? null : job.id)}
-                      >
-                        <MoreHorizontal size={14} />
-                      </button>
-                      {openMenuId === job.id && (
-                        <div style={{
-                          position: 'absolute', right: 0, top: '100%', zIndex: 50, minWidth: 160,
-                          background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-                          borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden',
-                        }}>
-                          {[
-                            { label: 'View / Edit', action: () => { setSelectedJob(job); setOpenMenuId(null); } },
-                            { label: 'Raise Subcontract', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
-                            { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
-                            { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },
-                            { label: 'Mark Completed', action: () => { dashboardApi.updateJobStatus(job.id, 3).then(fetchJobs); setOpenMenuId(null); } },
-                            { label: 'Cancel Job', action: () => { if (confirm('Cancel this job?')) dashboardApi.updateJobStatus(job.id, 4).then(fetchJobs); setOpenMenuId(null); }, danger: true },
-                          ].map(item => (
-                            <button
-                              key={item.label}
-                              onClick={item.action}
-                              style={{
-                                width: '100%', textAlign: 'left', padding: '9px 14px',
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                fontSize: 13, color: (item as any).danger ? 'var(--accent-rose)' : (item as any).violet ? 'var(--accent-violet)' : 'var(--text-secondary)',
-                                borderBottom: '1px solid var(--border-subtle)',
-                              }}
-                              onMouseEnter={e => ((e.target as HTMLElement).style.background = 'var(--bg-hover)')}
-                              onMouseLeave={e => ((e.target as HTMLElement).style.background = 'none')}
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </td>
+                  {!isTechnician && (
+                    <td style={{ textAlign: 'right', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                      <div ref={openMenuId === job.id ? menuRef : undefined} style={{ position: 'relative', display: 'inline-block' }}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: 4 }}
+                          onClick={() => setOpenMenuId(openMenuId === job.id ? null : job.id)}
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                        {openMenuId === job.id && (
+                          <div style={{
+                            position: 'absolute', right: 0, top: '100%', zIndex: 50, minWidth: 160,
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
+                            borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden',
+                          }}>
+                            {[
+                              { label: 'View / Edit', action: () => { setSelectedJob(job); setOpenMenuId(null); } },
+                              { label: 'Raise Subcontract', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
+                              { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
+                              { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },
+                              { label: 'Mark Completed', action: () => { dashboardApi.updateJobStatus(job.id, 3).then(fetchJobs); setOpenMenuId(null); } },
+                              { label: 'Cancel Job', action: () => { if (confirm('Cancel this job?')) dashboardApi.updateJobStatus(job.id, 4).then(fetchJobs); setOpenMenuId(null); }, danger: true },
+                            ].map(item => (
+                              <button
+                                key={item.label}
+                                onClick={item.action}
+                                style={{
+                                  width: '100%', textAlign: 'left', padding: '9px 14px',
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  fontSize: 13, color: (item as any).danger ? 'var(--accent-rose)' : (item as any).violet ? 'var(--accent-violet)' : 'var(--text-secondary)',
+                                  borderBottom: '1px solid var(--border-subtle)',
+                                }}
+                                onMouseEnter={e => ((e.target as HTMLElement).style.background = 'var(--bg-hover)')}
+                                onMouseLeave={e => ((e.target as HTMLElement).style.background = 'none')}
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
