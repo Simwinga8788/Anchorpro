@@ -47,6 +47,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     isCustomerBrought: false,
     customerItemName: '',
     customerItemSerial: '',
+    invoiceAmount: '',
   });
 
   useEffect(() => {
@@ -202,6 +203,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         subcontractingCost: estSubcon,
         jobTasks: cleanedTasks,
         jobCardParts: cleanedParts,
+        invoiceAmount: formData.invoiceAmount ? parseFloat(formData.invoiceAmount) : 0,
       };
 
       console.log('API SUBMISSION:', payload);
@@ -251,7 +253,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
                 setFormData({ 
                   ...formData, 
                   customerId: e.target.value,
-                  // Reset customer brought toggle if customer is deselected
                   isCustomerBrought: isSelected ? formData.isCustomerBrought : false,
                   customerItemName: isSelected ? formData.customerItemName : '',
                   customerItemSerial: isSelected ? formData.customerItemSerial : '',
@@ -344,13 +345,27 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
           </div>
         )}
 
-        <div className="form-field" style={{ marginTop: 12 }}>
-          <label className="form-label">Contract <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional — links SLA & billing)</span></label>
-          <select className="form-select" value={formData.contractId}
-            onChange={e => setFormData({ ...formData, contractId: e.target.value })}>
-            <option value="">No Contract</option>
-            {refData.contracts.map(c => <option key={c.id} value={c.id}>{c.title || c.contractNumber}</option>)}
-          </select>
+        <div className="form-row" style={{ marginTop: 12 }}>
+          <div className="form-field">
+            <label className="form-label">Contract <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional — links SLA & billing)</span></label>
+            <select className="form-select" value={formData.contractId}
+              onChange={e => setFormData({ ...formData, contractId: e.target.value })}>
+              <option value="">No Contract</option>
+              {refData.contracts.map(c => <option key={c.id} value={c.id}>{c.title || c.contractNumber}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Agreed Invoice Amount (ZMW) <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <input
+              type="number"
+              className="form-input"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              value={formData.invoiceAmount}
+              onChange={e => setFormData({ ...formData, invoiceAmount: e.target.value })}
+            />
+          </div>
         </div>
       </div>
 
