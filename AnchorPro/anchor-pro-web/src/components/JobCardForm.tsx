@@ -44,6 +44,9 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     subcontractorName: '',
     jobTasks: [] as any[],
     jobCardParts: [] as any[],
+    isCustomerBrought: false,
+    customerItemName: '',
+    customerItemSerial: '',
   });
 
   useEffect(() => {
@@ -125,10 +128,43 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (!formData.equipmentId || !formData.jobTypeId || !formData.description) {
-        alert('Please fill in Asset, Job Type and Description');
+      if (!formData.jobTypeId || !formData.description) {
+        alert('Please fill in Job Type and Description');
         setLoading(false);
         return;
+      }
+
+      if (!formData.isCustomerBrought && !formData.equipmentId) {
+        alert('Please select an Asset');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.isCustomerBrought && !formData.customerItemName) {
+        alert('Please enter the Customer Item Name');
+        setLoading(false);
+        return;
+      }
+
+      let finalEquipmentId = parseInt(formData.equipmentId);
+
+      if (formData.isCustomerBrought) {
+        const customer = refData.customers.find(c => c.id.toString() === formData.customerId);
+        const customerName = customer ? customer.name : 'Customer';
+        const serial = formData.customerItemSerial.trim() || `SN-CUST-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const newAsset = await dashboardApi.createAsset({
+          name: formData.customerItemName,
+          serialNumber: serial,
+          location: `Customer Owned: ${customerName}`,
+          hourlyRate: 150.00, // default burden rate
+        });
+
+        if (newAsset && newAsset.id) {
+          finalEquipmentId = newAsset.id;
+        } else {
+          throw new Error('Failed to auto-register customer asset.');
+        }
       }
 
       // Transform tasks: filter out empty names and ensure numeric types
@@ -154,7 +190,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       const payload = {
         jobNumber: formData.jobNumber,
         description: formData.description,
-        equipmentId: parseInt(formData.equipmentId),
+        equipmentId: finalEquipmentId,
         jobTypeId: parseInt(formData.jobTypeId),
         customerId: formData.customerId ? parseInt(formData.customerId) : null,
         contractId: formData.contractId ? parseInt(formData.contractId) : null,
@@ -208,13 +244,81 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
 
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="form-field">
-            <label className="form-label">Asset *</label>
-            <select className="form-select" value={formData.equipmentId}
-              onChange={e => setFormData({ ...formData, equipmentId: e.target.value })} required>
-              <option value="">Select Asset...</option>
-              {refData.equipment.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            <label className="form-label">Customer <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <select className="form-select" value={formData.customerId}
+              onChange={e => {
+                const isSelected = !!e.target.value;
+                setFormData({ 
+                  ...formData, 
+                  customerId: e.target.value,
+                  // Reset customer brought toggle if customer is deselected
+                  isCustomerBrought: isSelected ? formData.isCustomerBrought : false,
+                  customerItemName: isSelected ? formData.customerItemName : '',
+                  customerItemSerial: isSelected ? formData.customerItemSerial : '',
+                });
+              }}>
+              <option value="">Internal / No Customer</option>
+              {refData.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            {refData.equipment.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No assets found — add assets in the Assets module first.</p>}
+          </div>
+          <div className="form-field">
+            <label className="form-label">Priority</label>
+            <select className="form-select" value={formData.priority}
+              onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) })}>
+              <option value={0}>Low</option>
+              <option value={1}>Normal</option>
+              <option value={2}>High</option>
+              <option value={3}>Critical</option>
+            </select>
+          </div>
+        </div>
+
+        {formData.customerId && (
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              id="isCustomerBrought"
+              checked={formData.isCustomerBrought}
+              onChange={e => setFormData({ 
+                ...formData, 
+                isCustomerBrought: e.target.checked,
+                equipmentId: e.target.checked ? '' : formData.equipmentId,
+                customerItemName: e.target.checked ? formData.customerItemName : '',
+                customerItemSerial: e.target.checked ? formData.customerItemSerial : '',
+              })}
+              style={{ cursor: 'pointer', width: 15, height: 15 }}
+            />
+            <label htmlFor="isCustomerBrought" style={{ fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>
+              Customer brought their own item / vehicle (Register new customer asset)
+            </label>
+          </div>
+        )}
+
+        <div className="form-row" style={{ marginTop: 14 }}>
+          <div className="form-field">
+            {formData.isCustomerBrought ? (
+              <>
+                <label className="form-label">Customer Item Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. BMW-420i, Generator, Toyota Hilux..."
+                  value={formData.customerItemName}
+                  onChange={e => setFormData({ ...formData, customerItemName: e.target.value })}
+                  required
+                />
+              </>
+            ) : (
+              <>
+                <label className="form-label">Asset *</label>
+                <select className="form-select" value={formData.equipmentId}
+                  onChange={e => setFormData({ ...formData, equipmentId: e.target.value })} required={!formData.isCustomerBrought}>
+                  <option value="">Select Asset...</option>
+                  {refData.equipment.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+                {refData.equipment.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No assets found — add assets in the Assets module first.</p>}
+              </>
+            )}
           </div>
           <div className="form-field">
             <label className="form-label">Job Type *</label>
@@ -227,26 +331,18 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
           </div>
         </div>
 
-        <div className="form-row" style={{ marginTop: 12 }}>
-          <div className="form-field">
-            <label className="form-label">Priority</label>
-            <select className="form-select" value={formData.priority}
-              onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) })}>
-              <option value={0}>Low</option>
-              <option value={1}>Normal</option>
-              <option value={2}>High</option>
-              <option value={3}>Critical</option>
-            </select>
+        {formData.isCustomerBrought && (
+          <div className="form-field" style={{ marginTop: 12 }}>
+            <label className="form-label">Serial / Model Number <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. SN-998822, Chassis Number..."
+              value={formData.customerItemSerial}
+              onChange={e => setFormData({ ...formData, customerItemSerial: e.target.value })}
+            />
           </div>
-          <div className="form-field">
-            <label className="form-label">Customer <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <select className="form-select" value={formData.customerId}
-              onChange={e => setFormData({ ...formData, customerId: e.target.value })}>
-              <option value="">Internal / No Customer</option>
-              {refData.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </div>
+        )}
 
         <div className="form-field" style={{ marginTop: 12 }}>
           <label className="form-label">Contract <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional — links SLA & billing)</span></label>
