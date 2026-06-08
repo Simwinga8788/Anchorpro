@@ -25,6 +25,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.Alert> Alerts { get; set; }
     public DbSet<Entities.Customer> Customers { get; set; }
     public DbSet<Entities.SystemSetting> SystemSettings { get; set; }
+    public DbSet<Entities.Tool> Tools { get; set; }
+    public DbSet<Entities.ToolTransaction> ToolTransactions { get; set; }
     
     // Mini-ERP Layers
     public DbSet<Department> Departments { get; set; }

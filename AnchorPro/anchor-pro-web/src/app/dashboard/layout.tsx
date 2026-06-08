@@ -17,6 +17,7 @@ const pageTitles: Record<string, { title: string; breadcrumb: string }> = {
   '/dashboard/downtime':     { title: 'Downtime Log',        breadcrumb: 'Operations' },
   '/dashboard/customers':    { title: 'CRM & Customers',     breadcrumb: 'Operations' },
   '/dashboard/inventory':    { title: 'Inventory & Parts',   breadcrumb: 'Resources' },
+  '/dashboard/tools':        { title: 'Tools Registry',      breadcrumb: 'Resources' },
   '/dashboard/procurement':  { title: 'Procurement Hub',     breadcrumb: 'Resources' },
   '/dashboard/team':         { title: 'Team',                breadcrumb: 'Resources' },
   '/dashboard/time-tracking':{ title: 'Time Tracking',       breadcrumb: 'Resources' },

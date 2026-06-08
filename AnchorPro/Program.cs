@@ -131,6 +131,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IToolService, AnchorPro.Services.ToolService>();
 
 // API & Swagger
 builder.Services.AddControllers()

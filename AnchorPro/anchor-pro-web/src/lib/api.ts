@@ -477,6 +477,17 @@ export const auditLogApi = {
   getSecurityLogs: (days = 90) => apiFetch<any>(`/api/audit-log/security?days=${days}`),
 };
 
+// ─── Tools API ── /api/tools ───────────────────────────────────────────────────
+export const toolsApi = {
+  getAll:        ()                        => apiFetch<any[]>('/api/tools'),
+  getAvailable:  ()                        => apiFetch<any[]>('/api/tools/available'),
+  getIssued:     ()                        => apiFetch<any[]>('/api/tools/issued'),
+  getHistory:    (id: number)              => apiFetch<any[]>(`/api/tools/${id}/history`),
+  receiveTool:   (data: any)               => apiPost<any>('/api/tools/receive', data),
+  issueTool:     (data: any)               => apiPost<any>('/api/tools/issue', data),
+  returnTool:    (data: any)               => apiPost<any>('/api/tools/return', data),
+};
+
 // ─── Upload API ── /api/upload ─────────────────────────────────────────────────
 export const uploadApi = {
   upload:               (file: File) => {

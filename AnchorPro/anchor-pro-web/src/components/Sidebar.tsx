@@ -39,6 +39,7 @@ const navSections = [
     label: 'Resources',
     items: [
       { href: '/dashboard/inventory',   label: 'Inventory & Parts', icon: Package },
+      { href: '/dashboard/tools',       label: 'Tools Registry',    icon: Wrench },
       { href: '/dashboard/procurement', label: 'Procurement',       icon: Zap },
       { href: '/dashboard/team',        label: 'Team',              icon: Users },
     ]
