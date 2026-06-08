@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toolsApi } from '@/lib/api';
+import { X } from 'lucide-react';
 
 export default function ReturnToolModal({ 
   transactionId,
@@ -42,19 +43,45 @@ export default function ReturnToolModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Return Tool: {toolName}</h2>
-        <p style={{ marginBottom: 16, color: 'var(--text-muted)' }}>
-          Returning from {assignedToName}
-        </p>
-        {error && <div className="alert-error">{error}</div>}
+    <div 
+      style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        background: 'rgba(0,0,0,0.65)', 
+        zIndex: 1000, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backdropFilter: 'blur(2px)' 
+      }} 
+      onClick={onClose}
+    >
+      <div 
+        className="card-elevated" 
+        style={{ width: 480, padding: 28, position: 'relative' }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Return Tool</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{toolName} · Returning from {assignedToName}</p>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ padding: 6 }} onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 16, marginTop: 10 }}>
+            {error}
+          </div>
+        )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Return Condition</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
+          <div className="form-field">
+            <label className="form-label">Return Condition</label>
             <select 
-              className="input"
+              className="form-select"
               value={formData.returnCondition}
               onChange={e => setFormData({...formData, returnCondition: Number(e.target.value)})}
             >
@@ -65,19 +92,19 @@ export default function ReturnToolModal({
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Return Notes (Optional)</label>
+          <div className="form-field">
+            <label className="form-label">Return Notes (Optional)</label>
             <textarea 
-              className="input" 
+              className="form-textarea" 
               rows={3}
+              placeholder="Any issues reported? e.g. calibration slightly off..."
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
-              placeholder="Any issues reported?"
             />
           </div>
 
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>

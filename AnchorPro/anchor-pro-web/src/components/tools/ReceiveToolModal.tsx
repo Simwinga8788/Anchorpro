@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toolsApi } from '@/lib/api';
+import { X } from 'lucide-react';
 
 export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -31,38 +32,66 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Receive New Tool</h2>
-        {error && <div className="alert-error">{error}</div>}
+    <div 
+      style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        background: 'rgba(0,0,0,0.65)', 
+        zIndex: 1000, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backdropFilter: 'blur(2px)' 
+      }} 
+      onClick={onClose}
+    >
+      <div 
+        className="card-elevated" 
+        style={{ width: 480, padding: 28, position: 'relative' }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Receive New Tool</h2>
+          <button className="btn btn-ghost btn-sm" style={{ padding: 6 }} onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Tool Name</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Tool Name</label>
             <input 
               type="text" 
               required
-              className="input" 
+              className="form-input" 
+              placeholder="e.g. Impact Wrench 1/2-inch"
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
             />
           </div>
           
-          <div className="form-group">
-            <label>Tool Tag / Serial Number</label>
+          <div className="form-field">
+            <label className="form-label">Tool Tag / Serial Number</label>
             <input 
               type="text" 
               required
-              className="input" 
+              className="form-input" 
+              placeholder="e.g. TL-WRE-0042"
               value={formData.toolTag}
               onChange={e => setFormData({...formData, toolTag: e.target.value})}
             />
           </div>
 
-          <div className="form-group">
-            <label>Initial Condition</label>
+          <div className="form-field">
+            <label className="form-label">Initial Condition</label>
             <select 
-              className="input"
+              className="form-select"
               value={formData.condition}
               onChange={e => setFormData({...formData, condition: Number(e.target.value)})}
             >
@@ -73,18 +102,19 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Description (Optional)</label>
+          <div className="form-field">
+            <label className="form-label">Description (Optional)</label>
             <textarea 
-              className="input" 
+              className="form-textarea" 
               rows={3}
+              placeholder="Manufacturer details, calibration requirements..."
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
             />
           </div>
 
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
