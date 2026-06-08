@@ -7,7 +7,14 @@ async function apiFetch<T>(path: string): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errMsg = `API error ${res.status} on ${path}`;
+    try {
+      const text = await res.text();
+      if (text) errMsg = text;
+    } catch {}
+    throw new Error(errMsg);
+  }
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
@@ -21,7 +28,14 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`POST error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errMsg = `POST error ${res.status} on ${path}`;
+    try {
+      const text = await res.text();
+      if (text) errMsg = text;
+    } catch {}
+    throw new Error(errMsg);
+  }
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
@@ -35,7 +49,14 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`PUT error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errMsg = `PUT error ${res.status} on ${path}`;
+    try {
+      const text = await res.text();
+      if (text) errMsg = text;
+    } catch {}
+    throw new Error(errMsg);
+  }
   if (res.status === 204) return {} as T;
   const text = await res.text();
   if (!text) return {} as T;
@@ -49,7 +70,14 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`PATCH error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errMsg = `PATCH error ${res.status} on ${path}`;
+    try {
+      const text = await res.text();
+      if (text) errMsg = text;
+    } catch {}
+    throw new Error(errMsg);
+  }
   if (res.status === 204) return {} as T;
   const text = await res.text();
   if (!text) return {} as T;
@@ -62,7 +90,14 @@ async function apiDelete(path: string): Promise<void> {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
   });
-  if (!res.ok) throw new Error(`DELETE error ${res.status} on ${path}`);
+  if (!res.ok) {
+    let errMsg = `DELETE error ${res.status} on ${path}`;
+    try {
+      const text = await res.text();
+      if (text) errMsg = text;
+    } catch {}
+    throw new Error(errMsg);
+  }
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
