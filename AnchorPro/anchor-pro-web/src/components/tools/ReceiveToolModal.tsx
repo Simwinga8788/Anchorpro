@@ -39,8 +39,10 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
         background: 'rgba(0,0,0,0.65)', 
         zIndex: 1000, 
         display: 'flex', 
-        alignItems: 'center', 
         justifyContent: 'center',
+        alignItems: 'flex-start',
+        overflowY: 'auto',
+        padding: '40px 16px',
         backdropFilter: 'blur(2px)' 
       }} 
       onClick={onClose}

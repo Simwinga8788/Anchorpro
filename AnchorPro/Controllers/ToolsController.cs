@@ -44,8 +44,15 @@ public class ToolsController(IToolService toolService) : ControllerBase
     [Authorize(Roles = "Admin,Manager,Storeman")]
     public async Task<ActionResult<Tool>> ReceiveTool([FromBody] Tool tool)
     {
-        var createdTool = await toolService.ReceiveToolAsync(tool);
-        return CreatedAtAction(nameof(GetAllTools), new { id = createdTool.Id }, createdTool);
+        try
+        {
+            var createdTool = await toolService.ReceiveToolAsync(tool);
+            return Ok(createdTool);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     public class IssueToolRequest
