@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -590,12 +590,12 @@ namespace AnchorPro.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp with time zone");
 
-            migrationBuilder.AddColumn<decimal>(
+            /*migrationBuilder.AddColumn<decimal>(
                 name: "HourlyRate",
                 table: "Equipment",
                 type: "numeric",
                 nullable: false,
-                defaultValue: 0m);
+                defaultValue: 0m);*/
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "UpdatedAt",
@@ -886,9 +886,9 @@ namespace AnchorPro.Migrations
             migrationBuilder.DropTable(
                 name: "Tools");
 
-            migrationBuilder.DropColumn(
+            /*migrationBuilder.DropColumn(
                 name: "HourlyRate",
-                table: "Equipment");
+                table: "Equipment");*/
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "UpdatedAt",
