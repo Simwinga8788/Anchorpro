@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toolsApi } from '@/lib/api';
 import { X } from 'lucide-react';
 
 export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +18,8 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
 
@@ -27,6 +30,7 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
     } catch (err: any) {
       setError(err.message || 'Failed to receive tool');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

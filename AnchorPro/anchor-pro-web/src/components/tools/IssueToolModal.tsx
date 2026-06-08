@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toolsApi, usersApi } from '@/lib/api';
 import { X } from 'lucide-react';
 
@@ -20,6 +20,7 @@ export default function IssueToolModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [users, setUsers] = useState<any[]>([]);
+  const submittingRef = useRef(false);
   
   const [formData, setFormData] = useState({
     toolId: toolId,
@@ -35,11 +36,13 @@ export default function IssueToolModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!formData.assignedToUserId) {
       setError('Please select a technician');
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     setError('');
 
@@ -53,6 +56,7 @@ export default function IssueToolModal({
     } catch (err: any) {
       setError(err.message || 'Failed to issue tool');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

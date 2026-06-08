@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toolsApi } from '@/lib/api';
 import { X } from 'lucide-react';
 
@@ -19,6 +19,7 @@ export default function ReturnToolModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
   
   const [formData, setFormData] = useState({
     transactionId: transactionId,
@@ -28,6 +29,8 @@ export default function ReturnToolModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
 
@@ -38,6 +41,7 @@ export default function ReturnToolModal({
     } catch (err: any) {
       setError(err.message || 'Failed to return tool');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
