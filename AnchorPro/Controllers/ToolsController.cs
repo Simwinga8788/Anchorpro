@@ -51,7 +51,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
         }
         catch (System.Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ex.InnerException?.Message ?? ex.Message);
         }
     }
 
@@ -87,7 +87,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ex.InnerException?.Message ?? ex.Message);
         }
     }
 
@@ -119,7 +119,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ex.InnerException?.Message ?? ex.Message);
         }
     }
 }
