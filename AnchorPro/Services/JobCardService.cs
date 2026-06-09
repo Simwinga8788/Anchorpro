@@ -141,6 +141,8 @@ namespace AnchorPro.Services
                 existing.Description = jobCard.Description;
                 existing.EquipmentId = jobCard.EquipmentId;
                 existing.JobTypeId = jobCard.JobTypeId;
+                existing.CustomerId = jobCard.CustomerId;
+                existing.ContractId = jobCard.ContractId;
                 existing.Priority = jobCard.Priority;
                 existing.ScheduledStartDate = jobCard.ScheduledStartDate;
                 existing.ScheduledEndDate = jobCard.ScheduledEndDate;

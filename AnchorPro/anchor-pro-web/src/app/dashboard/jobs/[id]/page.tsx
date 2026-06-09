@@ -46,6 +46,9 @@ export default function JobDetailPage() {
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [subcontracts, setSubcontracts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<any[]>([]);
 
   // Modals / forms visibility
   const [showSubconModal, setShowSubconModal] = useState(false);
@@ -82,6 +85,9 @@ export default function JobDetailPage() {
     scheduledEndDate: '',
     priority: 1,
     invoiceAmount: '',
+    customerId: '',
+    jobTypeId: '',
+    contractId: '',
   });
 
   const [savingCore, setSavingCore] = useState(false);
@@ -99,6 +105,9 @@ export default function JobDetailPage() {
           scheduledEndDate: data.scheduledEndDate ? data.scheduledEndDate.slice(0, 16) : '',
           priority: data.priority ?? 1,
           invoiceAmount: data.invoiceAmount > 0 ? String(data.invoiceAmount) : '',
+          customerId: data.customerId ?? data.customer?.id ?? '',
+          jobTypeId: data.jobTypeId ?? data.jobType?.id ?? '',
+          contractId: data.contractId ?? data.contract?.id ?? '',
         });
       }
       // Fetch related subcontracts
@@ -122,6 +131,9 @@ export default function JobDetailPage() {
         loadJobDetails(),
         dashboardApi.getTechnicians().then(setTechnicians).catch(() => []),
         dashboardApi.getInventoryItems().then(setInventory).catch(() => []),
+        dashboardApi.getCustomers().then(setCustomers).catch(() => []),
+        dashboardApi.getJobTypes().then(setJobTypes).catch(() => []),
+        dashboardApi.getContracts().then(setContracts).catch(() => []),
       ]);
       setLoading(false);
     };
@@ -154,6 +166,9 @@ export default function JobDetailPage() {
         scheduledEndDate: coreForm.scheduledEndDate || null,
         priority: coreForm.priority,
         invoiceAmount: coreForm.invoiceAmount ? parseFloat(coreForm.invoiceAmount) : 0,
+        customerId: coreForm.customerId ? parseInt(coreForm.customerId) : null,
+        jobTypeId: coreForm.jobTypeId ? parseInt(coreForm.jobTypeId) : null,
+        contractId: coreForm.contractId ? parseInt(coreForm.contractId) : null,
       });
       await loadJobDetails();
       setEditCore(false);
@@ -982,6 +997,38 @@ export default function JobDetailPage() {
                       <option key={t.id} value={t.id}>
                         {[t.firstName, t.lastName].filter(Boolean).join(' ') || t.userName || t.email}
                       </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Job Type</label>
+                  <select className="form-select" value={coreForm.jobTypeId} onChange={e => setCoreForm({ ...coreForm, jobTypeId: e.target.value })}>
+                    <option value="">Select Job Type</option>
+                    {jobTypes.map(jt => (
+                      <option key={jt.id} value={jt.id}>{jt.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Customer</label>
+                  <select className="form-select" value={coreForm.customerId} onChange={e => setCoreForm({ ...coreForm, customerId: e.target.value })}>
+                    <option value="">Select Customer</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.customerNumber ? `(#${c.customerNumber})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Contract</label>
+                  <select className="form-select" value={coreForm.contractId} onChange={e => setCoreForm({ ...coreForm, contractId: e.target.value })}>
+                    <option value="">No Contract</option>
+                    {contracts.map(c => (
+                      <option key={c.id} value={c.id}>{c.contractNumber || `Contract #${c.id}`}</option>
                     ))}
                   </select>
                 </div>
