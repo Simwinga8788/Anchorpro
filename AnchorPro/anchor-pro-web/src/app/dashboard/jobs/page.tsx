@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useRouter } from 'next/navigation';
 import SlideOver from '@/components/SlideOver';
 import JobCardForm from '@/components/JobCardForm';
 
@@ -443,6 +444,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 
 export default function JobCardsPage() {
   const { isTechnician } = useAuth();
+  const router = useRouter();
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -623,7 +625,7 @@ export default function JobCardsPage() {
                 <tr
                   key={job.id}
                   style={{ cursor: 'pointer' }}
-                  onClick={() => { setOpenMenuId(null); setSelectedJob(job); }}
+                  onClick={() => { setOpenMenuId(null); router.push(`/dashboard/jobs/${job.id}`); }}
                 >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -661,7 +663,7 @@ export default function JobCardsPage() {
                             borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden',
                           }}>
                             {[
-                              { label: 'View / Edit', action: () => { setSelectedJob(job); setOpenMenuId(null); } },
+                              { label: 'View / Edit', action: () => { router.push(`/dashboard/jobs/${job.id}`); setOpenMenuId(null); } },
                               { label: 'Raise Subcontract', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
                               { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
                               { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },

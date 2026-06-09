@@ -17,5 +17,7 @@ namespace AnchorPro.Data.Entities
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalCost => QuantityUsed * UnitCostSnapshot;
+
+        public bool IsIssued { get; set; } = false;
     }
 }

@@ -23,6 +23,8 @@ namespace AnchorPro.Data.Entities
         public bool IsCompleted { get; set; }
         public DateTime? CompletedAt { get; set; }
 
+        public string? PhotoPath { get; set; }
+
         // Navigation
         public ICollection<DowntimeEntry> DowntimeEntries { get; set; } = new List<DowntimeEntry>();
     }

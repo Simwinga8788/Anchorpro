@@ -284,6 +284,7 @@ export const jobCardsApi = {
     apiFetch<any>(`/api/jobcards/${id}/conflicts?technicianId=${techId}&startDate=${start}&endDate=${end}`),
   addPart:          (id: number, data: any)   => apiPost<any>(`/api/jobcards/${id}/parts`, data),
   removePart:       (jobCardPartId: number)   => apiDelete(`/api/jobcards/parts/${jobCardPartId}`),
+  issuePart:        (jobCardPartId: number)   => apiPost<any>(`/api/jobcards/parts/${jobCardPartId}/issue`, {}),
   addAttachment:    (id: number, data: any)   => apiPost<any>(`/api/jobcards/${id}/attachments`, data),
   removeAttachment: (attachmentId: number)    => apiDelete(`/api/jobcards/attachments/${attachmentId}`),
 };
@@ -295,6 +296,7 @@ export const jobTasksApi = {
   create:    (data: any)             => apiPost<any>('/api/jobtasks', data),
   update:    (id: number, data: any) => apiPut<any>(`/api/jobtasks/${id}`, data),
   complete:  (id: number, isCompleted: boolean) => apiPost<any>(`/api/jobtasks/${id}/complete?isCompleted=${isCompleted}`, {}),
+  updatePhoto:(id: number, photoPath: string | null) => apiPatch<any>(`/api/jobtasks/${id}/photo`, { photoPath }),
   delete:    (id: number)            => apiDelete(`/api/jobtasks/${id}`),
 };
 

@@ -11,5 +11,6 @@ namespace AnchorPro.Services.Interfaces
         Task DeleteTaskAsync(int id);
         Task CompleteTaskAsync(int taskId, string userId, bool isCompleted = true);
         Task<List<JobTask>> GetAllTasksAsync();
+        Task UpdateTaskPhotoAsync(int taskId, string? photoPath, string userId);
     }
 }

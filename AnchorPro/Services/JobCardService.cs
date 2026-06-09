@@ -79,6 +79,39 @@ namespace AnchorPro.Services
                 jobCard.Status = JobStatus.Scheduled;
             }
 
+            if (string.IsNullOrWhiteSpace(jobCard.JobNumber) || jobCard.JobNumber.StartsWith("JOB-"))
+            {
+                // Find all job cards for this tenant
+                var tenantJobNumbers = await context.JobCards
+                    .Where(j => j.TenantId == jobCard.TenantId)
+                    .Select(j => j.JobNumber)
+                    .ToListAsync();
+
+                int maxNum = 1000;
+                foreach (var numStr in tenantJobNumbers)
+                {
+                    if (int.TryParse(numStr, out int parsed))
+                    {
+                        if (parsed > maxNum)
+                        {
+                            maxNum = parsed;
+                        }
+                    }
+                }
+                jobCard.JobNumber = (maxNum + 1).ToString();
+            }
+            else
+            {
+                // Strict uniqueness for custom numbers
+                var duplicateExists = await context.JobCards
+                    .AnyAsync(j => j.TenantId == jobCard.TenantId && j.JobNumber == jobCard.JobNumber.Trim());
+                if (duplicateExists)
+                {
+                    throw new InvalidOperationException($"Job number '{jobCard.JobNumber}' is already in use for this tenant.");
+                }
+                jobCard.JobNumber = jobCard.JobNumber.Trim();
+            }
+
             context.JobCards.Add(jobCard);
             await context.SaveChangesAsync();
         }
@@ -90,7 +123,21 @@ namespace AnchorPro.Services
 
             if (existing != null)
             {
-                existing.JobNumber = jobCard.JobNumber;
+                if (!string.IsNullOrWhiteSpace(jobCard.JobNumber))
+                {
+                    var trimmedNum = jobCard.JobNumber.Trim();
+                    if (existing.JobNumber != trimmedNum)
+                    {
+                        var duplicateExists = await context.JobCards
+                            .AnyAsync(j => j.TenantId == existing.TenantId && j.JobNumber == trimmedNum && j.Id != jobCard.Id);
+                        if (duplicateExists)
+                        {
+                            throw new InvalidOperationException($"Job number '{jobCard.JobNumber}' is already in use for this tenant.");
+                        }
+                    }
+                    existing.JobNumber = trimmedNum;
+                }
+
                 existing.Description = jobCard.Description;
                 existing.EquipmentId = jobCard.EquipmentId;
                 existing.JobTypeId = jobCard.JobTypeId;
@@ -140,15 +187,12 @@ namespace AnchorPro.Services
                 {
                     job.ActualEndDate = DateTime.UtcNow;
 
-                    // 1. Deduct Stock & Calculate Parts Cost (Using Snapshots)
+                    // 1. Calculate Parts Cost using ONLY issued parts (Using Snapshots)
                     decimal totalPartsCost = 0;
                     if (job.JobCardParts != null)
                     {
-                        foreach (var part in job.JobCardParts)
+                        foreach (var part in job.JobCardParts.Where(p => p.IsIssued))
                         {
-                            // Reduce stock in inventory
-                            await _inventoryService.AdjustStockAsync(part.InventoryItemId, -part.QuantityUsed, userId, $"Used on Job #{job.JobNumber}");
-                            
                             // Use snapshot for calculation to preserve historical data
                             totalPartsCost += (part.UnitCostSnapshot * part.QuantityUsed);
                         }
@@ -361,14 +405,13 @@ namespace AnchorPro.Services
             var item = await context.InventoryItems.FindAsync(inventoryItemId);
             if (item == null) throw new ArgumentException("Invalid inventory item ID.");
 
-            // Check if part already added to this job
+            // Check if unissued part already added to this job
             var existingPart = await context.JobCardParts
-                .FirstOrDefaultAsync(p => p.JobCardId == jobCardId && p.InventoryItemId == inventoryItemId);
+                .FirstOrDefaultAsync(p => p.JobCardId == jobCardId && p.InventoryItemId == inventoryItemId && !p.IsIssued);
 
             if (existingPart != null)
             {
                 existingPart.QuantityUsed += quantity;
-                // Optional: Update unit cost snapshot if policy dictates, usually we keep original or average
             }
             else
             {
@@ -379,7 +422,8 @@ namespace AnchorPro.Services
                     QuantityUsed = quantity,
                     UnitCostSnapshot = item.UnitCost,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userId
+                    CreatedBy = userId,
+                    IsIssued = false
                 };
                 context.JobCardParts.Add(part);
             }
@@ -387,12 +431,50 @@ namespace AnchorPro.Services
             await context.SaveChangesAsync();
         }
 
-        public async Task RemovePartFromJobAsync(int jobCardPartId)
+        public async Task IssuePartAsync(int jobCardPartId, string userId)
         {
             using var context = _factory.CreateDbContext();
-            var part = await context.JobCardParts.FindAsync(jobCardPartId);
+
+            var part = await context.JobCardParts
+                .Include(p => p.JobCard)
+                .Include(p => p.InventoryItem)
+                .FirstOrDefaultAsync(p => p.Id == jobCardPartId);
+
+            if (part == null) throw new ArgumentException("Invalid job card part ID.");
+            if (part.IsIssued) throw new InvalidOperationException("This part has already been issued.");
+
+            if (part.InventoryItem == null) throw new InvalidOperationException("Inventory item not found.");
+            if (part.InventoryItem.QuantityOnHand < part.QuantityUsed)
+            {
+                throw new InvalidOperationException($"Insufficient stock for '{part.InventoryItem.Name}'. Available: {part.InventoryItem.QuantityOnHand}, Requested: {part.QuantityUsed}");
+            }
+
+            // Deduct stock
+            var jobNo = part.JobCard?.JobNumber ?? part.JobCardId.ToString();
+            await _inventoryService.AdjustStockAsync(part.InventoryItemId, -part.QuantityUsed, userId, $"Issued for Job #{jobNo}");
+
+            part.IsIssued = true;
+            part.UpdatedAt = DateTime.UtcNow;
+            part.UpdatedBy = userId;
+
+            await context.SaveChangesAsync();
+        }
+
+        public async Task RemovePartFromJobAsync(int jobCardPartId, string userId = "System")
+        {
+            using var context = _factory.CreateDbContext();
+            var part = await context.JobCardParts
+                .Include(p => p.JobCard)
+                .FirstOrDefaultAsync(p => p.Id == jobCardPartId);
+
             if (part != null)
             {
+                if (part.IsIssued)
+                {
+                    // Refund stock
+                    var jobNo = part.JobCard?.JobNumber ?? part.JobCardId.ToString();
+                    await _inventoryService.AdjustStockAsync(part.InventoryItemId, part.QuantityUsed, userId, $"Refunded from Job #{jobNo} deletion");
+                }
                 context.JobCardParts.Remove(part);
                 await context.SaveChangesAsync();
             }

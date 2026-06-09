@@ -6,6 +6,7 @@ import {
   RefreshCw, LayoutGrid, Search, User
 } from 'lucide-react';
 import { jobCardsApi, referenceDataApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 import SlideOver from '@/components/SlideOver';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -225,6 +226,7 @@ function KanbanColumn({ title, badge, jobs, onJobClick }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PlanningPage() {
+  const router = useRouter();
   const [jobs, setJobs]               = useState<Job[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -391,7 +393,7 @@ export default function PlanningPage() {
                     )}
                   </div>
                   {dayJobs.slice(0, 3).map(job => (
-                    <JobChip key={job.id} job={job} onClick={() => setSelectedJob(job)} />
+                    <JobChip key={job.id} job={job} onClick={() => router.push(`/dashboard/jobs/${job.id}`)} />
                   ))}
                   {dayJobs.length > 3 && (
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', padding: '2px 0' }}>+{dayJobs.length - 3} more</div>
@@ -409,7 +411,7 @@ export default function PlanningPage() {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {unscheduled.map(job => (
-                  <button key={job.id} onClick={() => setSelectedJob(job)}
+                  <button key={job.id} onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
                     style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-blue)')}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
@@ -435,7 +437,7 @@ export default function PlanningPage() {
                 title={col.title}
                 badge={col.badge}
                 jobs={filtered.filter(j => j.status === col.key)}
-                onJobClick={setSelectedJob}
+                onJobClick={job => router.push(`/dashboard/jobs/${job.id}`)}
               />
             ))}
           </div>

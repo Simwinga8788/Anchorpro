@@ -106,5 +106,18 @@ namespace AnchorPro.Services
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task UpdateTaskPhotoAsync(int taskId, string? photoPath, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            var task = await context.JobTasks.FindAsync(taskId);
+            if (task != null)
+            {
+                task.PhotoPath = photoPath;
+                task.UpdatedAt = DateTime.UtcNow;
+                task.UpdatedBy = userId;
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

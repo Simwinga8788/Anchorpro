@@ -18,7 +18,8 @@ namespace AnchorPro.Services.Interfaces
 
         // Parts
         Task AddPartToJobAsync(int jobCardId, int inventoryItemId, int quantity, string userId);
-        Task RemovePartFromJobAsync(int jobCardPartId);
+        Task RemovePartFromJobAsync(int jobCardPartId, string userId = "System");
+        Task IssuePartAsync(int jobCardPartId, string userId);
 
         // Attachments
         Task AddAttachmentAsync(AnchorPro.Data.Entities.JobAttachment attachment);

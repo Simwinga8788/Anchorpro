@@ -152,8 +152,30 @@ namespace AnchorPro.Controllers
         [HttpDelete("parts/{jobCardPartId}")]
         public async Task<ActionResult> RemovePart(int jobCardPartId)
         {
-            await _jobService.RemovePartFromJobAsync(jobCardPartId);
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _jobService.RemovePartFromJobAsync(jobCardPartId, userId);
             return NoContent();
+        }
+
+        /// <summary>POST /api/jobcards/parts/{jobCardPartId}/issue — Issue requested parts.</summary>
+        [HttpPost("parts/{jobCardPartId}/issue")]
+        [Authorize(Roles = "Admin,Supervisor,Storeman")]
+        public async Task<ActionResult> IssuePart(int jobCardPartId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            try
+            {
+                await _jobService.IssuePartAsync(jobCardPartId, userId);
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // ── ATTACHMENTS ───────────────────────────────────────────────────────

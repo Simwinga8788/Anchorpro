@@ -69,5 +69,23 @@ namespace AnchorPro.Controllers
             await _taskService.DeleteTaskAsync(id);
             return NoContent();
         }
+
+        public class UpdatePhotoRequest
+        {
+            public string? PhotoPath { get; set; }
+        }
+
+        [HttpPatch("{id}/photo")]
+        public async Task<ActionResult> UpdatePhoto(int id, [FromBody] UpdatePhotoRequest req)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var task = await _taskService.GetTaskByIdAsync(id);
+            if (task == null)
+            {
+                return NotFound();
+            }
+            await _taskService.UpdateTaskPhotoAsync(id, req.PhotoPath, userId);
+            return NoContent();
+        }
     }
 }

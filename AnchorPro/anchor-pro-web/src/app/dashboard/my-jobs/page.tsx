@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Wrench, CheckCircle2, Play, AlertTriangle, ShieldCheck, XCircle, Package, Search } from 'lucide-react';
-import { dashboardApi, referenceDataApi, inventoryApi } from '@/lib/api';
+import { Clock, Wrench, CheckCircle2, Play, AlertTriangle, ShieldCheck, XCircle, Package, Search, Camera } from 'lucide-react';
+import { dashboardApi, referenceDataApi, inventoryApi, jobCardsApi, jobTasksApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 
@@ -161,7 +161,9 @@ export default function MyJobsPage() {
 
   // Task checklist state
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [parts, setParts] = useState<any[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
 
@@ -169,10 +171,13 @@ export default function MyJobsPage() {
     setSelectedJobId(jobId);
     setTasksLoading(true);
     try {
-      const data = await dashboardApi.getJobTasks(jobId);
-      setTasks(Array.isArray(data) ? data : []);
+      const jobData = await jobCardsApi.getById(jobId);
+      setSelectedJob(jobData);
+      setTasks(Array.isArray(jobData?.jobTasks) ? jobData.jobTasks : []);
+      setParts(Array.isArray(jobData?.jobCardParts) ? jobData.jobCardParts : []);
     } catch {
       setTasks([]);
+      setParts([]);
     } finally {
       setTasksLoading(false);
     }
@@ -187,6 +192,22 @@ export default function MyJobsPage() {
       // silent fail — UI stays optimistic
     } finally {
       setUpdatingTaskId(null);
+    }
+  };
+
+  const handleTaskPhotoUpload = async (taskId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await uploadApi.upload(file);
+      if (res && res.filePath) {
+        await jobTasksApi.updatePhoto(taskId, res.filePath);
+        if (selectedJobId) {
+          loadTasks(selectedJobId);
+        }
+      }
+    } catch (err: any) {
+      alert('Photo upload failed: ' + err.message);
     }
   };
 
@@ -497,12 +518,73 @@ export default function MyJobsPage() {
                           Est. {task.estimatedDurationMinutes !== undefined ? `${task.estimatedDurationMinutes} mins` : `${task.estimatedHours}h`}
                         </div>
                       )}
+
+                      {task.isCompleted && (
+                        <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 4, background: 'var(--bg-hover)' }}>
+                            <Camera size={12} style={{ color: 'var(--accent-blue)' }} />
+                            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                              {task.photoPath ? 'Replace Photo' : 'Attach Photo'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleTaskPhotoUpload(task.id, e)}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      {task.photoPath && (
+                        <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
+                          <img
+                            src={task.photoPath}
+                            alt="Task proof"
+                            style={{
+                              maxWidth: 100, maxHeight: 70, objectFit: 'cover',
+                              borderRadius: 4, border: '1px solid var(--border-default)'
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </label>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Parts Request Status Panel */}
+          {selectedJobId && (
+            <div className="card" style={{ padding: 20, marginTop: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Package size={14} style={{ color: 'var(--accent-amber)' }} /> Requested Parts Status
+              </h3>
+              {parts.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No parts requested for this job.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {parts.map((p: any) => (
+                    <div key={p.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 10px', borderRadius: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600 }}>{p.inventoryItem?.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Qty: {p.quantityUsed}</div>
+                      </div>
+                      {p.isIssued ? (
+                        <span className="badge badge-green">Issued</span>
+                      ) : (
+                        <span className="badge badge-muted">Requested</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       )}
