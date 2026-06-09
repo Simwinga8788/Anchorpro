@@ -13,7 +13,7 @@ namespace AnchorPro.Services.Interfaces
         Task DeleteJobCardAsync(int id);
         Task UpdateJobStatusAsync(int jobCardId, JobStatus status, string userId);
         Task<List<SystemAuditLog>> GetJobHistoryAsync(int jobCardId);
-        Task AssignTechnicianAsync(int jobCardId, string technicianId, DateTime? scheduledStart = null, DateTime? scheduledEnd = null);
+        Task AssignTechnicianAsync(int jobCardId, string? technicianId, DateTime? scheduledStart = null, DateTime? scheduledEnd = null);
         Task<AnchorPro.Data.Models.SchedulingConflict> CheckScheduleConflictsAsync(int jobCardId, string technicianId, DateTime startDate, DateTime? endDate);
 
         // Parts

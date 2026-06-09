@@ -315,7 +315,7 @@ namespace AnchorPro.Services
                 .ToListAsync();
         }
 
-        public async Task AssignTechnicianAsync(int jobCardId, string technicianId, DateTime? scheduledStart = null, DateTime? scheduledEnd = null)
+        public async Task AssignTechnicianAsync(int jobCardId, string? technicianId, DateTime? scheduledStart = null, DateTime? scheduledEnd = null)
         {
             using var context = _factory.CreateDbContext();
             var job = await context.JobCards.FindAsync(jobCardId);

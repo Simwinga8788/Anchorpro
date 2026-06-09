@@ -270,7 +270,7 @@ namespace AnchorPro.Controllers
 
     public class AssignTechnicianRequest
     {
-        public string TechnicianId { get; set; } = string.Empty;
+        public string? TechnicianId { get; set; }
         public DateTime? ScheduledStart { get; set; }
         public DateTime? ScheduledEnd { get; set; }
     }
