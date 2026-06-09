@@ -232,9 +232,9 @@ export default function MyJobsPage() {
     try {
       await dashboardApi.addPartToJob(addPartJobId, selectedPartId, partQty);
       setShowAddPart(false);
-      alert(`Part added to job. Stock deducted from inventory.`);
+      alert(`Part requested from stores. It will appear on your job card once issued by the warehouse.`);
     } catch (err: any) {
-      alert('Failed to add part: ' + (err.message || 'Unknown error'));
+      alert('Failed to request part: ' + (err.message || 'Unknown error'));
     } finally {
       setAddingPart(false);
     }
@@ -274,8 +274,8 @@ export default function MyJobsPage() {
         </form>
       </SlideOver>
 
-      {/* Add Part SlideOver */}
-      <SlideOver open={showAddPart} onClose={() => setShowAddPart(false)} title="Add Part to Job" subtitle="Select a stocked item — it will be deducted from inventory and added to the job cost.">
+      {/* Request Part SlideOver */}
+      <SlideOver open={showAddPart} onClose={() => setShowAddPart(false)} title="Request Part from Stores" subtitle="Select a stocked item to request from the warehouse. A storeman will issue the part to deduct inventory.">
         <form onSubmit={submitAddPart} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Search */}
           <div style={{ position: 'relative' }}>
@@ -339,7 +339,7 @@ export default function MyJobsPage() {
                   {item?.name} — K {((item?.unitCost ?? item?.costPerUnit ?? 0) * partQty).toLocaleString(undefined, { maximumFractionDigits: 2 })} total
                 </div>
                 <div className="form-field" style={{ margin: 0 }}>
-                  <label className="form-label">Quantity to Use</label>
+                  <label className="form-label">Quantity to Request</label>
                   <input
                     type="number" min={1} max={maxStock} className="form-input"
                     value={partQty}
@@ -354,7 +354,7 @@ export default function MyJobsPage() {
           <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddPart(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={!selectedPartId || addingPart}>
-              <Package size={13} /> {addingPart ? 'Adding...' : 'Add Part'}
+              <Package size={13} /> {addingPart ? 'Requesting...' : 'Request Part'}
             </button>
           </div>
         </form>
@@ -439,7 +439,7 @@ export default function MyJobsPage() {
                               <CheckCircle2 size={14} /> Complete Job
                             </button>
                             <button onClick={() => openAddPart(job.id)} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
-                              <Package size={14} /> Add Part
+                              <Package size={14} /> Request Part
                             </button>
                           </div>
                           <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>

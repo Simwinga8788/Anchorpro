@@ -293,6 +293,7 @@ export const dashboardApi = {
   createAsset:                 (data: any)           => equipmentApi.create(data),
   createInventoryItem:         (data: any)           => inventoryApi.create(data),
   createPurchaseOrder:         (data: any)           => procurementApi.createOrder(data),
+  getPendingPartsRequests:     ()                    => jobCardsApi.getPendingPartsRequests(),
 };
 
 // ─── Job Cards API ── /api/jobcards ────────────────────────────────────────────
@@ -314,6 +315,7 @@ export const jobCardsApi = {
   addPart:          (id: number, data: any)   => apiPost<any>(`/api/jobcards/${id}/parts`, data),
   removePart:       (jobCardPartId: number)   => apiDelete(`/api/jobcards/parts/${jobCardPartId}`),
   issuePart:        (jobCardPartId: number)   => apiPost<any>(`/api/jobcards/parts/${jobCardPartId}/issue`, {}),
+  getPendingPartsRequests: ()                 => apiFetch<any[]>('/api/jobcards/parts/requests'),
   addAttachment:    (id: number, data: any)   => apiPost<any>(`/api/jobcards/${id}/attachments`, data),
   removeAttachment: (attachmentId: number)    => apiDelete(`/api/jobcards/attachments/${attachmentId}`),
 };

@@ -157,6 +157,15 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
+        /// <summary>GET /api/jobcards/parts/requests — Get all pending parts requests.</summary>
+        [HttpGet("parts/requests")]
+        [Authorize(Roles = "Admin,Supervisor,Storeman")]
+        public async Task<ActionResult<List<JobCardPart>>> GetPendingPartsRequests()
+        {
+            var requests = await _jobService.GetPendingPartsRequestsAsync();
+            return Ok(requests);
+        }
+
         /// <summary>POST /api/jobcards/parts/{jobCardPartId}/issue — Issue requested parts.</summary>
         [HttpPost("parts/{jobCardPartId}/issue")]
         [Authorize(Roles = "Admin,Supervisor,Storeman")]

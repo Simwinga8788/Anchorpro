@@ -480,6 +480,19 @@ namespace AnchorPro.Services
             }
         }
 
+        public async Task<List<JobCardPart>> GetPendingPartsRequestsAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.JobCardParts
+                .Include(p => p.InventoryItem)
+                .Include(p => p.JobCard)
+                    .ThenInclude(j => j.Equipment)
+                .Where(p => !p.IsIssued)
+                .OrderByDescending(p => p.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
         public async Task AddAttachmentAsync(JobAttachment attachment)
         {
             using var context = _factory.CreateDbContext();
