@@ -39,6 +39,8 @@ namespace AnchorPro.Services
             return await context.JobCards
                 .Include(j => j.Equipment)
                 .Include(j => j.JobType)
+                .Include(j => j.Customer)
+                .Include(j => j.Contract)
                 .Include(j => j.AssignedTechnician)
                 .Include(j => j.JobTasks)
                     .ThenInclude(t => t.DowntimeEntries)
