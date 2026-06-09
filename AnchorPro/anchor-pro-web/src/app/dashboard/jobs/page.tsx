@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { useRouter } from 'next/navigation';
 import SlideOver from '@/components/SlideOver';
 import JobCardForm from '@/components/JobCardForm';
@@ -444,6 +445,11 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 
 export default function JobCardsPage() {
   const { isTechnician } = useAuth();
+  const { t } = useDictionary();
+
+  const jobsLabel = t('Job Cards', 'Job Cards');
+  const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
+
   const router = useRouter();
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('All');
@@ -510,8 +516,8 @@ export default function JobCardsPage() {
       <SlideOver
         open={isNewJobOpen}
         onClose={() => setIsNewJobOpen(false)}
-        title="New Job Card"
-        subtitle="Define maintenance steps, assign technicians, and schedule work."
+        title={`New ${jobLabel}`}
+        subtitle={`Define maintenance steps, assign technicians, and schedule work.`}
         width={600}
       >
         <JobCardForm
@@ -541,12 +547,12 @@ export default function JobCardsPage() {
       {/* Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">Job Cards</h1>
+          <h1 className="page-title">{jobsLabel}</h1>
           <p className="page-subtitle">{jobs.length} total operations · {jobs.filter(j => j.status === 2).length} active</p>
         </div>
         {!isTechnician && (
           <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)}>
-            <Plus size={14} /> New Job Card
+            <Plus size={14} /> New {jobLabel}
           </button>
         )}
       </div>
@@ -609,7 +615,7 @@ export default function JobCardsPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0' }}>Loading job cards...</td></tr>
+              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0' }}>Loading {jobsLabel.toLowerCase()}...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No jobs found</td></tr>
             ) : filtered.map(job => {

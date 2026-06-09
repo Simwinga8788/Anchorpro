@@ -4,7 +4,7 @@ const BACKEND = process.env.BACKEND_URL ?? 'https://anchorpro-production.up.rail
 
 async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname, search } = req.nextUrl;
-  const target = `${BACKEND}${pathname}${search}`;
+  const target = new URL(pathname + search, BACKEND).toString();
 
   const headers = new Headers();
   const skipHeaders = new Set(['host', 'content-length', 'connection', 'transfer-encoding']);

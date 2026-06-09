@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const statusConfig: Record<number, { label: string; badge: string; dot: string; icon: React.ReactNode; value: number }> = {
   0: { label: 'Unscheduled', badge: 'badge-muted',   dot: 'muted',   icon: <Clock size={12} />,         value: 0 },
@@ -34,7 +35,11 @@ export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { isTechnician, hasRole, user } = useAuth();
+  const { t } = useDictionary();
   const id = parseInt(params.id as string);
+
+  const jobsLabel = t('Job Cards', 'Job Cards');
+  const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
 
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +108,21 @@ export default function JobDetailPage() {
     };
     initPage();
   }, [id]);
+
+  useEffect(() => {
+    // Only poll if the job is active (unscheduled, scheduled, in progress, on hold)
+    const isActive = job && job.status !== 3 && job.status !== 4;
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      // If we are currently editing the core fields, we don't want to fetch in background to avoid wiping out the user's unsaved form changes
+      if (!editCore) {
+        loadJobDetails();
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [job?.status, editCore, id]);
 
   const handleUpdateCore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,10 +318,10 @@ export default function JobDetailPage() {
     return (
       <div className="empty-state">
         <div className="empty-state-icon"><AlertTriangle size={24} /></div>
-        <h3>Job Card Not Found</h3>
-        <p>The job card you are looking for does not exist or has been deleted.</p>
+        <h3>{jobLabel} Not Found</h3>
+        <p>The {jobLabel.toLowerCase()} you are looking for does not exist or has been deleted.</p>
         <button onClick={() => router.push('/dashboard/jobs')} className="btn btn-primary" style={{ marginTop: 16 }}>
-          Back to Jobs
+          Back to {jobsLabel}
         </button>
       </div>
     );
@@ -322,7 +342,7 @@ export default function JobDetailPage() {
           </button>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h1 className="topbar-title" style={{ fontSize: 24 }}>Job #{job.jobNumber}</h1>
+              <h1 className="topbar-title" style={{ fontSize: 24 }}>{jobLabel} #{job.jobNumber}</h1>
               <span className={`badge ${sc.badge}`} style={{ padding: '3px 10px' }}>
                 <span className={`status-dot ${sc.dot}`} /> {sc.label}
               </span>
@@ -340,7 +360,7 @@ export default function JobDetailPage() {
             <>
               {job.status === 0 && (
                 <button disabled={actionLoading} onClick={() => handleStatusChange(1)} className="btn btn-secondary">
-                  <Play size={14} style={{ color: 'var(--accent-amber)' }} /> Schedule Job
+                  <Play size={14} style={{ color: 'var(--accent-amber)' }} /> Schedule {jobLabel}
                 </button>
               )}
               {job.status === 1 && (
@@ -350,10 +370,10 @@ export default function JobDetailPage() {
               )}
               {job.status === 2 && (
                 <button disabled={actionLoading} onClick={() => handleStatusChange(3)} className="btn btn-success">
-                  <CheckCircle size={14} /> Complete Job
+                  <CheckCircle size={14} /> Complete {jobLabel}
                 </button>
               )}
-              <button disabled={actionLoading} onClick={() => { if (confirm('Cancel this job?')) handleStatusChange(4); }} className="btn btn-danger btn-sm">
+              <button disabled={actionLoading} onClick={() => { if (confirm(`Cancel this ${jobLabel.toLowerCase()}?`)) handleStatusChange(4); }} className="btn btn-danger btn-sm">
                 Cancel
               </button>
             </>
@@ -650,7 +670,7 @@ export default function JobDetailPage() {
 
             {subcontracts.length === 0 ? (
               <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                No external subcontracting has been raised for this job card.
+                No external subcontracting has been raised for this {jobLabel.toLowerCase()}.
               </div>
             ) : (
               <table className="data-table">

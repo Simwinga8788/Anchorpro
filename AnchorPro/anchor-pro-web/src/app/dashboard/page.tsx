@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useDictionary } from '@/lib/DictionaryContext';
 import {
   TrendingUp, TrendingDown, Wrench, AlertTriangle,
   CheckCircle2, Clock, Users, Zap, BarChart3,
@@ -86,6 +87,10 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 // ─── Main Dashboard ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { t } = useDictionary();
+  const jobsLabel = t('Job Cards', 'Job Cards');
+  const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
+
   // Only documented endpoints
   const stats      = useApiData(() => dashboardApi.getStats());
   const profitData = useApiData(() => intelligenceApi.getProfitability(30));
@@ -132,7 +137,7 @@ export default function DashboardPage() {
       <SlideOver
         open={isNewJobOpen}
         onClose={() => setIsNewJobOpen(false)}
-        title="New Job Card"
+        title={`New ${jobLabel}`}
         subtitle="Define maintenance steps, assign technicians, and schedule work."
         width={600}
       >
@@ -379,7 +384,7 @@ export default function DashboardPage() {
         <div className="card">
           <div className="section-header">
             <div>
-              <div className="section-title">Recent Job Cards</div>
+              <div className="section-title">Recent {jobsLabel}</div>
               <div className="section-sub">Latest activity across all assets</div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={() => window.location.href = '/dashboard/jobs'}>View All</button>
@@ -413,7 +418,7 @@ export default function DashboardPage() {
                 ) : (stats.data?.recentActivity ?? []).length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0', fontSize: 13 }}>
-                      No jobs yet — create your first job card
+                      No jobs yet — create your first {jobLabel.toLowerCase()}
                     </td>
                   </tr>
                 ) : (
