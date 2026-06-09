@@ -6,7 +6,7 @@ namespace AnchorPro.Data.Entities
     public class Invoice : BaseEntity
     {
         [MaxLength(30)]
-        public string InvoiceNumber { get; set; } = string.Empty;   // e.g. INV-2026-0001
+        public string? InvoiceNumber { get; set; } = string.Empty;   // e.g. INV-2026-0001
 
         // Link to the originating job (nullable for ad-hoc invoices)
         public int? JobCardId { get; set; }
