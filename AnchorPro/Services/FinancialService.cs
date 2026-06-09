@@ -84,6 +84,15 @@ namespace AnchorPro.Services
         public async Task CreateAdHocInvoiceAsync(Invoice invoice, string userId)
         {
             using var context = _factory.CreateDbContext();
+            
+            if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+            {
+                var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
+                var prefix = $"INV-MAN-{dateStr}-";
+                var countToday = await context.Invoices.CountAsync(i => i.InvoiceNumber.StartsWith(prefix)) + 1;
+                invoice.InvoiceNumber = $"{prefix}{countToday:D3}";
+            }
+
             invoice.CreatedAt = DateTime.UtcNow;
             invoice.CreatedBy = userId;
             invoice.TaxAmount = Math.Round(invoice.Subtotal * (invoice.TaxRate / 100), 2);

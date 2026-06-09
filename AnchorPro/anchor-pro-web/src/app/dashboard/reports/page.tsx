@@ -235,7 +235,7 @@ export default function ReportsPage() {
         <div className="card">
           <div className="section-header">
             <div>
-              <div className="section-title">Work Type Breakdown</div>
+              <div className="section-title">Work Type Distribution</div>
               <div className="section-sub">Completed jobs by category</div>
             </div>
             <span className="badge badge-blue">Analytics</span>
@@ -346,7 +346,7 @@ export default function ReportsPage() {
         <div className="section-header">
           <div>
             <div className="section-title">Technician Detail</div>
-            <div className="section-sub">Full performance breakdown</div>
+            <div className="section-sub">Full performance summary</div>
           </div>
         </div>
         <div className="table-scroll">

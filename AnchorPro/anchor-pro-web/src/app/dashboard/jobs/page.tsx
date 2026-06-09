@@ -154,7 +154,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
       {job.status === 3 && job.totalCost > 0 && (
         <div style={{ padding: 16, background: 'var(--bg-app)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-            Cost Trinity — Financial Breakdown
+            Cost Trinity — Financial Summary
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[

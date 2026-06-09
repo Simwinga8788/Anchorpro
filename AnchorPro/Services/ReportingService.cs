@@ -183,7 +183,7 @@ namespace AnchorPro.Services
                    {
                        html = html.Replace("</div>\r\n</body>", @"
                         <div style='margin: 20px 40px; padding: 15px; background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; color: #0369a1; font-size: 14px; text-align: center;'>
-                            <strong>📎 Excel Report Attached:</strong> A detailed breakdown including the full job list is attached to this email.
+                             <strong>📎 Excel Report Attached:</strong> A detailed summary including the full job list is attached to this email.
                         </div>
                     </div>
                 </div>
@@ -318,7 +318,10 @@ namespace AnchorPro.Services
                 // KPIs
                 var completed = jobs.Count(j => j.Status == JobStatus.Completed);
                 var created = jobs.Count;
-                var breakdownCount = jobs.Count(j => j.JobType?.Name.Contains("Corrective") == true || j.JobType?.Name.Contains("Emergency") == true || j.JobType?.Name.Contains("Breakdown") == true);
+                var breakdownCount = jobs.Count(j => j.JobType?.Name.Contains("Corrective", StringComparison.OrdinalIgnoreCase) == true 
+                    || j.JobType?.Name.Contains("Emergency", StringComparison.OrdinalIgnoreCase) == true 
+                    || j.JobType?.Name.Contains("Breakdown", StringComparison.OrdinalIgnoreCase) == true 
+                    || j.JobType?.Name.Contains("Down Time", StringComparison.OrdinalIgnoreCase) == true);
                 var totalCost = jobs.Sum(j => j.LaborCost + j.PartsCost + j.DirectPurchaseCost + j.SubcontractingCost);
                 var totalSubCost = jobs.Sum(j => j.SubcontractingCost);
                 var totalDirectCost = jobs.Sum(j => j.DirectPurchaseCost);
@@ -389,7 +392,7 @@ namespace AnchorPro.Services
                             </td>
                             <td class='kpi-cell {(breakdownCount > 0 ? "alert" : "")}'>
                                 <span class='kpi-value'>{breakdownCount}</span>
-                                <span class='kpi-label'>Breakdowns</span>
+                                <span class='kpi-label'>Down Time Events</span>
                             </td>
                             <td class='kpi-cell'>
                                 <span class='kpi-value'>${totalSubCost:N0}</span>

@@ -8,7 +8,6 @@ namespace AnchorPro.Data.Entities
 {
     public class JobCard : BaseEntity
     {
-        [Required]
         [MaxLength(20)]
         public string JobNumber { get; set; } = string.Empty; // e.g. "JOB-2025-001234"
 

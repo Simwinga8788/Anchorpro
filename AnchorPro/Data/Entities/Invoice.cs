@@ -5,7 +5,6 @@ namespace AnchorPro.Data.Entities
 {
     public class Invoice : BaseEntity
     {
-        [Required]
         [MaxLength(30)]
         public string InvoiceNumber { get; set; } = string.Empty;   // e.g. INV-2026-0001
 

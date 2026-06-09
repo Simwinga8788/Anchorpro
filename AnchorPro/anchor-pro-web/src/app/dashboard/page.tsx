@@ -268,7 +268,7 @@ export default function DashboardPage() {
         <div className="card">
           <div className="section-header">
             <div>
-              <div className="section-title">Work Type Breakdown</div>
+              <div className="section-title">Work Type Distribution</div>
               <div className="section-sub">Distribution across job categories · live</div>
             </div>
             <span className="badge badge-blue">Live</span>

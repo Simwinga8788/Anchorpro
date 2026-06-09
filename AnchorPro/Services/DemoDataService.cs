@@ -47,7 +47,7 @@ namespace AnchorPro.Services
             var types = await context.JobTypes.ToListAsync();
             if (!types.Any())
             {
-                var defaults = new[] { "Preventive Maintenance", "Corrective Repair", "Emergency Breakdown", "Inspection", "Project Work" };
+                var defaults = new[] { "Preventive Maintenance", "Corrective Repair", "Emergency Down Time", "Inspection", "Project Work" };
                 foreach (var name in defaults)
                 {
                     context.JobTypes.Add(new JobType { Name = name, CreatedBy = userId, CreatedAt = DateTime.UtcNow });

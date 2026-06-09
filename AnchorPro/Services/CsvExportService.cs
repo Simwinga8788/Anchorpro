@@ -68,7 +68,7 @@ namespace AnchorPro.Services
             equipSheet.Cell(1, 1).Value = "Equipment Performance and MTTR Analysis";
             equipSheet.Cell(1, 1).Style.Font.Bold = true;
 
-            var headers = new[] { "Asset Name", "Jobs", "Maint. Hours", "Breakdowns", "MTTR (Hrs)", "MTBF (Hrs)", "Utilization %" };
+            var headers = new[] { "Asset Name", "Jobs", "Maint. Hours", "Down Time Events", "MTTR (Hrs)", "MTBF (Hrs)", "Utilization %" };
             for (int i = 0; i < headers.Length; i++)
             {
                 equipSheet.Cell(3, i + 1).Value = headers[i];
