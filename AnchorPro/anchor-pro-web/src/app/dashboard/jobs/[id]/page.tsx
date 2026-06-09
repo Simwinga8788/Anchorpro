@@ -941,6 +941,13 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
     notes: '',
   });
 
+  // State for registering inline supplier/individual
+  const [showAddSupplierInline, setShowAddSupplierInline] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [newSupplierPhone, setNewSupplierPhone] = useState('');
+  const [newSupplierEmail, setNewSupplierEmail] = useState('');
+  const [savingNewSupplier, setSavingNewSupplier] = useState(false);
+
   useEffect(() => {
     dashboardApi.getSuppliers().then(setSuppliers).catch(() => {});
   }, []);
@@ -973,6 +980,47 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
     }
   };
 
+  const handleCreateSupplierInline = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!newSupplierName.trim()) return;
+    setSavingNewSupplier(true);
+    try {
+      const payload = {
+        name: newSupplierName.trim(),
+        phone: newSupplierPhone.trim(),
+        email: newSupplierEmail.trim(),
+        supplierCode: 'IND-' + Math.floor(1000 + Math.random() * 9000),
+        notes: 'Registered as individual contractor from Subcontract Modal.'
+      };
+      const created = await procurementApi.createSupplier(payload);
+      
+      // Reload suppliers
+      const updatedList = await dashboardApi.getSuppliers();
+      setSuppliers(updatedList || []);
+      
+      // Auto-select the newly created supplier
+      if (created && created.id) {
+        setForm(f => ({ ...f, supplierId: created.id.toString() }));
+      } else {
+        const match = updatedList.find((s: any) => s.name === payload.name);
+        if (match) {
+          setForm(f => ({ ...f, supplierId: match.id.toString() }));
+        }
+      }
+      
+      // Reset inline form
+      setNewSupplierName('');
+      setNewSupplierPhone('');
+      setNewSupplierEmail('');
+      setShowAddSupplierInline(false);
+    } catch (err: any) {
+      alert('Failed to add contractor: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSavingNewSupplier(false);
+    }
+  };
+
   const fieldStyle: React.CSSProperties = {
     width: '100%', fontSize: 13, padding: '8px 12px',
     background: 'var(--bg-primary)', border: '1px solid var(--border-default)',
@@ -999,8 +1047,57 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
               <option value="">Select supplier...</option>
               {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            {suppliers.length === 0 && (
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>No suppliers found — add suppliers in the Procurement module first.</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                {suppliers.length === 0 ? "No suppliers found." : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAddSupplierInline(!showAddSupplierInline)}
+                style={{
+                  fontSize: 11, background: 'none', border: 'none',
+                  color: 'var(--accent-blue)', cursor: 'pointer', padding: 0,
+                  fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3
+                }}
+              >
+                {showAddSupplierInline ? 'Cancel' : '+ Register Individual / Supplier'}
+              </button>
+            </div>
+
+            {showAddSupplierInline && (
+              <div style={{
+                marginTop: 10, padding: 12, borderRadius: 6,
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                display: 'flex', flexDirection: 'column', gap: 10
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Register Individual / Supplier</div>
+                
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>Full Name *</label>
+                  <input style={fieldStyle} required placeholder="e.g. John Banda" value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} />
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>Phone</label>
+                    <input style={fieldStyle} placeholder="+260..." value={newSupplierPhone} onChange={e => setNewSupplierPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>Email</label>
+                    <input style={fieldStyle} type="email" placeholder="john@email.com" value={newSupplierEmail} onChange={e => setNewSupplierEmail(e.target.value)} />
+                  </div>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleCreateSupplierInline}
+                  disabled={savingNewSupplier || !newSupplierName.trim()}
+                  className="btn btn-primary btn-sm"
+                  style={{ alignSelf: 'flex-end', padding: '4px 12px', fontSize: 11 }}
+                >
+                  {savingNewSupplier ? 'Saving...' : 'Save & Select'}
+                </button>
+              </div>
             )}
           </div>
 
@@ -1029,7 +1126,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm" style={{ background: 'var(--accent-violet)', borderColor: 'var(--accent-violet)' }} disabled={saving || !form.supplierId}>
+            <button type="submit" className="btn btn-primary btn-sm" style={{ background: 'var(--accent-violet)', borderColor: 'var(--accent-violet)' }} disabled={saving || !form.supplierId || showAddSupplierInline}>
               <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise Subcontract PO'}
             </button>
           </div>

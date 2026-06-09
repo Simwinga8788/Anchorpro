@@ -95,8 +95,11 @@ export default function ProcurementPage() {
       setSupplierForm(SUPPLIER_BLANK);
       setShowSupplierForm(false);
       fetchData();
-    } catch { alert('Failed to save supplier'); }
-    finally { setSavingSupplier(false); }
+    } catch (err: any) {
+      alert('Failed to save supplier: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSavingSupplier(false);
+    }
   };
 
   const handleDeleteSupplier = async (id: number) => {

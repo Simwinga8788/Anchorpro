@@ -21,12 +21,39 @@ async function apiFetch<T>(path: string): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+function sanitizeRequestBody(body: any): any {
+  if (!body) return body;
+  if (typeof FormData !== 'undefined' && body instanceof FormData) return body;
+  
+  const clean = (val: any): any => {
+    if (val === null || val === undefined) return val;
+    if (Array.isArray(val)) return val.map(clean);
+    if (typeof val === 'object') {
+      const copy: any = {};
+      for (const k of Object.keys(val)) {
+        const v = val[k];
+        if (typeof v === 'string' && v.trim() === '') {
+          copy[k] = null;
+        } else if (typeof v === 'object') {
+          copy[k] = clean(v);
+        } else {
+          copy[k] = v;
+        }
+      }
+      return copy;
+    }
+    return val;
+  };
+  return clean(body);
+}
+
 async function apiPost<T>(path: string, body: any): Promise<T> {
+  const sanitized = sanitizeRequestBody(body);
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
     let errMsg = `POST error ${res.status} on ${path}`;
@@ -43,11 +70,12 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
 }
 
 async function apiPut<T>(path: string, body: any): Promise<T> {
+  const sanitized = sanitizeRequestBody(body);
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
     let errMsg = `PUT error ${res.status} on ${path}`;
@@ -64,11 +92,12 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
 }
 
 async function apiPatch<T>(path: string, body: any): Promise<T> {
+  const sanitized = sanitizeRequestBody(body);
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
     let errMsg = `PATCH error ${res.status} on ${path}`;
