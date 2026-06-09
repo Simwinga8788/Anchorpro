@@ -548,7 +548,7 @@ export default function JobDetailPage() {
                 <span style={{ color: 'var(--accent-emerald)' }}>Invoice</span>
                 {invoice ? (
                   <a 
-                    href={`/dashboard/billing?invoiceId=${invoice.id}`}
+                    href={`/dashboard/invoices?invoiceId=${invoice.id}`}
                     style={{
                       color: 'var(--accent-blue)',
                       fontWeight: 600,
