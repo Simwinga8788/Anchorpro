@@ -151,29 +151,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       <div className="card-elevated" style={{ padding: 16 }}>
         <SectionHeader icon={<Briefcase size={14} />} label="Core Details" />
 
-        <div className="form-row" style={{ marginBottom: 12 }}>
-          <div className="form-field">
-            <label className="form-label">{jobLabel} Number <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Auto-generated (e.g. 1002)"
-              value={formData.jobNumber}
-              onChange={e => setFormData({ ...formData, jobNumber: e.target.value })}
-            />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Priority</label>
-            <select className="form-select" value={formData.priority}
-              onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) })}>
-              <option value={0}>Low</option>
-              <option value={1}>Normal</option>
-              <option value={2}>High</option>
-              <option value={3}>Critical</option>
-            </select>
-          </div>
-        </div>
-
         <div className="form-field" style={{ marginBottom: 12 }}>
           <label className="form-label">Description *</label>
           <textarea
@@ -188,23 +165,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
 
         <div className="form-row" style={{ marginBottom: 12 }}>
           <div className="form-field">
-            <label className="form-label">Customer <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <select className="form-select" value={formData.customerId}
-              onChange={e => {
-                const isSelected = !!e.target.value;
-                setFormData({ 
-                  ...formData, 
-                  customerId: e.target.value,
-                  isCustomerBrought: isSelected ? formData.isCustomerBrought : false,
-                  customerItemName: isSelected ? formData.customerItemName : '',
-                  customerItemSerial: isSelected ? formData.customerItemSerial : '',
-                });
-              }}>
-              <option value="">Internal / No Customer</option>
-              {refData.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="form-field">
             <label className="form-label">Job Type *</label>
             <select className="form-select" value={formData.jobTypeId}
               onChange={e => setFormData({ ...formData, jobTypeId: e.target.value })} required>
@@ -213,6 +173,34 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
             </select>
             {refData.jobTypes.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No job types found.</p>}
           </div>
+          <div className="form-field">
+            <label className="form-label">Priority</label>
+            <select className="form-select" value={formData.priority}
+              onChange={e => setFormData({ ...formData, priority: parseInt(e.target.value) })}>
+              <option value={0}>Low</option>
+              <option value={1}>Normal</option>
+              <option value={2}>High</option>
+              <option value={3}>Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-field" style={{ marginBottom: 12 }}>
+          <label className="form-label">Customer <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+          <select className="form-select" value={formData.customerId}
+            onChange={e => {
+              const isSelected = !!e.target.value;
+              setFormData({ 
+                ...formData, 
+                customerId: e.target.value,
+                isCustomerBrought: isSelected ? formData.isCustomerBrought : false,
+                customerItemName: isSelected ? formData.customerItemName : '',
+                customerItemSerial: isSelected ? formData.customerItemSerial : '',
+              });
+            }}>
+            <option value="">Internal / No Customer</option>
+            {refData.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
 
         {formData.customerId && (
@@ -286,7 +274,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
             </select>
           </div>
           <div className="form-field">
-            <label className="form-label">Agreed Invoice Amount (ZMW) <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <label className="form-label">Agreed Price (ZMW) <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
             <input
               type="number"
               className="form-input"

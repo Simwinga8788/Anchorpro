@@ -54,7 +54,15 @@ namespace AnchorPro.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            // Search by EmployeeNumber (Man Number) first
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeNumber == request.ManNumber);
+
+            // Fallback: search by Email (so standard admin/platform owner accounts without EmployeeNumber can log in)
+            if (user == null)
+            {
+                user = await _userManager.FindByEmailAsync(request.ManNumber);
+            }
+
             if (user == null) return Unauthorized(new { message = "Invalid credentials" });
 
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, true, lockoutOnFailure: true);
@@ -182,7 +190,7 @@ namespace AnchorPro.Controllers
         }
     }
 
-    public record LoginRequest(string Email, string Password);
+    public record LoginRequest(string ManNumber, string Password);
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Email, string Token, string NewPassword);
     public record RegisterRequest(string CompanyName, string Email, string Password, string FirstName, string LastName, string? Industry = null, string? Size = null, string? Timezone = null, int? PlanId = null);

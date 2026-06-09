@@ -127,6 +127,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICustomerService, Ancho
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ISafetyService, AnchorPro.Services.SafetyService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IIntelligenceService, AnchorPro.Services.IntelligenceService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFinancialService, AnchorPro.Services.FinancialService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IQuotationService, AnchorPro.Services.QuotationService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.Services.OrgService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();

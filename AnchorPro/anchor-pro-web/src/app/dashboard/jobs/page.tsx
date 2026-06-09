@@ -230,12 +230,12 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
       {!isTechnician && (
         <form onSubmit={handleSaveInvoice}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
-            Invoice Amount
+            Agreed Price
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div className="form-field" style={{ flex: 1, marginBottom: 0 }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                Agreed Invoice (K)
+                Agreed Price (K)
                 {job.invoiceAmount > 0 && job.status !== 3 && (
                   <span style={{ fontSize: 10, color: 'var(--accent-amber)', fontWeight: 400, marginLeft: 4 }}>
                     currently K {job.invoiceAmount.toLocaleString()} — auto-estimate
@@ -244,12 +244,12 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
               </label>
               <input
                 type="number" min={0} step="0.01" className="form-input"
-                placeholder={job.totalCost > 0 ? `Estimated: K ${(job.totalCost * 1.35).toFixed(0)}` : 'Enter agreed invoice value...'}
+                placeholder={job.totalCost > 0 ? `Estimated: K ${(job.totalCost * 1.35).toFixed(0)}` : 'Enter agreed price value...'}
                 value={invoiceAmount}
                 onChange={e => setInvoiceAmount(e.target.value)}
               />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                Set this before completing the job — profit is calculated as Invoice − Total Cost.
+                Set this before completing the job — profit is calculated as Agreed Price − Total Cost.
               </div>
             </div>
             <button type="submit" className="btn btn-secondary" style={{ marginBottom: 1 }} disabled={savingInvoice || !invoiceAmount}>

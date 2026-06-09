@@ -8,6 +8,9 @@ namespace AnchorPro.Data.Entities
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        [MaxLength(50)]
+        public string? CustomerNumber { get; set; }
+
         [MaxLength(100)]
         public string? ContactPerson { get; set; }       // Primary contact at the company
 

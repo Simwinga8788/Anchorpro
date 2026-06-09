@@ -36,6 +36,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
     public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
     public DbSet<Contract> Contracts { get; set; }
+    public DbSet<Entities.Quotation> Quotations { get; set; }
 
     // Platform/System Level
     public DbSet<Entities.Tenant> Tenants { get; set; }
@@ -66,6 +67,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<ApplicationUser>().Property(e => e.HourlyRate).HasPrecision(18, 2);
         builder.Entity<SubscriptionPlan>().Property(e => e.MonthlyPrice).HasPrecision(18, 2);
         builder.Entity<SubscriptionPlan>().Property(e => e.AnnualPrice).HasPrecision(18, 2);
+
+        builder.Entity<Quotation>().Property(e => e.Subtotal).HasPrecision(18, 2);
+        builder.Entity<Quotation>().Property(e => e.TaxRate).HasPrecision(5, 2);
+        builder.Entity<Quotation>().Property(e => e.TaxAmount).HasPrecision(18, 2);
+        builder.Entity<Quotation>().Property(e => e.Total).HasPrecision(18, 2);
 
         // Global Query Filter for Multi-Tenancy
         // 1. ApplicationUser - REMOVED to allow Login

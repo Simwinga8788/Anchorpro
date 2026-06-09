@@ -5,7 +5,7 @@ import { Plus, Building2, Mail, Phone, MapPin, Edit2, FileText } from 'lucide-re
 import { dashboardApi, customersApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
-const BLANK = { name: '', contactPerson: '', email: '', phone: '', address: '' };
+const BLANK = { name: '', customerNumber: '', contactPerson: '', email: '', phone: '', address: '' };
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -27,7 +27,7 @@ export default function CustomersPage() {
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
   const openEdit = (c: any) => {
-    setFormData({ name: c.name || '', contactPerson: c.contactPerson || '', email: c.email || '', phone: c.phone || '', address: c.address || '' });
+    setFormData({ name: c.name || '', customerNumber: c.customerNumber || '', contactPerson: c.contactPerson || '', email: c.email || '', phone: c.phone || '', address: c.address || '' });
     setEditTarget(c); setSlideMode('edit');
   };
 
@@ -46,8 +46,12 @@ export default function CustomersPage() {
 
   const customerForm = (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div className="form-field"><label className="form-label">Company Name</label>
-        <input className="form-input" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+      <div className="form-row">
+        <div className="form-field" style={{ flex: 2 }}><label className="form-label">Customer / Company Name *</label>
+          <input className="form-input" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+        <div className="form-field" style={{ flex: 1 }}><label className="form-label">Customer Number <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+          <input className="form-input" placeholder="Auto-generated" value={formData.customerNumber} onChange={e => setFormData({ ...formData, customerNumber: e.target.value })} /></div>
+      </div>
       <div className="form-field"><label className="form-label">Contact Person</label>
         <input className="form-input" value={formData.contactPerson} onChange={e => setFormData({ ...formData, contactPerson: e.target.value })} /></div>
       <div className="form-row">
@@ -99,7 +103,10 @@ export default function CustomersPage() {
             ) : customers.map(c => (
               <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => openEdit(c)}>
                 <td>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {c.name}
+                    {c.customerNumber && <span className="badge badge-muted" style={{ padding: '2px 6px', fontSize: 10 }}>#{c.customerNumber}</span>}
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                     <MapPin size={10} /> {c.address || 'No address'}
                   </div>

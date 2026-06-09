@@ -65,6 +65,13 @@ namespace AnchorPro.Services
         public async Task CreateCustomerAsync(Customer customer, string userId)
         {
             using var context = _factory.CreateDbContext();
+
+            if (string.IsNullOrWhiteSpace(customer.CustomerNumber))
+            {
+                var count = await context.Customers.CountAsync(c => c.TenantId == customer.TenantId) + 1;
+                customer.CustomerNumber = $"CUST-{1000 + count}";
+            }
+
             customer.CreatedAt = DateTime.UtcNow;
             customer.CreatedBy = userId;
             context.Customers.Add(customer);
@@ -78,6 +85,7 @@ namespace AnchorPro.Services
             if (existing != null)
             {
                 existing.Name = customer.Name;
+                existing.CustomerNumber = customer.CustomerNumber;
                 existing.Email = customer.Email;
                 existing.Phone = customer.Phone;
                 existing.Address = customer.Address;

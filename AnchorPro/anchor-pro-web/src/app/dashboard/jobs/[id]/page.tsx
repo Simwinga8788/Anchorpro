@@ -5,9 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, CheckCircle2, Clock, Plus, Trash2, Users, Calendar,
   DollarSign, Wrench, Tag, Package, AlertTriangle, Upload, ExternalLink,
-  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle
+  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer
 } from 'lucide-react';
-import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi } from '@/lib/api';
+import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 
@@ -53,6 +53,19 @@ export default function JobDetailPage() {
   const [showAddPart, setShowAddPart] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Quotation & Invoice state
+  const [quotation, setQuotation] = useState<any>(null);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [actioningQuote, setActioningQuote] = useState(false);
+
+  // Collapsible sections state
+  const [isTasksExpanded, setIsTasksExpanded] = useState(true);
+  const [isComponentsExpanded, setIsComponentsExpanded] = useState(true);
+  const [isExternalExpanded, setIsExternalExpanded] = useState(true);
+
   // Form states
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskInst, setNewTaskInst] = useState('');
@@ -91,6 +104,12 @@ export default function JobDetailPage() {
       // Fetch related subcontracts
       const pos = await procurementApi.getOrdersByJob(id).catch(() => []);
       setSubcontracts(pos || []);
+
+      // Fetch Quotation and Invoice
+      const q = await quotationsApi.getByJob(id).catch(() => null);
+      setQuotation(q);
+      const inv = await financialApi.getInvoiceByJob(id).catch(() => null);
+      setInvoice(inv);
     } catch (err) {
       console.error('Failed to load job details', err);
     }
@@ -142,6 +161,52 @@ export default function JobDetailPage() {
       alert('Failed to save details: ' + err.message);
     } finally {
       setSavingCore(false);
+    }
+  };
+
+  const handleCreateQuote = async () => {
+    setActioningQuote(true);
+    try {
+      await quotationsApi.createFromJob(id);
+      await loadJobDetails();
+      alert('Quotation generated successfully!');
+    } catch (err: any) {
+      alert('Failed to create quotation: ' + err.message);
+    } finally {
+      setActioningQuote(false);
+    }
+  };
+
+  const handleAcceptQuote = async () => {
+    if (!quotation) return;
+    setActioningQuote(true);
+    try {
+      await quotationsApi.accept(quotation.id);
+      await loadJobDetails();
+      setShowQuoteModal(false);
+      alert('Quotation accepted! Corresponding invoice has been auto-generated.');
+    } catch (err: any) {
+      alert('Failed to accept quotation: ' + err.message);
+    } finally {
+      setActioningQuote(false);
+    }
+  };
+
+  const handleRejectQuote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quotation || !rejectReason.trim()) return;
+    setActioningQuote(true);
+    try {
+      await quotationsApi.reject(quotation.id, rejectReason.trim());
+      await loadJobDetails();
+      setShowRejectReasonModal(false);
+      setShowQuoteModal(false);
+      setRejectReason('');
+      alert('Quotation rejected.');
+    } catch (err: any) {
+      alert('Failed to reject quotation: ' + err.message);
+    } finally {
+      setActioningQuote(false);
     }
   };
 
@@ -354,40 +419,126 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {/* Status Actions */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {job.status !== 3 && job.status !== 4 && (
-            <>
-              {job.status === 0 && (
-                <button disabled={actionLoading} onClick={() => handleStatusChange(1)} className="btn btn-secondary">
-                  <Play size={14} style={{ color: 'var(--accent-amber)' }} /> Schedule {jobLabel}
+        {/* Status Actions & Document Flow */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {job.status !== 3 && job.status !== 4 && (
+              <>
+                {job.status === 0 && (
+                  <button disabled={actionLoading} onClick={() => handleStatusChange(1)} className="btn btn-secondary">
+                    <Play size={14} style={{ color: 'var(--accent-amber)' }} /> Schedule {jobLabel}
+                  </button>
+                )}
+                {job.status === 1 && (
+                  <button disabled={actionLoading} onClick={() => handleStatusChange(2)} className="btn btn-primary">
+                    <Play size={14} /> Start Execution
+                  </button>
+                )}
+                {job.status === 2 && (
+                  <button disabled={actionLoading} onClick={() => handleStatusChange(3)} className="btn btn-success">
+                    <CheckCircle size={14} /> Complete {jobLabel}
+                  </button>
+                )}
+                <button disabled={actionLoading} onClick={() => { if (confirm(`Cancel this ${jobLabel.toLowerCase()}?`)) handleStatusChange(4); }} className="btn btn-danger btn-sm">
+                  Cancel
                 </button>
-              )}
-              {job.status === 1 && (
-                <button disabled={actionLoading} onClick={() => handleStatusChange(2)} className="btn btn-primary">
-                  <Play size={14} /> Start Execution
+              </>
+            )}
+            {job.status === 3 && (
+              <span style={{ fontSize: 13, color: 'var(--accent-emerald)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={16} /> Completed & Closed
+              </span>
+            )}
+            {job.status === 4 && (
+              <span style={{ fontSize: 13, color: 'var(--accent-rose)', fontWeight: 600 }}>
+                Cancelled
+              </span>
+            )}
+          </div>
+
+          {/* Document Flow Trail */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: 'var(--bg-elevated)',
+            padding: '6px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--border-subtle)',
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text-secondary)'
+          }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Document Flow:</span>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--accent-blue)' }}>Service Order</span>
+              <span className="mono" style={{ color: 'var(--text-primary)' }}>#{job.jobNumber}</span>
+            </div>
+
+            <span style={{ color: 'var(--text-muted)' }}>→</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--accent-indigo)' }}>Quotation</span>
+              {quotation ? (
+                <button 
+                  onClick={() => setShowQuoteModal(true)} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent-blue)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    textDecoration: 'underline'
+                  }}
+                >
+                  #{quotation.quotationNumber}
                 </button>
+              ) : (
+                job.status !== 3 && job.status !== 4 && (
+                  <button 
+                    onClick={handleCreateQuote}
+                    disabled={actioningQuote}
+                    style={{
+                      background: 'rgba(99,102,241,0.1)',
+                      border: '1px solid var(--accent-indigo)',
+                      color: 'var(--accent-indigo)',
+                      borderRadius: 4,
+                      padding: '1px 6px',
+                      fontSize: 10,
+                      cursor: 'pointer',
+                      fontWeight: 700
+                    }}
+                  >
+                    {actioningQuote ? 'Creating...' : '+ Create Quote'}
+                  </button>
+                )
               )}
-              {job.status === 2 && (
-                <button disabled={actionLoading} onClick={() => handleStatusChange(3)} className="btn btn-success">
-                  <CheckCircle size={14} /> Complete {jobLabel}
-                </button>
+            </div>
+
+            <span style={{ color: 'var(--text-muted)' }}>→</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--accent-emerald)' }}>Invoice</span>
+              {invoice ? (
+                <a 
+                  href={`/dashboard/billing?invoiceId=${invoice.id}`}
+                  style={{
+                    color: 'var(--accent-blue)',
+                    fontWeight: 600,
+                    fontSize: 12,
+                    textDecoration: 'underline'
+                  }}
+                >
+                  #{invoice.invoiceNumber || 'Draft/Pending'}
+                </a>
+              ) : (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Pending</span>
               )}
-              <button disabled={actionLoading} onClick={() => { if (confirm(`Cancel this ${jobLabel.toLowerCase()}?`)) handleStatusChange(4); }} className="btn btn-danger btn-sm">
-                Cancel
-              </button>
-            </>
-          )}
-          {job.status === 3 && (
-            <span style={{ fontSize: 13, color: 'var(--accent-emerald)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} /> Completed & Closed
-            </span>
-          )}
-          {job.status === 4 && (
-            <span style={{ fontSize: 13, color: 'var(--accent-rose)', fontWeight: 600 }}>
-              Cancelled
-            </span>
-          )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -415,299 +566,320 @@ export default function JobDetailPage() {
 
           {/* Checklist Tasks Section */}
           <div className="card-elevated">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 size={16} style={{ color: 'var(--accent-emerald)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isTasksExpanded ? 16 : 0 }}>
+              <div 
+                onClick={() => setIsTasksExpanded(!isTasksExpanded)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
+              >
+                {isTasksExpanded ? <ChevronDown size={16} style={{ color: 'var(--accent-emerald)' }} /> : <ChevronRight size={16} style={{ color: 'var(--accent-emerald)' }} />}
                 <h3 className="card-title">Tasks Checklist</h3>
                 <span className="badge badge-muted">{(job.jobTasks || []).filter((t:any)=>t.isCompleted).length} / {job.jobTasks?.length || 0}</span>
               </div>
-              {job.status !== 3 && job.status !== 4 && (
+              {isTasksExpanded && job.status !== 3 && job.status !== 4 && (
                 <button onClick={() => setShowAddTask(!showAddTask)} className="btn btn-ghost btn-sm">
                   <Plus size={14} /> Add Checklist Task
                 </button>
               )}
             </div>
 
-            {showAddTask && (
-              <form onSubmit={handleAddTaskSubmit} style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div className="form-field">
-                  <label className="form-label">Task Name *</label>
-                  <input type="text" className="form-input" placeholder="e.g. Inspect hydraulic pressure" required value={newTaskName} onChange={e => setNewTaskName(e.target.value)} />
-                </div>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label className="form-label">Est. Duration (Minutes)</label>
-                    <input type="number" className="form-input" min="0" value={newTaskDuration} onChange={e => setNewTaskDuration(e.target.value)} />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Instructions / Notes (optional)</label>
-                    <input type="text" className="form-input" placeholder="Special requirements..." value={newTaskInst} onChange={e => setNewTaskInst(e.target.value)} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setShowAddTask(false)} className="btn btn-ghost btn-sm">Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-sm">Save Task</button>
-                </div>
-              </form>
-            )}
-
-            {(!job.jobTasks || job.jobTasks.length === 0) ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                No tasks checklist defined.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {job.jobTasks.map((t: any, idx: number) => (
-                  <div key={t.id} style={{
-                    background: t.isCompleted ? 'rgba(46,204,138,0.02)' : 'var(--bg-primary)',
-                    border: `1px solid ${t.isCompleted ? 'var(--accent-emerald-dim)' : 'var(--border-subtle)'}`,
-                    borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', gap: 10
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1 }}>
-                        <input
-                          type="checkbox"
-                          checked={t.isCompleted}
-                          disabled={job.status === 3 || job.status === 4}
-                          onChange={() => handleToggleTaskComplete(t.id, t.isCompleted)}
-                          style={{ width: 17, height: 17, marginTop: 2, cursor: (job.status === 3 || job.status === 4) ? 'not-allowed' : 'pointer' }}
-                        />
-                        <div>
-                          <div style={{
-                            fontSize: 14, fontWeight: 600,
-                            color: t.isCompleted ? 'var(--text-secondary)' : 'var(--text-primary)',
-                            textDecoration: t.isCompleted ? 'line-through' : 'none'
-                          }}>
-                            {t.name}
-                          </div>
-                          {t.instructions && (
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                              Instructions: {t.instructions}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-                            <span>Est: {t.estimatedDurationMinutes} mins</span>
-                            {t.isCompleted && t.completedAt && (
-                              <span style={{ color: 'var(--accent-emerald)' }}>
-                                Completed at {new Date(t.completedAt).toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+            {isTasksExpanded && (
+              <>
+                {showAddTask && (
+                  <form onSubmit={handleAddTaskSubmit} style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div className="form-field">
+                      <label className="form-label">Task Name *</label>
+                      <input type="text" className="form-input" placeholder="e.g. Inspect hydraulic pressure" required value={newTaskName} onChange={e => setNewTaskName(e.target.value)} />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label className="form-label">Est. Duration (Minutes)</label>
+                        <input type="number" className="form-input" min="0" value={newTaskDuration} onChange={e => setNewTaskDuration(e.target.value)} />
                       </div>
-
-                      {/* Photo / Delete actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {t.isCompleted && (
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 4, background: 'var(--bg-hover)' }}>
-                            <Camera size={12} style={{ color: 'var(--accent-blue)' }} />
-                            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                              {t.photoPath ? 'Replace Photo' : 'Attach Photo'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleTaskPhotoUpload(t.id, e)}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
-                        )}
-                        {job.status !== 3 && job.status !== 4 && (
-                          <button onClick={() => handleDeleteTask(t.id)} className="btn btn-ghost btn-sm" style={{ padding: 4, color: 'var(--accent-rose)' }}>
-                            <Trash2 size={13} />
-                          </button>
-                        )}
+                      <div className="form-field">
+                        <label className="form-label">Instructions / Notes (optional)</label>
+                        <input type="text" className="form-input" placeholder="Special requirements..." value={newTaskInst} onChange={e => setNewTaskInst(e.target.value)} />
                       </div>
                     </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button type="button" onClick={() => setShowAddTask(false)} className="btn btn-ghost btn-sm">Cancel</button>
+                      <button type="submit" className="btn btn-primary btn-sm">Save Task</button>
+                    </div>
+                  </form>
+                )}
 
-                    {/* Task attachment photo rendered directly below the checklist task */}
-                    {t.photoPath && (
-                      <div style={{
-                        marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6,
-                        padding: 10, background: 'rgba(255,255,255,0.02)', borderRadius: 6, border: '1px solid var(--border-subtle)'
-                      }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Task Execution Photo:</div>
-                        <div style={{ position: 'relative', width: 'fit-content', cursor: 'zoom-in' }} onClick={() => setPreviewImage(t.photoPath)}>
-                          <img
-                            src={t.photoPath}
-                            alt={`Task ${idx + 1} execution proof`}
-                            style={{
-                              maxWidth: 160, maxHeight: 110, objectFit: 'cover',
-                              borderRadius: 6, border: '1px solid var(--border-default)',
-                              transition: 'transform 0.15s ease'
-                            }}
-                            onMouseEnter={e => (e.target as HTMLElement).style.transform = 'scale(1.02)'}
-                            onMouseLeave={e => (e.target as HTMLElement).style.transform = 'scale(1)'}
-                          />
-                          <div style={{
-                            position: 'absolute', right: 6, bottom: 6, background: 'rgba(0,0,0,0.65)',
-                            padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center'
-                          }}>
-                            <Eye size={12} style={{ color: 'white' }} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                {(!job.jobTasks || job.jobTasks.length === 0) ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    No tasks checklist defined.
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {job.jobTasks.map((t: any, idx: number) => (
+                      <div key={t.id} style={{
+                        background: t.isCompleted ? 'rgba(46,204,138,0.02)' : 'var(--bg-primary)',
+                        border: `1px solid ${t.isCompleted ? 'var(--accent-emerald-dim)' : 'var(--border-subtle)'}`,
+                        borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', gap: 10
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1 }}>
+                            <input
+                              type="checkbox"
+                              checked={t.isCompleted}
+                              disabled={job.status === 3 || job.status === 4}
+                              onChange={() => handleToggleTaskComplete(t.id, t.isCompleted)}
+                              style={{ width: 17, height: 17, marginTop: 2, cursor: (job.status === 3 || job.status === 4) ? 'not-allowed' : 'pointer' }}
+                            />
+                            <div>
+                              <div style={{
+                                fontSize: 14, fontWeight: 600,
+                                color: t.isCompleted ? 'var(--text-secondary)' : 'var(--text-primary)',
+                                textDecoration: t.isCompleted ? 'line-through' : 'none'
+                              }}>
+                                {t.name}
+                              </div>
+                              {t.instructions && (
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                                  Instructions: {t.instructions}
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+                                <span>Est: {t.estimatedDurationMinutes} mins</span>
+                                {t.isCompleted && t.completedAt && (
+                                  <span style={{ color: 'var(--accent-emerald)' }}>
+                                    Completed at {new Date(t.completedAt).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
-          {/* Parts Request & Issuing Workspace */}
-          <div className="card-elevated">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package size={16} style={{ color: 'var(--accent-amber)' }} />
-                <h3 className="card-title">Parts Request & Issuing</h3>
-              </div>
-              {job.status !== 3 && job.status !== 4 && (
-                <button onClick={() => setShowAddPart(!showAddPart)} className="btn btn-ghost btn-sm">
-                  <Plus size={14} /> Request Inventory Parts
-                </button>
-              )}
-            </div>
-
-            {showAddPart && (
-              <form onSubmit={handleAddPartSubmit} style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div className="form-field" style={{ flex: 2, minWidth: 200 }}>
-                  <label className="form-label">Inventory Part</label>
-                  <select className="form-select" required value={selectedPartId} onChange={e => setSelectedPartId(e.target.value)}>
-                    <option value="">Select inventory item...</option>
-                    {inventory.map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.partNumber} - {item.name} (Stock: {item.quantityOnHand})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-field" style={{ flex: 1, minWidth: 80 }}>
-                  <label className="form-label">Quantity</label>
-                  <input type="number" className="form-input" min="1" required value={partQty} onChange={e => setPartQty(e.target.value)} />
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 2 }}>
-                  <button type="button" onClick={() => setShowAddPart(false)} className="btn btn-ghost btn-sm">Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-sm">Request</button>
-                </div>
-              </form>
-            )}
-
-            {(!job.jobCardParts || job.jobCardParts.length === 0) ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                No parts have been requested for this job.
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Part Details</th>
-                    <th>Qty</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Total Cost</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {job.jobCardParts.map((p: any) => {
-                    const totalCost = p.quantityUsed * p.unitCostSnapshot;
-                    return (
-                      <tr key={p.id}>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{p.inventoryItem?.name || 'Unknown Item'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Part No: {p.inventoryItem?.partNumber || '—'}</div>
-                        </td>
-                        <td style={{ fontWeight: 600 }}>{p.quantityUsed}</td>
-                        <td>
-                          {p.isIssued ? (
-                            <span className="badge badge-green">Issued</span>
-                          ) : (
-                            <span className="badge badge-muted">Requested</span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                          K {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {!p.isIssued && isStoremanOrSupervisor && (
-                              <button
-                                disabled={actionLoading}
-                                onClick={() => handleIssuePart(p.id)}
-                                className="btn btn-success btn-sm"
-                                style={{ padding: '3px 8px', fontSize: 11 }}
-                              >
-                                Issue Part
-                              </button>
+                          {/* Photo / Delete actions */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {t.isCompleted && (
+                              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 4, background: 'var(--bg-hover)' }}>
+                                <Camera size={12} style={{ color: 'var(--accent-blue)' }} />
+                                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                  {t.photoPath ? 'Replace Photo' : 'Attach Photo'}
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleTaskPhotoUpload(t.id, e)}
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
                             )}
-                            {(job.status !== 3 && job.status !== 4) && (
-                              <button onClick={() => handleDeletePart(p.id)} className="btn btn-ghost btn-sm" style={{ padding: 4, color: 'var(--accent-rose)' }}>
+                            {job.status !== 3 && job.status !== 4 && (
+                              <button onClick={() => handleDeleteTask(t.id)} className="btn btn-ghost btn-sm" style={{ padding: 4, color: 'var(--accent-rose)' }}>
                                 <Trash2 size={13} />
                               </button>
                             )}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+
+                        {/* Task attachment photo rendered directly below the checklist task */}
+                        {t.photoPath && (
+                          <div style={{
+                            marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6,
+                            padding: 10, background: 'rgba(255,255,255,0.02)', borderRadius: 6, border: '1px solid var(--border-subtle)'
+                          }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Task Execution Photo:</div>
+                            <div style={{ position: 'relative', width: 'fit-content', cursor: 'zoom-in' }} onClick={() => setPreviewImage(t.photoPath)}>
+                              <img
+                                src={t.photoPath}
+                                alt={`Task ${idx + 1} execution proof`}
+                                style={{
+                                  maxWidth: 160, maxHeight: 110, objectFit: 'cover',
+                                  borderRadius: 6, border: '1px solid var(--border-default)',
+                                  transition: 'transform 0.15s ease'
+                                }}
+                                onMouseEnter={e => (e.target as HTMLElement).style.transform = 'scale(1.02)'}
+                                onMouseLeave={e => (e.target as HTMLElement).style.transform = 'scale(1)'}
+                              />
+                              <div style={{
+                                position: 'absolute', right: 6, bottom: 6, background: 'rgba(0,0,0,0.65)',
+                                padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center'
+                              }}>
+                                <Eye size={12} style={{ color: 'white' }} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Subcontracting Section */}
+          {/* Components Workspace */}
           <div className="card-elevated">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Wrench size={16} style={{ color: 'var(--accent-rose)' }} />
-                <h3 className="card-title">Outsourced Subcontracting</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isComponentsExpanded ? 16 : 0 }}>
+              <div 
+                onClick={() => setIsComponentsExpanded(!isComponentsExpanded)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
+              >
+                {isComponentsExpanded ? <ChevronDown size={16} style={{ color: 'var(--accent-amber)' }} /> : <ChevronRight size={16} style={{ color: 'var(--accent-amber)' }} />}
+                <h3 className="card-title">Components</h3>
               </div>
-              {job.status !== 3 && job.status !== 4 && (
-                <button onClick={() => setShowSubconModal(true)} className="btn btn-secondary btn-sm">
-                  <ExternalLink size={12} /> Raise Subcontract PO
+              {isComponentsExpanded && job.status !== 3 && job.status !== 4 && (
+                <button onClick={() => setShowAddPart(!showAddPart)} className="btn btn-ghost btn-sm">
+                  <Plus size={14} /> Add Component
                 </button>
               )}
             </div>
 
-            {subcontracts.length === 0 ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                No external subcontracting has been raised for this {jobLabel.toLowerCase()}.
+            {isComponentsExpanded && (
+              <>
+                {showAddPart && (
+                  <form onSubmit={handleAddPartSubmit} style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="form-field" style={{ flex: 2, minWidth: 200 }}>
+                      <label className="form-label">Inventory Part</label>
+                      <select className="form-select" required value={selectedPartId} onChange={e => setSelectedPartId(e.target.value)}>
+                        <option value="">Select inventory item...</option>
+                        {inventory.map(item => (
+                          <option key={item.id} value={item.id}>
+                            {item.partNumber} - {item.name} (Stock: {item.quantityOnHand})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field" style={{ flex: 1, minWidth: 80 }}>
+                      <label className="form-label">Quantity</label>
+                      <input type="number" className="form-input" min="1" required value={partQty} onChange={e => setPartQty(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 2 }}>
+                      <button type="button" onClick={() => setShowAddPart(false)} className="btn btn-ghost btn-sm">Cancel</button>
+                      <button type="submit" className="btn btn-primary btn-sm">Request</button>
+                    </div>
+                  </form>
+                )}
+
+                {(!job.jobCardParts || job.jobCardParts.length === 0) ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    No components have been requested for this job.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Part Details</th>
+                        <th>Qty</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Total Cost</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {job.jobCardParts.map((p: any) => {
+                        const totalCost = p.quantityUsed * p.unitCostSnapshot;
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{p.inventoryItem?.name || 'Unknown Item'}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Part No: {p.inventoryItem?.partNumber || '—'}</div>
+                            </td>
+                            <td style={{ fontWeight: 600 }}>{p.quantityUsed}</td>
+                            <td>
+                              {p.isIssued ? (
+                                <span className="badge badge-green">Issued</span>
+                              ) : (
+                                <span className="badge badge-muted">Requested</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                              K {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {!p.isIssued && isStoremanOrSupervisor && (
+                                  <button
+                                    disabled={actionLoading}
+                                    onClick={() => handleIssuePart(p.id)}
+                                    className="btn btn-success btn-sm"
+                                    style={{ padding: '3px 8px', fontSize: 11 }}
+                                  >
+                                    Issue Part
+                                  </button>
+                                )}
+                                {(job.status !== 3 && job.status !== 4) && (
+                                  <button onClick={() => handleDeletePart(p.id)} className="btn btn-ghost btn-sm" style={{ padding: 4, color: 'var(--accent-rose)' }}>
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* External Service Section */}
+          <div className="card-elevated">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isExternalExpanded ? 16 : 0 }}>
+              <div 
+                onClick={() => setIsExternalExpanded(!isExternalExpanded)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
+              >
+                {isExternalExpanded ? <ChevronDown size={16} style={{ color: 'var(--accent-rose)' }} /> : <ChevronRight size={16} style={{ color: 'var(--accent-rose)' }} />}
+                <h3 className="card-title">External Service</h3>
               </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>PO Number</th>
-                    <th>Supplier / Scope</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subcontracts.map(po => (
-                    <tr key={po.id}>
-                      <td className="mono" style={{ color: 'var(--accent-violet)' }}>{po.poNumber}</td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{po.supplier?.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{po.notes}</div>
-                      </td>
-                      <td>
-                        <span className={`badge ${
-                          po.status === 0 ? 'badge-muted' :
-                          po.status === 1 ? 'badge-amber' :
-                          po.status === 2 ? 'badge-green' : 'badge-red'
-                        }`}>
-                          {po.status === 0 ? 'Draft' :
-                           po.status === 1 ? 'Sent' :
-                           po.status === 2 ? 'Received' : 'Cancelled'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                        K {po.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {isExternalExpanded && job.status !== 3 && job.status !== 4 && (
+                <button onClick={() => setShowSubconModal(true)} className="btn btn-secondary btn-sm">
+                  <ExternalLink size={12} /> Add External Service
+                </button>
+              )}
+            </div>
+
+            {isExternalExpanded && (
+              <>
+                {subcontracts.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    No external services have been raised for this {jobLabel.toLowerCase()}.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>PO Number</th>
+                        <th>Supplier / Scope</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subcontracts.map(po => (
+                        <tr key={po.id}>
+                          <td className="mono" style={{ color: 'var(--accent-violet)' }}>{po.poNumber}</td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{po.supplier?.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{po.notes}</div>
+                          </td>
+                          <td>
+                            <span className={`badge ${
+                              po.status === 0 ? 'badge-muted' :
+                              po.status === 1 ? 'badge-amber' :
+                              po.status === 2 ? 'badge-green' : 'badge-red'
+                            }`}>
+                              {po.status === 0 ? 'Draft' :
+                               po.status === 1 ? 'Sent' :
+                               po.status === 2 ? 'Received' : 'Cancelled'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                            K {po.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
             )}
           </div>
 
@@ -810,7 +982,7 @@ export default function JobDetailPage() {
                 </div>
 
                 <div className="form-field">
-                  <label className="form-label">Agreed Invoice Amount (ZMW)</label>
+                  <label className="form-label">Agreed Price (ZMW)</label>
                   <input type="number" step="0.01" className="form-input" placeholder="0.00" value={coreForm.invoiceAmount} onChange={e => setCoreForm({ ...coreForm, invoiceAmount: e.target.value })} />
                 </div>
 
@@ -856,7 +1028,7 @@ export default function JobDetailPage() {
                   <span style={{ fontWeight: 600 }}>{job.contract?.title || job.contract?.contractNumber || '—'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Agreed Invoice</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Agreed Price</span>
                   <span style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
                     K {job.invoiceAmount ? job.invoiceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
                   </span>
@@ -897,7 +1069,7 @@ export default function JobDetailPage() {
                 </div>
                 {job.invoiceAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Invoice Amount</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Agreed Price</span>
                     <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>K {(job.invoiceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
@@ -944,6 +1116,175 @@ export default function JobDetailPage() {
           <button className="btn btn-secondary btn-sm" onClick={() => setPreviewImage(null)}>
             <X size={14} /> Close Preview
           </button>
+        </div>
+      )}
+      {/* ── Quotation Modal ── */}
+      {showQuoteModal && quotation && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowQuoteModal(false)}>
+          <div className="card-elevated" style={{ width: 500, padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Quotation Details</div>
+                <div style={{ fontSize: 13, color: 'var(--accent-indigo)', fontWeight: 600, marginTop: 4 }}>
+                  #{quotation.quotationNumber}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowQuoteModal(false)}><X size={16} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Meta information */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
+                  <span className={`badge ${
+                    quotation.status === 0 ? 'badge-muted' :
+                    quotation.status === 1 ? 'badge-blue' :
+                    quotation.status === 2 ? 'badge-green' : 'badge-rose'
+                  }`}>
+                    {quotation.status === 0 ? 'Draft' :
+                     quotation.status === 1 ? 'Sent' :
+                     quotation.status === 2 ? 'Accepted' : 'Rejected'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Customer</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {job.customer?.name || '—'} 
+                    {job.customer?.customerNumber && (
+                      <span className="badge badge-blue" style={{ marginLeft: 6, fontSize: 10 }}>#{job.customer.customerNumber}</span>
+                    )}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Quote Date</span>
+                  <span>{new Date(quotation.quoteDate).toLocaleDateString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Expiry Date</span>
+                  <span>{new Date(quotation.expiryDate).toLocaleDateString()}</span>
+                </div>
+                {quotation.status === 3 && quotation.rejectionReason && (
+                  <div style={{ marginTop: 8, padding: 10, background: 'rgba(232,72,85,0.1)', border: '1px solid var(--accent-rose)', borderRadius: 6, color: 'var(--accent-rose)', fontSize: 12 }}>
+                    <strong>Rejection Reason:</strong> {quotation.rejectionReason}
+                  </div>
+                )}
+              </div>
+
+              {/* Items Breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Cost Breakdown
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    { label: 'Internal Labor', value: job.laborCost },
+                    { label: 'Components (Issued)', value: job.partsCost },
+                    { label: 'Direct Purchases', value: job.directPurchaseCost },
+                    { label: 'External Services', value: job.subcontractingCost }
+                  ].map(row => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{row.label}</span>
+                      <span style={{ fontWeight: 500 }}>K {(row.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                      <span style={{ fontWeight: 600 }}>K {quotation.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Tax (VAT {quotation.taxRate}%)</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>K {quotation.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
+                      <span>Total Quote Amount</span>
+                      <span style={{ color: 'var(--accent-indigo)' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
+                <a 
+                  href={`/dashboard/jobs/${id}/print-quotation`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Printer size={13} /> Print Quote
+                </a>
+
+                {quotation.status === 2 && invoice && (
+                  <a 
+                    href={`/dashboard/jobs/${id}/print-invoice`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(46,204,138,0.1)', borderColor: 'var(--accent-emerald)' }}
+                  >
+                    <Printer size={13} /> Print Invoice
+                  </a>
+                )}
+
+                {quotation.status !== 2 && quotation.status !== 3 && (
+                  <>
+                    <button 
+                      onClick={() => setShowRejectReasonModal(true)} 
+                      className="btn btn-danger btn-sm"
+                      disabled={actioningQuote}
+                    >
+                      Reject
+                    </button>
+                    <button 
+                      onClick={handleAcceptQuote} 
+                      className="btn btn-success btn-sm"
+                      disabled={actioningQuote}
+                    >
+                      {actioningQuote ? 'Accepting...' : 'Accept Quote'}
+                    </button>
+                  </>
+                )}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowQuoteModal(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject Reason Modal ── */}
+      {showRejectReasonModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowRejectReasonModal(false)}>
+          <div className="card-elevated" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Reason for Rejection</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowRejectReasonModal(false)}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleRejectQuote} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>Please enter the reason why the customer rejected this quote:</label>
+                <textarea 
+                  required 
+                  style={{
+                    width: '100%', minHeight: 80, fontSize: 13, padding: '8px 12px',
+                    background: 'var(--bg-primary)', border: '1px solid var(--border-default)',
+                    borderRadius: 6, color: 'var(--text-primary)', boxSizing: 'border-box', resize: 'vertical'
+                  }} 
+                  placeholder="e.g. Price too high / deferred to next quarter..." 
+                  value={rejectReason} 
+                  onChange={e => setRejectReason(e.target.value)} 
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowRejectReasonModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-danger btn-sm" disabled={actioningQuote || !rejectReason.trim()}>
+                  {actioningQuote ? 'Submitting...' : 'Reject Quote'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

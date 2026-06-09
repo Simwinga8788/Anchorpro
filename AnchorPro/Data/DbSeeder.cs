@@ -58,6 +58,7 @@ namespace AnchorPro.Data
                     FirstName = "Platform",
                     LastName = "Owner",
                     TenantId = null, // NO TENANT - This is the key!
+                    EmployeeNumber = "MAN-001",
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "System"
                 };
@@ -71,9 +72,10 @@ namespace AnchorPro.Data
             else
             {
                 // Update existing platform owner to ensure NO TenantId
-                if (platformOwner.TenantId.HasValue)
+                if (platformOwner.TenantId.HasValue || platformOwner.EmployeeNumber != "MAN-001")
                 {
                     platformOwner.TenantId = null;
+                    platformOwner.EmployeeNumber = "MAN-001";
                     await userManager.UpdateAsync(platformOwner);
                 }
                 
@@ -96,6 +98,7 @@ namespace AnchorPro.Data
                     FirstName = "Anchor Corp",
                     LastName = "Admin",
                     TenantId = tenantId, // Link to Anchor Corp Tenant
+                    EmployeeNumber = "MAN-101",
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "System"
                 };
@@ -115,9 +118,10 @@ namespace AnchorPro.Data
             else
             {
                 // Ensure existing admin has TenantId
-                if (adminUser.TenantId == null)
+                if (adminUser.TenantId == null || adminUser.EmployeeNumber != "MAN-101")
                 {
                     adminUser.TenantId = tenantId;
+                    adminUser.EmployeeNumber = "MAN-101";
                     await userManager.UpdateAsync(adminUser);
                 }
 
@@ -150,6 +154,7 @@ namespace AnchorPro.Data
                     FirstName = "Workshop",
                     LastName = "Supervisor",
                     TenantId = tenantId,
+                    EmployeeNumber = "MAN-102",
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "System"
                 };
@@ -159,8 +164,10 @@ namespace AnchorPro.Data
             }
             else
             {
-                 if (await userManager.IsLockedOutAsync(supervisorUser)) 
+                 if (await userManager.IsLockedOutAsync(supervisorUser) || supervisorUser.EmployeeNumber != "MAN-102") 
                  {
+                     supervisorUser.EmployeeNumber = "MAN-102";
+                     await userManager.UpdateAsync(supervisorUser);
                      await userManager.SetLockoutEndDateAsync(supervisorUser, null);
                      await userManager.ResetAccessFailedCountAsync(supervisorUser);
                  }
@@ -182,6 +189,7 @@ namespace AnchorPro.Data
                     LastName = "Technician",
                     TenantId = tenantId,
                     HourlyRate = 350.00m,
+                    EmployeeNumber = "MAN-103",
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "System"
                 };
@@ -192,8 +200,10 @@ namespace AnchorPro.Data
 
             else
             {
-                 if (await userManager.IsLockedOutAsync(techUser)) 
+                 if (await userManager.IsLockedOutAsync(techUser) || techUser.EmployeeNumber != "MAN-103") 
                  {
+                     techUser.EmployeeNumber = "MAN-103";
+                     await userManager.UpdateAsync(techUser);
                      await userManager.SetLockoutEndDateAsync(techUser, null);
                      await userManager.ResetAccessFailedCountAsync(techUser);
                  }
@@ -204,14 +214,15 @@ namespace AnchorPro.Data
             // Seed 3 Additional Technicians
             var moreTechs = new[]
             {
-                new { Email = "tech2@anchor.com", First = "John", Last = "Phiri", Rate = 450.00m },
-                new { Email = "tech3@anchor.com", First = "Sarah", Last = "Banda", Rate = 550.00m },
-                new { Email = "tech4@anchor.com", First = "Mike", Last = "Mulenga", Rate = 400.00m }
+                new { Email = "tech2@anchor.com", First = "John", Last = "Phiri", Rate = 450.00m, EmpNo = "MAN-104" },
+                new { Email = "tech3@anchor.com", First = "Sarah", Last = "Banda", Rate = 550.00m, EmpNo = "MAN-105" },
+                new { Email = "tech4@anchor.com", First = "Mike", Last = "Mulenga", Rate = 400.00m, EmpNo = "MAN-106" }
             };
 
             foreach (var t in moreTechs)
             {
-                if (await userManager.FindByEmailAsync(t.Email) == null)
+                var existing = await userManager.FindByEmailAsync(t.Email);
+                if (existing == null)
                 {
                     var u = new ApplicationUser
                     {
@@ -222,11 +233,20 @@ namespace AnchorPro.Data
                         LastName = t.Last,
                         TenantId = tenantId,
                         HourlyRate = t.Rate,
+                        EmployeeNumber = t.EmpNo,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = "System"
                     };
                     var r = await userManager.CreateAsync(u, defaultPassword);
                     if (r.Succeeded) await userManager.AddToRoleAsync(u, "Technician");
+                }
+                else
+                {
+                    if (existing.EmployeeNumber != t.EmpNo)
+                    {
+                        existing.EmployeeNumber = t.EmpNo;
+                        await userManager.UpdateAsync(existing);
+                    }
                 }
             }
 

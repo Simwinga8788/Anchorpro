@@ -603,3 +603,12 @@ export const teamApi = {
   reactivate: (id: string)         => usersApi.activate(id),
   remove:     (id: string)         => usersApi.delete(id),
 };
+
+// ─── Quotations API ── /api/quotations ─────────────────────────────────────────
+export const quotationsApi = {
+  getById:       (id: number)          => apiFetch<any>(`/api/quotations/${id}`),
+  getByJob:      (jobId: number)       => apiFetch<any>(`/api/quotations/job/${jobId}`),
+  createFromJob: (jobId: number)       => apiPost<any>(`/api/quotations/from-job/${jobId}`, {}),
+  accept:        (id: number)          => apiPost<any>(`/api/quotations/${id}/accept`, {}),
+  reject:        (id: number, reason: string) => apiPost<any>(`/api/quotations/${id}/reject`, { reason }),
+};
