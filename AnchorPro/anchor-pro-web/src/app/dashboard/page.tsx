@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
-import SlideOver from '@/components/SlideOver';
+import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -134,18 +134,18 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <SlideOver
+      <Modal
         open={isNewJobOpen}
         onClose={() => setIsNewJobOpen(false)}
         title={`New ${jobLabel}`}
         subtitle="Define maintenance steps, assign technicians, and schedule work."
-        width={600}
+        width={650}
       >
         <JobCardForm
           onSuccess={() => { refresh(); setIsNewJobOpen(false); }}
           onCancel={() => setIsNewJobOpen(false)}
         />
-      </SlideOver>
+      </Modal>
 
       {/* ── Header ── */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -238,11 +238,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Active Breakdowns */}
+        {/* Active Down Time */}
         <div className="stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <div>
-              <div className="stat-label">Active Breakdowns</div>
+              <div className="stat-label">Active Down Time</div>
               {stats.loading ? <Skeleton h={32} w={40} /> :
                 <div className="stat-value" style={{
                   color: (stats.data?.activeBreakdownsCount ?? 0) > 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)'
@@ -499,7 +499,7 @@ export default function DashboardPage() {
               { label: 'Completed',         value: fmt(stats.data?.completedJobs),          icon: CheckCircle2, color: 'var(--accent-emerald)' },
               { label: 'Overdue',           value: fmt(stats.data?.overdueJobs),            icon: AlertTriangle,color: 'var(--accent-rose)' },
               { label: 'Active Techs',      value: fmt(stats.data?.activeTechnicians),      icon: Users,        color: 'var(--accent-blue)' },
-              { label: 'Breakdowns',        value: fmt(stats.data?.activeBreakdownsCount),  icon: Activity,     color: 'var(--accent-amber)' },
+              { label: 'Active Down Time',   value: fmt(stats.data?.activeBreakdownsCount),  icon: Activity,     color: 'var(--accent-amber)' },
               { label: 'Scheduled Today',   value: fmt(stats.data?.jobsScheduledToday),     icon: Clock,        color: 'var(--accent-violet)' },
             ].map((metric) => {
               const Icon = metric.icon;

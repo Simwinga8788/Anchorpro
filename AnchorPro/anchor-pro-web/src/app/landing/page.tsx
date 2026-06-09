@@ -12,12 +12,12 @@ const FEATURES = [
   { icon: '📋', title: 'Planning Board', body: 'Kanban-style workflow for your ops team. Drag jobs through stages, spot bottlenecks, and hit daily targets.', color: '#A78BFA', demo: ['Queue: 8 jobs waiting', 'In Progress: 3 active jobs', 'Review: 2 pending sign-off'] },
   { icon: '🛡️', title: 'Safety & Compliance', body: 'Digital Permit to Work, LOTO checklists, PPE verification. Non-compliant jobs auto-suspend. Zero paper.', color: '#F59E0B', demo: ['PTW-041 · Electrical work · Approved', 'LOTO checklist 100% complete', 'PPE verified: J. Phiri ✓'] },
   { icon: '📦', title: 'Inventory & Procurement', body: 'Real-time stock levels, low-stock alerts, and purchase orders — all linked back to the jobs consuming the parts.', color: '#EC4899', demo: ['Engine Oil 20L · 4 drums (⚠ Low)', 'Air Filters · 18 units in stock', 'V-Belt B56 · 12 units in stock'] },
-  { icon: '📊', title: 'Intelligence Center', body: 'MTBF, MTTR, technician utilisation, cost per asset. AI failure risk scores before breakdowns happen.', color: '#06B6D4', demo: ['Avg MTBF: 847 hours ↑ 12%', 'Avg MTTR: 2.4 hours ↓ 18%', 'Tech utilisation: 84% this week'] },
+  { icon: '📊', title: 'Intelligence Center', body: 'MTBF, MTTR, technician utilisation, cost per asset. AI failure risk scores before down time happens.', color: '#06B6D4', demo: ['Avg MTBF: 847 hours ↑ 12%', 'Avg MTTR: 2.4 hours ↓ 18%', 'Tech utilisation: 84% this week'] },
 ];
 
 
 const METRICS = [
-  { val: 40, suffix: '%', label: 'Reduction in downtime' },
+  { val: 40, suffix: '%', label: 'Reduction in down time' },
   { val: 3, suffix: '×', label: 'Faster job assignment' },
   { val: 99, suffix: '%', label: 'Permit compliance' },
   { val: 12, suffix: '+', label: 'Modules included' },
@@ -417,7 +417,7 @@ export default function LandingPage() {
           style={{ border: `1px solid ${D.ctaBorder}`, background: D.ctaBg }}
         >
           <h2 className="lp-cta-h2" style={{ color: D.text }}>Your operation.<br /><em>Finally, in control.</em></h2>
-          <p style={{ fontSize: 16, fontWeight: 300, lineHeight: 1.65, color: D.sub, maxWidth: 400, margin: '0 auto 36px', position: 'relative', zIndex: 1 }}>Join operations teams already using Anchor Pro to cut downtime, tighten costs, and close every job on time.</p>
+          <p style={{ fontSize: 16, fontWeight: 300, lineHeight: 1.65, color: D.sub, maxWidth: 400, margin: '0 auto 36px', position: 'relative', zIndex: 1 }}>Join operations teams already using Anchor Pro to cut down time, tighten costs, and close every job on time.</p>
           <div className="lp-cta-btns">
             <Link href="/register" className="btn-hero">Start free trial →</Link>
             <Link href="/login" style={{ padding: '13px 24px', fontSize: 15, borderRadius: 7, border: `1px solid ${D.line2}`, background: 'transparent', color: D.sub, textDecoration: 'none', transition: 'all .15s' }}>Sign in</Link>

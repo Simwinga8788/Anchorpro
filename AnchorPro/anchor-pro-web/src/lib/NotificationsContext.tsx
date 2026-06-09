@@ -23,7 +23,7 @@ interface NotificationsContextValue {
 const FALLBACK: Notification[] = [
   {
     id: '1',
-    title: 'Breakdown Alert',
+    title: 'Down Time Alert',
     message: 'Compressor Unit #3 has been flagged for immediate corrective maintenance.',
     type: 'error',
     time: '5 min ago',

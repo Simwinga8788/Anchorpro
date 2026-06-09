@@ -31,7 +31,7 @@ const navSections = [
       { href: '/dashboard/planning',      label: 'Planning Board',  icon: Activity },
       { href: '/dashboard/time-tracking', label: 'Time Tracking',   icon: Timer },
       { href: '/dashboard/assets',        label: 'Asset Registry',  icon: Building2 },
-      { href: '/dashboard/downtime',      label: 'Downtime Log',    icon: Pause },
+      { href: '/dashboard/downtime',      label: 'Down Time Log',    icon: Pause },
       { href: '/dashboard/customers',     label: 'CRM & Customers', icon: Users },
     ]
   },

@@ -161,7 +161,7 @@ export default function ReportsPage() {
             sub: 'With performance data',
           },
           {
-            label: 'Downtime Events', icon: AlertTriangle,
+            label: 'Down Time Events', icon: AlertTriangle,
             value: downtimeAnalysis.loading ? null : fmt(totalDowntimeEvents),
             color: 'var(--accent-rose)', dimColor: 'var(--accent-rose-dim)',
             sub: `${fmt(totalDowntimeHours)}h total lost`,
@@ -306,11 +306,11 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Downtime Breakdown */}
+        {/* Down Time Breakdown */}
         <div className="card">
           <div className="section-header">
             <div>
-              <div className="section-title">Downtime Analysis</div>
+              <div className="section-title">Down Time Analysis</div>
               <div className="section-sub">By category · duration and events</div>
             </div>
             <span className="badge badge-rose">Critical</span>
@@ -322,7 +322,7 @@ export default function ReportsPage() {
               </div>
             ) : downtimeBreakdown.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-                No downtime recorded — great sign
+                No down time recorded — great sign
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>

@@ -114,7 +114,7 @@ export default function MyJobsPage() {
       jobTaskId = target?.id ?? null;
 
       if (!jobTaskId) {
-        alert('Cannot report downtime — no tasks exist on this job card. Add a task first.');
+        alert('Cannot report down time — no tasks exist on this job card. Add a task first.');
         setSaving(false);
         return;
       }
@@ -126,9 +126,9 @@ export default function MyJobsPage() {
         startTime: new Date().toISOString(),
       });
       setShowDowntime(false);
-      alert('Downtime reported.');
+      alert('Down Time reported.');
     } catch (err: any) {
-      alert(err.message || 'Failed to report downtime.');
+      alert(err.message || 'Failed to report down time.');
     } finally {
       setSaving(false);
     }
@@ -360,11 +360,10 @@ export default function MyJobsPage() {
         </form>
       </SlideOver>
 
-      {/* Downtime Report SlideOver */}
-      <SlideOver open={showDowntime} onClose={() => setShowDowntime(false)} title="Report Downtime" subtitle="Log immediate equipment breakdown or operational halt.">
+      <SlideOver open={showDowntime} onClose={() => setShowDowntime(false)} title="Report Down Time" subtitle="Log immediate equipment down time or operational halt.">
         <form onSubmit={reportDowntime} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="form-field">
-            <label className="form-label">Breakdown Category</label>
+            <label className="form-label">Down Time Category</label>
             <select className="form-select" required value={downtimeData.categoryId} onChange={e => setDowntimeData({ ...downtimeData, categoryId: e.target.value })}>
               <option value="">Select category...</option>
               {downtimeCategories.map(c => (
@@ -443,7 +442,7 @@ export default function MyJobsPage() {
                             </button>
                           </div>
                           <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
-                            <AlertTriangle size={14} /> Report Downtime / Delay
+                            <AlertTriangle size={14} /> Report Down Time / Delay
                           </button>
                         </div>
                       )}

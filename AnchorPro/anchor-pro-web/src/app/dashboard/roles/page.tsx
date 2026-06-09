@@ -92,7 +92,7 @@ const ROLE_DEFINITIONS: RoleDefinition[] = [
       'Track asset health and inventory levels',
       'File and close safety permits',
       'View operational reports',
-      'Report and resolve breakdowns',
+      'Report and resolve down time',
     ],
     restrictions: [
       'Cannot view financial intelligence or revenue data',
@@ -170,7 +170,7 @@ const ROLE_DEFINITIONS: RoleDefinition[] = [
       'View and check off tasks on assigned job cards',
       'Log time against job cards',
       'File safety/work permits',
-      'Report equipment breakdowns',
+      'Report equipment down time',
     ],
     restrictions: [
       'Can only see jobs assigned to them',

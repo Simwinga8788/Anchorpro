@@ -623,7 +623,7 @@ export default function SettingsPage() {
                <h4 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>In-App Notification Routing</h4>
                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                  {[
-                   { label: 'Weekly Summary Emails', desc: 'Receive a digest of all jobs and downtime.', active: true },
+                   { label: 'Weekly Summary Emails', desc: 'Receive a digest of all jobs and down time.', active: true },
                    { label: 'Critical Asset Alerts', desc: 'Immediate notification if High Priority assets fail.', active: true },
                    { label: 'Inventory Reorder Alerts', desc: 'When stock drops below defined threshold.', active: false },
                    { label: 'Technician Assignment', desc: 'When a new job is routed to your queue.', active: true }
@@ -749,10 +749,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Downtime Categories */}
+                {/* Down Time Categories */}
                 <div className="card-elevated" style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Downtime Categories</h3>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>Used when reporting breakdowns and equipment downtime</p>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Down Time Categories</h3>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>Used when reporting equipment down time</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     {downtimeCategories.length === 0 ? (
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>None yet</div>

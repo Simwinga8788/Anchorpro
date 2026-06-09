@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Briefcase, DollarSign, Info } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 interface JobCardFormProps {
   onSuccess: () => void;
@@ -10,6 +11,10 @@ interface JobCardFormProps {
 }
 
 export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
+  const { t } = useDictionary();
+  const jobsLabel = t('Job Cards', 'Job Cards');
+  const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
+
   const [loading, setLoading] = useState(false);
   const [refData, setRefData] = useState<{
     equipment: any[];
@@ -148,7 +153,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
 
         <div className="form-row" style={{ marginBottom: 12 }}>
           <div className="form-field">
-            <label className="form-label">Job Card Number <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <label className="form-label">{jobLabel} Number <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
             <input
               type="text"
               className="form-input"
@@ -302,7 +307,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       }}>
         <Info size={14} style={{ color: 'var(--accent-indigo)', flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-          Additional scheduling, assigning, checklist tasks, and parts requests can be added from the dedicated <strong>Job Details Page</strong> once the job is created.
+          Additional scheduling, assigning, checklist tasks, and parts requests can be added from the dedicated details page once the {jobLabel.toLowerCase()} is created.
         </p>
       </div>
 
@@ -314,7 +319,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       }}>
         <button type="button" onClick={onCancel} className="btn btn-secondary" disabled={loading}>Cancel</button>
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Job Card'}
+          {loading ? 'Creating...' : `Create ${jobLabel}`}
         </button>
       </div>
     </form>

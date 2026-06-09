@@ -366,7 +366,7 @@ export default function IntelligencePage() {
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {a.occurrences ?? 0} occurrences · {Math.round(a.totalDowntimeHours ?? 0)}h downtime · {pct.toFixed(1)}% of total
+                      {a.occurrences ?? 0} occurrences · {Math.round(a.totalDowntimeHours ?? 0)}h down time · {pct.toFixed(1)}% of total
                     </div>
                     {(a.createdAt ?? a.timestamp) && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>

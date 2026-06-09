@@ -77,7 +77,7 @@ export default function DowntimePage() {
       setForm({ jobCardId: '', jobTaskId: '', downtimeCategoryId: '', notes: '', startTime: '' });
       load();
     } catch (ex: any) {
-      setErr(ex?.message || 'Failed to report breakdown');
+      setErr(ex?.message || 'Failed to report down time');
     } finally { setSaving(false); }
   }
 
@@ -101,19 +101,19 @@ export default function DowntimePage() {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">Downtime & Reliability</h1>
-          <p className="page-subtitle">Historical log of equipment breakdowns and lost production time.</p>
+          <h1 className="page-title">Down Time & Reliability</h1>
+          <p className="page-subtitle">Historical log of equipment down time and lost production time.</p>
         </div>
         <button className="btn btn-danger" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <AlertTriangle size={14} /> Report Breakdown
+          <AlertTriangle size={14} /> Report Down Time
         </button>
       </div>
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Active Breakdowns', value: activeDowntime.length, color: 'var(--accent-rose)',    icon: <Pause size={16}/> },
-          { label: 'Total Downtime',    value: `${Math.round(totalDuration / 60)}h`, color: 'var(--accent-amber)', icon: <Clock size={16}/> },
+          { label: 'Active Down Time', value: activeDowntime.length, color: 'var(--accent-rose)',    icon: <Pause size={16}/> },
+          { label: 'Total Down Time',    value: `${Math.round(totalDuration / 60)}h`, color: 'var(--accent-amber)', icon: <Clock size={16}/> },
           { label: 'Resolved Today',    value: downtime.filter(d => d.endTime && new Date(d.endTime).toDateString() === new Date().toDateString()).length, color: 'var(--accent-emerald)', icon: <CheckCircle2 size={16}/> },
         ].map(s => (
           <div key={s.label} className="card-elevated" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -147,7 +147,7 @@ export default function DowntimePage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0' }}>Loading downtime records...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0' }}>Loading down time records...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No records found</td></tr>
             ) : filtered.map(item => {
@@ -180,14 +180,14 @@ export default function DowntimePage() {
         </table>
       </div>
 
-      {/* Report Breakdown Modal */}
+      {/* Report Downtime Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowModal(false)}>
           <div className="card-elevated" style={{ width: 460, padding: 28 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <AlertTriangle size={15} style={{ color: '#ef4444' }} /> Report Breakdown
+                <AlertTriangle size={15} style={{ color: '#ef4444' }} /> Report Down Time
               </h2>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}><X size={16} /></button>
             </div>
@@ -216,7 +216,7 @@ export default function DowntimePage() {
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Downtime Category *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Down Time Category *</label>
                 <select style={fieldStyle} value={form.downtimeCategoryId} onChange={e => setForm(f => ({ ...f, downtimeCategoryId: e.target.value }))} required>
                   <option value="">Select category...</option>
                   {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -230,7 +230,7 @@ export default function DowntimePage() {
 
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Notes</label>
-                <textarea style={{ ...fieldStyle, resize: 'none' }} rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Describe the breakdown..." />
+                <textarea style={{ ...fieldStyle, resize: 'none' }} rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Describe the down time..." />
               </div>
 
               {err && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 12 }}>{err}</div>}
@@ -238,7 +238,7 @@ export default function DowntimePage() {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowModal(false); setErr(''); }}>Cancel</button>
                 <button type="submit" className="btn btn-danger" disabled={saving || !form.downtimeCategoryId}>
-                  {saving ? 'Reporting...' : 'Report Breakdown'}
+                  {saving ? 'Reporting...' : 'Report Down Time'}
                 </button>
               </div>
             </form>

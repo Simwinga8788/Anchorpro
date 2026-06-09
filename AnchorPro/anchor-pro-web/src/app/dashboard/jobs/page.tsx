@@ -9,7 +9,7 @@ import { dashboardApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { useRouter } from 'next/navigation';
-import SlideOver from '@/components/SlideOver';
+import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
 
 const STATUSES = ['All', 'Unscheduled', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'];
@@ -512,37 +512,19 @@ export default function JobCardsPage() {
         />
       )}
 
-      {/* New Job SlideOver */}
-      <SlideOver
+      {/* New Job Modal */}
+      <Modal
         open={isNewJobOpen}
         onClose={() => setIsNewJobOpen(false)}
         title={`New ${jobLabel}`}
         subtitle={`Define maintenance steps, assign technicians, and schedule work.`}
-        width={600}
+        width={650}
       >
         <JobCardForm
           onSuccess={() => { fetchJobs(); setIsNewJobOpen(false); }}
           onCancel={() => setIsNewJobOpen(false)}
         />
-      </SlideOver>
-
-      {/* Job Detail / Edit SlideOver */}
-      <SlideOver
-        open={!!selectedJob}
-        onClose={() => setSelectedJob(null)}
-        title={selectedJob?.jobNumber ?? 'Job Details'}
-        subtitle={selectedJob?.equipment?.name ?? 'Edit assignment and scheduling'}
-      >
-        {selectedJob && (
-          <JobDetailPanel
-            job={selectedJob}
-            technicians={technicians}
-            isTechnician={isTechnician}
-            onClose={() => setSelectedJob(null)}
-            onSaved={() => { fetchJobs(); setSelectedJob(null); }}
-          />
-        )}
-      </SlideOver>
+      </Modal>
 
       {/* Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
