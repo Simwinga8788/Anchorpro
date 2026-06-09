@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, CheckCircle2, Clock, Plus, Trash2, Users, Calendar,
   DollarSign, Wrench, Tag, Package, AlertTriangle, Upload, ExternalLink,
-  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer
+  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer, Download
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
@@ -60,7 +60,7 @@ export default function JobDetailPage() {
   const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actioningQuote, setActioningQuote] = useState(false);
-
+  const [showDocFlow, setShowDocFlow] = useState(false);
   // Collapsible sections state
   const [isTasksExpanded, setIsTasksExpanded] = useState(true);
   const [isComponentsExpanded, setIsComponentsExpanded] = useState(true);
@@ -454,91 +454,116 @@ export default function JobDetailPage() {
                 Cancelled
               </span>
             )}
+
+            {/* Document Flow Interactive Tab Button */}
+            <button
+              onClick={() => setShowDocFlow(!showDocFlow)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: showDocFlow ? 'var(--accent-indigo)' : 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                color: showDocFlow ? '#fff' : 'var(--text-secondary)',
+                borderRadius: 6,
+                padding: '6px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <FileText size={12} />
+              <span>Doc Flow</span>
+              {showDocFlow ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </button>
           </div>
 
-          {/* Document Flow Trail */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            background: 'var(--bg-elevated)',
-            padding: '6px 12px',
-            borderRadius: 8,
-            border: '1px solid var(--border-subtle)',
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-secondary)'
-          }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Document Flow:</span>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--accent-blue)' }}>Service Order</span>
-              <span className="mono" style={{ color: 'var(--text-primary)' }}>#{job.jobNumber}</span>
-            </div>
+          {/* Document Flow Trail (Collapsible) */}
+          {showDocFlow && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: 'var(--bg-elevated)',
+              padding: '6px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--border-subtle)',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-secondary)'
+            }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Document Flow:</span>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ color: 'var(--accent-blue)' }}>Service Order</span>
+                <span className="mono" style={{ color: 'var(--text-primary)' }}>#{job.jobNumber}</span>
+              </div>
 
-            <span style={{ color: 'var(--text-muted)' }}>→</span>
+              <span style={{ color: 'var(--text-muted)' }}>→</span>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--accent-indigo)' }}>Quotation</span>
-              {quotation ? (
-                <button 
-                  onClick={() => setShowQuoteModal(true)} 
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent-blue)',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontWeight: 600,
-                    fontSize: 12,
-                    textDecoration: 'underline'
-                  }}
-                >
-                  #{quotation.quotationNumber}
-                </button>
-              ) : (
-                job.status !== 3 && job.status !== 4 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ color: 'var(--accent-indigo)' }}>Quotation</span>
+                {quotation ? (
                   <button 
-                    onClick={handleCreateQuote}
-                    disabled={actioningQuote}
+                    onClick={() => setShowQuoteModal(true)} 
                     style={{
-                      background: 'rgba(99,102,241,0.1)',
-                      border: '1px solid var(--accent-indigo)',
-                      color: 'var(--accent-indigo)',
-                      borderRadius: 4,
-                      padding: '1px 6px',
-                      fontSize: 10,
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-blue)',
                       cursor: 'pointer',
-                      fontWeight: 700
+                      padding: 0,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      textDecoration: 'underline'
                     }}
                   >
-                    {actioningQuote ? 'Creating...' : '+ Create Quote'}
+                    #{quotation.quotationNumber}
                   </button>
-                )
-              )}
-            </div>
+                ) : (
+                  job.status !== 3 && job.status !== 4 && (
+                    <button 
+                      onClick={handleCreateQuote}
+                      disabled={actioningQuote}
+                      style={{
+                        background: 'rgba(99,102,241,0.1)',
+                        border: '1px solid var(--accent-indigo)',
+                        color: 'var(--accent-indigo)',
+                        borderRadius: 4,
+                        padding: '1px 6px',
+                        fontSize: 10,
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                    >
+                      {actioningQuote ? 'Creating...' : '+ Create Quote'}
+                    </button>
+                  )
+                )}
+              </div>
 
-            <span style={{ color: 'var(--text-muted)' }}>→</span>
+              <span style={{ color: 'var(--text-muted)' }}>→</span>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--accent-emerald)' }}>Invoice</span>
-              {invoice ? (
-                <a 
-                  href={`/dashboard/billing?invoiceId=${invoice.id}`}
-                  style={{
-                    color: 'var(--accent-blue)',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    textDecoration: 'underline'
-                  }}
-                >
-                  #{invoice.invoiceNumber || 'Draft/Pending'}
-                </a>
-              ) : (
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Pending</span>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ color: 'var(--accent-emerald)' }}>Invoice</span>
+                {invoice ? (
+                  <a 
+                    href={`/dashboard/billing?invoiceId=${invoice.id}`}
+                    style={{
+                      color: 'var(--accent-blue)',
+                      fontWeight: 600,
+                      fontSize: 12,
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    #{invoice.invoiceNumber || 'Draft/Pending'}
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Pending</span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1214,7 +1239,7 @@ export default function JobDetailPage() {
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  <Printer size={13} /> Print Quote
+                  <Download size={13} /> Download Quote
                 </a>
 
                 {quotation.status === 2 && invoice && (
@@ -1225,7 +1250,7 @@ export default function JobDetailPage() {
                     className="btn btn-secondary btn-sm"
                     style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(46,204,138,0.1)', borderColor: 'var(--accent-emerald)' }}
                   >
-                    <Printer size={13} /> Print Invoice
+                    <Download size={13} /> Download Invoice
                   </a>
                 )}
 

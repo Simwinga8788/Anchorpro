@@ -33,6 +33,20 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
 
+  const isPrintPage = pathname?.endsWith('/print-quotation') || pathname?.endsWith('/print-invoice');
+
+  if (isPrintPage) {
+    return (
+      <RouteGuard>
+        <div className="print-layout-wrapper">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </div>
+      </RouteGuard>
+    );
+  }
+
   const meta = pageTitles[pathname] ?? { title: 'Dashboard', breadcrumb: 'Anchor Pro' };
 
   return (
