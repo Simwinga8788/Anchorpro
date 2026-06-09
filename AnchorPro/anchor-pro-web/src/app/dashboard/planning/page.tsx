@@ -73,18 +73,20 @@ function jobDateKey(job: Job): string | null {
 
 // ─── Job chip shown in calendar cell ─────────────────────────────────────────
 
-function JobChip({ job, onClick }: { job: Job; onClick: () => void }) {
+function JobChip({ job, onClick, onDragStart }: { job: Job; onClick: () => void; onDragStart?: (e: React.DragEvent) => void }) {
   const pc = priorityConfig[job.priority] ?? priorityConfig[1];
   const sc = statusConfig[job.status] ?? statusConfig[0];
   return (
     <button
       onClick={onClick}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
       title={job.description}
       style={{
         width: '100%', textAlign: 'left', background: 'var(--bg-elevated)',
         border: `1px solid var(--border-default)`,
         borderLeft: `3px solid ${pc.color}`,
-        borderRadius: 5, padding: '3px 6px', cursor: 'pointer',
+        borderRadius: 5, padding: '3px 6px', cursor: onDragStart ? 'grab' : 'pointer',
         marginBottom: 3, fontSize: 11, lineHeight: 1.3,
         color: 'var(--text-primary)', display: 'block',
         transition: 'background 0.1s',
@@ -103,6 +105,74 @@ function JobChip({ job, onClick }: { job: Job; onClick: () => void }) {
         {sc.label}
       </span>
     </button>
+  );
+}
+
+// ─── Calendar Cell drop target ───────────────────────────────────────────────
+
+interface CalendarCellProps {
+  date: Date;
+  isToday: boolean;
+  isWeekend: boolean;
+  dayJobs: Job[];
+  onJobClick: (job: Job) => void;
+  onDropJob: (jobId: number, dateStr: string) => void;
+}
+
+function CalendarCell({ date, isToday, isWeekend, dayJobs, onJobClick, onDropJob }: CalendarCellProps) {
+  const [draggingOver, setDraggingOver] = useState(false);
+  const key = date.toISOString().slice(0, 10);
+
+  return (
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setDraggingOver(true);
+      }}
+      onDragLeave={() => setDraggingOver(false)}
+      onDrop={(e) => {
+        setDraggingOver(false);
+        const jobIdStr = e.dataTransfer.getData('text/plain');
+        if (jobIdStr) {
+          onDropJob(Number(jobIdStr), key);
+        }
+      }}
+      style={{
+        minHeight: 100, padding: 6,
+        borderRight: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)',
+        background: draggingOver
+          ? 'var(--bg-hover)'
+          : isToday
+            ? 'rgba(59,130,246,0.05)'
+            : isWeekend
+              ? 'var(--bg-secondary)'
+              : 'var(--bg-card)',
+        border: draggingOver ? '1px dashed var(--accent-blue)' : undefined,
+        transition: 'all 0.15s ease',
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 500, marginBottom: 4, color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{date.getDate()}</span>
+        {dayJobs.length > 0 && (
+          <span style={{ fontSize: 10, background: 'var(--accent-blue)', color: '#fff', borderRadius: 10, padding: '1px 5px', fontWeight: 700 }}>{dayJobs.length}</span>
+        )}
+      </div>
+      {dayJobs.slice(0, 3).map(job => (
+        <JobChip
+          key={job.id}
+          job={job}
+          onClick={() => onJobClick(job)}
+          onDragStart={(e) => {
+            e.dataTransfer.setData('text/plain', job.id.toString());
+            e.dataTransfer.setData('source', 'calendar');
+          }}
+        />
+      ))}
+      {dayJobs.length > 3 && (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', padding: '2px 0' }}>+{dayJobs.length - 3} more</div>
+      )}
+    </div>
   );
 }
 
@@ -158,15 +228,37 @@ function JobDetailPanel({ job }: { job: Job }) {
 
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
-function KanbanColumn({ title, badge, jobs, onJobClick }: {
-  title: string; badge: string; jobs: Job[]; onJobClick: (j: Job) => void;
+function KanbanColumn({ title, badge, jobs, onJobClick, onDropJob }: {
+  title: string;
+  badge: string;
+  jobs: Job[];
+  onJobClick: (j: Job) => void;
+  onDropJob: (jobId: number) => void;
 }) {
+  const [draggingOver, setDraggingOver] = useState(false);
+
   return (
-    <div style={{
-      flex: '0 0 240px', background: 'var(--bg-secondary)',
-      borderRadius: 10, border: '1px solid var(--border-subtle)',
-      display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 220px)',
-    }}>
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setDraggingOver(true);
+      }}
+      onDragLeave={() => setDraggingOver(false)}
+      onDrop={(e) => {
+        setDraggingOver(false);
+        const jobIdStr = e.dataTransfer.getData('text/plain');
+        if (jobIdStr) {
+          onDropJob(Number(jobIdStr));
+        }
+      }}
+      style={{
+        flex: '0 0 240px', background: draggingOver ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+        borderRadius: 10, border: draggingOver ? '1px dashed var(--accent-blue)' : '1px solid var(--border-subtle)',
+        display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 220px)',
+        transition: 'all 0.15s ease',
+      }}
+    >
       <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</span>
         <span className={`badge ${badge}`} style={{ fontSize: 11 }}>{jobs.length}</span>
@@ -178,9 +270,14 @@ function KanbanColumn({ title, badge, jobs, onJobClick }: {
           <div
             key={job.id}
             onClick={() => onJobClick(job)}
+            draggable={true}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/plain', job.id.toString());
+              e.dataTransfer.setData('source', 'kanban');
+            }}
             style={{
               background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
-              borderRadius: 8, padding: 12, marginBottom: 8, cursor: 'pointer',
+              borderRadius: 8, padding: 12, marginBottom: 8, cursor: 'grab',
               transition: 'border-color 0.15s, transform 0.1s',
             }}
             onMouseEnter={e => {
@@ -251,6 +348,81 @@ export default function PlanningPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleStatusChange(jobId: number, newStatus: number) {
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      if (!job || job.status === newStatus) return;
+
+      // Optimistically update
+      setJobs(prev => prev.map(j => {
+        if (j.id === jobId) {
+          if (newStatus === 0) {
+            return { ...j, status: newStatus, scheduledStartDate: null, scheduledEndDate: null };
+          }
+          return { ...j, status: newStatus };
+        }
+        return j;
+      }));
+
+      await jobCardsApi.updateStatus(jobId, newStatus);
+      
+      if (newStatus === 0) {
+        await jobCardsApi.assign(jobId, {
+          technicianId: job.assignedTechnician?.id ?? null,
+          scheduledStart: null,
+          scheduledEnd: null,
+        });
+      }
+      load();
+    } catch (err: any) {
+      alert('Failed to update job status: ' + err.message);
+      load();
+    }
+  }
+
+  async function handleDateChange(jobId: number, dateStr: string) {
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) return;
+
+      const newStart = new Date(dateStr);
+      newStart.setHours(8, 0, 0, 0);
+
+      let durationMs = 9 * 60 * 60 * 1000;
+      if (job.scheduledStartDate && job.scheduledEndDate) {
+        durationMs = new Date(job.scheduledEndDate).getTime() - new Date(job.scheduledStartDate).getTime();
+      }
+      const newEnd = new Date(newStart.getTime() + durationMs);
+
+      setJobs(prev => prev.map(j => {
+        if (j.id === jobId) {
+          const status = j.status === 0 ? 1 : j.status;
+          return {
+            ...j,
+            scheduledStartDate: newStart.toISOString(),
+            scheduledEndDate: newEnd.toISOString(),
+            status,
+          };
+        }
+        return j;
+      }));
+
+      await jobCardsApi.assign(jobId, {
+        technicianId: job.assignedTechnician?.id ?? null,
+        scheduledStart: newStart.toISOString(),
+        scheduledEnd: newEnd.toISOString(),
+      });
+
+      if (job.status === 0) {
+        await jobCardsApi.updateStatus(jobId, 1);
+      }
+      load();
+    } catch (err: any) {
+      alert('Failed to schedule job: ' + err.message);
+      load();
+    }
+  }
 
   const filtered = jobs.filter(j => {
     if (techFilter && j.assignedTechnician?.id !== techFilter) return false;
@@ -381,24 +553,15 @@ export default function PlanningPage() {
               const isToday   = key === today;
               const isWeekend = date.getDay() === 0 || date.getDay() === 6;
               return (
-                <div key={key} style={{
-                  minHeight: 100, padding: 6,
-                  borderRight: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)',
-                  background: isToday ? 'rgba(59,130,246,0.05)' : isWeekend ? 'var(--bg-secondary)' : 'var(--bg-card)',
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 500, marginBottom: 4, color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{date.getDate()}</span>
-                    {dayJobs.length > 0 && (
-                      <span style={{ fontSize: 10, background: 'var(--accent-blue)', color: '#fff', borderRadius: 10, padding: '1px 5px', fontWeight: 700 }}>{dayJobs.length}</span>
-                    )}
-                  </div>
-                  {dayJobs.slice(0, 3).map(job => (
-                    <JobChip key={job.id} job={job} onClick={() => router.push(`/dashboard/jobs/${job.id}`)} />
-                  ))}
-                  {dayJobs.length > 3 && (
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', padding: '2px 0' }}>+{dayJobs.length - 3} more</div>
-                  )}
-                </div>
+                <CalendarCell
+                  key={key}
+                  date={date}
+                  isToday={isToday}
+                  isWeekend={isWeekend}
+                  dayJobs={dayJobs}
+                  onJobClick={(job) => router.push(`/dashboard/jobs/${job.id}`)}
+                  onDropJob={handleDateChange}
+                />
               );
             })}
           </div>
@@ -412,7 +575,12 @@ export default function PlanningPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {unscheduled.map(job => (
                   <button key={job.id} onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', job.id.toString());
+                      e.dataTransfer.setData('source', 'unscheduled');
+                    }}
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '5px 10px', cursor: 'grab', fontSize: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-blue)')}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                   >
@@ -438,6 +606,7 @@ export default function PlanningPage() {
                 badge={col.badge}
                 jobs={filtered.filter(j => j.status === col.key)}
                 onJobClick={job => router.push(`/dashboard/jobs/${job.id}`)}
+                onDropJob={(jobId) => handleStatusChange(jobId, col.key)}
               />
             ))}
           </div>
