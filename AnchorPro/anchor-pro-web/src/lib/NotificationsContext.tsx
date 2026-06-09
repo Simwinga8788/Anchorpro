@@ -60,7 +60,12 @@ function severityToType(severity?: string): Notification['type'] {
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return 'Recently';
   try {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    let cleanStr = dateStr;
+    // If there is no timezone offset indicator, append Z to force UTC parsing
+    if (!cleanStr.endsWith('Z') && !cleanStr.includes('+') && !cleanStr.includes('-')) {
+      cleanStr = cleanStr + 'Z';
+    }
+    const diff = Date.now() - new Date(cleanStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins} min ago`;
@@ -103,11 +108,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             time: timeAgo(a.createdAt ?? a.timestamp),
             read: !!(a.isRead ?? a.acknowledged ?? false),
           }));
-        if (alerts.length > 0) {
-          setNotifications(alerts);
-          setSeeded(true);
-          return;
-        }
+        setNotifications(alerts);
+        setSeeded(true);
+        return;
       }
     } catch {
       // fall through to fallback
