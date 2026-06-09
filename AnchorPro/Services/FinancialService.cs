@@ -59,7 +59,7 @@ namespace AnchorPro.Services
 
             var invoice = new Invoice
             {
-                InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{job.JobNumber.Split('-').Last()}",
+                InvoiceNumber = !string.IsNullOrWhiteSpace(job.JobNumber) ? job.JobNumber.Trim() : $"INV-{job.Id}",
                 JobCardId = jobId,
                 CustomerId = job.CustomerId,
                 InvoiceDate = DateTime.UtcNow,

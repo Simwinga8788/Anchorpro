@@ -53,11 +53,8 @@ namespace AnchorPro.Services
             var existing = await context.Quotations.FirstOrDefaultAsync(q => q.JobCardId == jobId);
             if (existing != null) return existing;
 
-            // Generate QuotationNumber
-            var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
-            var prefix = $"QTN-{dateStr}-";
-            var countToday = await context.Quotations.CountAsync(q => q.QuotationNumber.StartsWith(prefix)) + 1;
-            var qtnNumber = $"{prefix}{countToday:D3}";
+            // Use JobNumber as the QuotationNumber
+            var qtnNumber = !string.IsNullOrWhiteSpace(job.JobNumber) ? job.JobNumber.Trim() : $"QTN-{job.Id}";
 
             // Subtotal is based on job's invoiceAmount (Agreed Price), fallback to TotalCost (components + external service)
             decimal subtotal = job.InvoiceAmount;
