@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/ThemeContext';
 import { useNotifications } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
+import { adminAccessApi } from '@/lib/api';
 
 interface TopbarProps {
   title: string;
@@ -23,12 +24,24 @@ const notifDotColor: Record<string, string> = {
 export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAllRead, markRead, refresh: refreshNotifs } = useNotifications();
-  const { user, logout } = useAuth();
+  const { user, logout, isPlatformOwner } = useAuth();
   const { workspaceName } = useDictionary();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  // Load tenants for platform owner workspace switcher
+  useEffect(() => {
+    if (isPlatformOwner) {
+      adminAccessApi.getTenants()
+        .then(res => setTenants(Array.isArray(res) ? res : []))
+        .catch(() => {});
+    }
+  }, [isPlatformOwner]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -38,6 +51,9 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
       }
       if (userRef.current && !userRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (workspaceRef.current && !workspaceRef.current.contains(e.target as Node)) {
+        setWorkspaceMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -68,9 +84,68 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           <Menu size={18} />
         </button>
 
-        <div>
-          {displayBreadcrumb && <div className="topbar-breadcrumb">{displayBreadcrumb}</div>}
+        <div ref={workspaceRef} style={{ position: 'relative' }}>
+          {displayBreadcrumb && (
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: isPlatformOwner ? 'pointer' : 'default' }}
+              onClick={() => isPlatformOwner && setWorkspaceMenuOpen(prev => !prev)}
+            >
+              <div className="topbar-breadcrumb">{displayBreadcrumb}</div>
+              {isPlatformOwner && <ChevronDown size={12} style={{ color: 'var(--text-muted)', marginTop: -1 }} />}
+            </div>
+          )}
           <div className="topbar-title">{title}</div>
+          
+          {workspaceMenuOpen && isPlatformOwner && tenants.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0,
+              width: 240, background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.24)',
+              zIndex: 350, overflow: 'hidden',
+              marginTop: 4,
+            }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Switch Workspace
+              </div>
+              <div style={{ maxHeight: 250, overflowY: 'auto', padding: 4 }}>
+                {tenants.map(t => {
+                  const tName = t.name ?? t.companyName;
+                  const isCurrent = tName === workspaceName;
+                  return (
+                    <button
+                      key={t.id}
+                      className="btn btn-ghost btn-sm"
+                      style={{
+                        width: '100%', justifyContent: 'flex-start', padding: '7px 10px', gap: 8,
+                        fontSize: 13, color: 'var(--text-primary)', fontWeight: 500,
+                        textAlign: 'left', display: 'flex', alignItems: 'center',
+                      }}
+                      onClick={async () => {
+                        setWorkspaceMenuOpen(false);
+                        try {
+                          await adminAccessApi.impersonate(t.id);
+                          window.location.href = '/dashboard';
+                        } catch (e) {
+                          alert('Failed to switch workspace');
+                        }
+                      }}
+                    >
+                      <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: isCurrent ? 'var(--accent-blue)' : 'transparent',
+                        border: isCurrent ? 'none' : '1px solid var(--border-default)',
+                        flexShrink: 0,
+                      }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {tName}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -109,18 +109,13 @@ export default function Sidebar() {
         >
           <X size={16} />
         </button>
-        {/* Workspace name */}
+        {/* Workspace logo */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
-          position: 'relative',
-          transition: 'background 0.1s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '12px 10px',
         }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain' }} />
-          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
 
         {/* Platform Console link */}
