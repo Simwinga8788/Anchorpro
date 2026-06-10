@@ -545,7 +545,19 @@ namespace AnchorPro.Services
                 throw new ArgumentException("CSV content is empty or contains only a header.");
             }
 
-            var headers = ParseCsvLine(lines[0]);
+            var firstLine = lines[0];
+            if (firstLine.StartsWith("\uFEFF"))
+            {
+                firstLine = firstLine.Substring(1);
+            }
+
+            char separator = ',';
+            if (firstLine.Count(c => c == ';') > firstLine.Count(c => c == ','))
+            {
+                separator = ';';
+            }
+
+            var headers = ParseCsvLine(firstLine, separator);
             
             // Map header columns to indices
             int descIdx = -1, typeIdx = -1, equipIdx = -1, prioIdx = -1, statusIdx = -1;
@@ -594,7 +606,7 @@ namespace AnchorPro.Services
                 var line = lines[r];
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                var values = ParseCsvLine(line);
+                var values = ParseCsvLine(line, separator);
                 if (values.Count == 0) continue;
 
                 // Ensure index checks
@@ -718,7 +730,7 @@ namespace AnchorPro.Services
             return $"Successfully imported {successCount} job cards. (Auto-created {eqCreated} equipment, {jtCreated} job types).";
         }
 
-        private static List<string> ParseCsvLine(string line)
+        private static List<string> ParseCsvLine(string line, char separator = ',')
         {
             var result = new List<string>();
             var current = new System.Text.StringBuilder();
@@ -738,7 +750,7 @@ namespace AnchorPro.Services
                         inQuotes = !inQuotes;
                     }
                 }
-                else if (c == ',' && !inQuotes)
+                else if (c == separator && !inQuotes)
                 {
                     result.Add(current.ToString().Trim());
                     current.Clear();

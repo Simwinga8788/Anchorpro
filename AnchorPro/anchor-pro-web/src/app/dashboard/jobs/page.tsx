@@ -499,14 +499,25 @@ export default function JobCardsPage() {
         credentials: 'include',
         body: formData
       });
+      
+      let errMsg = 'Import failed';
       if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || 'Import failed');
+        try {
+          const json = await res.json();
+          if (json.message) errMsg = json.message;
+          else if (json.errors) errMsg = Object.values(json.errors).flat().join('\n');
+        } catch {
+          const text = await res.text();
+          if (text) errMsg = text;
+        }
+        throw new Error(errMsg);
       }
+      
       const data = await res.json();
       alert(data.message || 'Import successful!');
       fetchJobs();
     } catch (err: any) {
+      console.error('Import error:', err);
       alert('Failed to import: ' + err.message);
     } finally {
       setImporting(false);
