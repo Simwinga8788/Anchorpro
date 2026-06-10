@@ -61,11 +61,14 @@ export default function PrintInvoicePage() {
       {/* The actual document card */}
       <div className="print-document-card">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #10b981', paddingBottom: '20px', marginBottom: '30px' }}>
-          <div>
-            <h1 style={{ margin: '0 0 5px 0', fontSize: '28px', color: '#059669', fontWeight: 800, letterSpacing: '-0.5px' }}>ANCHOR PRO</h1>
-            <p style={{ margin: 0, fontSize: '12px', color: '#4b5563' }}>Premium Engineering & Maintenance Services</p>
-            <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '50px', objectFit: 'contain' }} />
+            <div>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>ANCHOR PRO</h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>Production Planning & Service Operation Tool</p>
+              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <h2 style={{ margin: '0 0 5px 0', fontSize: '22px', color: '#111827', fontWeight: 700 }}>INVOICE</h2>
@@ -78,7 +81,7 @@ export default function PrintInvoicePage() {
         {/* Info section */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
           <div>
-            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>Bill To</h3>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Bill To</h3>
             <p style={{ margin: '0 0 4px 0', fontWeight: 600, fontSize: '15px' }}>{job.customer?.name || 'Walk-In Customer'}</p>
             {job.customer?.customerNumber && (
               <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Customer No: <strong>#{job.customer.customerNumber}</strong></p>
@@ -87,12 +90,19 @@ export default function PrintInvoicePage() {
             <p style={{ margin: 0, fontSize: '13px', color: '#4b5563' }}>{job.customer?.phone || '—'}</p>
           </div>
           <div>
-            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>Reference Details</h3>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Job Reference: <strong>#{job.jobNumber}</strong></p>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Asset / Equipment: {job.equipment?.name || 'N/A'}</p>
-            <p style={{ margin: 0, fontSize: '13px', color: '#4b5563' }}>Payment Status: <strong style={{ color: invoice.status === 2 ? '#10b981' : '#f59e0b' }}>
-              {invoice.status === 0 ? 'Unpaid' : invoice.status === 1 ? 'Partially Paid' : invoice.status === 2 ? 'Paid' : 'Cancelled'}
-            </strong></p>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Reference Details</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '6px 12px', fontSize: '13px', color: '#4b5563' }}>
+              <span style={{ color: '#6b7280' }}>Job Reference:</span>
+              <strong style={{ color: '#111827' }}>#{job.jobNumber}</strong>
+
+              <span style={{ color: '#6b7280' }}>Asset / Equipment:</span>
+              <span style={{ color: '#111827', fontWeight: 500 }}>{job.equipment?.name || 'N/A'}</span>
+
+              <span style={{ color: '#6b7280' }}>Payment Status:</span>
+              <span style={{ color: invoice.paymentStatus === 2 ? '#2ecc8a' : invoice.paymentStatus === 0 || invoice.paymentStatus === 3 ? '#e84855' : '#f5a623', fontWeight: 600 }}>
+                {invoice.paymentStatus === 0 ? 'Unpaid' : invoice.paymentStatus === 1 ? 'Partially Paid' : invoice.paymentStatus === 2 ? 'Paid' : invoice.paymentStatus === 3 ? 'Overdue' : 'Cancelled'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -119,8 +129,8 @@ export default function PrintInvoicePage() {
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.laborCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '10px 0', fontWeight: 500 }}>Components & Parts</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock parts reserved and issued to job</td>
+                <td style={{ padding: '10px 0', fontWeight: 500 }}>Components</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components reserved for job</td>
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.partsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -129,8 +139,8 @@ export default function PrintInvoicePage() {
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.directPurchaseCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '10px 0', fontWeight: 500 }}>External Subcontracting</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Outsourced external services POs</td>
+                <td style={{ padding: '10px 0', fontWeight: 500 }}>External Service</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>External service POs</td>
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.subcontractingCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
@@ -150,7 +160,7 @@ export default function PrintInvoicePage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #e5e7eb', fontSize: '15px', fontWeight: 700, marginTop: '8px' }}>
               <span>Total Amount Due</span>
-              <span style={{ color: '#059669' }}>K {invoice.amount ? invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
+              <span style={{ color: '#2563eb' }}>K {invoice.amount ? invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
             </div>
           </div>
         </div>
@@ -204,7 +214,7 @@ export default function PrintInvoicePage() {
           color: #1e293b;
         }
         .btn-print {
-          background: #059669;
+          background: #2563eb;
           color: #ffffff;
           border: none;
           padding: 6px 16px;
@@ -215,7 +225,7 @@ export default function PrintInvoicePage() {
           transition: background 0.2s;
         }
         .btn-print:hover {
-          background: #047857;
+          background: #1d4ed8;
         }
         .doc-type-badge {
           font-size: 14px;

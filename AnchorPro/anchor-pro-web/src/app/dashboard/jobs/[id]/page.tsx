@@ -518,7 +518,7 @@ export default function JobDetailPage() {
               <span style={{ color: 'var(--text-muted)' }}>→</span>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ color: 'var(--accent-indigo)' }}>Quotation</span>
+                <span style={{ color: 'var(--accent-blue)' }}>Quotation</span>
                 {quotation ? (
                   <button 
                     onClick={() => setShowQuoteModal(true)} 
@@ -541,9 +541,9 @@ export default function JobDetailPage() {
                       onClick={handleCreateQuote}
                       disabled={actioningQuote}
                       style={{
-                        background: 'rgba(99,102,241,0.1)',
-                        border: '1px solid var(--accent-indigo)',
-                        color: 'var(--accent-indigo)',
+                        background: 'var(--accent-blue-dim)',
+                        border: '1px solid var(--accent-blue)',
+                        color: 'var(--accent-blue)',
                         borderRadius: 4,
                         padding: '1px 6px',
                         fontSize: 10,
@@ -560,7 +560,7 @@ export default function JobDetailPage() {
               <span style={{ color: 'var(--text-muted)' }}>→</span>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ color: 'var(--accent-emerald)' }}>Invoice</span>
+                <span style={{ color: 'var(--accent-blue)' }}>Invoice</span>
                 {invoice ? (
                   <a 
                     href={`/dashboard/invoices?invoiceId=${invoice.id}`}
@@ -1119,9 +1119,9 @@ export default function JobDetailPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
                 { label: 'Internal Labor',    value: job.laborCost,           color: 'var(--accent-blue)',    desc: 'Hours logged × tech rate' },
-                { label: 'Issued Parts',      value: job.partsCost,           color: 'var(--accent-amber)',   desc: 'Only issued stock parts' },
+                { label: 'Components',        value: job.partsCost,           color: 'var(--accent-amber)',   desc: 'Only issued stock components' },
                 { label: 'Direct Purchase',   value: job.directPurchaseCost,  color: 'var(--accent-violet)',  desc: 'Non-stock PO items' },
-                { label: 'Subcontracting',    value: job.subcontractingCost,  color: 'var(--accent-rose)',    desc: 'External contractors POs' },
+                { label: 'External Service',  value: job.subcontractingCost,  color: 'var(--accent-rose)',    desc: 'External service POs' },
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 6, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
                   <div>
@@ -1251,9 +1251,9 @@ export default function JobDetailPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[
                     { label: 'Internal Labor', value: job.laborCost },
-                    { label: 'Components (Issued)', value: job.partsCost },
+                    { label: 'Components', value: job.partsCost },
                     { label: 'Direct Purchases', value: job.directPurchaseCost },
-                    { label: 'External Services', value: job.subcontractingCost }
+                    { label: 'External Service', value: job.subcontractingCost }
                   ].map(row => (
                     <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>{row.label}</span>
@@ -1397,7 +1397,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
         supplierId: parseInt(form.supplierId),
         poType: 2, // Subcontracting
         jobCardId: job.id,
-        notes: form.notes || `Subcontracted work for ${job.jobNumber} — ${job.equipment?.name ?? ''}`.trim(),
+        notes: form.notes || `External service for ${job.jobNumber} — ${job.equipment?.name ?? ''}`.trim(),
         items: [{
           description: form.description,
           quantityOrdered: 1,
@@ -1407,7 +1407,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
       onSaved();
       onClose();
     } catch {
-      alert('Failed to raise subcontract PO');
+      alert('Failed to raise external service PO');
     } finally {
       setSaving(false);
     }
@@ -1424,7 +1424,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
         phone: newSupplierPhone.trim(),
         email: newSupplierEmail.trim(),
         supplierCode: 'IND-' + Math.floor(1000 + Math.random() * 9000),
-        notes: 'Registered as individual contractor from Subcontract Modal.'
+        notes: 'Registered as individual contractor from External Service Modal.'
       };
       const created = await procurementApi.createSupplier(payload);
       
@@ -1465,7 +1465,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
       <div className="card-elevated" style={{ width: 480, padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Raise Subcontract PO</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Raise External Service PO</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
               Linked to <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{job.jobNumber}</span> · {job.equipment?.name}
             </div>
@@ -1554,13 +1554,13 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Internal Notes</label>
-            <input style={fieldStyle} placeholder="Internal notes or subcontract reference..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            <input style={fieldStyle} placeholder="Internal notes or service reference..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary btn-sm" style={{ background: 'var(--accent-violet)', borderColor: 'var(--accent-violet)' }} disabled={saving || !form.supplierId || showAddSupplierInline}>
-              <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise Subcontract PO'}
+              <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise External Service PO'}
             </button>
           </div>
         </form>

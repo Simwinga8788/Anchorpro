@@ -61,11 +61,14 @@ export default function PrintQuotationPage() {
       {/* The actual document card */}
       <div className="print-document-card">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #6366f1', paddingBottom: '20px', marginBottom: '30px' }}>
-          <div>
-            <h1 style={{ margin: '0 0 5px 0', fontSize: '28px', color: '#4f46e5', fontWeight: 800, letterSpacing: '-0.5px' }}>ANCHOR PRO</h1>
-            <p style={{ margin: 0, fontSize: '12px', color: '#4b5563' }}>Premium Engineering & Maintenance Services</p>
-            <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '50px', objectFit: 'contain' }} />
+            <div>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>ANCHOR PRO</h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>Production Planning & Service Operation Tool</p>
+              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <h2 style={{ margin: '0 0 5px 0', fontSize: '22px', color: '#111827', fontWeight: 700 }}>QUOTATION</h2>
@@ -78,7 +81,7 @@ export default function PrintQuotationPage() {
         {/* Info section */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
           <div>
-            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>Client Info</h3>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Client Info</h3>
             <p style={{ margin: '0 0 4px 0', fontWeight: 600, fontSize: '15px' }}>{job.customer?.name || 'Walk-In Customer'}</p>
             {job.customer?.customerNumber && (
               <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Customer No: <strong>#{job.customer.customerNumber}</strong></p>
@@ -87,10 +90,17 @@ export default function PrintQuotationPage() {
             <p style={{ margin: 0, fontSize: '13px', color: '#4b5563' }}>{job.customer?.phone || '—'}</p>
           </div>
           <div>
-            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>Service Details</h3>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Job Reference: <strong>#{job.jobNumber}</strong></p>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#4b5563' }}>Asset / Equipment: {job.equipment?.name || 'N/A'}</p>
-            <p style={{ margin: 0, fontSize: '13px', color: '#4b5563' }}>Job Type: {job.jobType?.name || 'General'}</p>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Service Details</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '6px 12px', fontSize: '13px', color: '#4b5563' }}>
+              <span style={{ color: '#6b7280' }}>Job Reference:</span>
+              <strong style={{ color: '#111827' }}>#{job.jobNumber}</strong>
+
+              <span style={{ color: '#6b7280' }}>Asset / Equipment:</span>
+              <span style={{ color: '#111827', fontWeight: 500 }}>{job.equipment?.name || 'N/A'}</span>
+
+              <span style={{ color: '#6b7280' }}>Job Type:</span>
+              <span style={{ color: '#111827', fontWeight: 500 }}>{job.jobType?.name || 'General'}</span>
+            </div>
           </div>
         </div>
 
@@ -117,8 +127,8 @@ export default function PrintQuotationPage() {
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.laborCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '10px 0', fontWeight: 500 }}>Components & Parts</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock parts reserved and issued to job</td>
+                <td style={{ padding: '10px 0', fontWeight: 500 }}>Components</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components reserved for job</td>
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.partsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -127,8 +137,8 @@ export default function PrintQuotationPage() {
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.directPurchaseCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '10px 0', fontWeight: 500 }}>External Subcontracting</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Outsourced external services POs</td>
+                <td style={{ padding: '10px 0', fontWeight: 500 }}>External Service</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>External service POs</td>
                 <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.subcontractingCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
@@ -148,7 +158,7 @@ export default function PrintQuotationPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #e5e7eb', fontSize: '15px', fontWeight: 700, marginTop: '8px' }}>
               <span>Total Quote</span>
-              <span style={{ color: '#4f46e5' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ color: '#2563eb' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
@@ -210,7 +220,7 @@ export default function PrintQuotationPage() {
           color: #1e293b;
         }
         .btn-print {
-          background: #4f46e5;
+          background: #2563eb;
           color: #ffffff;
           border: none;
           padding: 6px 16px;
@@ -221,7 +231,7 @@ export default function PrintQuotationPage() {
           transition: background 0.2s;
         }
         .btn-print:hover {
-          background: #4338ca;
+          background: #1d4ed8;
         }
         .doc-type-badge {
           font-size: 14px;

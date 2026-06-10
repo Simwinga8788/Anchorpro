@@ -11,7 +11,7 @@ namespace AnchorPro.Controllers
     /// </summary>
     [Route("api/settings")]
     [ApiController]
-    [Authorize(Roles = "Admin,PlatformOwner")]
+    [Authorize]
     public class SettingsController : ControllerBase
     {
         private readonly ISettingsService _settingsService;
@@ -46,6 +46,7 @@ namespace AnchorPro.Controllers
         /// Body: { "value": "true", "description": "Send email when job completes", "group": "Notifications" }
         /// </summary>
         [HttpPut("{key}")]
+        [Authorize(Roles = "Admin,PlatformOwner")]
         public async Task<ActionResult> Upsert(string key, [FromBody] UpsertSettingRequest req)
         {
             await _settingsService.SetSettingAsync(key, req.Value, req.Description, req.Group);

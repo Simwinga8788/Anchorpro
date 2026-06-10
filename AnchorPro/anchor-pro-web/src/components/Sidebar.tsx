@@ -118,10 +118,10 @@ export default function Sidebar() {
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <div className="sidebar-logo-mark">A</div>
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sidebar-logo-text">Anchor Pro</div>
-            <div className="sidebar-logo-sub">Operations Platform</div>
+            <div className="sidebar-logo-sub" style={{ fontSize: '8.5px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1 }}>Production Planning & Service Operation Tool</div>
           </div>
           <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>

@@ -82,7 +82,7 @@ function LoginForm() {
             Anchor Pro
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Operations Platform — Sign in to continue
+            Production Planning & Service Operation Tool — Sign in to continue
           </p>
         </div>
 

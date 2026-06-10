@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Anchor Pro — Operations Platform",
+  title: "Anchor Pro — Production Planning & Service Operation Tool",
   description: "Production & Service Operations Management System",
   manifest: "/manifest.json",
   appleWebApp: {

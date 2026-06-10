@@ -8,7 +8,7 @@ import SlideOver from '@/components/SlideOver';
 const typeConfig: Record<number, { label: string; badge: string; color: string }> = {
   0: { label: 'Inventory Replenishment', badge: 'badge-blue',   color: 'var(--accent-blue)' },
   1: { label: 'Direct Purchase',         badge: 'badge-amber',  color: 'var(--accent-amber)' },
-  2: { label: 'Subcontracting',          badge: 'badge-violet', color: 'var(--accent-violet)' },
+  2: { label: 'External Service',          badge: 'badge-violet', color: 'var(--accent-violet)' },
 };
 
 const statusConfig: Record<number, { label: string; badge: string }> = {

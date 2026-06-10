@@ -159,9 +159,9 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
               { label: 'Internal Labor',    value: job.laborCost,           color: 'var(--accent-blue)',    desc: 'Technician hours × rate' },
-              { label: 'Stock Parts',       value: job.partsCost,           color: 'var(--accent-amber)',   desc: 'Inventory items used' },
+              { label: 'Components',        value: job.partsCost,           color: 'var(--accent-amber)',   desc: 'Inventory items used' },
               { label: 'Direct Purchase',   value: job.directPurchaseCost,  color: 'var(--accent-violet)',  desc: 'Non-stock items bought' },
-              { label: 'Subcontracting',    value: job.subcontractingCost,  color: 'var(--accent-rose)',    desc: 'External contractors' },
+              { label: 'External Service',  value: job.subcontractingCost,  color: 'var(--accent-rose)',    desc: 'External service POs' },
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <div>
@@ -359,7 +359,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
         supplierId: parseInt(form.supplierId),
         poType: 2, // Subcontracting
         jobCardId: job.id,
-        notes: form.notes || `Subcontracted work for ${job.jobNumber} — ${job.equipment?.name ?? ''}`.trim(),
+        notes: form.notes || `External service for ${job.jobNumber} — ${job.equipment?.name ?? ''}`.trim(),
         items: [{
           description: form.description,
           quantityOrdered: 1,
@@ -369,7 +369,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
       onSaved();
       onClose();
     } catch {
-      alert('Failed to raise subcontract PO');
+      alert('Failed to raise external service PO');
     } finally {
       setSaving(false);
     }
@@ -386,7 +386,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
       <div className="card-elevated" style={{ width: 480, padding: 28, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Raise Subcontract PO</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Raise External Service PO</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
               Linked to <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{job.jobNumber}</span> · {job.equipment?.name}
             </div>
@@ -409,7 +409,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Scope of Work *</label>
             <textarea style={{ ...fieldStyle, minHeight: 80, resize: 'vertical' }} required
-              placeholder="Describe the work to be subcontracted..."
+              placeholder="Describe the external work / service to be performed..."
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             />
@@ -432,7 +432,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ background: 'var(--accent-violet)' }} disabled={saving || !form.supplierId}>
-              <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise Subcontract PO'}
+              <ExternalLink size={13} /> {saving ? 'Raising PO...' : 'Raise External Service PO'}
             </button>
           </div>
         </form>
@@ -652,7 +652,7 @@ export default function JobCardsPage() {
                           }}>
                             {[
                               { label: 'View / Edit', action: () => { router.push(`/dashboard/jobs/${job.id}`); setOpenMenuId(null); } },
-                              { label: 'Raise Subcontract', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
+                              { label: 'Raise External Service', action: () => { setSubcontractJob(job); setOpenMenuId(null); }, violet: true },
                               { label: 'Mark Scheduled', action: () => { dashboardApi.updateJobStatus(job.id, 1).then(fetchJobs); setOpenMenuId(null); } },
                               { label: 'Mark In Progress', action: () => { dashboardApi.updateJobStatus(job.id, 2).then(fetchJobs); setOpenMenuId(null); } },
                               { label: 'Mark Completed', action: () => { dashboardApi.updateJobStatus(job.id, 3).then(fetchJobs); setOpenMenuId(null); } },
