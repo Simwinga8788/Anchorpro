@@ -69,8 +69,8 @@ function LoginForm() {
               src="/AnchorPro_logo.png"
               alt="Anchor Pro Logo"
               style={{
-                width: '150px',
-                height: '150px',
+                height: '125px',
+                width: 'auto',
                 objectFit: 'contain',
               }}
             />

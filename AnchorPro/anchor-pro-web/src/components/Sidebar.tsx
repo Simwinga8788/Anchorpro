@@ -118,7 +118,12 @@ export default function Sidebar() {
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '130px', height: '42px', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '42px', width: 'auto', objectFit: 'contain' }} />
+            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Anchor Pro
+            </span>
+          </div>
           <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
 
