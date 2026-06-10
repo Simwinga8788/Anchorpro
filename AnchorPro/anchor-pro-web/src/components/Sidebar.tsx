@@ -112,10 +112,10 @@ export default function Sidebar() {
         {/* Workspace logo */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '12px 10px',
+          padding: '24px 10px 16px',
         }}
         >
-          <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '100px', width: 'auto', objectFit: 'contain' }} />
         </div>
 
         {/* Platform Console link */}

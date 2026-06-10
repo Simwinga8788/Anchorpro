@@ -70,7 +70,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
     .join('')
     .toUpperCase() || 'U';
 
-  const displayBreadcrumb = breadcrumb === 'Anchor Pro' ? (workspaceName || 'Anchor Pro') : breadcrumb;
+  const displayBreadcrumb = workspaceName || 'Anchor Pro';
 
   return (
     <div className="topbar">
