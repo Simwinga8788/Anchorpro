@@ -60,28 +60,30 @@ function LoginForm() {
 
       <div style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
-            width: '44px', height: '44px',
-            background: 'var(--accent-blue)',
-            borderRadius: '10px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: '0 0 24px rgba(77,158,255,0.35)',
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 700, fontSize: '20px', color: '#fff',
+            margin: '0 auto 14px', width: '100%',
           }}>
-            A
+            <img
+              src="/AnchorPro_logo.png"
+              alt="Anchor Pro"
+              style={{
+                width: '76px',
+                height: '76px',
+                objectFit: 'contain',
+              }}
+            />
           </div>
           <h1 style={{
             fontFamily: "'Barlow Semi Condensed', sans-serif",
-            fontSize: '22px', fontWeight: 700,
+            fontSize: '24px', fontWeight: 700,
             color: 'var(--text-primary)',
             letterSpacing: '-0.02em', margin: 0,
           }}>
             Anchor Pro
           </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <p style={{ fontSize: '14.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
             Production Planning & Service Operation Tool — Sign in to continue
           </p>
         </div>
@@ -149,7 +151,7 @@ function LoginForm() {
             <button
               type="submit"
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', marginTop: '4px', padding: '10px', fontSize: '14px' }}
+              style={{ width: '100%', justifyContent: 'center', marginTop: '4px', padding: '10px', fontSize: '15px' }}
               disabled={loading}
             >
               {loading ? <Loader2 size={16} className="spin" /> : 'Sign in'}
@@ -157,14 +159,14 @@ function LoginForm() {
           </form>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: 'var(--text-secondary)' }}>
           No account yet?{' '}
           <Link href="/register" style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600 }}>
             Start free trial →
           </Link>
         </p>
 
-        <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           © 2026 Anchor Pro · v1.3
         </p>
       </div>

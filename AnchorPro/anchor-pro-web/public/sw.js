@@ -1,5 +1,5 @@
 // AnchorPro Service Worker
-const CACHE_NAME = 'anchorpro-v1';
+const CACHE_NAME = 'anchorpro-v2';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',

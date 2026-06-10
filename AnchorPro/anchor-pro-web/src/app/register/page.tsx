@@ -97,17 +97,20 @@ export default function RegisterPage() {
         padding: '0 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '9px', textDecoration: 'none' }}>
-          <div style={{
-            width: '28px', height: '28px', background: 'var(--accent-blue)', borderRadius: '7px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: '#fff',
-            boxShadow: '0 0 12px rgba(77,158,255,0.3)',
-          }}>A</div>
-          <span style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <img
+            src="/AnchorPro_logo.png"
+            alt="Anchor Pro"
+            style={{
+              width: '32px',
+              height: '32px',
+              objectFit: 'contain',
+            }}
+          />
+          <span style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '15.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
             Anchor Pro
           </span>
         </Link>
-        <Link href="/login" style={{ fontSize: '13px', color: 'var(--text-secondary)', textDecoration: 'none' }}>
+        <Link href="/login" style={{ fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'none' }}>
           Already have an account? <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>Sign in</span>
         </Link>
       </div>
@@ -115,6 +118,20 @@ export default function RegisterPage() {
       {/* Body */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={{ width: '100%', maxWidth: '520px' }}>
+
+          {/* Logo */}
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <img
+              src="/AnchorPro_logo.png"
+              alt="Anchor Pro"
+              style={{
+                width: '76px',
+                height: '76px',
+                margin: '0 auto',
+                objectFit: 'contain',
+              }}
+            />
+          </div>
 
           {/* Stepper */}
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '36px' }}>
@@ -164,10 +181,10 @@ export default function RegisterPage() {
 
             {step === 0 && (
               <>
-                <h2 style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+                <h2 style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
                   Set up your workspace
                 </h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '14.5px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: 1.6 }}>
                   Tell us about your organisation. You can change these details later.
                 </p>
 
@@ -211,10 +228,10 @@ export default function RegisterPage() {
 
             {step === 1 && (
               <>
-                <h2 style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+                <h2 style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
                   Create your admin account
                 </h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '14.5px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: 1.6 }}>
                   Primary administrator for <strong style={{ color: 'var(--text-primary)' }}>{org.companyName}</strong>.
                 </p>
 
@@ -292,7 +309,7 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
             By creating an account you agree to our{' '}
             <a href="#" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>Terms of Service</a>
             {' '}and{' '}

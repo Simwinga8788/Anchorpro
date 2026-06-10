@@ -111,17 +111,17 @@ export default function Sidebar() {
         </button>
         {/* Workspace name */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '5px 8px', borderRadius: 6, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
           transition: 'background 0.1s',
         }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sidebar-logo-text">Anchor Pro</div>
-            <div className="sidebar-logo-sub" style={{ fontSize: '8.5px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1 }}>Production Planning & Service Operation Tool</div>
+            <div className="sidebar-logo-sub" style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1 }}>Production Planning & Service Operation Tool</div>
           </div>
           <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
@@ -221,17 +221,17 @@ export default function Sidebar() {
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           onClick={() => window.location.href = '/dashboard/settings'}
         >
-          <div className="avatar" style={{ width: 24, height: 24, fontSize: 10, flexShrink: 0 }}>
+          <div className="avatar" style={{ width: 28, height: 28, fontSize: 11, flexShrink: 0 }}>
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
+              fontSize: 14, fontWeight: 500, color: 'var(--text-primary)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {displayName}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {isPlatformOwner ? 'Platform Owner' : (userRoles[0] ?? 'User')}
             </div>
           </div>
