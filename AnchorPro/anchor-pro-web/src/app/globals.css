@@ -24,8 +24,8 @@
   --bg-page: #F4F5F7; --bg-primary: #F4F5F7; --bg-secondary: #ECEEF2;
   --bg-card: #FFFFFF; --bg-card-hover: #F8F9FB; --bg-elevated: #FFFFFF;
   --bg-hover: rgba(0,0,0,0.04); --bg-active: rgba(0,0,0,0.07); --bg-input: #FFFFFF;
-  --border-subtle: rgba(0,0,0,0.06); --border-default: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
-  --text-primary: #0F1117; --text-secondary: #4A5568; --text-tertiary: #718096; --text-muted: #A0AEC0;
+  --border-subtle: rgba(0,0,0,0.08); --border-default: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.22);
+  --text-primary: #0F1117; --text-secondary: #2D3748; --text-tertiary: #5A6578; --text-muted: #788290;
   --accent-blue: #2563EB; --accent-blue-dim: rgba(37,99,235,0.08); --accent-blue-border: rgba(37,99,235,0.2);
   --accent-rose: #DC2626; --accent-rose-dim: rgba(220,38,38,0.08);
   --sidebar-bg: #FFFFFF; --topbar-bg: rgba(244,245,247,0.92);
@@ -68,9 +68,9 @@ html, body {
   flex-shrink: 0; box-shadow: 0 0 12px rgba(77,158,255,0.35);
 }
 .sidebar-logo-text { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.sidebar-logo-sub { font-size: 10.5px; color: var(--text-muted); font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 1px; }
+.sidebar-logo-sub { font-size: 11px; color: var(--text-secondary); font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 1px; }
 .sidebar-section { margin-bottom: 4px; }
-.sidebar-section-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 12px 4px; }
+.sidebar-section-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); padding: 8px 12px 4px; }
 .sidebar-nav-item {
   display: flex; align-items: center; gap: 9px; padding: 7px 12px; border-radius: var(--radius-md);
   font-size: 14.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none;
@@ -87,7 +87,7 @@ html, body {
   border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center;
   justify-content: space-between; padding: 0 20px; flex-shrink: 0; position: sticky; top: 0; z-index: 100;
 }
-.topbar-breadcrumb { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); line-height: 1; }
+.topbar-breadcrumb { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); line-height: 1; }
 .topbar-title { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 19.5px; font-weight: 600; color: var(--text-primary); line-height: 1.2; letter-spacing: -0.01em; }
 .topbar-hamburger { display: none; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; border-radius: var(--radius-md); }
 .topbar-search-wrap { display: block; }

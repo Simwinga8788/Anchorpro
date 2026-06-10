@@ -396,194 +396,248 @@ export default function MyJobsPage() {
           <p style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>Enjoy the breather, or check the planning board for new tasks.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'start', flexWrap: 'wrap' }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Left Column: Compact Assignments List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '320px', flexShrink: 0 }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', paddingLeft: 4 }}>
+              Active Assignments ({activeWork.length})
+            </div>
             {activeWork.map(job => {
               const sc = statusConfig[job.status] || statusConfig[0];
-              const isWorking = job.status === 2;
               const isSelected = selectedJobId === job.id;
 
               return (
                 <div
                   key={job.id}
-                  className="card-elevated"
+                  className="card"
                   style={{
-                    padding: 0, overflow: 'hidden',
+                    padding: '12px 14px',
+                    cursor: 'pointer',
                     borderLeft: `4px solid ${sc.color}`,
-                    outline: isSelected ? `1px solid ${sc.color}` : 'none',
+                    background: isSelected ? 'var(--bg-active)' : 'var(--bg-card)',
+                    border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
+                    boxShadow: isSelected ? '0 2px 8px rgba(77,158,255,0.08)' : 'none',
+                    transition: 'all 0.15s',
                   }}
                   onClick={() => loadTasks(job.id)}
                 >
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <div>
-                        <div style={{ color: 'var(--accent-blue)', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{job.jobNumber}</div>
-                        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{job.equipment?.name || 'Asset'}</h3>
-                      </div>
-                      <span className={`badge ${sc.badge}`}>{sc.label}</span>
-                    </div>
-
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>{job.description || 'Routine maintenance and inspection.'}</p>
-
-                    <div style={{ display: 'flex', gap: 10 }} onClick={e => e.stopPropagation()}>
-                      {!isWorking ? (
-                        <button onClick={() => handleStartWork(job.id)} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
-                          <Play size={14} /> Start Job
-                        </button>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
-                              <CheckCircle2 size={14} /> Complete Job
-                            </button>
-                            <button onClick={() => openAddPart(job.id)} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
-                              <Package size={14} /> Request Part
-                            </button>
-                          </div>
-                          <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
-                            <AlertTriangle size={14} /> Report Down Time / Delay
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ color: 'var(--accent-blue)', fontWeight: 700, fontSize: '11.5px', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.02em' }}>
+                      #{job.jobNumber}
+                    </span>
+                    <span className={`badge ${sc.badge}`} style={{ fontSize: '10px', padding: '1px 5px' }}>{sc.label}</span>
                   </div>
+                  <h4 style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {job.equipment?.name || 'Asset'}
+                  </h4>
+                  {job.description && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {job.description}
+                    </p>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* Task Checklist Panel */}
-          <div className="card" style={{ padding: 20, position: 'sticky', top: 80 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Task Checklist</h3>
+          {/* Right Column: Details & Checklist */}
+          <div style={{ flex: '1 1 480px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {!selectedJobId ? (
-              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>Tap a job card to load its tasks.</p>
+              <div className="card-elevated" style={{ textAlign: 'center', padding: 60 }}>
+                <Clock size={48} style={{ color: 'var(--text-secondary)', margin: '0 auto 16px', opacity: 0.5 }} />
+                <h3 style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 600 }}>Select a job card to start</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Choose an assignment from the left column to view tasks and log operations.</p>
+              </div>
             ) : tasksLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} style={{ height: 36, borderRadius: 6, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                ))}
+              <div className="card" style={{ padding: 30 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: 100, borderRadius: 8, background: 'rgba(255,255,255,0.06)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                </div>
               </div>
-            ) : tasks.length === 0 ? (
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>No tasks defined for this job card.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
-                  {tasks.filter(t => t.isCompleted).length}/{tasks.length} completed
-                </div>
-                {/* Progress bar */}
-                <div style={{ height: 4, borderRadius: 2, background: 'var(--border-subtle)', marginBottom: 10 }}>
-                  <div style={{
-                    height: '100%', borderRadius: 2, background: 'var(--accent-emerald)',
-                    width: `${Math.round((tasks.filter(t => t.isCompleted).length / tasks.length) * 100)}%`,
-                    transition: 'width 0.3s ease',
-                  }} />
-                </div>
-                {tasks.map(task => (
-                  <label
-                    key={task.id}
-                    style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
-                      padding: '8px 10px', borderRadius: 6,
-                      background: task.isCompleted ? 'var(--accent-emerald-dim)' : 'var(--bg-elevated)',
-                      border: '1px solid var(--border-subtle)',
-                      opacity: updatingTaskId === task.id ? 0.6 : 1,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!task.isCompleted}
-                      disabled={updatingTaskId === task.id}
-                      onChange={() => toggleTask(task.id, !!task.isCompleted)}
-                      style={{ marginTop: 2, accentColor: 'var(--accent-emerald)', flexShrink: 0 }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{
-                        fontSize: 13, fontWeight: 500,
-                        color: task.isCompleted ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                        textDecoration: task.isCompleted ? 'line-through' : 'none',
-                      }}>
-                        {task.name ?? task.description ?? task.taskDescription ?? 'Task'}
+              <>
+                {/* Job Info and Control Actions Card */}
+                {selectedJob && (() => {
+                  const job = selectedJob;
+                  const sc = statusConfig[job.status] || statusConfig[0];
+                  const isWorking = job.status === 2;
+
+                  return (
+                    <div className="card" style={{ padding: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                        <div>
+                          <div style={{ color: 'var(--accent-blue)', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+                            JOB REFERENCE: #{job.jobNumber}
+                          </div>
+                          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {job.equipment?.name || 'Asset'}
+                          </h2>
+                        </div>
+                        <span className={`badge ${sc.badge}`}>{sc.label}</span>
                       </div>
-                      
-                      {task.instructions && (
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, fontStyle: 'italic', whiteSpace: 'pre-line' }}>
-                          Instructions: {task.instructions}
-                        </div>
-                      )}
-                      
-                      {(task.estimatedDurationMinutes !== undefined || task.estimatedHours) && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-                          Est. {task.estimatedDurationMinutes !== undefined ? `${task.estimatedDurationMinutes} mins` : `${task.estimatedHours}h`}
+
+                      {job.description && (
+                        <div style={{ marginBottom: 20 }}>
+                          <div className="form-label" style={{ marginBottom: 4 }}>Job Scope / Description</div>
+                          <p style={{ color: 'var(--text-primary)', fontSize: 14, background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border-subtle)', whiteSpace: 'pre-wrap' }}>
+                            {job.description}
+                          </p>
                         </div>
                       )}
 
-                      {task.isCompleted && (
-                        <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 4, background: 'var(--bg-hover)' }}>
-                            <Camera size={12} style={{ color: 'var(--accent-blue)' }} />
-                            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                              {task.photoPath ? 'Replace Photo' : 'Attach Photo'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleTaskPhotoUpload(task.id, e)}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
-                        </div>
-                      )}
-
-                      {task.photoPath && (
-                        <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-                          <img
-                            src={task.photoPath}
-                            alt="Task proof"
-                            style={{
-                              maxWidth: 100, maxHeight: 70, objectFit: 'cover',
-                              borderRadius: 4, border: '1px solid var(--border-default)'
-                            }}
-                          />
-                        </div>
-                      )}
+                      {/* Control buttons */}
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {!isWorking ? (
+                          <button onClick={() => handleStartWork(job.id)} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                            <Play size={14} /> Start Job
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => completeJob(job.id)} className="btn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent-emerald)', color: '#fff', border: 'none' }}>
+                                <CheckCircle2 size={14} /> Complete Job
+                              </button>
+                              <button onClick={() => openAddPart(job.id)} className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
+                                <Package size={14} /> Request Component
+                              </button>
+                            </div>
+                            <button onClick={() => { setActiveJobId(job.id); setShowDowntime(true); }} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}>
+                              <AlertTriangle size={14} /> Report Down Time / Delay
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </label>
-                ))}
-              </div>
+                  );
+                })()}
+
+                {/* Task Checklist Panel */}
+                <div className="card" style={{ padding: 24 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Task Checklist</h3>
+                  {tasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8 }}>No tasks defined for this job card.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                        {tasks.filter(t => t.isCompleted).length}/{tasks.length} completed
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ height: 5, borderRadius: 3, background: 'var(--border-subtle)', marginBottom: 12 }}>
+                        <div style={{
+                          height: '100%', borderRadius: 3, background: 'var(--accent-emerald)',
+                          width: `${Math.round((tasks.filter(t => t.isCompleted).length / tasks.length) * 100)}%`,
+                          transition: 'width 0.3s ease',
+                        }} />
+                      </div>
+                      {tasks.map(task => (
+                        <label
+                          key={task.id}
+                          style={{
+                            display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+                            padding: '10px 12px', borderRadius: 8,
+                            background: task.isCompleted ? 'var(--accent-emerald-dim)' : 'var(--bg-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            opacity: updatingTaskId === task.id ? 0.6 : 1,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!task.isCompleted}
+                            disabled={updatingTaskId === task.id}
+                            onChange={() => toggleTask(task.id, !!task.isCompleted)}
+                            style={{ marginTop: 3, accentColor: 'var(--accent-emerald)', flexShrink: 0 }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              fontSize: 14, fontWeight: 500,
+                              color: task.isCompleted ? 'var(--text-secondary)' : 'var(--text-primary)',
+                              textDecoration: task.isCompleted ? 'line-through' : 'none',
+                            }}>
+                              {task.name ?? task.description ?? task.taskDescription ?? 'Task'}
+                            </div>
+
+                            {task.instructions && (
+                              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-line' }}>
+                                Instructions: {task.instructions}
+                              </div>
+                            )}
+
+                            {(task.estimatedDurationMinutes !== undefined || task.estimatedHours) && (
+                              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 4 }}>
+                                Est. {task.estimatedDurationMinutes !== undefined ? `${task.estimatedDurationMinutes} mins` : `${task.estimatedHours}h`}
+                              </div>
+                            )}
+
+                            {task.isCompleted && (
+                              <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '5px 10px', borderRadius: 6, background: 'var(--bg-hover)' }}>
+                                  <Camera size={13} style={{ color: 'var(--accent-blue)' }} />
+                                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                    {task.photoPath ? 'Replace Photo' : 'Attach Photo'}
+                                  </span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleTaskPhotoUpload(task.id, e)}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
+                              </div>
+                            )}
+
+                            {task.photoPath && (
+                              <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                                <img
+                                  src={task.photoPath}
+                                  alt="Task proof"
+                                  style={{
+                                    maxWidth: 120, maxHeight: 80, objectFit: 'cover',
+                                    borderRadius: 6, border: '1px solid var(--border-default)'
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Parts Request Status Panel */}
+                <div className="card" style={{ padding: 24 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Package size={15} style={{ color: 'var(--accent-amber)' }} /> Requested Components Status
+                  </h3>
+                  {parts.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No components requested for this job.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {parts.map((p: any) => (
+                        <div key={p.id} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '10px 12px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{p.inventoryItem?.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Qty: {p.quantityUsed}</div>
+                          </div>
+                          {p.isIssued ? (
+                            <span className="badge badge-green">Issued</span>
+                          ) : (
+                            <span className="badge badge-muted">Requested</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
-
-          {/* Parts Request Status Panel */}
-          {selectedJobId && (
-            <div className="card" style={{ padding: 20, marginTop: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Package size={14} style={{ color: 'var(--accent-amber)' }} /> Requested Parts Status
-              </h3>
-              {parts.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No parts requested for this job.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {parts.map((p: any) => (
-                    <div key={p.id} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '8px 10px', borderRadius: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)'
-                    }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>{p.inventoryItem?.name}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Qty: {p.quantityUsed}</div>
-                      </div>
-                      {p.isIssued ? (
-                        <span className="badge badge-green">Issued</span>
-                      ) : (
-                        <span className="badge badge-muted">Requested</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
         </div>
       )}

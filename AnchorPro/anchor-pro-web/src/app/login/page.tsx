@@ -60,30 +60,22 @@ function LoginForm() {
 
       <div style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px', width: '100%',
+            margin: '0 auto 16px', width: '100%',
           }}>
             <img
               src="/AnchorPro_logo.png"
-              alt="Anchor Pro"
+              alt="Anchor Pro Logo"
               style={{
-                width: '76px',
-                height: '76px',
+                width: '140px',
+                height: '140px',
                 objectFit: 'contain',
               }}
             />
           </div>
-          <h1 style={{
-            fontFamily: "'Barlow Semi Condensed', sans-serif",
-            fontSize: '24px', fontWeight: 700,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em', margin: 0,
-          }}>
-            Anchor Pro
-          </h1>
-          <p style={{ fontSize: '14.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.5 }}>
             Production Planning & Service Operation Tool — Sign in to continue
           </p>
         </div>

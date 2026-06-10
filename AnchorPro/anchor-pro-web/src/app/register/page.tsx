@@ -120,13 +120,13 @@ export default function RegisterPage() {
         <div style={{ width: '100%', maxWidth: '520px' }}>
 
           {/* Logo */}
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <img
               src="/AnchorPro_logo.png"
-              alt="Anchor Pro"
+              alt="Anchor Pro Logo"
               style={{
-                width: '76px',
-                height: '76px',
+                width: '140px',
+                height: '140px',
                 margin: '0 auto',
                 objectFit: 'contain',
               }}

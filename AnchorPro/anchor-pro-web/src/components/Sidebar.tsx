@@ -121,7 +121,7 @@ export default function Sidebar() {
           <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sidebar-logo-text">Anchor Pro</div>
-            <div className="sidebar-logo-sub" style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1 }}>Production Planning & Service Operation Tool</div>
+            <div className="sidebar-logo-sub" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1, color: 'var(--text-secondary)' }}>Production Planning & Service Operation Tool</div>
           </div>
           <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
