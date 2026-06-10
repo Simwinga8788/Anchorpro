@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Search, Plus, Wrench, AlertTriangle, Clock,
-  CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag, ExternalLink, X
+  CheckCircle2, XCircle, MoreHorizontal, User, Calendar, Tag, ExternalLink, X,
+  Download, Upload, FileSpreadsheet
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
@@ -462,6 +463,68 @@ export default function JobCardsPage() {
   const [openMenuId, setOpenMenuId]       = useState<number | null>(null);
   const [subcontractJob, setSubcontractJob] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/export/jobs/csv', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `job-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err: any) {
+      alert('Failed to export: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/jobcards/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || 'Import failed');
+      }
+      const data = await res.json();
+      alert(data.message || 'Import successful!');
+      fetchJobs();
+    } catch (err: any) {
+      alert('Failed to import: ' + err.message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = "Job Number,Type,Description,Priority,Status,Equipment,Technician,Scheduled Start,Scheduled End\n";
+    const blob = new Blob([headers], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'job-import-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
   const fetchJobs = () => {
     setLoading(true);
@@ -533,9 +596,27 @@ export default function JobCardsPage() {
           <p className="page-subtitle">{jobs.length} total operations · {jobs.filter(j => j.status === 2).length} active</p>
         </div>
         {!isTechnician && (
-          <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)}>
-            <Plus size={14} /> New {jobLabel}
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-secondary" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FileSpreadsheet size={14} /> Template
+            </button>
+            <button className="btn btn-secondary" onClick={handleExport} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Download size={14} /> {exporting ? 'Exporting...' : 'Export'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importing} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept=".csv"
+              onChange={handleImport}
+            />
+            <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Plus size={14} /> New {jobLabel}
+            </button>
+          </div>
         )}
       </div>
 

@@ -28,5 +28,8 @@ namespace AnchorPro.Services.Interfaces
 
         // Compliance
         Task CreatePermitAsync(AnchorPro.Data.Entities.PermitToWork permit);
+
+        // Bulk Operations
+        Task<string> ImportJobCardsFromCsvAsync(string csvContent, string userId);
     }
 }

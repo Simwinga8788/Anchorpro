@@ -526,5 +526,230 @@ namespace AnchorPro.Services
             context.PermitsToWork.Add(permit);
             await context.SaveChangesAsync();
         }
+
+        public async Task<string> ImportJobCardsFromCsvAsync(string csvContent, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            var user = await context.Users.FindAsync(userId);
+            var tenantId = user?.TenantId;
+
+            // Load existing equipment, job types, and technicians for cache lookup
+            var existingEquipment = await context.Equipment.Where(e => e.TenantId == tenantId).ToListAsync();
+            var existingJobTypes = await context.JobTypes.Where(jt => jt.TenantId == tenantId).ToListAsync();
+            var technicians = await context.Users.Where(u => u.TenantId == tenantId).ToListAsync();
+
+            var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            if (lines.Length <= 1)
+            {
+                throw new ArgumentException("CSV content is empty or contains only a header.");
+            }
+
+            var headers = ParseCsvLine(lines[0]);
+            
+            // Map header columns to indices
+            int descIdx = -1, typeIdx = -1, equipIdx = -1, prioIdx = -1, statusIdx = -1;
+            int techIdx = -1, startIdx = -1, endIdx = -1, jobNumIdx = -1;
+
+            for (int i = 0; i < headers.Count; i++)
+            {
+                var h = headers[i].ToLower().Trim();
+                if (h.Contains("description") || h == "desc") descIdx = i;
+                else if (h == "type" || h.Contains("job type") || h == "jobtype") typeIdx = i;
+                else if (h == "equipment" || h == "asset" || h.Contains("equip")) equipIdx = i;
+                else if (h == "priority") prioIdx = i;
+                else if (h == "status") statusIdx = i;
+                else if (h == "technician" || h == "tech" || h.Contains("assign")) techIdx = i;
+                else if (h.Contains("start") || h.Contains("created")) startIdx = i;
+                else if (h.Contains("end") || h.Contains("completed") || h == "deadline") endIdx = i;
+                else if (h.Contains("job number") || h == "jobnumber" || h.Contains("job ref")) jobNumIdx = i;
+            }
+
+            if (descIdx == -1)
+            {
+                throw new ArgumentException("CSV must contain a 'Description' column.");
+            }
+
+            int successCount = 0;
+            int eqCreated = 0;
+            int jtCreated = 0;
+
+            // Find current max job number for prefix incrementing
+            var tenantJobNumbers = await context.JobCards
+                .Where(j => j.TenantId == tenantId)
+                .Select(j => j.JobNumber)
+                .ToListAsync();
+
+            int maxNum = 1000;
+            foreach (var numStr in tenantJobNumbers)
+            {
+                if (int.TryParse(numStr, out int parsed))
+                {
+                    if (parsed > maxNum) maxNum = parsed;
+                }
+            }
+
+            for (int r = 1; r < lines.Length; r++)
+            {
+                var line = lines[r];
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var values = ParseCsvLine(line);
+                if (values.Count == 0) continue;
+
+                // Ensure index checks
+                string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
+
+                var desc = GetValue(descIdx);
+                if (string.IsNullOrWhiteSpace(desc)) continue; // Skip empty rows
+
+                var typeName = GetValue(typeIdx);
+                if (string.IsNullOrWhiteSpace(typeName)) typeName = "General";
+
+                var equipName = GetValue(equipIdx);
+                if (string.IsNullOrWhiteSpace(equipName)) equipName = "General Equipment";
+
+                // Resolve or create JobType
+                var jobType = existingJobTypes.FirstOrDefault(jt => jt.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase));
+                if (jobType == null)
+                {
+                    jobType = new JobType { Name = typeName, TenantId = tenantId };
+                    context.JobTypes.Add(jobType);
+                    await context.SaveChangesAsync(); // Save to get ID
+                    existingJobTypes.Add(jobType);
+                    jtCreated++;
+                }
+
+                // Resolve or create Equipment
+                var equipment = existingEquipment.FirstOrDefault(e => e.Name.Equals(equipName, StringComparison.OrdinalIgnoreCase));
+                if (equipment == null)
+                {
+                    equipment = new Equipment 
+                    { 
+                        Name = equipName, 
+                        SerialNumber = $"SN-AUTO-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}",
+                        TenantId = tenantId 
+                    };
+                    context.Equipment.Add(equipment);
+                    await context.SaveChangesAsync(); // Save to get ID
+                    existingEquipment.Add(equipment);
+                    eqCreated++;
+                }
+
+                // Resolve Technician
+                string? techId = null;
+                var techName = GetValue(techIdx);
+                if (!string.IsNullOrWhiteSpace(techName))
+                {
+                    var tech = technicians.FirstOrDefault(u => 
+                        u.UserName?.Equals(techName, StringComparison.OrdinalIgnoreCase) == true ||
+                        u.Email?.Equals(techName, StringComparison.OrdinalIgnoreCase) == true ||
+                        $"{u.FirstName} {u.LastName}".Trim().Equals(techName, StringComparison.OrdinalIgnoreCase)
+                    );
+                    if (tech != null)
+                    {
+                        techId = tech.Id;
+                    }
+                }
+
+                // Resolve Priority
+                var prioStr = GetValue(prioIdx).ToLower();
+                var priority = JobPriority.Normal;
+                if (prioStr.Contains("low")) priority = JobPriority.Low;
+                else if (prioStr.Contains("high")) priority = JobPriority.High;
+                else if (prioStr.Contains("crit")) priority = JobPriority.Critical;
+
+                // Resolve Status & Dates
+                DateTime? scheduledStart = null;
+                DateTime? scheduledEnd = null;
+
+                if (DateTime.TryParse(GetValue(startIdx), out var sD)) scheduledStart = sD;
+                if (DateTime.TryParse(GetValue(endIdx), out var eD)) scheduledEnd = eD;
+
+                var statusStr = GetValue(statusIdx).ToLower();
+                var status = JobStatus.Unscheduled;
+                if (statusStr.Contains("sched") && !statusStr.Contains("unsched")) status = JobStatus.Scheduled;
+                else if (statusStr.Contains("progress") || statusStr.Contains("active")) status = JobStatus.InProgress;
+                else if (statusStr.Contains("complete")) status = JobStatus.Completed;
+                else if (statusStr.Contains("cancel")) status = JobStatus.Cancelled;
+                else if (statusStr.Contains("hold")) status = JobStatus.OnHold;
+                else if (scheduledStart.HasValue) status = JobStatus.Scheduled;
+
+                // Job Number
+                var jobNum = GetValue(jobNumIdx).Trim();
+                if (string.IsNullOrWhiteSpace(jobNum))
+                {
+                    maxNum++;
+                    jobNum = maxNum.ToString();
+                }
+                else
+                {
+                    // Ensure uniqueness
+                    var duplicateExists = await context.JobCards.AnyAsync(j => j.TenantId == tenantId && j.JobNumber == jobNum);
+                    if (duplicateExists)
+                    {
+                        // Fallback to auto-numbered to avoid import crash
+                        maxNum++;
+                        jobNum = $"{jobNum}-DUP-{maxNum}";
+                    }
+                }
+
+                var jobCard = new JobCard
+                {
+                    TenantId = tenantId,
+                    JobNumber = jobNum,
+                    Description = desc,
+                    EquipmentId = equipment.Id,
+                    JobTypeId = jobType.Id,
+                    Priority = priority,
+                    Status = status,
+                    ScheduledStartDate = scheduledStart,
+                    ScheduledEndDate = scheduledEnd,
+                    AssignedTechnicianId = techId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.JobCards.Add(jobCard);
+                successCount++;
+            }
+
+            await context.SaveChangesAsync();
+            return $"Successfully imported {successCount} job cards. (Auto-created {eqCreated} equipment, {jtCreated} job types).";
+        }
+
+        private static List<string> ParseCsvLine(string line)
+        {
+            var result = new List<string>();
+            var current = new System.Text.StringBuilder();
+            bool inQuotes = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '\"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
+                    {
+                        current.Append('\"');
+                        i++; // Skip next quote
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            result.Add(current.ToString().Trim());
+            return result;
+        }
     }
 }

@@ -264,6 +264,34 @@ namespace AnchorPro.Controllers
             if (job == null) return NotFound();
             return Ok(job.JobCardParts);
         }
+
+        /// <summary>
+        /// POST /api/jobcards/import
+        /// Form-data: "file" (CSV file)
+        /// Imports job cards in bulk.
+        /// </summary>
+        [HttpPost("import")]
+        [Authorize(Roles = "Admin,Supervisor,Planner")]
+        public async Task<ActionResult> ImportCsv(Microsoft.AspNetCore.Http.IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No file uploaded." });
+            }
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            try
+            {
+                using var reader = new System.IO.StreamReader(file.OpenReadStream());
+                var csvContent = await reader.ReadToEndAsync();
+                var result = await _jobService.ImportJobCardsFromCsvAsync(csvContent, userId);
+                return Ok(new { message = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
