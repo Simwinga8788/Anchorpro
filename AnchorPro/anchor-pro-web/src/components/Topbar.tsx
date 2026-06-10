@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/ThemeContext';
 import { useNotifications } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 interface TopbarProps {
   title: string;
@@ -23,6 +24,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAllRead, markRead, refresh: refreshNotifs } = useNotifications();
   const { user, logout } = useAuth();
+  const { workspaceName } = useDictionary();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,8 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
     .join('')
     .toUpperCase() || 'U';
 
+  const displayBreadcrumb = breadcrumb === 'Anchor Pro' ? (workspaceName || 'Anchor Pro') : breadcrumb;
+
   return (
     <div className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -65,7 +69,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
         </button>
 
         <div>
-          {breadcrumb && <div className="topbar-breadcrumb">{breadcrumb}</div>}
+          {displayBreadcrumb && <div className="topbar-breadcrumb">{displayBreadcrumb}</div>}
           <div className="topbar-title">{title}</div>
         </div>
       </div>

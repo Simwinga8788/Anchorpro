@@ -97,20 +97,15 @@ export default function RegisterPage() {
         padding: '0 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img
-              src="/AnchorPro_logo.png"
-              alt="Anchor Pro Logo"
-              style={{
-                height: '36px',
-                width: 'auto',
-                objectFit: 'contain',
-              }}
-            />
-            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Anchor Pro
-            </span>
-          </div>
+          <img
+            src="/AnchorPro_logo.png"
+            alt="Anchor Pro Logo"
+            style={{
+              height: '48px',
+              width: 'auto',
+              objectFit: 'contain',
+            }}
+          />
         </Link>
         <Link href="/login" style={{ fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'none' }}>
           Already have an account? <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>Sign in</span>

@@ -8,37 +8,44 @@ interface DictionaryContextType {
   dict: Record<string, string>;
   t: (key: string, fallback?: string) => string;
   refreshDictionary: () => Promise<void>;
+  workspaceName: string;
 }
 
 const DictionaryContext = createContext<DictionaryContextType>({
   dict: {},
   t: (key, fallback) => fallback || key,
   refreshDictionary: async () => {},
+  workspaceName: 'Anchor Pro',
 });
 
 export const DictionaryProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [dict, setDict] = useState<Record<string, string>>({});
+  const [workspaceName, setWorkspaceName] = useState<string>('Anchor Pro');
 
   const refreshDictionary = async () => {
     if (!user) {
       setDict({});
+      setWorkspaceName('Anchor Pro');
       return;
     }
     
     try {
       const allSettings = await settingsApi.getAll();
       const newDict: Record<string, string> = {};
+      let name = 'Anchor Pro';
       
-      // Filter settings that look like dictionary overrides (e.g., "Dict.Equipment" = "Vehicle")
       allSettings.forEach((setting: any) => {
         if (setting.key.startsWith('Dict.')) {
           const termKey = setting.key.replace('Dict.', '');
           newDict[termKey] = setting.value;
+        } else if (setting.key === 'Org.Name') {
+          name = setting.value;
         }
       });
       
       setDict(newDict);
+      setWorkspaceName(name);
     } catch (e) {
       console.error("Failed to load dictionary settings", e);
     }
@@ -55,7 +62,7 @@ export const DictionaryProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <DictionaryContext.Provider value={{ dict, t, refreshDictionary }}>
+    <DictionaryContext.Provider value={{ dict, t, refreshDictionary, workspaceName }}>
       {children}
     </DictionaryContext.Provider>
   );

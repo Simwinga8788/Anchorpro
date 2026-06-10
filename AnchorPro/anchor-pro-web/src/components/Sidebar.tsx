@@ -112,19 +112,14 @@ export default function Sidebar() {
         {/* Workspace name */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-          padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
+          padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
           transition: 'background 0.1s',
         }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '42px', width: 'auto', objectFit: 'contain' }} />
-            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Anchor Pro
-            </span>
-          </div>
-          <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain' }} />
+          <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
 
         {/* Platform Console link */}
