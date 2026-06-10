@@ -155,13 +155,13 @@ namespace AnchorPro.Services
 
             // Dropdown validation list for Priority (Low, Normal, High, Critical)
             var priorityVal = ws.Range(2, 5, 20, 5).CreateDataValidation();
-            priorityVal.List("Low, Normal, High, Critical", true);
+            priorityVal.List("\"Low,Normal,High,Critical\"", true);
             priorityVal.ErrorTitle = "Invalid Priority";
             priorityVal.ErrorMessage = "Please select one: Low, Normal, High, Critical";
 
             // Dropdown validation list for Status
             var statusVal = ws.Range(2, 6, 20, 6).CreateDataValidation();
-            statusVal.List("Unscheduled, Scheduled, InProgress, Completed, Cancelled, OnHold", true);
+            statusVal.List("\"Unscheduled,Scheduled,InProgress,Completed,Cancelled,OnHold\"", true);
             statusVal.ErrorTitle = "Invalid Status";
             statusVal.ErrorMessage = "Please select one: Unscheduled, Scheduled, InProgress, Completed, Cancelled, OnHold";
 
