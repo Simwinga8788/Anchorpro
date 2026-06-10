@@ -191,5 +191,92 @@ namespace AnchorPro.Services
             workbook.SaveAs(ms);
             return ms.ToArray();
         }
+
+        public byte[] GenerateJobHistoryExcel(List<JobCard> jobs)
+        {
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var ws = workbook.Worksheets.Add("Jobs Export");
+
+            // Headers
+            ws.Cell(1, 1).Value = "#";
+            ws.Cell(1, 2).Value = "Job Number";
+            ws.Cell(1, 3).Value = "Type";
+            ws.Cell(1, 4).Value = "Description";
+            ws.Cell(1, 5).Value = "Priority";
+            ws.Cell(1, 6).Value = "Status";
+            ws.Cell(1, 7).Value = "Equipment";
+            ws.Cell(1, 8).Value = "Technician";
+            ws.Cell(1, 9).Value = "Scheduled Start";
+            ws.Cell(1, 10).Value = "Scheduled End";
+            ws.Cell(1, 11).Value = "Created Date";
+            ws.Cell(1, 12).Value = "Completed Date";
+            ws.Cell(1, 13).Value = "Labor Cost (ZMW)";
+            ws.Cell(1, 14).Value = "Parts Cost (ZMW)";
+            ws.Cell(1, 15).Value = "Total Cost (ZMW)";
+
+            // Header Style
+            var headerRange = ws.Range(1, 1, 1, 15);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#1E3A8A"); // Deep Navy/Slate Blue
+            headerRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+            int rowNum = 2;
+            for (int i = 0; i < jobs.Count; i++)
+            {
+                var job = jobs[i];
+                ws.Cell(rowNum, 1).Value = i + 1;
+                ws.Cell(rowNum, 1).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                ws.Cell(rowNum, 1).Style.Font.Bold = true;
+                ws.Cell(rowNum, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F3F4F6");
+
+                ws.Cell(rowNum, 2).Value = job.JobNumber ?? "";
+                ws.Cell(rowNum, 3).Value = job.JobType?.Name ?? "General";
+                ws.Cell(rowNum, 4).Value = job.Description ?? "";
+                ws.Cell(rowNum, 5).Value = job.Priority.ToString();
+                ws.Cell(rowNum, 6).Value = job.Status.ToString();
+                ws.Cell(rowNum, 7).Value = job.Equipment?.Name ?? "";
+                ws.Cell(rowNum, 8).Value = job.AssignedTechnician?.UserName ?? "Unassigned";
+                ws.Cell(rowNum, 9).Value = job.ScheduledStartDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
+                ws.Cell(rowNum, 10).Value = job.ScheduledEndDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
+                ws.Cell(rowNum, 11).Value = job.CreatedAt.ToString("yyyy-MM-dd HH:mm");
+                ws.Cell(rowNum, 12).Value = job.ActualEndDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
+                
+                ws.Cell(rowNum, 13).Value = job.LaborCost;
+                ws.Cell(rowNum, 13).Style.NumberFormat.Format = "0.00";
+                
+                ws.Cell(rowNum, 14).Value = job.PartsCost;
+                ws.Cell(rowNum, 14).Style.NumberFormat.Format = "0.00";
+                
+                ws.Cell(rowNum, 15).Value = job.TotalCost;
+                ws.Cell(rowNum, 15).Style.NumberFormat.Format = "0.00";
+
+                // Border style for data row
+                ws.Range(rowNum, 1, rowNum, 15).Style.Border.BottomBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                ws.Range(rowNum, 1, rowNum, 15).Style.Border.BottomBorderColor = ClosedXML.Excel.XLColor.FromHtml("#E5E7EB");
+
+                rowNum++;
+            }
+
+            // Dropdown validation lists
+            if (jobs.Count > 0)
+            {
+                var priorityVal = ws.Range(2, 5, rowNum - 1, 5).CreateDataValidation();
+                priorityVal.List("\"Low,Normal,High,Critical\"", true);
+                priorityVal.ErrorTitle = "Invalid Priority";
+                priorityVal.ErrorMessage = "Please select one: Low, Normal, High, Critical";
+
+                var statusVal = ws.Range(2, 6, rowNum - 1, 6).CreateDataValidation();
+                statusVal.List("\"Unscheduled,Scheduled,InProgress,Completed,Cancelled,OnHold\"", true);
+                statusVal.ErrorTitle = "Invalid Status";
+                statusVal.ErrorMessage = "Please select one: Unscheduled, Scheduled, InProgress, Completed, Cancelled, OnHold";
+            }
+
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
     }
 }

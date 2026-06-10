@@ -470,13 +470,13 @@ export default function JobCardsPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const res = await fetch('/api/export/jobs/csv', { credentials: 'include' });
+      const res = await fetch('/api/export/jobs/excel', { credentials: 'include' });
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `job-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `job-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -35,6 +35,19 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// GET /api/export/jobs/excel — Download all job cards for the tenant as a styled Excel file.
+        /// </summary>
+        [HttpGet("jobs/excel")]
+        public async Task<IActionResult> ExportJobsExcel()
+        {
+            var jobs = await _jobCardService.GetAllJobCardsAsync();
+            var excelBytes = _exportService.GenerateJobHistoryExcel(jobs);
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"job-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>
         /// GET /api/export/performance/excel?days=30
         /// Downloads an Excel workbook with performance metrics for the given period.
         /// </summary>
