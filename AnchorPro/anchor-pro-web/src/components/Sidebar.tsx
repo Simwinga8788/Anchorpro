@@ -93,13 +93,13 @@ export default function Sidebar() {
       />
     <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* ── Workspace header ── */}
-      <div style={{ padding: '14px 10px 8px' }}>
+      <div style={{ padding: '6px 10px 0' }}>
         {/* Mobile close button */}
         <button
           onClick={closeSidebar}
           style={{
             display: 'none',
-            position: 'absolute', top: 12, right: 10,
+            position: 'absolute', top: 8, right: 10,
             background: 'transparent', border: 'none',
             cursor: 'pointer', color: 'var(--text-muted)',
             padding: 4, borderRadius: 4,
@@ -112,17 +112,17 @@ export default function Sidebar() {
         {/* Workspace logo */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '24px 10px 16px',
+          padding: '10px 10px 4px',
         }}
         >
-          <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '100px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
         </div>
 
         {/* Platform Console link */}
         {isPlatformOwner && (
           <Link href="/platform" style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '5px 8px', marginTop: 4,
+            padding: '5px 8px', marginTop: 2,
             borderRadius: 6, textDecoration: 'none',
             color: 'var(--accent-blue)', fontSize: 13, fontWeight: 500,
             background: 'var(--accent-blue-dim)',
