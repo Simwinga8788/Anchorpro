@@ -515,8 +515,11 @@ export default function JobCardsPage() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = "Job Number,Type,Description,Priority,Status,Equipment,Technician,Scheduled Start,Scheduled End\n";
-    const blob = new Blob([headers], { type: 'text/csv' });
+    const csvContent = 
+      "Job Number,Type,Description,Priority,Status,Equipment,Technician,Scheduled Start,Scheduled End\n" +
+      "[Optional: e.g. JOB-1001],Preventative Maintenance,[Describe work: e.g. Inspect hydraulic systems],Normal,Unscheduled,Excavator 01,tech_user@domain.com,2026-06-15 08:00,2026-06-15 17:00\n" +
+      "[Optional: leave empty for auto],Corrective,[Describe work: e.g. Replace blown gasket. Values for Priority: Low/Normal/High/Critical. Values for Status: Unscheduled/Scheduled/InProgress/Completed/Cancelled/OnHold],High,Scheduled,Forklift 2,tech_user@domain.com,2026-06-16 09:00,2026-06-16 12:00\n";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
