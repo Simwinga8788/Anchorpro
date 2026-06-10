@@ -1,9 +1,8 @@
 // AnchorPro Service Worker
-const CACHE_NAME = 'anchorpro-v5';
+const CACHE_NAME = 'anchorpro-v6';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
-  '/manifest.json',
 ];
 
 // Assets to cache on install
@@ -30,21 +29,26 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy for API calls, cache-first for static assets
+// Network-first strategy for page routes, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET, cross-origin, and API requests (always network for these)
+  // Skip non-GET, cross-origin, and API/manifest/worker requests (always network for these)
   if (
     event.request.method !== 'GET' ||
     url.origin !== self.location.origin ||
-    url.pathname.startsWith('/api/')
+    url.pathname.startsWith('/api/') ||
+    url.pathname === '/manifest.json' ||
+    url.pathname === '/sw.js'
   ) {
     return;
   }
 
-  // For page navigations: network first, fall back to cache
-  if (event.request.mode === 'navigate') {
+  // Check if it's a page navigation or page-like path (no file extension)
+  const isPage = event.request.mode === 'navigate' || !url.pathname.includes('.') || url.pathname === '/';
+
+  // For page routes: network first, fall back to cache
+  if (isPage) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
