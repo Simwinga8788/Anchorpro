@@ -96,19 +96,16 @@ export default function RegisterPage() {
         height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '9px', textDecoration: 'none' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
           <img
             src="/AnchorPro_logo.png"
-            alt="Anchor Pro"
+            alt="Anchor Pro Logo"
             style={{
-              width: '32px',
-              height: '32px',
+              width: '110px',
+              height: '36px',
               objectFit: 'contain',
             }}
           />
-          <span style={{ fontFamily: "'Barlow Semi Condensed', sans-serif", fontSize: '15.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Anchor Pro
-          </span>
         </Link>
         <Link href="/login" style={{ fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'none' }}>
           Already have an account? <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>Sign in</span>
@@ -125,8 +122,8 @@ export default function RegisterPage() {
               src="/AnchorPro_logo.png"
               alt="Anchor Pro Logo"
               style={{
-                width: '140px',
-                height: '140px',
+                width: '150px',
+                height: '150px',
                 margin: '0 auto',
                 objectFit: 'contain',
               }}

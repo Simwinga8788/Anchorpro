@@ -111,18 +111,14 @@ export default function Sidebar() {
         </button>
         {/* Workspace name */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
           transition: 'background 0.1s',
         }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sidebar-logo-text">Anchor Pro</div>
-            <div className="sidebar-logo-sub" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1, color: 'var(--text-secondary)' }}>Production Planning & Service Operation Tool</div>
-          </div>
+          <img src="/AnchorPro_logo.png" alt="Anchor Pro" style={{ width: '130px', height: '42px', objectFit: 'contain' }} />
           <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         </div>
 

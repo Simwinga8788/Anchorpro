@@ -63,21 +63,18 @@ function LoginForm() {
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', width: '100%',
+            margin: '0 auto', width: '100%',
           }}>
             <img
               src="/AnchorPro_logo.png"
               alt="Anchor Pro Logo"
               style={{
-                width: '140px',
-                height: '140px',
+                width: '150px',
+                height: '150px',
                 objectFit: 'contain',
               }}
             />
           </div>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.5 }}>
-            Production Planning & Service Operation Tool — Sign in to continue
-          </p>
         </div>
 
         {/* Card */}
