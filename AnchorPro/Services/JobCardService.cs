@@ -601,7 +601,7 @@ namespace AnchorPro.Services
                 string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
 
                 var desc = GetValue(descIdx);
-                if (string.IsNullOrWhiteSpace(desc) || desc.Contains("[Describe")) continue; // Skip empty/helper rows
+                if (string.IsNullOrWhiteSpace(desc) || desc.Contains("[Describe") || desc.Contains("[Example")) continue; // Skip empty/helper rows
 
                 var typeName = GetValue(typeIdx);
                 if (string.IsNullOrWhiteSpace(typeName)) typeName = "General";
