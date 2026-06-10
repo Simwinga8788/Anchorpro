@@ -526,23 +526,7 @@ export default function JobCardsPage() {
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = 
-      "Job Number,Type,Description,Priority,Status,Equipment,Technician,Scheduled Start,Scheduled End\n" +
-      ",,,,,,,,\n" +
-      ",,,,,,,,\n" +
-      ",,,,,,,,\n" +
-      ",,,,,,,,\n" +
-      ",,,,,,,,\n" +
-      "[Example: e.g. JOB-1001],Preventative Maintenance,[Example: Inspect hydraulic systems],Normal,Unscheduled,Excavator 01,tech_user@domain.com,2026-06-15 08:00,2026-06-15 17:00\n" +
-      "[Example: leave empty for auto],Corrective,[Example: Replace blown gasket. Values for Priority: Low/Normal/High/Critical. Values for Status: Unscheduled/Scheduled/InProgress/Completed/Cancelled/OnHold],High,Scheduled,Forklift 2,tech_user@domain.com,2026-06-16 09:00,2026-06-16 12:00\n";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'job-import-template.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    window.location.href = '/api/export/jobs/template';
   };
 
   const fetchJobs = () => {
@@ -629,7 +613,7 @@ export default function JobCardsPage() {
               type="file"
               ref={fileInputRef}
               style={{ display: 'none' }}
-              accept=".csv"
+              accept=".csv,.xlsx"
               onChange={handleImport}
             />
             <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

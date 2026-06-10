@@ -282,8 +282,39 @@ namespace AnchorPro.Controllers
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             try
             {
-                using var reader = new System.IO.StreamReader(file.OpenReadStream());
-                var csvContent = await reader.ReadToEndAsync();
+                string csvContent;
+                var fileExtension = System.IO.Path.GetExtension(file.FileName).ToLower();
+
+                if (fileExtension == ".xlsx")
+                {
+                    using var workbook = new ClosedXML.Excel.XLWorkbook(file.OpenReadStream());
+                    var worksheet = workbook.Worksheets.First();
+                    var lastCol = worksheet.LastColumnUsed()?.ColumnNumber() ?? 10;
+                    var rows = worksheet.RowsUsed();
+                    var csvBuilder = new System.Text.StringBuilder();
+
+                    foreach (var row in rows)
+                    {
+                        var rowValues = new List<string>();
+                        for (int col = 1; col <= lastCol; col++)
+                        {
+                            var cellValue = row.Cell(col).Value.ToString() ?? "";
+                            if (cellValue.Contains(",") || cellValue.Contains("\"") || cellValue.Contains("\n") || cellValue.Contains("\r"))
+                            {
+                                cellValue = $"\"{cellValue.Replace("\"", "\"\"")}\"";
+                            }
+                            rowValues.Add(cellValue);
+                        }
+                        csvBuilder.AppendLine(string.Join(",", rowValues));
+                    }
+                    csvContent = csvBuilder.ToString();
+                }
+                else
+                {
+                    using var reader = new System.IO.StreamReader(file.OpenReadStream());
+                    csvContent = await reader.ReadToEndAsync();
+                }
+
                 var result = await _jobService.ImportJobCardsFromCsvAsync(csvContent, userId);
                 return Ok(new { message = result });
             }

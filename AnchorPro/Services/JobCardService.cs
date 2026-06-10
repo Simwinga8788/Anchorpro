@@ -569,8 +569,8 @@ namespace AnchorPro.Services
                 if (h.Contains("description") || h == "desc") descIdx = i;
                 else if (h == "type" || h.Contains("job type") || h == "jobtype") typeIdx = i;
                 else if (h == "equipment" || h == "asset" || h.Contains("equip")) equipIdx = i;
-                else if (h == "priority") prioIdx = i;
-                else if (h == "status") statusIdx = i;
+                else if (h.Contains("priority")) prioIdx = i;
+                else if (h.Contains("status")) statusIdx = i;
                 else if (h == "technician" || h == "tech" || h.Contains("assign")) techIdx = i;
                 else if (h.Contains("start") || h.Contains("created")) startIdx = i;
                 else if (h.Contains("end") || h.Contains("completed") || h == "deadline") endIdx = i;

@@ -114,5 +114,82 @@ namespace AnchorPro.Services
             workbook.SaveAs(ms);
             return ms.ToArray();
         }
+
+        public byte[] GenerateJobImportTemplate()
+        {
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var ws = workbook.Worksheets.Add("Job Import Template");
+
+            // Headers
+            ws.Cell(1, 1).Value = "#";
+            ws.Cell(1, 2).Value = "Job Number";
+            ws.Cell(1, 3).Value = "Type";
+            ws.Cell(1, 4).Value = "Description";
+            ws.Cell(1, 5).Value = "Priority";
+            ws.Cell(1, 6).Value = "Status";
+            ws.Cell(1, 7).Value = "Equipment";
+            ws.Cell(1, 8).Value = "Technician";
+            ws.Cell(1, 9).Value = "Scheduled Start";
+            ws.Cell(1, 10).Value = "Scheduled End";
+
+            // Header Style
+            var headerRange = ws.Range(1, 1, 1, 10);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#1E3A8A"); // Deep Navy/Slate Blue
+            headerRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+            // Generate 5 numbered empty rows (with nice formatting)
+            for (int i = 1; i <= 5; i++)
+            {
+                var rowNum = i + 1;
+                ws.Cell(rowNum, 1).Value = i;
+                ws.Cell(rowNum, 1).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                ws.Cell(rowNum, 1).Style.Font.Bold = true;
+                ws.Cell(rowNum, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F3F4F6"); // Light grey for numbers
+                
+                // Add soft borders for visual hierarchy
+                ws.Range(rowNum, 1, rowNum, 10).Style.Border.BottomBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                ws.Range(rowNum, 1, rowNum, 10).Style.Border.BottomBorderColor = ClosedXML.Excel.XLColor.FromHtml("#E5E7EB");
+            }
+
+            // Dropdown validation list for Priority (Low, Normal, High, Critical)
+            var priorityVal = ws.Range(2, 5, 20, 5).CreateDataValidation();
+            priorityVal.List("Low, Normal, High, Critical", true);
+            priorityVal.ErrorTitle = "Invalid Priority";
+            priorityVal.ErrorMessage = "Please select one: Low, Normal, High, Critical";
+
+            // Dropdown validation list for Status
+            var statusVal = ws.Range(2, 6, 20, 6).CreateDataValidation();
+            statusVal.List("Unscheduled, Scheduled, InProgress, Completed, Cancelled, OnHold", true);
+            statusVal.ErrorTitle = "Invalid Status";
+            statusVal.ErrorMessage = "Please select one: Unscheduled, Scheduled, InProgress, Completed, Cancelled, OnHold";
+
+            // Add Example Row at row 7
+            ws.Cell(7, 1).Value = "Example";
+            ws.Cell(7, 2).Value = "JOB-2026-001";
+            ws.Cell(7, 3).Value = "Preventive Maintenance";
+            ws.Cell(7, 4).Value = "[Example: Inspect hydraulic pressure valves]";
+            ws.Cell(7, 5).Value = "High";
+            ws.Cell(7, 6).Value = "Scheduled";
+            ws.Cell(7, 7).Value = "CNC Lathe #1";
+            ws.Cell(7, 8).Value = "mapalo1@gmail.com";
+            ws.Cell(7, 9).Value = "2026-06-12 08:30";
+            ws.Cell(7, 10).Value = "2026-06-12 12:00";
+
+            var exampleRange = ws.Range(7, 1, 7, 10);
+            exampleRange.Style.Font.Italic = true;
+            exampleRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#4B5563");
+            exampleRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#EFF6FF"); // Soft blue example shading
+            exampleRange.Style.Border.BottomBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            exampleRange.Style.Border.BottomBorderColor = ClosedXML.Excel.XLColor.FromHtml("#BFDBFE");
+
+            // Auto-adjust column widths so nothing is truncated
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
     }
 }

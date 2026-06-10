@@ -9,7 +9,7 @@ namespace AnchorPro.Controllers
     /// </summary>
     [Route("api/export")]
     [ApiController]
-    [Authorize(Roles = "Admin,Supervisor,PlatformOwner")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,PlatformOwner")]
     public class ExportController : ControllerBase
     {
         private readonly IExportService _exportService;
@@ -46,6 +46,18 @@ namespace AnchorPro.Controllers
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"performance-{DateTime.UtcNow:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/jobs/template — Download the professional Excel import template.
+        /// </summary>
+        [HttpGet("jobs/template")]
+        public IActionResult GetImportTemplate()
+        {
+            var excelBytes = _exportService.GenerateJobImportTemplate();
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "job-import-template.xlsx");
         }
     }
 }
