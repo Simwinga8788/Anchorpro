@@ -1,6 +1,6 @@
 {
-  "name": "Anchor Pro — Production Planning & Service Operation Tool",
-  "short_name": "AnchorPro",
+  "name": "Anchor Pro",
+  "short_name": "Anchor Pro",
   "description": "Production & Service Operations Management System",
   "start_url": "/dashboard",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/AnchorPro_logo.png",
+      "src": "/AnchorPro_pwa_icon_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/AnchorPro_logo.png",
+      "src": "/AnchorPro_pwa_icon_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

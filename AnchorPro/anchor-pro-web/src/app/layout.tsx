@@ -37,7 +37,7 @@ export default function RootLayout({
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2383E2" />
-        <link rel="apple-touch-icon" href="/AnchorPro_logo.png" />
+        <link rel="apple-touch-icon" href="/AnchorPro_pwa_icon_192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AnchorPro" />
