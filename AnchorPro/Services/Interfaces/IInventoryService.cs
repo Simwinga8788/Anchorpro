@@ -12,5 +12,6 @@ namespace AnchorPro.Services.Interfaces
 
         // Stock operations
         Task AdjustStockAsync(int itemId, int quantityAdjustment, string userId, string reason);
+        Task<string> ImportInventoryFromCsvAsync(string csvContent, string userId);
     }
 }

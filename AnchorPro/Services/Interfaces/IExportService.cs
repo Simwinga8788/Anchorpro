@@ -9,5 +9,14 @@ namespace AnchorPro.Services.Interfaces
         byte[] GeneratePerformanceExcel(PerformanceMetrics metrics);
         byte[] GenerateJobImportTemplate();
         byte[] GenerateJobHistoryExcel(List<JobCard> jobs);
+
+        byte[] GenerateEquipmentImportTemplate(List<string> departments);
+        byte[] GenerateEquipmentExcel(List<Equipment> equipment);
+
+        byte[] GenerateInventoryImportTemplate();
+        byte[] GenerateInventoryExcel(List<InventoryItem> items);
+
+        byte[] GenerateToolsImportTemplate();
+        byte[] GenerateToolsExcel(List<Tool> tools);
     }
 }

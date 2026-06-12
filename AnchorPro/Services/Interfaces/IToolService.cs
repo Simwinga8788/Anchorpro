@@ -12,4 +12,5 @@ public interface IToolService
     Task<List<ToolTransaction>> GetIssuedToolsAsync();
     Task<List<ToolTransaction>> GetToolHistoryAsync(int toolId);
     Task<List<Tool>> GetAllToolsAsync();
+    Task<string> ImportToolsFromCsvAsync(string csvContent, string userId);
 }

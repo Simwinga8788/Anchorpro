@@ -1,7 +1,7 @@
 'use client';
 
-import { Search, Plus, Wrench, AlertTriangle, TrendingUp, Edit2, CheckCircle2, DollarSign } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Search, Plus, Wrench, AlertTriangle, TrendingUp, Edit2, CheckCircle2, DollarSign, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { dashboardApi, equipmentApi, departmentsApi, intelligenceApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
@@ -22,6 +22,72 @@ export default function AssetsPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [departments, setDepartments] = useState<any[]>([]);
   const [assetCosts, setAssetCosts] = useState<Record<number, number>>({});
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/export/equipment/excel', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `equipment-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err: any) {
+      alert('Failed to export: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/equipment/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      let errMsg = 'Import failed';
+      if (!res.ok) {
+        try {
+          const json = await res.json();
+          if (json.message) errMsg = json.message;
+          else if (json.errors) errMsg = Object.values(json.errors).flat().join('\n');
+        } catch {
+          const text = await res.text();
+          if (text) errMsg = text;
+        }
+        throw new Error(errMsg);
+      }
+      
+      const data = await res.json();
+      alert(data.message || 'Import successful!');
+      fetchAssets();
+    } catch (err: any) {
+      console.error('Import error:', err);
+      alert('Failed to import: ' + err.message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    window.location.href = '/api/export/equipment/template';
+  };
 
   const fetchAssets = () => {
     setLoading(true);
@@ -125,7 +191,25 @@ export default function AssetsPage() {
           <h1 className="page-title">Asset Registry</h1>
           <p className="page-subtitle">{assets.length} registered assets across {uniqueDepartments.length} departments</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}><Plus size={14} /> Register Asset</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn btn-secondary" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileSpreadsheet size={14} /> Template
+          </button>
+          <button className="btn btn-secondary" onClick={handleExport} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Download size={14} /> {exporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importing} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept=".csv,.xlsx"
+            onChange={handleImport}
+          />
+          <button className="btn btn-primary" onClick={openCreate}><Plus size={14} /> Register Asset</button>
+        </div>
       </div>
 
       <div className="stats-grid-3" style={{ marginBottom: 20 }}>

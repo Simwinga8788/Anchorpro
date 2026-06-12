@@ -87,6 +87,66 @@ namespace AnchorPro.Controllers
             await _inventoryService.AdjustStockAsync(id, -req.Quantity, userId, reason);
             return NoContent();
         }
+
+        /// <summary>
+        /// POST /api/inventory/import
+        /// Form-data: "file" (CSV or XLSX file)
+        /// Imports inventory items in bulk.
+        /// </summary>
+        [HttpPost("import")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing")]
+        public async Task<ActionResult> Import(Microsoft.AspNetCore.Http.IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No file uploaded." });
+            }
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            try
+            {
+                string csvContent;
+                var fileExtension = System.IO.Path.GetExtension(file.FileName).ToLower();
+
+                if (fileExtension == ".xlsx")
+                {
+                    using var workbook = new ClosedXML.Excel.XLWorkbook(file.OpenReadStream());
+                    var worksheet = workbook.Worksheets.First();
+                    var lastCol = worksheet.LastColumnUsed()?.ColumnNumber() ?? 10;
+                    var rows = worksheet.RowsUsed();
+                    var csvBuilder = new System.Text.StringBuilder();
+
+                    foreach (var row in rows)
+                    {
+                        var rowValues = new List<string>();
+                        for (int col = 1; col <= lastCol; col++)
+                        {
+                            var cellValue = row.Cell(col).Value.ToString() ?? "";
+                            if (cellValue.Contains(",") || cellValue.Contains("\"") || cellValue.Contains("\n") || cellValue.Contains("\r") || cellValue.Contains(";"))
+                            {
+                                cellValue = $"\"{cellValue.Replace("\"", "\"\"")}\"";
+                            }
+                            rowValues.Add(cellValue);
+                        }
+                        csvBuilder.AppendLine(string.Join(",", rowValues));
+                    }
+                    csvContent = csvBuilder.ToString();
+                }
+                else
+                {
+                    using var reader = new System.IO.StreamReader(file.OpenReadStream());
+                    csvContent = await reader.ReadToEndAsync();
+                }
+
+                var result = await _inventoryService.ImportInventoryFromCsvAsync(csvContent, userId);
+                return Ok(new { message = result });
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+                return BadRequest(new { message = msg });
+            }
+        }
     }
 
     public class StockAdjustmentRequest

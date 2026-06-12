@@ -72,5 +72,82 @@ namespace AnchorPro.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "job-import-template.xlsx");
         }
+
+        /// <summary>
+        /// GET /api/export/equipment/excel — Download all equipment for the tenant as a styled Excel file.
+        /// </summary>
+        [HttpGet("equipment/excel")]
+        public async Task<IActionResult> ExportEquipmentExcel([FromServices] IEquipmentService equipmentService)
+        {
+            var equip = await equipmentService.GetAllEquipmentAsync();
+            var excelBytes = _exportService.GenerateEquipmentExcel(equip);
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"equipment-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/equipment/template — Download the equipment import template.
+        /// </summary>
+        [HttpGet("equipment/template")]
+        public async Task<IActionResult> GetEquipmentTemplate([FromServices] IOrgService orgService)
+        {
+            var depts = await orgService.GetAllDepartmentsAsync();
+            var deptNames = depts.Select(d => d.Name).ToList();
+            var excelBytes = _exportService.GenerateEquipmentImportTemplate(deptNames);
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "equipment-import-template.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/inventory/excel — Download all inventory for the tenant as a styled Excel file.
+        /// </summary>
+        [HttpGet("inventory/excel")]
+        public async Task<IActionResult> ExportInventoryExcel([FromServices] IInventoryService inventoryService)
+        {
+            var items = await inventoryService.GetAllItemsAsync();
+            var excelBytes = _exportService.GenerateInventoryExcel(items);
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"inventory-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/inventory/template — Download the inventory import template.
+        /// </summary>
+        [HttpGet("inventory/template")]
+        public IActionResult GetInventoryTemplate()
+        {
+            var excelBytes = _exportService.GenerateInventoryImportTemplate();
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "inventory-import-template.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/tools/excel — Download all tools for the tenant as a styled Excel file.
+        /// </summary>
+        [HttpGet("tools/excel")]
+        public async Task<IActionResult> ExportToolsExcel([FromServices] IToolService toolService)
+        {
+            var tools = await toolService.GetAllToolsAsync();
+            var excelBytes = _exportService.GenerateToolsExcel(tools);
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"tools-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>
+        /// GET /api/export/tools/template — Download the tools import template.
+        /// </summary>
+        [HttpGet("tools/template")]
+        public IActionResult GetToolsTemplate()
+        {
+            var excelBytes = _exportService.GenerateToolsImportTemplate();
+            return File(excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "tools-import-template.xlsx");
+        }
     }
 }

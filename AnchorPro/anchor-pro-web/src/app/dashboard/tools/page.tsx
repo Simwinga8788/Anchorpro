@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toolsApi } from '@/lib/api';
-import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search } from 'lucide-react';
+import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import ReceiveToolModal from '@/components/tools/ReceiveToolModal';
 import IssueToolModal from '@/components/tools/IssueToolModal';
 import ReturnToolModal from '@/components/tools/ReturnToolModal';
@@ -33,6 +33,72 @@ export default function ToolsPage() {
   const [showReceive, setShowReceive] = useState(false);
   const [issueTarget, setIssueTarget] = useState<{ id: number, name: string, condition: number } | null>(null);
   const [returnTarget, setReturnTarget] = useState<{ id: number, toolName: string, assignedName: string } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/export/tools/excel', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tools-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err: any) {
+      alert('Failed to export: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/tools/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      let errMsg = 'Import failed';
+      if (!res.ok) {
+        try {
+          const json = await res.json();
+          if (json.message) errMsg = json.message;
+          else if (json.errors) errMsg = Object.values(json.errors).flat().join('\n');
+        } catch {
+          const text = await res.text();
+          if (text) errMsg = text;
+        }
+        throw new Error(errMsg);
+      }
+      
+      const data = await res.json();
+      alert(data.message || 'Import successful!');
+      fetchData();
+    } catch (err: any) {
+      console.error('Import error:', err);
+      alert('Failed to import: ' + err.message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    window.location.href = '/api/export/tools/template';
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -77,9 +143,27 @@ export default function ToolsPage() {
             </h1>
             <p className="page-subtitle">{tools.length} registered tools · {issuedTools.length} currently issued</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowReceive(true)}>
-            <Plus size={14} /> Receive New Tool
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-secondary" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FileSpreadsheet size={14} /> Template
+            </button>
+            <button className="btn btn-secondary" onClick={handleExport} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Download size={14} /> {exporting ? 'Exporting...' : 'Export'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importing} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept=".csv,.xlsx"
+              onChange={handleImport}
+            />
+            <button className="btn btn-primary" onClick={() => setShowReceive(true)}>
+              <Plus size={14} /> Receive New Tool
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

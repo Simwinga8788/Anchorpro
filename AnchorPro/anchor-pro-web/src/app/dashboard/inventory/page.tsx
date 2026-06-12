@@ -1,7 +1,7 @@
 'use client';
 
-import { Search, Plus, AlertTriangle, Package, Edit2, PlusCircle, Check, X, Eye } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Search, Plus, AlertTriangle, Package, Edit2, PlusCircle, Check, X, Eye, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { dashboardApi, inventoryApi, jobCardsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
@@ -25,6 +25,72 @@ export default function InventoryPage() {
   // Parts Requests state
   const [requests, setRequests]   = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/export/inventory/excel', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err: any) {
+      alert('Failed to export: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/inventory/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      let errMsg = 'Import failed';
+      if (!res.ok) {
+        try {
+          const json = await res.json();
+          if (json.message) errMsg = json.message;
+          else if (json.errors) errMsg = Object.values(json.errors).flat().join('\n');
+        } catch {
+          const text = await res.text();
+          if (text) errMsg = text;
+        }
+        throw new Error(errMsg);
+      }
+      
+      const data = await res.json();
+      alert(data.message || 'Import successful!');
+      fetchInventory();
+    } catch (err: any) {
+      console.error('Import error:', err);
+      alert('Failed to import: ' + err.message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    window.location.href = '/api/export/inventory/template';
+  };
 
   const fetchInventory = () => {
     setLoading(true);
@@ -188,7 +254,25 @@ export default function InventoryPage() {
           <h1 className="page-title">Inventory & Parts</h1>
           <p className="page-subtitle">{inventory.length} SKUs · K {totalValue.toLocaleString()} total value</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={13} /> Add Item</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileSpreadsheet size={13} /> Template
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Download size={13} /> {exporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} disabled={importing} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Upload size={13} /> {importing ? 'Importing...' : 'Import'}
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept=".csv,.xlsx"
+            onChange={handleImport}
+          />
+          <button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={13} /> Add Item</button>
+        </div>
       </div>
 
       {/* Tabs */}

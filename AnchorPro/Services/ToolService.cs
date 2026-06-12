@@ -125,4 +125,148 @@ public class ToolService(ApplicationDbContext context) : IToolService
 
         return transaction;
     }
+
+    public async Task<string> ImportToolsFromCsvAsync(string csvContent, string userId)
+    {
+        var user = await context.Users.FindAsync(userId);
+        var tenantId = user?.TenantId;
+
+        var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        if (lines.Length <= 1)
+        {
+            throw new ArgumentException("CSV content is empty or contains only a header.");
+        }
+
+        var firstLine = lines[0];
+        if (firstLine.StartsWith("\uFEFF"))
+        {
+            firstLine = firstLine.Substring(1);
+        }
+
+        char separator = ',';
+        if (firstLine.Count(c => c == ';') > firstLine.Count(c => c == ','))
+        {
+            separator = ';';
+        }
+
+        var headers = ParseCsvLine(firstLine, separator);
+        int nameIdx = -1, descIdx = -1, tagIdx = -1, statusIdx = -1, condIdx = -1, costIdx = -1;
+
+        for (int i = 0; i < headers.Count; i++)
+        {
+            var h = headers[i].ToLower().Trim();
+            if (h.Contains("name")) nameIdx = i;
+            else if (h.Contains("desc")) descIdx = i;
+            else if (h.Contains("tag") || h.Contains("tooltag") || h.Contains("tool tag")) tagIdx = i;
+            else if (h.Contains("status")) statusIdx = i;
+            else if (h.Contains("cond")) condIdx = i;
+            else if (h.Contains("cost") || h.Contains("price") || h.Contains("purchase")) costIdx = i;
+        }
+
+        if (nameIdx == -1)
+        {
+            throw new ArgumentException("CSV must contain a 'Name' column.");
+        }
+
+        int successCount = 0;
+        var currentCount = await context.Tools.CountAsync(t => t.TenantId == tenantId);
+        int nextToolTag = currentCount + 1001;
+
+        for (int r = 1; r < lines.Length; r++)
+        {
+            var line = lines[r];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            var values = ParseCsvLine(line, separator);
+            if (values.Count == 0) continue;
+
+            string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
+
+            var name = GetValue(nameIdx);
+            if (string.IsNullOrWhiteSpace(name) || name.Contains("[Example") || name.Contains("[Describe")) continue;
+
+            var tag = GetValue(tagIdx);
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                tag = $"T-AUTO-{nextToolTag++}";
+            }
+
+            // Parse Status
+            var statusStr = GetValue(statusIdx).ToLower();
+            var status = ToolStatus.Available;
+            if (statusStr.Contains("issue")) status = ToolStatus.Issued;
+            else if (statusStr.Contains("repair") || statusStr.Contains("under")) status = ToolStatus.UnderRepair;
+            else if (statusStr.Contains("lost")) status = ToolStatus.Lost;
+            else if (statusStr.Contains("retir")) status = ToolStatus.Retired;
+
+            // Parse Condition
+            var condStr = GetValue(condIdx).ToLower();
+            var condition = ToolCondition.Good;
+            if (condStr.Contains("new")) condition = ToolCondition.New;
+            else if (condStr.Contains("good")) condition = ToolCondition.Good;
+            else if (condStr.Contains("fair")) condition = ToolCondition.Fair;
+            else if (condStr.Contains("damag")) condition = ToolCondition.Damaged;
+
+            decimal? purchaseCost = null;
+            var costStr = GetValue(costIdx);
+            if (!string.IsNullOrWhiteSpace(costStr) && decimal.TryParse(costStr, out var parsedCost))
+            {
+                purchaseCost = parsedCost;
+            }
+
+            var tool = new Tool
+            {
+                TenantId = tenantId,
+                Name = name,
+                Description = GetValue(descIdx),
+                ToolTag = tag,
+                Status = status,
+                Condition = condition,
+                PurchaseCost = purchaseCost,
+                ReceivedDate = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            context.Tools.Add(tool);
+            successCount++;
+        }
+
+        await context.SaveChangesAsync();
+        return $"Successfully imported {successCount} tools.";
+    }
+
+    private static List<string> ParseCsvLine(string line, char separator = ',')
+    {
+        var result = new List<string>();
+        var current = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (c == '\"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
+                {
+                    current.Append('\"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == separator && !inQuotes)
+            {
+                result.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+        result.Add(current.ToString().Trim());
+        return result;
+    }
 }
