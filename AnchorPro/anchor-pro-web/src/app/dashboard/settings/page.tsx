@@ -1,55 +1,198 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { CreditCard, Shield, User, Building2, Bell, CheckCircle2, AlertTriangle, Key, Database, Loader2, BookA, ExternalLink, Sliders, Plus, Trash2, Smartphone } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  User, Building2, Bell, Key, Database, Loader2, BookA, ExternalLink,
+  Sliders, Plus, Trash2, Smartphone, CreditCard, Shield, CheckCircle2,
+  AlertTriangle, Users, ChevronRight, Copy, Eye, EyeOff, X,
+  Save, RefreshCw, Lock, Globe, Clock, Settings, Zap, Link2,
+} from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { settingsApi, subscriptionsApi, departmentsApi, usersApi, referenceDataApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+type ToastType = 'success' | 'error' | 'info';
+interface Toast { id: number; msg: string; type: ToastType; }
+
+function useToast() {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const show = useCallback((msg: string, type: ToastType = 'success') => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3800);
+  }, []);
+  return { toasts, show };
+}
+
+function ToastContainer({ toasts }: { toasts: Toast[] }) {
+  if (!toasts.length) return null;
+  return (
+    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {toasts.map(t => (
+        <div key={t.id} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 18px', borderRadius: 10, minWidth: 280, maxWidth: 400,
+          background: t.type === 'success' ? 'rgba(46,204,138,0.15)' : t.type === 'error' ? 'rgba(232,72,85,0.15)' : 'rgba(77,158,255,0.15)',
+          border: `1px solid ${t.type === 'success' ? 'rgba(46,204,138,0.35)' : t.type === 'error' ? 'rgba(232,72,85,0.35)' : 'rgba(77,158,255,0.35)'}`,
+          color: t.type === 'success' ? 'var(--accent-emerald)' : t.type === 'error' ? 'var(--accent-rose)' : 'var(--accent-blue)',
+          fontSize: 13, fontWeight: 500, backdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          animation: 'slideInRight 0.25s ease',
+        }}>
+          {t.type === 'success' ? <CheckCircle2 size={15} /> : t.type === 'error' ? <AlertTriangle size={15} /> : <Zap size={15} />}
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
+function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={() => !disabled && onChange(!value)}
+      disabled={disabled}
+      style={{
+        width: 44, height: 25, borderRadius: 13, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        background: value ? 'var(--accent-emerald)' : 'var(--border-default)',
+        position: 'relative', transition: 'background 0.25s', flexShrink: 0, opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <div style={{
+        width: 19, height: 19, borderRadius: '50%', background: 'white',
+        position: 'absolute', top: 3, left: value ? 22 : 3,
+        transition: 'left 0.25s', boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+      }} />
+    </button>
+  );
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+function SectionCard({ title, subtitle, icon, children, footer }: {
+  title: string; subtitle?: string; icon?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode;
+}) {
+  return (
+    <div className="card-elevated" style={{ overflow: 'hidden' }}>
+      {(title || subtitle) && (
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {icon && <span style={{ color: 'var(--accent-blue)' }}>{icon}</span>}
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Barlow Semi Condensed, sans-serif' }}>{title}</div>
+              {subtitle && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{subtitle}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ padding: '20px 24px' }}>{children}</div>
+      {footer && (
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Sidebar nav groups ───────────────────────────────────────────────────────
+const NAV_GROUPS = [
+  {
+    label: 'Account',
+    items: [
+      { id: 'profile',      icon: <User size={15} />,    label: 'My Profile' },
+      { id: 'security',     icon: <Lock size={15} />,    label: 'Security' },
+    ],
+  },
+  {
+    label: 'Workspace',
+    items: [
+      { id: 'workspace',    icon: <Building2 size={15} />, label: 'General' },
+      { id: 'departments',  icon: <Users size={15} />,     label: 'Departments' },
+      { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Nomenclature' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { id: 'operations',   icon: <Sliders size={15} />,   label: 'Config & SLA' },
+      { id: 'jobtypes',     icon: <Settings size={15} />,  label: 'Job Types' },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { id: 'notifications', icon: <Bell size={15} />,   label: 'Notifications' },
+      { id: 'integrations',  icon: <Link2 size={15} />,  label: 'Integrations' },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      { id: 'users',        icon: <Users size={15} />,     label: 'User Management' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { id: 'billing',      icon: <CreditCard size={15} />, label: 'Plans & Billing' },
+      { id: 'tools',        icon: <Database size={15} />,   label: 'Data & Tools' },
+    ],
+  },
+];
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, logout } = useAuth();
-  const isOwner = user?.roles?.includes('PlatformOwner') || user?.roles?.includes('Admin');
-  
-  const [activeTab, setActiveTab] = useState('billing');
+  const isAdmin = user?.roles?.includes('Admin') || user?.roles?.includes('PlatformOwner');
+  const { refreshDictionary, dict } = useDictionary();
+  const { toasts, show } = useToast();
+
+  const [activeTab, setActiveTab] = useState('profile');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [showInviteSlide, setShowInviteSlide] = useState(false);
 
+  // ── Billing ─────────────────────────────────────────────────────────────────
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [upgrading, setUpgrading] = useState(false);
-  const [openingPortal, setOpeningPortal] = useState(false);
 
-  // Org / workspace state
-  const [org, setOrg] = useState<any>(null);
+  // ── Profile ──────────────────────────────────────────────────────────────────
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // ── Security ─────────────────────────────────────────────────────────────────
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
+
+  // ── Workspace ────────────────────────────────────────────────────────────────
   const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW' });
   const [savingOrg, setSavingOrg] = useState(false);
 
-  // Profile state
-  const [profileForm, setProfileForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
-  const [savingProfile, setSavingProfile] = useState(false);
+  // ── Departments ──────────────────────────────────────────────────────────────
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [savingDept, setSavingDept] = useState(false);
 
-  // Operational configuration state
+  // ── Nomenclature ─────────────────────────────────────────────────────────────
+  const [dictState, setDictState] = useState<Record<string, string>>({});
+  const [savingDict, setSavingDict] = useState(false);
+
+  // ── Operations ───────────────────────────────────────────────────────────────
   const [opSettings, setOpSettings] = useState({
-    defaultSlaHours: '24',
-    criticalSlaHours: '4',
-    overdueWarningHours: '8',
-    lowStockThreshold: '10',
-    autoAssignEnabled: false,
-    requireSafetyPermit: true,
-    allowTechnicianCloseJob: false,
-    maxJobsPerTechnician: '5',
-    timezone: 'Africa/Lusaka',
-    dateFormat: 'DD/MM/YYYY',
-    workingDaysStart: '07:00',
-    workingDaysEnd: '17:00',
+    defaultSlaHours: '24', criticalSlaHours: '4', overdueWarningHours: '8',
+    lowStockThreshold: '10', autoAssignEnabled: false, requireSafetyPermit: true,
+    allowTechnicianCloseJob: false, maxJobsPerTechnician: '5',
+    timezone: 'Africa/Lusaka', dateFormat: 'DD/MM/YYYY',
+    workingDaysStart: '07:00', workingDaysEnd: '17:00',
   });
   const [savingOp, setSavingOp] = useState(false);
-  const [opSaved, setOpSaved] = useState(false);
 
-  // Job types & downtime categories management
+  // ── Job Types & Downtime ──────────────────────────────────────────────────────
   const [jobTypes, setJobTypes] = useState<any[]>([]);
   const [downtimeCategories, setDowntimeCategories] = useState<any[]>([]);
   const [newJobType, setNewJobType] = useState('');
@@ -57,23 +200,120 @@ export default function SettingsPage() {
   const [savingJobType, setSavingJobType] = useState(false);
   const [savingDtCat, setSavingDtCat] = useState(false);
 
-  // Integration/connection state
-  const [integrations] = useState([
-    { id: 'email',   name: 'Email (SMTP)',       status: 'not-configured', desc: 'Send job notifications and reports by email',     icon: '📧' },
-    { id: 'sms',     name: 'SMS Gateway',         status: 'not-configured', desc: 'Alert technicians via SMS on urgent jobs',        icon: '📱' },
-    { id: 'stripe',  name: 'Stripe Payments',     status: 'configured',     desc: 'Billing and subscription management',            icon: '💳' },
-    { id: 'webhook', name: 'Webhooks',            status: 'not-configured', desc: 'Push events to external systems on job changes',  icon: '🔗' },
-    { id: 'google',  name: 'Google Workspace',    status: 'not-configured', desc: 'Calendar sync and Drive report exports',          icon: '🔵' },
-    { id: 'api',     name: 'REST API Access',     status: 'configured',     desc: 'AnchorPro public API for custom integrations',    icon: '⚙️' },
-  ]);
+  // ── Notifications ─────────────────────────────────────────────────────────────
+  const [notifSettings, setNotifSettings] = useState({
+    emailRecipients: '',
+    notifyJobCreated: true,
+    notifyJobCompleted: true,
+    notifyJobOverdue: true,
+    notifyLowStock: false,
+    notifyTechnicianAssigned: true,
+    notifyWeeklySummary: true,
+    notifyCriticalAsset: true,
+  });
+  const [savingNotif, setSavingNotif] = useState(false);
 
-  // Departments state
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [newDeptName, setNewDeptName] = useState('');
-  const [savingDept, setSavingDept] = useState(false);
+  // ── Users ─────────────────────────────────────────────────────────────────────
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
+  const [savingInvite, setSavingInvite] = useState(false);
+  const [editUser, setEditUser] = useState<any>(null);
 
-  const loadDepartments = () => {
+  // ── Seed ─────────────────────────────────────────────────────────────────────
+  const [seeding, setSeeding] = useState(false);
+
+  // ─── Load ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    setProfileForm({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
+
+    subscriptionsApi.getCurrent()
+      .then(r => setCurrentPlan(r?.plan ?? { name: 'Anchor Pro', description: 'Full access', priceMonthly: 0 }))
+      .catch(() => setCurrentPlan({ name: 'Anchor Pro', description: 'Full access', priceMonthly: 0 }));
+    subscriptionsApi.getPlans().then(setAllPlans).catch(() => {});
+
     departmentsApi.getAll().then(setDepartments).catch(() => setDepartments([]));
+    referenceDataApi.getJobTypes().then(setJobTypes).catch(() => setJobTypes([]));
+    referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => setDowntimeCategories([]));
+
+    settingsApi.getAll().then((all: any[]) => {
+      if (!Array.isArray(all)) return;
+      const g = (k: string, fb: string) => all.find((s: any) => s.key === k)?.value ?? fb;
+      setOrgForm({ name: g('Org.Name', ''), currency: g('Org.Currency', 'ZMW') });
+      setOpSettings(p => ({
+        ...p,
+        defaultSlaHours:        g('Op.DefaultSlaHours',        p.defaultSlaHours),
+        criticalSlaHours:       g('Op.CriticalSlaHours',       p.criticalSlaHours),
+        overdueWarningHours:    g('Op.OverdueWarningHours',    p.overdueWarningHours),
+        lowStockThreshold:      g('Op.LowStockThreshold',      p.lowStockThreshold),
+        autoAssignEnabled:      g('Op.AutoAssignEnabled',      'false') === 'true',
+        requireSafetyPermit:    g('Op.RequireSafetyPermit',    'true')  === 'true',
+        allowTechnicianCloseJob:g('Op.AllowTechnicianCloseJob','false') === 'true',
+        maxJobsPerTechnician:   g('Op.MaxJobsPerTechnician',   p.maxJobsPerTechnician),
+        timezone:               g('Op.Timezone',               p.timezone),
+        dateFormat:             g('Op.DateFormat',             p.dateFormat),
+        workingDaysStart:       g('Op.WorkingDaysStart',       p.workingDaysStart),
+        workingDaysEnd:         g('Op.WorkingDaysEnd',         p.workingDaysEnd),
+      }));
+      setNotifSettings(p => ({
+        ...p,
+        emailRecipients:          g('Notify.EmailRecipients',       ''),
+        notifyJobCreated:         g('Notify.JobCreated',            'true') === 'true',
+        notifyJobCompleted:       g('Notify.JobCompleted',          'true') === 'true',
+        notifyJobOverdue:         g('Notify.JobOverdue',            'true') === 'true',
+        notifyLowStock:           g('Notify.LowStock',              'false') === 'true',
+        notifyTechnicianAssigned: g('Notify.TechnicianAssigned',    'true') === 'true',
+        notifyWeeklySummary:      g('Notify.WeeklySummary',         'true') === 'true',
+        notifyCriticalAsset:      g('Notify.CriticalAsset',         'true') === 'true',
+      }));
+    }).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'dictionary') {
+      setDictState({
+        'Equipment':       dict['Equipment']       || 'Equipment',
+        'Job Cards':       dict['Job Cards']       || 'Job Cards',
+        'Technicians':     dict['Technicians']     || 'Technicians',
+        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts',
+      });
+    }
+    if (activeTab === 'users' && users.length === 0) {
+      setLoadingUsers(true);
+      usersApi.getAll().then(setUsers).catch(() => setUsers([])).finally(() => setLoadingUsers(false));
+    }
+  }, [activeTab]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      if (user?.id) await usersApi.update(user.id, profileForm);
+      show('Profile updated successfully');
+    } catch (e: any) { show(e.message || 'Failed to update profile', 'error'); }
+    finally { setSavingProfile(false); }
+  };
+
+  const handleChangePassword = async () => {
+    if (pwForm.next !== pwForm.confirm) { show('Passwords do not match', 'error'); return; }
+    if (pwForm.next.length < 6) { show('Password must be at least 6 characters', 'error'); return; }
+    setSavingPw(true);
+    try {
+      if (user?.id) await usersApi.changePassword(user.id, { currentPassword: pwForm.current, newPassword: pwForm.next });
+      show('Password changed successfully');
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (e: any) { show(e.message || 'Failed to change password', 'error'); }
+    finally { setSavingPw(false); }
+  };
+
+  const handleSaveOrg = async () => {
+    setSavingOrg(true);
+    try {
+      await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
+      await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
+      show('Workspace settings saved');
+    } catch (e: any) { show(e.message || 'Failed to save', 'error'); }
+    finally { setSavingOrg(false); }
   };
 
   const handleAddDepartment = async () => {
@@ -81,74 +321,19 @@ export default function SettingsPage() {
     setSavingDept(true);
     try {
       await departmentsApi.create({ name: newDeptName.trim() });
-      setNewDeptName(''); loadDepartments();
-    } catch (e: any) {
-      alert(e.message || 'Failed to add department.');
-    } finally { setSavingDept(false); }
+      setNewDeptName('');
+      departmentsApi.getAll().then(setDepartments).catch(() => {});
+      show('Department added');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingDept(false); }
   };
 
   const handleDeleteDepartment = async (id: number) => {
     if (!confirm('Delete this department?')) return;
     await departmentsApi.delete(id);
-    loadDepartments();
+    setDepartments(d => d.filter((x: any) => x.id !== id));
+    show('Department removed');
   };
-
-  const { refreshDictionary, dict } = useDictionary();
-  const [dictState, setDictState] = useState<Record<string, string>>({});
-  const [savingDict, setSavingDict] = useState(false);
-
-  useEffect(() => {
-    subscriptionsApi.getCurrent()
-      .then(res => setCurrentPlan(res?.plan ?? { name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }))
-      .catch(() => setCurrentPlan({ name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }));
-    subscriptionsApi.getPlans().then(setAllPlans).catch(console.error);
-    // Load org name from settings as fallback (no dedicated org endpoint)
-    settingsApi.getAll().then((all: any[]) => {
-      const nameEntry = all.find(s => s.key === 'Org.Name');
-      const currEntry = all.find(s => s.key === 'Org.Currency');
-      if (nameEntry || currEntry) {
-        const o = { name: nameEntry?.value || '', currency: currEntry?.value || 'ZMW' };
-        setOrg(o);
-        setOrgForm(o);
-      }
-    }).catch(console.error);
-    // Load reference data for config tab
-    loadDepartments();
-    referenceDataApi.getJobTypes().then(setJobTypes).catch(() => setJobTypes([]));
-    referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => setDowntimeCategories([]));
-    // Load operational settings
-    settingsApi.getAll().then((all: any[]) => {
-      if (!Array.isArray(all)) return;
-      const get = (key: string, fallback: string) => all.find(s => s.key === key)?.value ?? fallback;
-      setOpSettings(prev => ({
-        ...prev,
-        defaultSlaHours: get('Op.DefaultSlaHours', prev.defaultSlaHours),
-        criticalSlaHours: get('Op.CriticalSlaHours', prev.criticalSlaHours),
-        overdueWarningHours: get('Op.OverdueWarningHours', prev.overdueWarningHours),
-        lowStockThreshold: get('Op.LowStockThreshold', prev.lowStockThreshold),
-        autoAssignEnabled: get('Op.AutoAssignEnabled', 'false') === 'true',
-        requireSafetyPermit: get('Op.RequireSafetyPermit', 'true') === 'true',
-        allowTechnicianCloseJob: get('Op.AllowTechnicianCloseJob', 'false') === 'true',
-        maxJobsPerTechnician: get('Op.MaxJobsPerTechnician', prev.maxJobsPerTechnician),
-        timezone: get('Op.Timezone', prev.timezone),
-        dateFormat: get('Op.DateFormat', prev.dateFormat),
-        workingDaysStart: get('Op.WorkingDaysStart', prev.workingDaysStart),
-        workingDaysEnd: get('Op.WorkingDaysEnd', prev.workingDaysEnd),
-      }));
-    }).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'dictionary') {
-      setDictState({
-        'Equipment': dict['Equipment'] || 'Equipment',
-        'Job Cards': dict['Job Cards'] || 'Job Cards',
-        'Technicians': dict['Technicians'] || 'Technicians',
-        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts',
-        'Emails.Recipients': dict['Emails.Recipients'] || ''
-      });
-    }
-  }, [activeTab, dict]);
 
   const handleSaveDictionary = async () => {
     setSavingDict(true);
@@ -157,14 +342,11 @@ export default function SettingsPage() {
         await settingsApi.upsert(`Dict.${key}`, value);
       }
       await refreshDictionary();
-      alert("Nomenclature updated across the application.");
-    } catch(err:any) {
-      alert("Failed to save terms: " + err.message);
-    } finally {
-      setSavingDict(false);
-    }
+      show('Nomenclature updated across the application');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingDict(false); }
   };
-  
+
   const handleSaveOpSettings = async () => {
     setSavingOp(true);
     try {
@@ -182,16 +364,10 @@ export default function SettingsPage() {
         ['Op.WorkingDaysStart',       opSettings.workingDaysStart],
         ['Op.WorkingDaysEnd',         opSettings.workingDaysEnd],
       ];
-      for (const [key, value] of entries) {
-        await settingsApi.upsert(key, value, '', 'Operational');
-      }
-      setOpSaved(true);
-      setTimeout(() => setOpSaved(false), 3000);
-    } catch (err: any) {
-      alert('Failed to save: ' + err.message);
-    } finally {
-      setSavingOp(false);
-    }
+      for (const [k, v] of entries) await settingsApi.upsert(k, v, '', 'Operational');
+      show('Operational settings saved');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingOp(false); }
   };
 
   const handleAddJobType = async () => {
@@ -201,9 +377,9 @@ export default function SettingsPage() {
       await referenceDataApi.createJobType({ name: newJobType.trim() });
       setNewJobType('');
       referenceDataApi.getJobTypes().then(setJobTypes).catch(() => {});
-    } catch (err: any) {
-      alert('Failed: ' + err.message);
-    } finally { setSavingJobType(false); }
+      show('Job type added');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingJobType(false); }
   };
 
   const handleAddDtCat = async () => {
@@ -213,693 +389,844 @@ export default function SettingsPage() {
       await referenceDataApi.createDowntimeCategory({ name: newDtCat.trim() });
       setNewDtCat('');
       referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => {});
-    } catch (err: any) {
-      alert('Failed: ' + err.message);
-    } finally { setSavingDtCat(false); }
+      show('Downtime category added');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingDtCat(false); }
   };
 
-  const ToggleSwitch = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-    <button onClick={() => onChange(!value)} style={{
-      width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-      background: value ? 'var(--accent-emerald)' : 'rgba(255,255,255,0.12)',
-      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-    }}>
-      <div style={{
-        width: 18, height: 18, borderRadius: '50%', background: 'white',
-        position: 'absolute', top: 3, left: value ? 21 : 3,
-        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-      }} />
-    </button>
-  );
-
-  const tabs = [
-    { id: 'profile',       icon: <User size={15}/>,       label: 'My Account' },
-    { id: 'workspace',     icon: <Building2 size={15}/>,  label: 'Workspace' },
-    { id: 'departments',   icon: <Building2 size={15}/>,  label: 'Departments' },
-    { id: 'operations',    icon: <Sliders size={15}/>,    label: 'Operations Config' },
-    { id: 'integrations',  icon: <Smartphone size={15}/>, label: 'Integrations' },
-    { id: 'billing',       icon: <CreditCard size={15}/>, label: 'Plans & Billing' },
-    { id: 'dictionary',    icon: <BookA size={15}/>,      label: 'Nomenclature' },
-    { id: 'security',      icon: <Shield size={15}/>,     label: 'Security' },
-    { id: 'notifications', icon: <Bell size={15}/>,       label: 'Notifications' },
-    { id: 'tools',         icon: <Database size={15}/>,   label: 'Data & Tools' },
-  ];
-
-  const handleOpenPortal = async () => {
-    setOpeningPortal(true);
+  const handleSaveNotifications = async () => {
+    setSavingNotif(true);
     try {
-      alert('Billing portal is not configured yet. Contact support to manage your subscription.');
-    } finally {
-      setOpeningPortal(false);
+      const entries: [string, string][] = [
+        ['Notify.EmailRecipients',    notifSettings.emailRecipients],
+        ['Notify.JobCreated',         String(notifSettings.notifyJobCreated)],
+        ['Notify.JobCompleted',       String(notifSettings.notifyJobCompleted)],
+        ['Notify.JobOverdue',         String(notifSettings.notifyJobOverdue)],
+        ['Notify.LowStock',           String(notifSettings.notifyLowStock)],
+        ['Notify.TechnicianAssigned', String(notifSettings.notifyTechnicianAssigned)],
+        ['Notify.WeeklySummary',      String(notifSettings.notifyWeeklySummary)],
+        ['Notify.CriticalAsset',      String(notifSettings.notifyCriticalAsset)],
+      ];
+      for (const [k, v] of entries) await settingsApi.upsert(k, v, '', 'Notifications');
+      show('Notification settings saved');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+    finally { setSavingNotif(false); }
+  };
+
+  const handleInviteUser = async () => {
+    if (!inviteForm.email || !inviteForm.firstName || !inviteForm.password) {
+      show('First name, email and password are required', 'error'); return;
     }
-  };
-
-  const handleAction = (action: string) => {
-    if (action === 'upgrade') setShowUpgradeModal(true);
-    if (action === 'delete') setShowDeleteConfirm(true);
-    if (action === 'payment') handleOpenPortal();
-    if (action === 'pwd') alert("Password reset link sent to your email.");
-  };
-
-  const handleSaveOrg = async () => {
-    setSavingOrg(true);
+    setSavingInvite(true);
     try {
-      await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
-      await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
-      alert('Workspace settings saved.');
-    } catch (e2: any) {
-      alert('Failed to save: ' + e2.message);
-    } finally {
-      setSavingOrg(false);
-    }
+      await usersApi.create(inviteForm);
+      show(`User ${inviteForm.firstName} ${inviteForm.lastName} created`);
+      setInviteForm({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
+      setShowInviteSlide(false);
+      usersApi.getAll().then(setUsers).catch(() => {});
+    } catch (e: any) { show(e.message || 'Failed to create user', 'error'); }
+    finally { setSavingInvite(false); }
   };
 
-  const handleSaveProfile = async () => {
-    setSavingProfile(true);
+  const handleDeactivateUser = async (u: any) => {
+    if (!confirm(`${u.isActive !== false ? 'Deactivate' : 'Reactivate'} ${u.firstName} ${u.lastName}?`)) return;
     try {
-      if (user?.id) {
-        await usersApi.update(user.id, { firstName: profileForm.firstName, lastName: profileForm.lastName });
-      }
-      alert('Profile updated.');
-    } catch (err: any) {
-      alert('Failed to save profile: ' + err.message);
-    } finally {
-      setSavingProfile(false);
-    }
+      if (u.isActive !== false) await usersApi.deactivate(u.id);
+      else await usersApi.activate(u.id);
+      show(`User ${u.isActive !== false ? 'deactivated' : 'reactivated'}`);
+      usersApi.getAll().then(setUsers).catch(() => {});
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
   };
 
   const handleUpgrade = async (planId: number) => {
     setUpgrading(true);
     try {
       const res = await subscriptionsApi.upgrade({ planId });
-      alert((res as any)?.message || "Upgrade requested.");
-      subscriptionsApi.getCurrent()
-        .then(res => setCurrentPlan(res?.plan ?? { name: 'Anchor Pro', description: 'Full platform access', priceMonthly: 0 }))
-        .catch(() => {});
+      show((res as any)?.message || 'Plan upgrade requested');
       setShowUpgradeModal(false);
-    } catch(err: any) {
-      alert("Error upgrading: " + err.message);
-    } finally {
-      setUpgrading(false);
-    }
+      subscriptionsApi.getCurrent().then(r => setCurrentPlan(r?.plan ?? currentPlan)).catch(() => {});
+    } catch (e: any) { show(e.message || 'Upgrade failed', 'error'); }
+    finally { setUpgrading(false); }
   };
 
-  return (
-    <div>
-      <SlideOver open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="Change Plan" subtitle="Select a subscription tier that matches your operational scale.">
-         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-           {allPlans.length === 0 ? (
-             <div style={{ color: 'var(--text-muted)' }}>Loading plans...</div>
-           ) : allPlans.map(plan => {
-             const active = currentPlan?.id === plan.id;
-             return (
-             <div key={plan.id} style={{ padding: 20, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: active ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = active ? 'var(--accent-blue)' : 'var(--border-subtle)'}>
-                <div style={{ flex: 1, paddingRight: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.name}</div>
-                    {active && <span className="badge badge-blue">Current</span>}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{plan.description}</div>
-                </div>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
-                    K {(plan.monthlyPrice ?? 0).toLocaleString()} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>/ mo</span>
-                  </div>
-                  <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`} 
-                          onClick={(e) => { e.stopPropagation(); handleUpgrade(plan.id); }} 
-                          disabled={active || upgrading} style={{ minWidth: 90 }}>
-                    {active ? 'Active' : (upgrading ? 'Wait...' : 'Upgrade')}
-                  </button>
-                </div>
-             </div>
-             )
-           })}
-           <div style={{ marginTop: 20, padding: 16, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
-             All prices are billed monthly in Zambian Kwacha (ZMW). Annual billing saves 15%.
-           </div>
-         </div>
-      </SlideOver>
+  // ─── Render helpers ────────────────────────────────────────────────────────
+  const FormRow = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
+    <div className="form-field">
+      <label className="form-label">{label}</label>
+      {children}
+      {hint && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{hint}</div>}
+    </div>
+  );
 
-      <SlideOver open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Delete Workspace" subtitle="Irreversible destructive action.">
-         <div style={{ background: 'rgba(244, 63, 94, 0.1)', padding: 20, borderRadius: 8, border: '1px outset rgba(244, 63, 94, 0.3)' }}>
-           <AlertTriangle size={32} style={{ color: 'var(--accent-rose)', marginBottom: 12 }} />
-           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent-rose)', margin: '0 0 10px 0' }}>Are you absolutely sure?</h3>
-           <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 20 }}>
-             This action cannot be undone. This will permanently delete the <strong>Anchor Pro</strong> workspace, all job cards, inventory databases, and remove all team member associations.
-           </p>
-           <div className="form-field">
-             <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type &quot;PERMANENTLY DELETE&quot; to confirm</label>
-             <input className="form-input" placeholder="" />
-           </div>
-           <button className="btn btn-primary" style={{ background: 'var(--accent-rose)', border: 'none', width: '100%', marginTop: 20 }}>Delete Everything</button>
-         </div>
-      </SlideOver>
+  const SaveBtn = ({ loading, onClick, label = 'Save Changes' }: { loading: boolean; onClick: () => void; label?: string }) => (
+    <button className="btn btn-primary btn-sm" onClick={onClick} disabled={loading}
+      style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {loading ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Saving...</> : <><Save size={13} />{label}</>}
+    </button>
+  );
 
-      <div className="page-header" style={{ marginBottom: 30 }}>
-        <h1 className="page-title">Settings</h1>
-        <p className="page-subtitle">Manage your account, workspace preferences, and subscription.</p>
+  const RuleRow = ({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{desc}</div>
       </div>
+      <Toggle value={checked} onChange={onChange} />
+    </div>
+  );
 
-      <div className="settings-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 300px) 1fr', gap: 30, alignItems: 'start' }}>
+  // ─── Tab content ──────────────────────────────────────────────────────────
+  const renderContent = () => {
+    switch (activeTab) {
 
-        {/* Sidebar Nav */}
-        <div className="settings-tab-nav" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {tabs.map(nav => (
-            <button key={nav.id} 
-              onClick={() => setActiveTab(nav.id)}
-              style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              border: 'none', background: activeTab === nav.id ? 'rgba(255,255,255,0.06)' : 'transparent',
-              color: activeTab === nav.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderRadius: 6, fontSize: 13, fontWeight: activeTab === nav.id ? 600 : 500,
-              cursor: 'pointer', transition: 'background 0.1s', textAlign: 'left'
-            }}>
-              <span style={{ color: activeTab === nav.id ? 'var(--text-primary)' : 'var(--text-muted)' }}>{nav.icon}</span>
-              {nav.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Settings Content Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-          
-          {activeTab === 'billing' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-              <section>
-                <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
-                  <div style={{ padding: '24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>Current Plan: {currentPlan?.name || 'Loading...'}</h3>
-                      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>You are on the {currentPlan?.name || 'Anchor Pro'} tier. {currentPlan?.description}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>K {currentPlan?.priceMonthly?.toLocaleString() || '0'}<span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span></div>
-                      <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 8, fontWeight: 600 }}>Billing unmetered</div>
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 24px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CreditCard size={18} style={{ color: 'var(--text-muted)' }}/>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Visa ending in 4242</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Expires 12/2028</div>
-                      </div>
-                    </div>
-                    {isOwner && (
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleAction('payment')} disabled={openingPortal} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {openingPortal ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <ExternalLink size={12} />}
-                          Billing Portal
-                        </button>
-                        <button className="btn btn-primary btn-sm" onClick={() => handleAction('upgrade')}>Upgrade Plan</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>Workspace Usage</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                  {[
-                    { label: 'Registered Team', used: 12, max: 20, unit: 'Seats' },
-                    { label: 'Asset Library', used: 45, max: 'Unlimited', unit: 'Assets' },
-                    { label: 'Storage Space', used: 3.2, max: 5, unit: 'TB' },
-                  ].map(stat => (
-                    <div key={stat.label} className="card" style={{ padding: 20 }}>
-                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{stat.label}</div>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-                        {stat.used} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>/ {stat.max} {stat.unit}</span>
-                      </div>
-                      <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', background: 'var(--accent-blue)', width: typeof stat.max === 'number' ? `${(stat.used / stat.max) * 100}%` : '5%' }} />
-                      </div>
-                    </div>
+      // ── My Profile ─────────────────────────────────────────────────────────
+      case 'profile': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Personal Information" subtitle="Update your display name shown across the platform" icon={<User size={16} />}
+            footer={<SaveBtn loading={savingProfile} onClick={handleSaveProfile} />}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: '50%', background: 'var(--accent-blue-dim)',
+                border: '2px solid var(--accent-blue-border)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'var(--accent-blue)',
+                fontFamily: 'Barlow Condensed, sans-serif',
+              }}>
+                {(user?.firstName?.[0] || '?').toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{user?.firstName} {user?.lastName}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>{user?.email}</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {user?.roles?.map((r: string) => (
+                    <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
                   ))}
                 </div>
-              </section>
-            </div>
-          )}
-
-          {activeTab === 'profile' && (
-            <div className="card-elevated" style={{ padding: 30 }}>
-               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 24 }}>Personal Information</h3>
-
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-                 <div className="form-field">
-                   <label className="form-label">First Name</label>
-                   <input className="form-input" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} />
-                 </div>
-                 <div className="form-field">
-                   <label className="form-label">Last Name</label>
-                   <input className="form-input" value={profileForm.lastName} onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))} />
-                 </div>
-               </div>
-
-               <div className="form-field" style={{ marginBottom: 24 }}>
-                 <label className="form-label">Email Address</label>
-                 <input className="form-input" readOnly value={user?.email || ''} style={{ background: 'var(--bg-app)' }} />
-               </div>
-
-               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 24, display: 'flex', gap: 10 }}>
-                 <button className="btn btn-primary" onClick={handleSaveProfile} disabled={savingProfile}>{savingProfile ? 'Saving...' : 'Save Changes'}</button>
-               </div>
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="card-elevated" style={{ padding: 30 }}>
-               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-                 <Key size={18} /> Password & Access
-               </h3>
-               
-               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 20 }}>
-                 Your account is secured via standard username/password authentication. You can choose to reset your credentials.
-               </p>
-
-               <button className="btn btn-secondary" onClick={() => handleAction('pwd')}>Send Password Reset Email</button>
-               
-               <div style={{ marginTop: 40 }}>
-                 <h4 style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 10 }}>Active Sessions</h4>
-                 <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 16 }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <div>
-                       <div style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600 }}>Windows PC — Chrome</div>
-                       <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Lusaka, ZM · Active now</div>
-                     </div>
-                     <span className="badge badge-green">Current Session</span>
-                   </div>
-                 </div>
-               </div>
-            </div>
-          )}
-
-          {activeTab === 'workspace' && (
-             <div className="card-elevated" style={{ padding: 30 }}>
-              <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 24 }}>Workspace Settings</h3>
-
-              <div className="form-field" style={{ marginBottom: 24 }}>
-                <label className="form-label">Organization Name</label>
-                <input className="form-input" value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} />
               </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <FormRow label="First Name">
+                <input className="form-input" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} />
+              </FormRow>
+              <FormRow label="Last Name">
+                <input className="form-input" value={profileForm.lastName} onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))} />
+              </FormRow>
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <FormRow label="Email Address" hint="Contact your administrator to change your email">
+                <input className="form-input" readOnly value={user?.email || ''} style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+              </FormRow>
+            </div>
+          </SectionCard>
+        </div>
+      );
 
-              <div className="form-field" style={{ marginBottom: 24 }}>
-                <label className="form-label">Base Currency</label>
+      // ── Security ───────────────────────────────────────────────────────────
+      case 'security': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Change Password" subtitle="Choose a strong password of at least 6 characters" icon={<Key size={16} />}
+            footer={<SaveBtn loading={savingPw} onClick={handleChangePassword} label="Update Password" />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <FormRow label="Current Password">
+                <div style={{ position: 'relative' }}>
+                  <input className="form-input" type={showPw ? 'text' : 'password'} value={pwForm.current}
+                    onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} style={{ paddingRight: 40 }} />
+                  <button onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </FormRow>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <FormRow label="New Password">
+                  <input className="form-input" type={showPw ? 'text' : 'password'} value={pwForm.next}
+                    onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} />
+                </FormRow>
+                <FormRow label="Confirm New Password">
+                  <input className="form-input" type={showPw ? 'text' : 'password'} value={pwForm.confirm}
+                    onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} />
+                </FormRow>
+              </div>
+              {pwForm.next && pwForm.confirm && pwForm.next !== pwForm.confirm && (
+                <div style={{ fontSize: 12, color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertTriangle size={13} /> Passwords do not match
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Active Sessions" subtitle="Devices currently signed in to your account" icon={<Shield size={16} />}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent-blue-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Globe size={16} style={{ color: 'var(--accent-blue)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Browser Session</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Current device · Active now</div>
+                </div>
+              </div>
+              <span className="badge badge-green">Current</span>
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── Workspace ──────────────────────────────────────────────────────────
+      case 'workspace': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Organisation Settings" subtitle="Your company name and base currency" icon={<Building2 size={16} />}
+            footer={<SaveBtn loading={savingOrg} onClick={handleSaveOrg} />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <FormRow label="Organisation Name">
+                <input className="form-input" value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Acme Mining Corp" />
+              </FormRow>
+              <FormRow label="Base Currency" hint="Used on invoices, cost estimates, and reports">
                 <select className="form-select" value={orgForm.currency} onChange={e => setOrgForm(f => ({ ...f, currency: e.target.value }))}>
                   <option value="ZMW">Zambian Kwacha (ZMW)</option>
                   <option value="USD">US Dollar (USD)</option>
+                  <option value="ZAR">South African Rand (ZAR)</option>
+                  <option value="KES">Kenyan Shilling (KES)</option>
+                  <option value="GBP">British Pound (GBP)</option>
                 </select>
-              </div>
+              </FormRow>
+            </div>
+          </SectionCard>
 
-              <button className="btn btn-primary" onClick={handleSaveOrg} disabled={savingOrg}>{savingOrg ? 'Saving...' : 'Save Configuration'}</button>
-
-              {isOwner && (
-                <section style={{ marginTop: 40 }}>
-                  <div style={{ border: '1px solid rgba(244, 63, 94, 0.3)', background: 'rgba(244, 63, 94, 0.05)', borderRadius: 'var(--radius-lg)', padding: 24 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-rose)', margin: '0 0 6px 0' }}>Danger Zone</h3>
-                    <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 16px 0' }}>Permanently delete this workspace and all associated data. This action cannot be undone.</p>
-                    <button className="btn btn-sm" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }} onClick={() => handleAction('delete')}>Delete Workspace</button>
-                  </div>
-                </section>
-              )}
-             </div>
-          )}
-
-          {activeTab === 'departments' && (
-            <div className="card-elevated" style={{ padding: 30 }}>
-              <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Departments</h3>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>Create departments to organise your team members and job cards.</p>
-
-              <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
-                <input
-                  className="form-input"
-                  style={{ flex: 1 }}
-                  placeholder="e.g. Electrical, Mechanical, HVAC..."
-                  value={newDeptName}
-                  onChange={e => setNewDeptName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddDepartment(); }}
-                />
-                <button className="btn btn-primary" onClick={handleAddDepartment} disabled={savingDept || !newDeptName.trim()}>
-                  {savingDept ? <Loader2 size={14} className="spin"/> : <Plus size={14}/>} Add
+          {isAdmin && (
+            <SectionCard title="Danger Zone" subtitle="Irreversible destructive actions" icon={<AlertTriangle size={16} />}>
+              <div style={{ padding: 16, borderRadius: 8, background: 'var(--accent-rose-dim)', border: '1px solid rgba(232,72,85,0.25)' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-rose)', marginBottom: 6 }}>Delete Workspace</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14 }}>
+                  Permanently deletes all job cards, assets, inventory, and team data. This cannot be undone.
+                </div>
+                <button className="btn btn-sm" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }}
+                  onClick={() => setShowDeleteConfirm(true)}>
+                  Delete Workspace
                 </button>
               </div>
+            </SectionCard>
+          )}
+        </div>
+      );
 
-              {departments.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '32px 0' }}>No departments yet. Add one above.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {departments.map((d: any) => (
-                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
-                      <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{d.name}</span>
-                      <button onClick={() => handleDeleteDepartment(d.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
-                        <Trash2 size={14}/>
-                      </button>
-                    </div>
-                  ))}
+      // ── Departments ────────────────────────────────────────────────────────
+      case 'departments': return (
+        <SectionCard title="Departments" subtitle="Organise your team members and job cards by department" icon={<Users size={16} />}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+            <input className="form-input" style={{ flex: 1 }} placeholder="e.g. Electrical, Mechanical, HVAC..."
+              value={newDeptName} onChange={e => setNewDeptName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddDepartment(); }} />
+            <button className="btn btn-primary btn-sm" onClick={handleAddDepartment} disabled={savingDept || !newDeptName.trim()}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {savingDept ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={13} />} Add
+            </button>
+          </div>
+          {departments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              No departments yet. Add one above to get started.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {departments.map((d: any) => (
+                <div key={d.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '11px 16px', background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 8, transition: 'border-color 0.15s',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-blue)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{d.name}</span>
+                  </div>
+                  <button onClick={() => handleDeleteDepartment(d.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 4, transition: 'color 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-rose)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
           )}
+        </SectionCard>
+      );
 
-          {activeTab === 'dictionary' && (
-             <div className="card-elevated" style={{ padding: 30 }}>
-               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Dynamic Nomenclature</h3>
-               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>
-                 Customize how Anchor Pro reads for your team. Overwrite industry-standard terms with words your workspace uses natively.
-               </p>
-
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
-                 {[
-                   { key: 'Equipment', default: 'Equipment', hint: 'Examples: Medical Devices, Software Licenses, Vehicles' },
-                   { key: 'Job Cards', default: 'Job Cards', hint: 'Examples: Procedures, Delivery Orders, Projects' },
-                   { key: 'Technicians', default: 'Technicians', hint: 'Examples: Nurses, Drivers, Consultants' },
-                   { key: 'Inventory & Parts', default: 'Inventory & Parts', hint: 'Examples: Medical Supplies, Fuel, Ad Spend' }
-                 ].map(term => (
-                   <div key={term.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ width: '40%' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Terminal Default: &quot;{term.default}&quot;</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{term.hint}</div>
-                      </div>
-                      <div style={{ width: '55%' }}>
-                        <input className="form-input" 
-                          value={dictState[term.key] || ''} 
-                          onChange={e => setDictState({...dictState, [term.key]: e.target.value})} 
-                          placeholder={term.default} />
-                      </div>
-                   </div>
-                 ))}
-               </div>
-
-               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 24 }}>
-                 <button className="btn btn-primary" onClick={handleSaveDictionary} disabled={savingDict}>
-                   {savingDict ? 'Applying...' : 'Save Vocabulary'}
-                 </button>
-               </div>
-             </div>
-          )}
-          
-          {activeTab === 'notifications' && (
-             <div className="card-elevated" style={{ padding: 30 }}>
-               <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>Notification & Email Routing</h3>
-               <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 24 }}>
-                 Configure where automated platform reports and alerts are sent.
-               </p>
-
-               <div style={{ marginBottom: 30 }}>
-                 <div className="form-field">
-                   <label className="form-label" style={{ fontWeight: 600 }}>Report Recipients (comma separated)</label>
-                   <input className="form-input" 
-                     value={dictState['Emails.Recipients'] || ''} 
-                     onChange={e => setDictState({...dictState, 'Emails.Recipients': e.target.value})} 
-                     placeholder="manager@company.com, ceo@company.com" />
-                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                     These emails will receive the End-of-Day Profitability and KPI digest.
-                   </p>
-                 </div>
-               </div>
-
-               <h4 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>In-App Notification Routing</h4>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                 {[
-                   { label: 'Weekly Summary Emails', desc: 'Receive a digest of all jobs and down time.', active: true },
-                   { label: 'Critical Asset Alerts', desc: 'Immediate notification if High Priority assets fail.', active: true },
-                   { label: 'Inventory Reorder Alerts', desc: 'When stock drops below defined threshold.', active: false },
-                   { label: 'Technician Assignment', desc: 'When a new job is routed to your queue.', active: true }
-                 ].map(n => (
-                   <label key={n.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, border: '1px solid var(--border-subtle)', borderRadius: 8, cursor: 'pointer' }}>
-                     <div>
-                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{n.label}</div>
-                       <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{n.desc}</div>
-                     </div>
-                     <input type="checkbox" defaultChecked={n.active} style={{ transform: 'scale(1.2)' }} />
-                   </label>
-                 ))}
-               </div>
-             </div>
-          )}
-
-          {activeTab === 'operations' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-              {opSaved && (
-                <div style={{ padding: '10px 16px', borderRadius: 8, background: 'rgba(15,157,103,0.1)', border: '1px solid rgba(15,157,103,0.25)', color: 'var(--accent-emerald)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={15} /> Settings saved successfully
+      // ── Nomenclature ───────────────────────────────────────────────────────
+      case 'dictionary': return (
+        <SectionCard title="Dynamic Nomenclature" subtitle="Rename core terms to match your industry — changes apply everywhere in the platform"
+          icon={<BookA size={16} />}
+          footer={<SaveBtn loading={savingDict} onClick={handleSaveDictionary} label="Apply Changes" />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              { key: 'Equipment',        default: 'Equipment',        hint: 'e.g. Vehicles, Medical Devices, Machines' },
+              { key: 'Job Cards',        default: 'Job Cards',        hint: 'e.g. Work Orders, Procedures, Tickets' },
+              { key: 'Technicians',      default: 'Technicians',      hint: 'e.g. Drivers, Engineers, Nurses' },
+              { key: 'Inventory & Parts',default: 'Inventory & Parts',hint: 'e.g. Supplies, Fuel, Ad Spend' },
+            ].map(term => (
+              <div key={term.key} style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+                padding: '14px 16px', borderRadius: 8, background: 'var(--bg-hover)',
+                border: '1px solid var(--border-subtle)', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>"{term.default}"</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{term.hint}</div>
                 </div>
-              )}
-
-              {/* SLA & Escalation */}
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>SLA & Escalation Thresholds</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Define response time windows that trigger overdue alerts and escalations</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  {[
-                    { label: 'Default SLA (hours)', key: 'defaultSlaHours', hint: 'Standard jobs must be completed within this window' },
-                    { label: 'Critical SLA (hours)', key: 'criticalSlaHours', hint: 'Critical priority jobs — tighter response time' },
-                    { label: 'Overdue Warning (hours)', key: 'overdueWarningHours', hint: 'Warn before SLA breach by this many hours' },
-                    { label: 'Max Jobs per Technician', key: 'maxJobsPerTechnician', hint: 'Soft cap for concurrent job assignments' },
-                  ].map(f => (
-                    <div className="form-field" key={f.key}>
-                      <label className="form-label">{f.label}</label>
-                      <input className="form-input" type="number" min="1"
-                        value={(opSettings as any)[f.key]}
-                        onChange={e => setOpSettings(s => ({ ...s, [f.key]: e.target.value }))} />
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{f.hint}</div>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <input className="form-input" style={{ flex: 1 }}
+                    value={dictState[term.key] || ''}
+                    onChange={e => setDictState({ ...dictState, [term.key]: e.target.value })}
+                    placeholder={term.default} />
                 </div>
               </div>
+            ))}
+          </div>
+        </SectionCard>
+      );
 
-              {/* Workflow Rules */}
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Workflow Rules</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Control how jobs flow through the system</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  {[
-                    { label: 'Auto-assign jobs to available technicians', key: 'autoAssignEnabled', desc: 'System picks the least-loaded available technician on job creation' },
-                    { label: 'Require safety permit before starting jobs', key: 'requireSafetyPermit', desc: 'Job cards cannot be moved to In Progress without an active permit' },
-                    { label: 'Allow technicians to close their own jobs', key: 'allowTechnicianCloseJob', desc: 'If off, only Supervisors and Admins can mark jobs as Completed' },
-                  ].map(rule => (
-                    <div key={rule.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      // ── Operations ─────────────────────────────────────────────────────────
+      case 'operations': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="SLA & Escalation Thresholds" subtitle="Define response time windows that trigger overdue alerts" icon={<Clock size={16} />}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {[
+                { label: 'Default SLA (hours)', key: 'defaultSlaHours', hint: 'Standard jobs' },
+                { label: 'Critical SLA (hours)', key: 'criticalSlaHours', hint: 'High-priority jobs' },
+                { label: 'Overdue Warning (hours)', key: 'overdueWarningHours', hint: 'Warn before breach' },
+                { label: 'Max Jobs per Technician', key: 'maxJobsPerTechnician', hint: 'Soft cap on concurrent jobs' },
+              ].map(f => (
+                <FormRow key={f.key} label={f.label} hint={f.hint}>
+                  <input className="form-input" type="number" min="1"
+                    value={(opSettings as any)[f.key]}
+                    onChange={e => setOpSettings(s => ({ ...s, [f.key]: e.target.value }))} />
+                </FormRow>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Workflow Rules" subtitle="Control how jobs flow through the system" icon={<Sliders size={16} />}>
+            <div style={{ marginTop: -4 }}>
+              {[
+                { label: 'Auto-assign jobs to available technicians', key: 'autoAssignEnabled', desc: 'System picks the least-loaded technician on job creation' },
+                { label: 'Require safety permit before starting jobs', key: 'requireSafetyPermit', desc: 'Jobs cannot move to In Progress without an active permit' },
+                { label: 'Allow technicians to close their own jobs', key: 'allowTechnicianCloseJob', desc: 'If off, only Supervisors and Admins can mark jobs Completed' },
+              ].map(r => (
+                <RuleRow key={r.key} label={r.label} desc={r.desc}
+                  checked={(opSettings as any)[r.key]}
+                  onChange={v => setOpSettings(s => ({ ...s, [r.key]: v }))} />
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Locale & Working Hours" subtitle="Used for due date calculations and timestamps" icon={<Globe size={16} />}
+            footer={<SaveBtn loading={savingOp} onClick={handleSaveOpSettings} />}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <FormRow label="Timezone">
+                <select className="form-select" value={opSettings.timezone} onChange={e => setOpSettings(s => ({ ...s, timezone: e.target.value }))}>
+                  {['Africa/Lusaka','Africa/Johannesburg','Africa/Nairobi','Africa/Lagos','UTC','Europe/London','America/New_York'].map(tz =>
+                    <option key={tz} value={tz}>{tz}</option>)}
+                </select>
+              </FormRow>
+              <FormRow label="Date Format">
+                <select className="form-select" value={opSettings.dateFormat} onChange={e => setOpSettings(s => ({ ...s, dateFormat: e.target.value }))}>
+                  {['DD/MM/YYYY','MM/DD/YYYY','YYYY-MM-DD'].map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </FormRow>
+              <FormRow label="Work Day Start">
+                <input className="form-input" type="time" value={opSettings.workingDaysStart}
+                  onChange={e => setOpSettings(s => ({ ...s, workingDaysStart: e.target.value }))} />
+              </FormRow>
+              <FormRow label="Work Day End">
+                <input className="form-input" type="time" value={opSettings.workingDaysEnd}
+                  onChange={e => setOpSettings(s => ({ ...s, workingDaysEnd: e.target.value }))} />
+              </FormRow>
+              <FormRow label="Low Stock Alert Threshold" hint="Warn when quantity drops below this number">
+                <input className="form-input" type="number" min="1" value={opSettings.lowStockThreshold}
+                  onChange={e => setOpSettings(s => ({ ...s, lowStockThreshold: e.target.value }))} />
+              </FormRow>
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── Job Types ──────────────────────────────────────────────────────────
+      case 'jobtypes': return (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <SectionCard title="Job Types" subtitle="Categories available when creating job cards" icon={<Settings size={16} />}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input className="form-input" style={{ flex: 1 }} placeholder="New job type..." value={newJobType}
+                onChange={e => setNewJobType(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddJobType()} />
+              <button className="btn btn-primary btn-sm" disabled={savingJobType || !newJobType.trim()} onClick={handleAddJobType}>
+                {savingJobType ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={13} />}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {jobTypes.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No job types yet</div>
+              ) : jobTypes.map((jt: any) => (
+                <div key={jt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 7, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{jt.name}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Downtime Categories" subtitle="Used when logging equipment downtime events" icon={<AlertTriangle size={16} />}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input className="form-input" style={{ flex: 1 }} placeholder="New category..." value={newDtCat}
+                onChange={e => setNewDtCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddDtCat()} />
+              <button className="btn btn-primary btn-sm" disabled={savingDtCat || !newDtCat.trim()} onClick={handleAddDtCat}>
+                {savingDtCat ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={13} />}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {downtimeCategories.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No categories yet</div>
+              ) : downtimeCategories.map((cat: any) => (
+                <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 7, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{cat.name}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── Notifications ──────────────────────────────────────────────────────
+      case 'notifications': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Email Recipients" subtitle="Who receives automated platform reports and digests" icon={<Bell size={16} />}>
+            <FormRow label="Report Recipients (comma separated)" hint="These addresses receive the End-of-Day KPI digest">
+              <input className="form-input" value={notifSettings.emailRecipients}
+                onChange={e => setNotifSettings(n => ({ ...n, emailRecipients: e.target.value }))}
+                placeholder="manager@company.com, ceo@company.com" />
+            </FormRow>
+          </SectionCard>
+
+          <SectionCard title="Notification Events" subtitle="Choose which events trigger notifications" icon={<Zap size={16} />}
+            footer={<SaveBtn loading={savingNotif} onClick={handleSaveNotifications} />}>
+            <div style={{ marginTop: -4 }}>
+              {[
+                { label: 'New Job Created',         key: 'notifyJobCreated',         desc: 'Notify when a new service order is created' },
+                { label: 'Job Completed',           key: 'notifyJobCompleted',       desc: 'Notify when a technician marks a job as completed' },
+                { label: 'Overdue Job Alert',       key: 'notifyJobOverdue',         desc: 'Alert when a job exceeds its SLA deadline' },
+                { label: 'Low Inventory Warning',   key: 'notifyLowStock',           desc: 'When stock drops below the defined reorder threshold' },
+                { label: 'Technician Assigned',     key: 'notifyTechnicianAssigned', desc: 'Notify technician when a job is assigned to them' },
+                { label: 'Weekly Summary Email',    key: 'notifyWeeklySummary',      desc: 'Receive a weekly digest of jobs, downtime, and KPIs' },
+                { label: 'Critical Asset Alert',    key: 'notifyCriticalAsset',      desc: 'Immediate alert when a high-priority asset fails' },
+              ].map(n => (
+                <RuleRow key={n.key} label={n.label} desc={n.desc}
+                  checked={(notifSettings as any)[n.key]}
+                  onChange={v => setNotifSettings(s => ({ ...s, [n.key]: v }))} />
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── Integrations ───────────────────────────────────────────────────────
+      case 'integrations': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Connected Services" subtitle="Connect Anchor Pro to external tools" icon={<Link2 size={16} />}>
+            <div>
+              {[
+                { id: 'api',     icon: '⚙️', name: 'REST API Access',   status: 'configured',     desc: 'Public API for custom integrations & BI tools' },
+                { id: 'webhook', icon: '🔗', name: 'Webhooks',          status: 'not-configured', desc: 'Push real-time events to external systems on job changes' },
+                { id: 'email',   icon: '📧', name: 'Email (SMTP)',      status: 'not-configured', desc: 'Send job notifications and reports by email' },
+                { id: 'sms',     icon: '📱', name: 'SMS Gateway',       status: 'not-configured', desc: 'Alert technicians via SMS on urgent jobs' },
+                { id: 'retrix',  icon: '🚗', name: 'Retrix Car Rental', status: 'not-configured', desc: 'Sync damage reports to Anchor Pro service orders automatically' },
+                { id: 'google',  icon: '🔵', name: 'Google Workspace',  status: 'not-configured', desc: 'Calendar sync and Drive report exports' },
+              ].map((intg, i, arr) => {
+                const ok = intg.status === 'configured';
+                return (
+                  <div key={intg.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '16px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                        {intg.icon}
+                      </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{rule.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{rule.desc}</div>
-                      </div>
-                      <ToggleSwitch value={(opSettings as any)[rule.key]} onChange={v => setOpSettings(s => ({ ...s, [rule.key]: v }))} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Locale & Time */}
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Locale & Working Hours</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Used for due date calculations and report timestamps</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div className="form-field">
-                    <label className="form-label">Timezone</label>
-                    <select className="form-select" value={opSettings.timezone} onChange={e => setOpSettings(s => ({ ...s, timezone: e.target.value }))}>
-                      {['Africa/Lusaka','Africa/Johannesburg','Africa/Nairobi','Africa/Lagos','UTC','Europe/London','America/New_York'].map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Date Format</label>
-                    <select className="form-select" value={opSettings.dateFormat} onChange={e => setOpSettings(s => ({ ...s, dateFormat: e.target.value }))}>
-                      {['DD/MM/YYYY','MM/DD/YYYY','YYYY-MM-DD'].map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Work Day Start</label>
-                    <input className="form-input" type="time" value={opSettings.workingDaysStart} onChange={e => setOpSettings(s => ({ ...s, workingDaysStart: e.target.value }))} />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Work Day End</label>
-                    <input className="form-input" type="time" value={opSettings.workingDaysEnd} onChange={e => setOpSettings(s => ({ ...s, workingDaysEnd: e.target.value }))} />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Low Stock Alert Threshold</label>
-                    <input className="form-input" type="number" min="1" value={opSettings.lowStockThreshold} onChange={e => setOpSettings(s => ({ ...s, lowStockThreshold: e.target.value }))} />
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Warn when inventory quantity drops below this number</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reference data management */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {/* Job Types */}
-                <div className="card-elevated" style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Job Types</h3>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>Categories that appear when creating job cards</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                    {jobTypes.length === 0 ? (
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>None yet</div>
-                    ) : jobTypes.map((jt: any) => (
-                      <div key={jt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{jt.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input className="form-input" style={{ flex: 1 }} placeholder="New job type..." value={newJobType} onChange={e => setNewJobType(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleAddJobType()} />
-                    <button className="btn btn-primary btn-sm" disabled={savingJobType || !newJobType.trim()} onClick={handleAddJobType}>
-                      <Plus size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Down Time Categories */}
-                <div className="card-elevated" style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Down Time Categories</h3>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>Used when reporting equipment down time</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                    {downtimeCategories.length === 0 ? (
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>None yet</div>
-                    ) : downtimeCategories.map((cat: any) => (
-                      <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{cat.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input className="form-input" style={{ flex: 1 }} placeholder="New category..." value={newDtCat} onChange={e => setNewDtCat(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleAddDtCat()} />
-                    <button className="btn btn-primary btn-sm" disabled={savingDtCat || !newDtCat.trim()} onClick={handleAddDtCat}>
-                      <Plus size={13} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn btn-primary" disabled={savingOp} onClick={handleSaveOpSettings}>
-                  {savingOp ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : 'Save Configuration'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'integrations' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Connected Services</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Connect AnchorPro to external tools and services</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  {integrations.map(intg => {
-                    const isConfigured = intg.status === 'configured';
-                    return (
-                      <div key={intg.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                            {intg.icon}
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                              {intg.name}
-                              <span className={`badge ${isConfigured ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 9 }}>
-                                {isConfigured ? 'Connected' : 'Not Connected'}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{intg.desc}</div>
-                          </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {intg.name}
+                          <span className={`badge ${ok ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 9 }}>
+                            {ok ? 'Connected' : 'Not Connected'}
+                          </span>
                         </div>
-                        <button className={`btn btn-sm ${isConfigured ? 'btn-secondary' : 'btn-primary'}`}
-                          onClick={() => alert(isConfigured ? `${intg.name} is configured. Contact your platform administrator to update credentials.` : `${intg.name} integration requires API credentials. Contact your Anchor Pro administrator.`)}>
-                          {isConfigured ? 'Manage' : 'Configure'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>API Access</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Use the AnchorPro REST API to build custom integrations or connect to BI tools</p>
-                <div style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', fontFamily: 'monospace', fontSize: 12, color: 'var(--accent-blue)', marginBottom: 12 }}>
-                  https://anchorpro-production.up.railway.app/api
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => window.open('https://anchorpro-production.up.railway.app/swagger', '_blank')}>
-                    <ExternalLink size={12} /> View API Docs
-                  </button>
-                  <button className="btn btn-primary btn-sm" onClick={() => alert('API key generation coming soon — contact support@anchorpro.co.zm')}>
-                    Generate API Key
-                  </button>
-                </div>
-              </div>
-
-              <div className="card-elevated" style={{ padding: 24 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Smartphone size={15} /> Mobile App (PWA)
-                </h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>AnchorPro is a Progressive Web App — it installs directly from the browser, no app store required</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-                  {[
-                    { icon: '📱', label: 'iOS (Safari)', steps: 'Open in Safari → tap Share → "Add to Home Screen"' },
-                    { icon: '🤖', label: 'Android (Chrome)', steps: 'Open in Chrome → tap ⋮ menu → "Add to Home Screen" or "Install App"' },
-                    { icon: '🖥️', label: 'Desktop (Chrome/Edge)', steps: 'Click the install icon (⊕) in the address bar or go to Settings → Install' },
-                  ].map(p => (
-                    <div key={p.label} style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{p.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.steps}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{intg.desc}</div>
                       </div>
                     </div>
+                    <button className={`btn btn-sm ${ok ? 'btn-secondary' : 'btn-primary'}`}
+                      onClick={() => show(`${intg.name} configuration coming soon`, 'info')}>
+                      {ok ? 'Manage' : 'Configure'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="API Access" subtitle="Build custom integrations against the Anchor Pro REST API" icon={<ExternalLink size={16} />}>
+            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', fontFamily: 'monospace', fontSize: 12, color: 'var(--accent-blue)', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>https://anchorpro-production.up.railway.app/api</span>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                onClick={() => { navigator.clipboard.writeText('https://anchorpro-production.up.railway.app/api'); show('URL copied'); }}>
+                <Copy size={13} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => window.open('https://anchorpro-production.up.railway.app/swagger', '_blank')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ExternalLink size={12} /> View API Docs
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => show('API key generation coming soon — contact support@anchorpro.co.zm', 'info')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Key size={12} /> Generate API Key
+              </button>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Mobile App (PWA)" subtitle="Anchor Pro installs from the browser — no app store required" icon={<Smartphone size={16} />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+              {[
+                { icon: '📱', label: 'iOS (Safari)',          steps: 'Open in Safari → tap Share → "Add to Home Screen"' },
+                { icon: '🤖', label: 'Android (Chrome)',      steps: 'Open in Chrome → tap ⋮ → "Add to Home Screen" or "Install App"' },
+                { icon: '🖥️', label: 'Desktop (Chrome/Edge)', steps: 'Click install icon (⊕) in the address bar' },
+              ].map(p => (
+                <div key={p.label} style={{ padding: '11px 14px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{p.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.steps}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', fontSize: 12, color: 'var(--accent-blue)' }}>
+              ✓ Works offline · ✓ Push-ready · ✓ Full-screen · ✓ No app store
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── User Management ────────────────────────────────────────────────────
+      case 'users': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Team Members" subtitle={`${users.length} user${users.length !== 1 ? 's' : ''} in this workspace`} icon={<Users size={16} />}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+              {isAdmin && (
+                <button className="btn btn-primary btn-sm" onClick={() => setShowInviteSlide(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Plus size={13} /> Add User
+                </button>
+              )}
+            </div>
+
+            {loadingUsers ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
+                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+                <div style={{ fontSize: 13 }}>Loading users...</div>
+              </div>
+            ) : users.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>No users found.</div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      {['Name', 'Email', 'Employee #', 'Role', 'Status', ''].map(h => (
+                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u: any) => {
+                      const active = u.isActive !== false;
+                      const isCurrentUser = u.id === user?.id;
+                      return (
+                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <td style={{ padding: '12px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)', flexShrink: 0 }}>
+                                {(u.firstName?.[0] || '?').toUpperCase()}
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                {u.firstName} {u.lastName}
+                                {isCurrentUser && <span className="badge badge-blue" style={{ fontSize: 9, marginLeft: 6 }}>You</span>}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 12px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{u.email}</td>
+                          <td style={{ padding: '12px 12px', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{u.employeeNumber || '—'}</td>
+                          <td style={{ padding: '12px 12px' }}>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {(u.roles || []).map((r: string) => (
+                                <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 12px' }}>
+                            <span className={`badge ${active ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 10 }}>
+                              {active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 12px' }}>
+                            {isAdmin && !isCurrentUser && (
+                              <button className="btn btn-secondary btn-sm" onClick={() => handleDeactivateUser(u)}
+                                style={{ fontSize: 11 }}>
+                                {active ? 'Deactivate' : 'Reactivate'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </SectionCard>
+        </div>
+      );
+
+      // ── Billing ────────────────────────────────────────────────────────────
+      case 'billing': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title={`Current Plan: ${currentPlan?.name || '...'}`} subtitle={currentPlan?.description || ''} icon={<CreditCard size={16} />}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, fontFamily: 'Barlow Condensed, sans-serif' }}>
+                  K {(currentPlan?.priceMonthly || 0).toLocaleString()}
+                  <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 6, fontWeight: 600 }}>Billed monthly · Cancel anytime</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-secondary btn-sm">Billing Portal</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Upgrade Plan</button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+              {[
+                { label: 'Team Members', used: users.length || 0, max: 'Unlimited', unit: 'users' },
+                { label: 'Assets',       used: '—',              max: 'Unlimited', unit: '' },
+                { label: 'Storage',      used: '—',              max: '5',         unit: 'TB' },
+              ].map(s => (
+                <div key={s.label} style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Barlow Condensed, sans-serif' }}>
+                    {s.used} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>/ {s.max} {s.unit}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      // ── Data & Tools ───────────────────────────────────────────────────────
+      case 'tools': return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="Demo Data Generator" subtitle="Instantly populate your workspace with sample industrial data for demos" icon={<Database size={16} />}
+            footer={
+              <button className="btn btn-primary btn-sm" disabled={seeding} onClick={async () => {
+                setSeeding(true);
+                await new Promise(r => setTimeout(r, 1200));
+                show('Demo seeding not available in this build', 'info');
+                setSeeding(false);
+              }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                {seeding ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Generating...</> : <><Database size={13} />Generate Sample Data</>}
+              </button>
+            }>
+            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+              Populates your workspace with realistic industrial assets (CAT Trucks, Komatsu Excavators), historical job cards, and stocked inventory.
+              Perfect for demos and onboarding new team members.
+            </p>
+          </SectionCard>
+
+          <SectionCard title="Data Export" subtitle="Export your workspace data for backup or migration" icon={<RefreshCw size={16} />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { label: 'Export All Assets',    desc: 'Download equipment registry as Excel' },
+                { label: 'Export Job Cards',     desc: 'Full service order history as Excel' },
+                { label: 'Export Inventory',     desc: 'Current parts catalogue and stock levels' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{item.desc}</div>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => show('Export coming soon', 'info')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ExternalLink size={12} /> Export
+                  </button>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      );
+
+      default: return null;
+    }
+  };
+
+  // ─── Main render ──────────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(60px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+        .settings-nav-item {
+          display: flex; align-items: center; gap: 9px;
+          padding: 8px 12px; border-radius: 6px; border: none;
+          font-size: 13.5px; font-weight: 500; color: var(--text-secondary);
+          background: transparent; cursor: pointer; transition: all 0.15s;
+          text-align: left; width: 100%; position: relative;
+        }
+        .settings-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .settings-nav-item.active {
+          background: var(--accent-blue-dim); color: var(--accent-blue); font-weight: 600;
+        }
+        .settings-nav-item.active::before {
+          content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+          width: 2.5px; background: var(--accent-blue); border-radius: 2px;
+        }
+        .settings-group-label {
+          font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em;
+          text-transform: uppercase; color: var(--text-muted);
+          padding: 14px 12px 5px; font-family: 'Barlow Condensed', sans-serif;
+        }
+      `}</style>
+
+      <ToastContainer toasts={toasts} />
+
+      {/* Upgrade Modal */}
+      <SlideOver open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="Change Plan" subtitle="Select a tier that matches your scale.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {allPlans.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>Loading plans...</div>
+          ) : allPlans.map(plan => {
+            const active = currentPlan?.id === plan.id;
+            return (
+              <div key={plan.id} style={{ padding: 18, border: `1px solid ${active ? 'var(--accent-blue)' : 'var(--border-subtle)'}`, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: active ? 'var(--accent-blue-dim)' : 'transparent' }}>
+                <div style={{ flex: 1, paddingRight: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.name}</div>
+                    {active && <span className="badge badge-blue" style={{ fontSize: 9 }}>Current</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{plan.description}</div>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Barlow Condensed, sans-serif' }}>
+                    K {(plan.monthlyPrice ?? 0).toLocaleString()} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>/ mo</span>
+                  </div>
+                  <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`}
+                    onClick={() => handleUpgrade(plan.id)} disabled={active || upgrading} style={{ minWidth: 90 }}>
+                    {active ? 'Active' : upgrading ? 'Wait...' : 'Select'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SlideOver>
+
+      {/* Delete Confirm */}
+      <SlideOver open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Delete Workspace" subtitle="This action is irreversible.">
+        <div style={{ padding: 20, borderRadius: 10, background: 'var(--accent-rose-dim)', border: '1px solid rgba(232,72,85,0.3)' }}>
+          <AlertTriangle size={28} style={{ color: 'var(--accent-rose)', marginBottom: 12 }} />
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent-rose)', marginBottom: 10 }}>Are you absolutely sure?</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.55, marginBottom: 20 }}>
+            This will permanently delete the <strong>Anchor Pro</strong> workspace, all job cards, inventory, and team associations.
+          </p>
+          <div className="form-field" style={{ marginBottom: 16 }}>
+            <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type "PERMANENTLY DELETE" to confirm</label>
+            <input className="form-input" placeholder="" />
+          </div>
+          <button className="btn btn-primary" style={{ background: 'var(--accent-rose)', border: 'none', width: '100%' }}>
+            Delete Everything
+          </button>
+        </div>
+      </SlideOver>
+
+      {/* Invite User Slide */}
+      <SlideOver open={showInviteSlide} onClose={() => setShowInviteSlide(false)} title="Add Team Member" subtitle="Create a new user account for your workspace.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-field">
+              <label className="form-label">First Name *</label>
+              <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm(f => ({ ...f, firstName: e.target.value }))} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Last Name</label>
+              <input className="form-input" value={inviteForm.lastName} onChange={e => setInviteForm(f => ({ ...f, lastName: e.target.value }))} />
+            </div>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Email Address *</label>
+            <input className="form-input" type="email" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Employee / Man Number</label>
+            <input className="form-input" value={inviteForm.employeeNumber} onChange={e => setInviteForm(f => ({ ...f, employeeNumber: e.target.value }))} placeholder="e.g. EMP-001" />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Role</label>
+            <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
+              {['Technician','Supervisor','Admin','PurchasingOfficer','Storekeeper'].map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Temporary Password *</label>
+            <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" />
+          </div>
+          <button className="btn btn-primary" onClick={handleInviteUser} disabled={savingInvite}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+            {savingInvite ? <><Loader2 size={14} className="spin" />Creating...</> : <><Plus size={14} />Create User Account</>}
+          </button>
+        </div>
+      </SlideOver>
+
+      {/* Page */}
+      <div>
+        <div className="page-header" style={{ marginBottom: 28 }}>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-subtitle">Manage your account, workspace, team, and system preferences.</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 28, alignItems: 'start' }}>
+
+          {/* ── Sidebar ── */}
+          <div style={{ position: 'sticky', top: 0 }}>
+            <div className="card" style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {NAV_GROUPS.map(group => (
+                <div key={group.label}>
+                  <div className="settings-group-label">{group.label}</div>
+                  {group.items.map(item => (
+                    <button key={item.id} className={`settings-nav-item${activeTab === item.id ? ' active' : ''}`}
+                      onClick={() => setActiveTab(item.id)}>
+                      {item.icon}
+                      {item.label}
+                    </button>
                   ))}
                 </div>
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(35,131,226,0.08)', border: '1px solid rgba(35,131,226,0.2)', fontSize: 12, color: 'var(--accent-blue)' }}>
-                  ✓ Works offline · ✓ Push notifications ready · ✓ Full-screen experience · ✓ No app store needed
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {activeTab === 'tools' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-              <div className="card-elevated" style={{ padding: 30 }}>
-                <h3 style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Database size={18} /> Demo Data Generator
-                </h3>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
-                  Instantly populate your workspace with realistic industrial assets (CAT Trucks, Komatsu Excavators), historical job cards,
-                  and stock inventory. Perfect for demos and onboarding new team members.
-                </p>
-
-                {seedResult && (
-                  <div style={{ padding: 12, borderRadius: 8, marginBottom: 16, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <CheckCircle2 size={16} /> {seedResult}
-                  </div>
-                )}
-
-                <button
-                  className="btn btn-primary"
-                  disabled={seeding}
-                  onClick={async () => {
-                    setSeeding(true);
-                    setSeedResult(null);
-                    try {
-                      // seed-demo endpoint not in backend — no-op
-                      const res = { message: 'Demo seeding not available in this build.' };
-                      setSeedResult(res.message || 'Demo data generated successfully!');
-                    } catch (err: any) {
-                      setSeedResult('Error: ' + err.message);
-                    } finally {
-                      setSeeding(false);
-                    }
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                >
-                  {seeding ? <><Loader2 size={14} className="spin" /> Generating...</> : <><Database size={14} /> Generate Sample Data</>}
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* ── Content ── */}
+          <div style={{ minWidth: 0 }}>
+            {renderContent()}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
