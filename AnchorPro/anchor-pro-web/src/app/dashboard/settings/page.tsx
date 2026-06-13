@@ -503,7 +503,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="settings-grid-2">
               <FormRow label="First Name">
                 <input className="form-input" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} />
               </FormRow>
@@ -535,7 +535,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </FormRow>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="settings-grid-2">
                 <FormRow label="New Password">
                   <input className="form-input" type={showPw ? 'text' : 'password'} value={pwForm.next}
                     onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} />
@@ -661,8 +661,7 @@ export default function SettingsPage() {
               { key: 'Technicians',      default: 'Technicians',      hint: 'e.g. Drivers, Engineers, Nurses' },
               { key: 'Inventory & Parts',default: 'Inventory & Parts',hint: 'e.g. Supplies, Fuel, Ad Spend' },
             ].map(term => (
-              <div key={term.key} style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+              <div key={term.key} className="settings-grid-2" style={{
                 padding: '14px 16px', borderRadius: 8, background: 'var(--bg-hover)',
                 border: '1px solid var(--border-subtle)', alignItems: 'center',
               }}>
@@ -687,7 +686,7 @@ export default function SettingsPage() {
       case 'operations': return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <SectionCard title="SLA & Escalation Thresholds" subtitle="Define response time windows that trigger overdue alerts" icon={<Clock size={16} />}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="settings-grid-2">
               {[
                 { label: 'Default SLA (hours)', key: 'defaultSlaHours', hint: 'Standard jobs' },
                 { label: 'Critical SLA (hours)', key: 'criticalSlaHours', hint: 'High-priority jobs' },
@@ -719,7 +718,7 @@ export default function SettingsPage() {
 
           <SectionCard title="Locale & Working Hours" subtitle="Used for due date calculations and timestamps" icon={<Globe size={16} />}
             footer={<SaveBtn loading={savingOp} onClick={handleSaveOpSettings} />}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="settings-grid-2">
               <FormRow label="Timezone">
                 <select className="form-select" value={opSettings.timezone} onChange={e => setOpSettings(s => ({ ...s, timezone: e.target.value }))}>
                   {['Africa/Lusaka','Africa/Johannesburg','Africa/Nairobi','Africa/Lagos','UTC','Europe/London','America/New_York'].map(tz =>
@@ -750,7 +749,7 @@ export default function SettingsPage() {
 
       // ── Job Types ──────────────────────────────────────────────────────────
       case 'jobtypes': return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="settings-grid-2" style={{ gap: 20 }}>
           <SectionCard title="Job Types" subtitle="Categories available when creating job cards" icon={<Settings size={16} />}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <input className="form-input" style={{ flex: 1 }} placeholder="New job type..." value={newJobType}
@@ -1008,7 +1007,7 @@ export default function SettingsPage() {
                 <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Upgrade Plan</button>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div className="settings-grid-3">
               {[
                 { label: 'Team Members', used: users.length || 0, max: 'Unlimited', unit: 'users' },
                 { label: 'Assets',       used: '—',              max: 'Unlimited', unit: '' },
@@ -1083,6 +1082,24 @@ export default function SettingsPage() {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
+        
+        .settings-container {
+          display: grid;
+          grid-template-columns: 220px 1fr;
+          gap: 28px;
+          align-items: start;
+        }
+        .settings-sidebar {
+          position: sticky;
+          top: 0;
+        }
+        .settings-sidebar-card {
+          padding: 10px 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        
         .settings-nav-item {
           display: flex; align-items: center; gap: 9px;
           padding: 8px 12px; border-radius: 6px; border: none;
@@ -1102,6 +1119,66 @@ export default function SettingsPage() {
           font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em;
           text-transform: uppercase; color: var(--text-muted);
           padding: 14px 12px 5px; font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .settings-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .settings-grid-3 {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 14px;
+        }
+
+        @media (max-width: 768px) {
+          .settings-container {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          .settings-sidebar {
+            position: relative;
+            top: auto;
+            margin-bottom: 8px;
+          }
+          .settings-sidebar-card {
+            flex-direction: row;
+            overflow-x: auto;
+            padding: 8px;
+            gap: 16px;
+            scrollbar-width: none;
+          }
+          .settings-sidebar-card::-webkit-scrollbar {
+            display: none;
+          }
+          .settings-sidebar-card > div {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
+          }
+          .settings-group-label {
+            display: none;
+          }
+          .settings-nav-item {
+            width: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding: 6px 12px;
+          }
+          .settings-nav-item.active::before {
+            left: 12px; right: 12px; bottom: 0; top: auto;
+            width: auto; height: 2.5px;
+          }
+          .settings-grid-2 {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .settings-grid-3 {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
         }
       `}</style>
 
@@ -1159,7 +1236,7 @@ export default function SettingsPage() {
       {/* Invite User Slide */}
       <SlideOver open={showInviteSlide} onClose={() => setShowInviteSlide(false)} title="Add Team Member" subtitle="Create a new user account for your workspace.">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="settings-grid-2" style={{ gap: 14 }}>
             <div className="form-field">
               <label className="form-label">First Name *</label>
               <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm(f => ({ ...f, firstName: e.target.value }))} />
@@ -1201,11 +1278,11 @@ export default function SettingsPage() {
           <p className="page-subtitle">Manage your account, workspace, team, and system preferences.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 28, alignItems: 'start' }}>
+        <div className="settings-container">
 
           {/* ── Sidebar ── */}
-          <div style={{ position: 'sticky', top: 0 }}>
-            <div className="card" style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div className="settings-sidebar">
+            <div className="card settings-sidebar-card">
               {NAV_GROUPS.map(group => (
                 <div key={group.label}>
                   <div className="settings-group-label">{group.label}</div>
