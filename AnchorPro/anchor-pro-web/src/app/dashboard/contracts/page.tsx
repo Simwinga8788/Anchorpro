@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, FileText, Search, Edit2, XCircle, CheckCircle2, Clock } from 'lucide-react';
 import { contractsApi, dashboardApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const statusConfig: Record<string, { badge: string; dot: string }> = {
   Active:    { badge: 'badge-green',  dot: 'green' },
@@ -229,7 +230,8 @@ export default function ContractsPage() {
           </div>
         </div>
 
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr>
               <th>Contract</th>
@@ -302,6 +304,7 @@ export default function ContractsPage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
     </div>
   );

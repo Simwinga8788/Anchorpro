@@ -15,6 +15,7 @@ import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats } from 
 import { useApiData } from '@/lib/useApiData';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -390,7 +391,8 @@ export default function DashboardPage() {
             <button className="btn btn-secondary btn-sm" onClick={() => window.location.href = '/dashboard/jobs'}>View All</button>
           </div>
           <div className="table-scroll">
-            <table className="data-table">
+            <ResponsiveTable>
+<table className="data-table">
               <thead>
                 <tr>
                   <th>Reference</th>
@@ -443,6 +445,7 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+</ResponsiveTable>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X, PackageC
 import { useState, useEffect } from 'react';
 import { dashboardApi, procurementApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const typeConfig: Record<number, { label: string; badge: string; color: string }> = {
   0: { label: 'Inventory Replenishment', badge: 'badge-blue',   color: 'var(--accent-blue)' },
@@ -337,7 +338,8 @@ export default function ProcurementPage() {
           </div>
         </div>
 
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr>
               <th>PO Number</th>
@@ -415,6 +417,7 @@ export default function ProcurementPage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
       </>}
 

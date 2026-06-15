@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Building2, Mail, Phone, MapPin, Edit2, FileText } from 'lucide-react';
 import { dashboardApi, customersApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const BLANK = { name: '', customerNumber: '', contactPerson: '', email: '', phone: '', address: '' };
 
@@ -86,7 +87,8 @@ export default function CustomersPage() {
       </div>
 
       <div className="card-elevated" style={{ marginTop: 24, padding: 0, overflow: 'hidden' }}>
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr><th>Company Name</th><th>Contact Person</th><th>Contact Details</th><th>Status</th><th></th></tr>
           </thead>
@@ -125,6 +127,7 @@ export default function CustomersPage() {
             ))}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
     </div>
   );

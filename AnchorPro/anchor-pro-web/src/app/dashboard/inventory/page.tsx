@@ -4,6 +4,7 @@ import { Search, Plus, AlertTriangle, Package, Edit2, PlusCircle, Check, X, Eye,
 import { useState, useEffect, useRef } from 'react';
 import { dashboardApi, inventoryApi, jobCardsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const BLANK = { name: '', partNumber: '', category: '', location: '', unitCost: 0, quantityOnHand: 0, reorderLevel: 5, unitOfMeasure: 'Unit' };
 
@@ -333,7 +334,8 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          <table className="data-table">
+          <ResponsiveTable>
+<table className="data-table">
             <thead>
               <tr><th>Item Name</th><th>Part No.</th><th>Category</th><th>Location</th><th>Unit Cost</th><th>Qty on Hand</th><th>Status</th><th></th></tr>
             </thead>
@@ -370,13 +372,15 @@ export default function InventoryPage() {
               })}
             </tbody>
           </table>
+</ResponsiveTable>
         </div>
       )}
 
       {/* Tab Content 2: Parts Requests */}
       {activeTab === 'requests' && (
         <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="data-table">
+          <ResponsiveTable>
+<table className="data-table">
             <thead>
               <tr>
                 <th>Part Requested</th>
@@ -462,6 +466,7 @@ export default function InventoryPage() {
               })}
             </tbody>
           </table>
+</ResponsiveTable>
         </div>
       )}
     </div>

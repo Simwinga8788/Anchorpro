@@ -12,6 +12,7 @@ import { useDictionary } from '@/lib/DictionaryContext';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const STATUSES = ['All', 'Unscheduled', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'];
 const PRIORITIES = ['All', 'Low', 'Normal', 'High', 'Critical'];
@@ -592,7 +593,8 @@ export default function JobCardsPage() {
           </select>
         </div>
 
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr>
               <th>Job Reference</th>
@@ -698,6 +700,7 @@ export default function JobCardsPage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
 
         <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Showing {filtered.length} of {jobs.length} records</span>

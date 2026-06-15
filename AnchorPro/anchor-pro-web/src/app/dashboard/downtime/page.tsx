@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, AlertTriangle, CheckCircle2, Search, MoreHorizontal, Pause, Plus, X, Zap } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 export default function DowntimePage() {
   const [downtime, setDowntime] = useState<any[]>([]);
@@ -134,7 +135,8 @@ export default function DowntimePage() {
           </div>
         </div>
 
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr>
               <th>Equipment / Task</th>
@@ -178,6 +180,7 @@ export default function DowntimePage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
 
       {/* Report Downtime Modal */}

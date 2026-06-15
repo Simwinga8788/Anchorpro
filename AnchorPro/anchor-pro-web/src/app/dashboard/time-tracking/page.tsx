@@ -6,6 +6,7 @@ import {
   TrendingUp, Calendar, Search, ChevronDown, Activity
 } from 'lucide-react';
 import { jobCardsApi, referenceDataApi, intelligenceApi } from '@/lib/api';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,8 @@ function TechRow({ row }: { row: TechRow }) {
         <tr>
           <td colSpan={8} style={{ background: 'var(--bg-secondary)', padding: 0 }}>
             <div style={{ padding: '12px 16px' }}>
-              <table className="data-table" style={{ fontSize: 12 }}>
+              <ResponsiveTable>
+<table className="data-table" style={{ fontSize: 12 }}>
                 <thead>
                   <tr>
                     <th>Job #</th>
@@ -148,6 +150,7 @@ function TechRow({ row }: { row: TechRow }) {
                   })}
                 </tbody>
               </table>
+</ResponsiveTable>
             </div>
           </td>
         </tr>
@@ -304,7 +307,8 @@ export default function TimeTrackingPage() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
+            <ResponsiveTable>
+<table className="data-table">
               <thead>
                 <tr>
                   <th>Technician</th>
@@ -321,6 +325,7 @@ export default function TimeTrackingPage() {
                 {techRows.map(row => <TechRow key={row.id} row={row} />)}
               </tbody>
             </table>
+</ResponsiveTable>
           </div>
         )}
       </div>
@@ -337,7 +342,8 @@ export default function TimeTrackingPage() {
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
+            <ResponsiveTable>
+<table className="data-table">
               <thead>
                 <tr>
                   <th>Job #</th>
@@ -364,6 +370,7 @@ export default function TimeTrackingPage() {
                 })}
               </tbody>
             </table>
+</ResponsiveTable>
           </div>
         </div>
       )}

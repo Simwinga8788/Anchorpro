@@ -4,6 +4,7 @@ import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle
 import { useState, useEffect } from 'react';
 import { safetyApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const permitStatusMap: Record<number, { label: string; badge: string }> = {
   0: { label: 'Active', badge: 'badge-green' },
@@ -152,7 +153,8 @@ export default function SafetyPage() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
           <h3 className="section-title" style={{ fontSize: 14 }}>Permit-to-Work Registry</h3>
         </div>
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr><th>ID</th><th>Work Scope</th><th>Authorized By</th><th>Issued</th><th>LOTO</th><th>PPE</th><th>Status</th><th></th></tr>
           </thead>
@@ -206,6 +208,7 @@ export default function SafetyPage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
     </div>
   );

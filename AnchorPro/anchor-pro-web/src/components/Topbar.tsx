@@ -25,7 +25,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAllRead, markRead, refresh: refreshNotifs } = useNotifications();
   const { user, logout, isPlatformOwner } = useAuth();
-  const { workspaceName } = useDictionary();
+  const { t, workspaceName } = useDictionary();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -150,7 +150,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* Search — hidden on mobile via CSS class */}
+        {/* Search */}
         <div className="topbar-search-wrap" style={{ position: 'relative' }}>
           <Search size={13} style={{
             position: 'absolute', left: '10px', top: '50%',
@@ -158,10 +158,10 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           }} />
           <input
             className="search-input"
-            placeholder="Search Job #, Asset..."
+            placeholder={`Search Job #, ${t('Equipment', 'Equipment')}...`}
             style={{ paddingLeft: '30px', width: '180px' }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') alert(`Searching for "${e.currentTarget.value}" across Asset Registry and Job Cards...`);
+              if (e.key === 'Enter') alert(`Searching for "${e.currentTarget.value}" across ${t('Equipment', 'Equipment')} Registry and Job Cards...`);
             }}
           />
         </div>

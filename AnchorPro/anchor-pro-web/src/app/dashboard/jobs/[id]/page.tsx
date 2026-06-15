@@ -10,6 +10,7 @@ import {
 import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const statusConfig: Record<number, { label: string; badge: string; dot: string; icon: React.ReactNode; value: number }> = {
   0: { label: 'Unscheduled', badge: 'badge-muted',   dot: 'muted',   icon: <Clock size={12} />,         value: 0 },
@@ -839,7 +840,8 @@ export default function JobDetailPage() {
                     No components have been requested for this job.
                   </div>
                 ) : (
-                  <table className="data-table">
+                  <ResponsiveTable>
+<table className="data-table">
                     <thead>
                       <tr>
                         <th>Part Details</th>
@@ -893,6 +895,7 @@ export default function JobDetailPage() {
                       })}
                     </tbody>
                   </table>
+</ResponsiveTable>
                 )}
               </>
             )}
@@ -922,7 +925,8 @@ export default function JobDetailPage() {
                     No external services have been raised for this {jobLabel.toLowerCase()}.
                   </div>
                 ) : (
-                  <table className="data-table">
+                  <ResponsiveTable>
+<table className="data-table">
                     <thead>
                       <tr>
                         <th>PO Number</th>
@@ -957,6 +961,7 @@ export default function JobDetailPage() {
                       ))}
                     </tbody>
                   </table>
+</ResponsiveTable>
                 )}
               </>
             )}

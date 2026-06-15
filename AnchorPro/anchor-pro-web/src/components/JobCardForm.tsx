@@ -14,6 +14,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
   const { t } = useDictionary();
   const jobsLabel = t('Job Cards', 'Job Cards');
   const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
+  const equipLabel = t('Equipment', 'Equipment');
 
   const [loading, setLoading] = useState(false);
   const [refData, setRefData] = useState<{
@@ -74,7 +75,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
       }
 
       if (!formData.isCustomerBrought && !formData.equipmentId) {
-        alert('Please select an Asset');
+        alert(`Please select ${equipLabel}`);
         setLoading(false);
         return;
       }
@@ -238,13 +239,13 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
               </>
             ) : (
               <>
-                <label className="form-label">Asset *</label>
+                <label className="form-label">{equipLabel} *</label>
                 <select className="form-select" value={formData.equipmentId}
                   onChange={e => setFormData({ ...formData, equipmentId: e.target.value })} required={!formData.isCustomerBrought}>
-                  <option value="">Select Asset...</option>
+                  <option value="">Select {equipLabel}...</option>
                   {refData.equipment.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
-                {refData.equipment.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No assets found.</p>}
+                {refData.equipment.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No {equipLabel.toLowerCase()} found.</p>}
               </>
             )}
           </div>

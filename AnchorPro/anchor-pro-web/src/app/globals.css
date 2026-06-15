@@ -276,7 +276,7 @@ html, body {
 .stat-change { font-size: 13px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 8px; }
 
 /* Table scroll wrapper */
-.table-scroll { overflow-x: auto; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* Dashboard bottom grid responsiveness */
 .dashboard-bottom-grid { }
@@ -307,23 +307,152 @@ html, body {
 .delay-3 { animation-delay: 0.15s; }
 .delay-4 { animation-delay: 0.20s; }
 
-/* Mobile */
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet (≤1024px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  /* Make all tables horizontally scrollable on tablet */
+  .card-elevated:has(.data-table),
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table { min-width: 700px; }
+  .data-table th { padding: 8px 10px; font-size: 11.5px; }
+  .data-table td { padding: 9px 10px; font-size: 13px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile (≤768px)
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+  /* Sidebar */
   .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; transition: left 0.25s cubic-bezier(0.32, 0, 0.15, 1); z-index: 200; }
   .sidebar.mobile-open { left: 0; box-shadow: 8px 0 32px rgba(0,0,0,0.5); }
   .sidebar-overlay.visible { display: block; opacity: 1; }
   .topbar-hamburger { display: flex !important; }
   .topbar-search-wrap { display: none; }
   .sidebar-close-btn { display: flex !important; }
-  .page-content { padding: 16px; }
-  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .stats-grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .stats-grid-2 { grid-template-columns: 1fr; }
-  .page-header { flex-direction: column; gap: 12px; }
-  .page-header-left h1 { font-size: 18px; }
-  .slideover-panel { width: 100vw; }
+
+  /* Page content */
+  .page-content { padding: 14px 12px; }
+
+  /* Page header — stack vertically */
+  .page-header { flex-direction: column; gap: 10px; align-items: stretch !important; }
+  .page-header > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+  .page-title { font-size: 20px; }
+  .page-subtitle { font-size: 13px; }
+
+  /* Stat grids */
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stats-grid-3 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stats-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Stat cards — more compact */
+  .stat-card { padding: 12px !important; }
+  .stat-card .stat-value { font-size: 18px !important; }
+  .stat-card .stat-label { font-size: 11px !important; }
+  .stat-icon { width: 32px; height: 32px; }
+
+  /* ── Data Tables → Mobile Card Layout ── */
+  .data-table { min-width: 0; }
+  .data-table thead { display: none; }
+  .data-table tbody { display: flex; flex-direction: column; gap: 8px; }
+  .data-table tr {
+    display: flex; flex-direction: column;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    gap: 6px;
+  }
+  .data-table tr:hover td { background: transparent; }
+  .data-table td {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; border-bottom: 1px solid var(--border-subtle);
+    font-size: 13px; gap: 8px;
+  }
+  .data-table td:last-child { border-bottom: none; }
+  /* Show column name as label via data-label attribute (set in JS) */
+  .data-table td::before {
+    content: attr(data-label);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); flex-shrink: 0;
+    min-width: 90px;
+  }
+  /* Make sure badges and priority bars still look good */
+  .data-table .priority-bar { display: none; }
+  .data-table td .badge { font-size: 11px; }
+
+  /* ── Filter bars — stack on mobile ── */
+  .card-elevated > div:first-child {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+  .search-input { font-size: 14px; }
+
+  /* ── Modals — full width on mobile ── */
+  .card-elevated[style*="width: 480"],
+  .card-elevated[style*="width: 520"],
+  .card-elevated[style*="width: 560"],
+  .card-elevated[style*="width: 600"],
+  .card-elevated[style*="width: 650"] {
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    margin: 12px;
+  }
+
+  /* ── SlideOver panels — full width ── */
+  .slideover-panel { width: 100vw !important; }
+  .slideover-body { padding: 16px; }
+
+  /* ── Notification drawer — full width ── */
+  .notif-drawer { width: calc(100vw - 24px); right: -8px; max-width: 360px; }
+
+  /* ── Action buttons — wrap nicely ── */
+  .page-header .btn { font-size: 12px; padding: 7px 10px; }
+  .page-header .btn svg { width: 12px; height: 12px; }
+
+  /* ── Form grid — single column ── */
+  .form-row, .settings-grid-2 { grid-template-columns: 1fr !important; }
+  .form-input, .form-select, .form-textarea { font-size: 16px; } /* prevent iOS zoom */
+
+  /* ── Kanban — stack vertically ── */
+  .kanban-col { min-width: 100% !important; max-width: 100% !important; }
+
+  /* ── Job detail info grids ── */
+  div[style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+  div[style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Small Phone (≤480px)
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .stats-grid-4 { grid-template-columns: 1fr 1fr; }
+  .stats-grid-4 { grid-template-columns: 1fr 1fr; gap: 8px; }
   .stats-grid-3 { grid-template-columns: 1fr; }
+  .page-content { padding: 10px 8px; }
+  .page-title { font-size: 18px; }
+
+  /* Even more compact table cards */
+  .data-table tr { padding: 10px 12px; }
+  .data-table td { font-size: 12.5px; }
+  .data-table td::before { font-size: 10.5px; min-width: 80px; }
+
+  /* Buttons — full width on very small screens */
+  .page-header .btn { flex: 1; justify-content: center; min-width: 0; }
+
+  /* Card padding */
+  .card-elevated { padding: 14px; }
+
+  /* Notification drawer */
+  .notif-drawer { width: calc(100vw - 16px); right: -4px; }
 }
+

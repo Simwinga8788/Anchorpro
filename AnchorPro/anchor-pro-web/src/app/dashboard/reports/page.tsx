@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { reportingApi, intelligenceApi, dashboardApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -350,7 +351,8 @@ export default function ReportsPage() {
           </div>
         </div>
         <div className="table-scroll">
-          <table className="data-table">
+          <ResponsiveTable>
+<table className="data-table">
             <thead>
               <tr>
                 <th>Technician</th>
@@ -403,6 +405,7 @@ export default function ReportsPage() {
               )}
             </tbody>
           </table>
+</ResponsiveTable>
         </div>
       </div>
 

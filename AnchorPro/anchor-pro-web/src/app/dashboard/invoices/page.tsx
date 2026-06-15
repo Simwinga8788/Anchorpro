@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { financialApi, dashboardApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const statusMap: Record<number, { label: string; badge: string }> = {
   0: { label: 'Unpaid',  badge: 'badge-rose' },
@@ -279,7 +280,8 @@ export default function InvoicesPage() {
           <button className="btn btn-secondary btn-sm"><Filter size={13} /> Filter</button>
         </div>
 
-        <table className="data-table">
+        <ResponsiveTable>
+<table className="data-table">
           <thead>
             <tr>
               <th>Invoice No</th>
@@ -343,6 +345,7 @@ export default function InvoicesPage() {
             })}
           </tbody>
         </table>
+</ResponsiveTable>
       </div>
     </div>
   );

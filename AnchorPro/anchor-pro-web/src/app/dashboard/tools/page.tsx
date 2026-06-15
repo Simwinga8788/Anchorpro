@@ -6,6 +6,7 @@ import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, Fi
 import ReceiveToolModal from '@/components/tools/ReceiveToolModal';
 import IssueToolModal from '@/components/tools/IssueToolModal';
 import ReturnToolModal from '@/components/tools/ReturnToolModal';
+import ResponsiveTable from '@/components/ResponsiveTable';
 
 const conditionMap: Record<number, { label: string, color: string, badgeClass: string }> = {
   1: { label: 'New', color: 'var(--accent-emerald)', badgeClass: 'badge-green' },
@@ -209,7 +210,8 @@ export default function ToolsPage() {
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>Loading tools...</div>
           ) : activeTab === 'all' ? (
             <div className="table-scroll">
-              <table className="data-table">
+              <ResponsiveTable>
+<table className="data-table">
                 <thead>
                   <tr>
                     <th>Tag / S.N.</th>
@@ -259,10 +261,12 @@ export default function ToolsPage() {
                   ))}
                 </tbody>
               </table>
+</ResponsiveTable>
             </div>
           ) : (
             <div className="table-scroll">
-              <table className="data-table">
+              <ResponsiveTable>
+<table className="data-table">
                 <thead>
                   <tr>
                     <th>Tool</th>
@@ -319,6 +323,7 @@ export default function ToolsPage() {
                   })}
                 </tbody>
               </table>
+</ResponsiveTable>
             </div>
           )}
         </div>
