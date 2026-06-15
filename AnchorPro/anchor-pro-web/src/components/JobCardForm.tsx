@@ -39,7 +39,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     isCustomerBrought: false,
     customerItemName: '',
     customerItemSerial: '',
-    invoiceAmount: '',
   });
 
   useEffect(() => {
@@ -122,7 +121,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         subcontractingCost: 0,
         jobTasks: [],
         jobCardParts: [],
-        invoiceAmount: formData.invoiceAmount ? parseFloat(formData.invoiceAmount) : 0,
       };
 
       console.log('API SUBMISSION:', payload);
@@ -272,18 +270,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
               <option value="">No Contract</option>
               {refData.contracts.map(c => <option key={c.id} value={c.id}>{c.title || c.contractNumber}</option>)}
             </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Agreed Price (ZMW) <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <input
-              type="number"
-              className="form-input"
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              value={formData.invoiceAmount}
-              onChange={e => setFormData({ ...formData, invoiceAmount: e.target.value })}
-            />
           </div>
         </div>
       </div>

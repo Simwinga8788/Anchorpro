@@ -41,6 +41,14 @@ namespace AnchorPro.Controllers
             return CreatedAtAction(nameof(GetById), new { id = quotation.Id }, quotation);
         }
 
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Quotation>> Update(int id, [FromBody] UpdateQuotationRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var updated = await _quotationService.UpdateQuotationAsync(id, req.Subtotal, req.Notes, userId);
+            return Ok(updated);
+        }
+
         [HttpPost("{id}/accept")]
         public async Task<ActionResult> Accept(int id)
         {
@@ -61,5 +69,11 @@ namespace AnchorPro.Controllers
     public class RejectRequest
     {
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class UpdateQuotationRequest
+    {
+        public decimal Subtotal { get; set; }
+        public string? Notes { get; set; }
     }
 }

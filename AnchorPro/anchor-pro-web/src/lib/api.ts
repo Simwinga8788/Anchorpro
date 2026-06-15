@@ -609,6 +609,7 @@ export const quotationsApi = {
   getById:       (id: number)          => apiFetch<any>(`/api/quotations/${id}`),
   getByJob:      (jobId: number)       => apiFetch<any>(`/api/quotations/job/${jobId}`),
   createFromJob: (jobId: number)       => apiPost<any>(`/api/quotations/from-job/${jobId}`, {}),
+  update:        (id: number, subtotal: number, notes: string) => apiPut<any>(`/api/quotations/${id}`, { subtotal, notes }),
   accept:        (id: number)          => apiPost<any>(`/api/quotations/${id}/accept`, {}),
   reject:        (id: number, reason: string) => apiPost<any>(`/api/quotations/${id}/reject`, { reason }),
 };

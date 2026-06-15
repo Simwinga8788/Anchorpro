@@ -43,10 +43,6 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
 }) {
   const [saving, setSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
-  const [invoiceAmount, setInvoiceAmount] = useState<string>(
-    job.invoiceAmount > 0 ? String(job.invoiceAmount) : ''
-  );
-  const [savingInvoice, setSavingInvoice] = useState(false);
   const [form, setForm] = useState({
     assignedTechnicianId: job.assignedTechnicianId ?? job.assignedTechnician?.id ?? '',
     scheduledStartDate: job.scheduledStartDate ? job.scheduledStartDate.slice(0, 16) : '',
@@ -70,21 +66,6 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
       alert('Update failed: ' + err.message);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSaveInvoice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseFloat(invoiceAmount);
-    if (isNaN(amount) || amount < 0) return;
-    setSavingInvoice(true);
-    try {
-      await jobCardsApi.update(job.id, { ...job, invoiceAmount: amount });
-      onSaved();
-    } catch (err: any) {
-      alert('Failed to save invoice amount: ' + err.message);
-    } finally {
-      setSavingInvoice(false);
     }
   };
 
@@ -155,7 +136,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
       {job.status === 3 && job.totalCost > 0 && (
         <div style={{ padding: 16, background: 'var(--bg-app)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-            Cost Trinity — Financial Summary
+            Operational Cost Summary
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
@@ -174,32 +155,9 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
                 </div>
               </div>
             ))}
-            <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 4, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Total Cost</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              {job.invoiceAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Invoice Amount</span>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>K {(job.invoiceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: 8, marginTop: 4, background: job.profit >= 0 ? 'var(--accent-emerald-dim)' : 'var(--accent-rose-dim)', border: `1px solid ${job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'}` }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                  {job.profit >= 0 ? 'Net Profit' : 'Net Loss'}
-                </span>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                    K {Math.abs(job.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  {job.profitMarginPercent !== undefined && (
-                    <div style={{ fontSize: 11, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', opacity: 0.8 }}>
-                      Margin: {job.profitMarginPercent?.toFixed(1)}%
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', padding: '8px 12px' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Total Cost</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
@@ -227,38 +185,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
         </div>
       )}
 
-      {/* Invoice Amount — editable by Planner/Manager, used for profit calculation */}
-      {!isTechnician && (
-        <form onSubmit={handleSaveInvoice}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
-            Agreed Price
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <div className="form-field" style={{ flex: 1, marginBottom: 0 }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                Agreed Price (K)
-                {job.invoiceAmount > 0 && job.status !== 3 && (
-                  <span style={{ fontSize: 10, color: 'var(--accent-amber)', fontWeight: 400, marginLeft: 4 }}>
-                    currently K {job.invoiceAmount.toLocaleString()} — auto-estimate
-                  </span>
-                )}
-              </label>
-              <input
-                type="number" min={0} step="0.01" className="form-input"
-                placeholder={job.totalCost > 0 ? `Estimated: K ${(job.totalCost * 1.35).toFixed(0)}` : 'Enter agreed price value...'}
-                value={invoiceAmount}
-                onChange={e => setInvoiceAmount(e.target.value)}
-              />
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                Set this before completing the job — profit is calculated as Agreed Price − Total Cost.
-              </div>
-            </div>
-            <button type="submit" className="btn btn-secondary" style={{ marginBottom: 1 }} disabled={savingInvoice || !invoiceAmount}>
-              {savingInvoice ? 'Saving...' : 'Set'}
-            </button>
-          </div>
-        </form>
-      )}
+
 
       {/* Reassign form */}
       {!isTechnician ? (
@@ -669,21 +596,22 @@ export default function JobCardsPage() {
           <thead>
             <tr>
               <th>Job Reference</th>
-              <th>Asset</th>
+              <th>{t('Equipment', 'Equipment')}</th>
+              <th>Description</th>
               <th>Type</th>
               <th>Technician</th>
               <th>Scheduled Start</th>
               <th>Priority</th>
               <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Est. Cost</th>
+              <th style={{ textAlign: 'right' }}>Total Cost</th>
               {!isTechnician && <th></th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0' }}>Loading {jobsLabel.toLowerCase()}...</td></tr>
+              <tr><td colSpan={isTechnician ? 9 : 10} style={{ textAlign: 'center', padding: '40px 0' }}>Loading {jobsLabel.toLowerCase()}...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={isTechnician ? 8 : 9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No jobs found</td></tr>
+              <tr><td colSpan={isTechnician ? 9 : 10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No jobs found</td></tr>
             ) : filtered.map(job => {
               const sc = statusConfig[job.status] ?? statusConfig[0];
               const pc = priorityConfig[job.priority] ?? priorityConfig[1];
@@ -706,6 +634,9 @@ export default function JobCardsPage() {
                     </div>
                   </td>
                   <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{job.equipment?.name || 'Unknown'}</td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 12, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {job.description || '—'}
+                  </td>
                   <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{job.jobType?.name || '—'}</td>
                   <td style={{ color: job.assignedTechnician ? 'var(--text-secondary)' : 'var(--text-muted)', fontSize: 13, fontStyle: job.assignedTechnician ? 'normal' : 'italic' }}>
                     {techName}

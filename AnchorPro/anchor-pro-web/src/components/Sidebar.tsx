@@ -178,6 +178,12 @@ export default function Sidebar() {
                 const Icon = item.icon;
                 const isActive = pathname === item.href
                   || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                // Dynamically compute label using DictionaryContext
+                let displayLabel = t(item.label);
+                if (item.href === '/dashboard/assets') {
+                  const equipmentName = t('Equipment', 'Equipment');
+                  displayLabel = `${equipmentName} Registry`;
+                }
                 return (
                   <Link
                     key={item.href}
@@ -185,7 +191,7 @@ export default function Sidebar() {
                     className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={15} />
-                    <span>{t(item.label)}</span>
+                    <span>{displayLabel}</span>
                   </Link>
                 );
               })}

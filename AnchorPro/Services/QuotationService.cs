@@ -87,6 +87,25 @@ namespace AnchorPro.Services
             return quotation;
         }
 
+        public async Task<Quotation> UpdateQuotationAsync(int id, decimal subtotal, string? notes, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            var quotation = await context.Quotations.FindAsync(id);
+            if (quotation == null) throw new Exception("Quotation not found");
+            if (quotation.Status == QuotationStatus.Accepted || quotation.Status == QuotationStatus.Rejected)
+                throw new Exception("Cannot edit an accepted or rejected quotation");
+
+            quotation.Subtotal   = subtotal;
+            quotation.TaxAmount  = Math.Round(subtotal * (quotation.TaxRate / 100), 2);
+            quotation.Total      = subtotal + quotation.TaxAmount;
+            quotation.Notes      = notes;
+            quotation.UpdatedAt  = DateTime.UtcNow;
+            quotation.UpdatedBy  = userId;
+
+            await context.SaveChangesAsync();
+            return quotation;
+        }
+
         public async Task AcceptQuotationAsync(int id, string userId)
         {
             using var context = _factory.CreateDbContext();

@@ -63,6 +63,9 @@ export default function JobDetailPage() {
   const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actioningQuote, setActioningQuote] = useState(false);
+  const [editingQuote, setEditingQuote] = useState(false);
+  const [quoteEditForm, setQuoteEditForm] = useState({ subtotal: '', notes: '' });
+  const [savingQuoteEdit, setSavingQuoteEdit] = useState(false);
   const [showDocFlow, setShowDocFlow] = useState(false);
   // Collapsible sections state
   const [isTasksExpanded, setIsTasksExpanded] = useState(true);
@@ -84,7 +87,6 @@ export default function JobDetailPage() {
     scheduledStartDate: '',
     scheduledEndDate: '',
     priority: 1,
-    invoiceAmount: '',
     customerId: '',
     jobTypeId: '',
     contractId: '',
@@ -104,7 +106,6 @@ export default function JobDetailPage() {
           scheduledStartDate: data.scheduledStartDate ? data.scheduledStartDate.slice(0, 16) : '',
           scheduledEndDate: data.scheduledEndDate ? data.scheduledEndDate.slice(0, 16) : '',
           priority: data.priority ?? 1,
-          invoiceAmount: data.invoiceAmount > 0 ? String(data.invoiceAmount) : '',
           customerId: data.customerId ?? data.customer?.id ?? '',
           jobTypeId: data.jobTypeId ?? data.jobType?.id ?? '',
           contractId: data.contractId ?? data.contract?.id ?? '',
@@ -165,7 +166,6 @@ export default function JobDetailPage() {
         scheduledStartDate: coreForm.scheduledStartDate || null,
         scheduledEndDate: coreForm.scheduledEndDate || null,
         priority: coreForm.priority,
-        invoiceAmount: coreForm.invoiceAmount ? parseFloat(coreForm.invoiceAmount) : 0,
         customerId: coreForm.customerId ? parseInt(coreForm.customerId) : null,
         jobTypeId: coreForm.jobTypeId ? parseInt(coreForm.jobTypeId) : null,
         contractId: coreForm.contractId ? parseInt(coreForm.contractId) : null,
@@ -1092,11 +1092,6 @@ export default function JobDetailPage() {
                   <input type="datetime-local" className="form-input" value={coreForm.scheduledEndDate} onChange={e => setCoreForm({ ...coreForm, scheduledEndDate: e.target.value })} />
                 </div>
 
-                <div className="form-field">
-                  <label className="form-label">Agreed Price (ZMW)</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="0.00" value={coreForm.invoiceAmount} onChange={e => setCoreForm({ ...coreForm, invoiceAmount: e.target.value })} />
-                </div>
-
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                   <button type="button" onClick={() => setEditCore(false)} className="btn btn-secondary btn-sm" disabled={savingCore}>Cancel</button>
                   <button type="submit" className="btn btn-primary btn-sm" disabled={savingCore}>Save</button>
@@ -1138,12 +1133,6 @@ export default function JobDetailPage() {
                   <span style={{ color: 'var(--text-secondary)' }}>Contract</span>
                   <span style={{ fontWeight: 600 }}>{job.contract?.title || job.contract?.contractNumber || '—'}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Agreed Price</span>
-                  <span style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
-                    K {job.invoiceAmount ? job.invoiceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                  </span>
-                </div>
               </div>
             )}
           </div>
@@ -1173,37 +1162,10 @@ export default function JobDetailPage() {
                 </div>
               ))}
 
-              <div style={{ borderTop: '1px solid var(--border-default)', marginTop: 8, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ borderTop: '1px solid var(--border-default)', marginTop: 8, paddingTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px' }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Total Cost</span>
                   <span style={{ fontSize: 14, fontWeight: 700 }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                {job.invoiceAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Agreed Price</span>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>K {(job.invoiceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                )}
-                
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 12px', borderRadius: 8, marginTop: 4,
-                  background: job.profit >= 0 ? 'var(--accent-emerald-dim)' : 'var(--accent-rose-dim)',
-                  border: `1px solid ${job.profit >= 0 ? 'rgba(46,204,138,0.2)' : 'rgba(232,72,85,0.2)'}`
-                }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                    {job.profit >= 0 ? 'Net Profit' : 'Net Loss'}
-                  </span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                      K {Math.abs(job.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    {job.profitMarginPercent !== undefined && (
-                      <div style={{ fontSize: 11, color: job.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', opacity: 0.8 }}>
-                        Margin: {job.profitMarginPercent?.toFixed(1)}%
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1284,9 +1246,26 @@ export default function JobDetailPage() {
 
               {/* Items Breakdown */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Cost Breakdown
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Cost Breakdown
+                  </div>
+                  {/* Allow editing subtotal on draft/sent quotations */}
+                  {(quotation.status === 0 || quotation.status === 1) && !editingQuote && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 11 }}
+                      onClick={() => {
+                        setQuoteEditForm({ subtotal: String(quotation.subtotal), notes: quotation.notes || '' });
+                        setEditingQuote(true);
+                      }}
+                    >
+                      Edit Price
+                    </button>
+                  )}
                 </div>
+
+                {/* Operational cost reference rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[
                     { label: 'Internal Labor', value: job.laborCost },
@@ -1299,24 +1278,92 @@ export default function JobDetailPage() {
                       <span style={{ fontWeight: 500 }}>K {(row.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                   ))}
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Total Operational Cost</span>
+                    <span style={{ fontWeight: 600 }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+
+                {/* Negotiated Price edit form or display */}
+                {editingQuote ? (
+                  <div style={{ marginTop: 8, padding: '14px 16px', background: 'rgba(99,102,241,0.08)', borderRadius: 8, border: '1px solid rgba(99,102,241,0.3)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-indigo)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Negotiated Price
+                    </div>
+                    <div className="form-field" style={{ marginBottom: 10 }}>
+                      <label className="form-label">Negotiated Subtotal (ZMW)</label>
+                      <input
+                        type="number" step="0.01" min="0"
+                        className="form-input"
+                        value={quoteEditForm.subtotal}
+                        onChange={e => setQuoteEditForm(f => ({ ...f, subtotal: e.target.value }))}
+                        placeholder="Enter negotiated price..."
+                      />
+                      {quoteEditForm.subtotal && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                          VAT (16%): K {(parseFloat(quoteEditForm.subtotal || '0') * 0.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {' '}→ Total: K {(parseFloat(quoteEditForm.subtotal || '0') * 1.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="form-field" style={{ marginBottom: 10 }}>
+                      <label className="form-label">Notes <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+                      <textarea
+                        className="form-input"
+                        rows={2}
+                        value={quoteEditForm.notes}
+                        onChange={e => setQuoteEditForm(f => ({ ...f, notes: e.target.value }))}
+                        placeholder="Any notes for the customer..."
+                        style={{ resize: 'vertical' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditingQuote(false)} disabled={savingQuoteEdit}>Cancel</button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        disabled={savingQuoteEdit || !quoteEditForm.subtotal}
+                        onClick={async () => {
+                          setSavingQuoteEdit(true);
+                          try {
+                            await quotationsApi.update(quotation.id, parseFloat(quoteEditForm.subtotal), quoteEditForm.notes);
+                            await loadJobDetails();
+                            setEditingQuote(false);
+                          } catch (err: any) {
+                            alert('Failed to update quotation: ' + err.message);
+                          } finally {
+                            setSavingQuoteEdit(false);
+                          }
+                        }}
+                      >
+                        {savingQuoteEdit ? 'Saving...' : 'Save Price'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>Negotiated Subtotal</span>
                       <span style={{ fontWeight: 600 }}>K {quotation.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Tax (VAT {quotation.taxRate}%)</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>VAT ({quotation.taxRate}%)</span>
                       <span style={{ color: 'var(--text-secondary)' }}>K {quotation.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
                       <span>Total Quote Amount</span>
                       <span style={{ color: 'var(--accent-indigo)' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {quotation.notes && (
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
+                        {quotation.notes}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Action Buttons */}
+
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
                 <a 
                   href={`/dashboard/jobs/${id}/print-quotation`} 
