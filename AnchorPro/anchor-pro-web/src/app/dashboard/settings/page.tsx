@@ -394,6 +394,24 @@ export default function SettingsPage() {
     finally { setSavingDtCat(false); }
   };
 
+  const handleDeleteJobType = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this job type?')) return;
+    try {
+      await referenceDataApi.deleteJobType(id);
+      setJobTypes(jobTypes.filter((jt: any) => jt.id !== id));
+      show('Job type deleted');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+  };
+
+  const handleDeleteDtCat = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this downtime category?')) return;
+    try {
+      await referenceDataApi.deleteDowntimeCategory(id);
+      setDowntimeCategories(downtimeCategories.filter((cat: any) => cat.id !== id));
+      show('Downtime category deleted');
+    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+  };
+
   const handleSaveNotifications = async () => {
     setSavingNotif(true);
     try {
@@ -764,6 +782,12 @@ export default function SettingsPage() {
               ) : jobTypes.map((jt: any) => (
                 <div key={jt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 7, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{jt.name}</span>
+                  <button onClick={() => handleDeleteJobType(jt.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 4, transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-rose)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -783,6 +807,12 @@ export default function SettingsPage() {
               ) : downtimeCategories.map((cat: any) => (
                 <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 7, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{cat.name}</span>
+                  <button onClick={() => handleDeleteDtCat(cat.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 4, transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-rose)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               ))}
             </div>
