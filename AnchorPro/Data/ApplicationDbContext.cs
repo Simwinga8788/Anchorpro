@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+
 namespace AnchorPro.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentTenantService tenantService) : IdentityDbContext<ApplicationUser>(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentTenantService tenantService) : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
     public int? CurrentTenantId { get; } = tenantService.TenantId;
     public bool IgnoreTenantFilter { get; set; }
@@ -37,6 +39,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<Entities.Quotation> Quotations { get; set; }
+
+    // Data Protection Keys
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     // Platform/System Level
     public DbSet<Entities.Tenant> Tenants { get; set; }

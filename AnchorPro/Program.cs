@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 using AnchorPro.Data;
 using AnchorPro.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,9 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<ApplicationDbContext>();
 
 builder.Services.AddAuthentication(options =>
     {

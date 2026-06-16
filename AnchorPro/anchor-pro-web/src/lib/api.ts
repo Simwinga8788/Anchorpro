@@ -8,6 +8,9 @@ async function apiFetch<T>(path: string): Promise<T> {
     cache: 'no-store',
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
+      window.location.href = '/login';
+    }
     let errMsg = `API error ${res.status} on ${path}`;
     try {
       const text = await res.text();
@@ -56,6 +59,9 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
+      window.location.href = '/login';
+    }
     let errMsg = `POST error ${res.status} on ${path}`;
     try {
       const text = await res.text();
@@ -78,6 +84,9 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
     body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
+      window.location.href = '/login';
+    }
     let errMsg = `PUT error ${res.status} on ${path}`;
     try {
       const text = await res.text();
@@ -100,6 +109,9 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
     body: JSON.stringify(sanitized),
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
+      window.location.href = '/login';
+    }
     let errMsg = `PATCH error ${res.status} on ${path}`;
     try {
       const text = await res.text();
@@ -120,6 +132,9 @@ async function apiDelete(path: string): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
+      window.location.href = '/login';
+    }
     let errMsg = `DELETE error ${res.status} on ${path}`;
     try {
       const text = await res.text();
