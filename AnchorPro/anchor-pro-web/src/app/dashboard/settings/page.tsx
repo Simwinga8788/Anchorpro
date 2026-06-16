@@ -111,7 +111,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'workspace',    icon: <Building2 size={15} />, label: 'General' },
       { id: 'departments',  icon: <Users size={15} />,     label: 'Departments' },
-      { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Nomenclature' },
+      { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Terminology' },
     ],
   },
   {
@@ -342,7 +342,7 @@ export default function SettingsPage() {
         await settingsApi.upsert(`Dict.${key}`, value);
       }
       await refreshDictionary();
-      show('Nomenclature updated across the application');
+      show('Terminology updated across the application');
     } catch (e: any) { show(e.message || 'Failed', 'error'); }
     finally { setSavingDict(false); }
   };
@@ -667,9 +667,9 @@ export default function SettingsPage() {
         </SectionCard>
       );
 
-      // ── Nomenclature ───────────────────────────────────────────────────────
+      // ── Terminology ───────────────────────────────────────────────────────
       case 'dictionary': return (
-        <SectionCard title="Dynamic Nomenclature" subtitle="Rename core terms to match your industry — changes apply everywhere in the platform"
+        <SectionCard title="Custom Terminology" subtitle="Rename core terms to match your industry — changes apply everywhere in the platform"
           icon={<BookA size={16} />}
           footer={<SaveBtn loading={savingDict} onClick={handleSaveDictionary} label="Apply Changes" />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
