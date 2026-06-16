@@ -42,6 +42,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useDictionary();
   const [saving, setSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [form, setForm] = useState({
@@ -196,7 +197,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
           </div>
 
           <div className="form-field" style={{ marginBottom: 14 }}>
-            <label className="form-label"><User size={11} style={{ marginRight: 4 }} />Assigned Technician</label>
+            <label className="form-label"><User size={11} style={{ marginRight: 4 }} />Assigned {t('Technicians', 'Technician')}</label>
             <select
               className="form-select"
               value={form.assignedTechnicianId}
@@ -601,7 +602,7 @@ export default function JobCardsPage() {
               <th>{t('Equipment', 'Equipment')}</th>
               <th>Description</th>
               <th>Type</th>
-              <th>Technician</th>
+              <th>{t('Technicians', 'Technician')}</th>
               <th>Scheduled Start</th>
               <th>Priority</th>
               <th>Status</th>
