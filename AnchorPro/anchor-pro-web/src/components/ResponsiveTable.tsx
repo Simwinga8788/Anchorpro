@@ -43,5 +43,5 @@ export default function ResponsiveTable({ children }: { children: React.ReactNod
     return () => observer.disconnect();
   }, []);
 
-  return <div ref={ref}>{children}</div>;
+  return <div ref={ref} style={{ width: '100%', overflowX: 'auto' }}>{children}</div>;
 }
