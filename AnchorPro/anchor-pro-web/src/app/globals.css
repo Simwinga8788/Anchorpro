@@ -369,9 +369,11 @@ html, body {
   }
   .data-table tr:hover td { background: transparent; }
   .data-table td {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 4px 0; border-bottom: 1px solid var(--border-subtle);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
     font-size: 13px; gap: 8px;
+    word-break: break-word; white-space: normal;
+    text-align: right;
   }
   .data-table td:last-child { border-bottom: none; }
   /* Show column name as label via data-label attribute (set in JS) */
