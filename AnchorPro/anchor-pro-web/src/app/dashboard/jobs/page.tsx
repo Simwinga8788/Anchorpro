@@ -579,13 +579,14 @@ export default function JobCardsPage() {
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input className="search-input" style={{ width: '100%', paddingLeft: 30 }} placeholder="Search by job ID, description, or asset…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 2 }}>
             {STATUSES.map(s => (
               <button key={s} onClick={() => setStatusFilter(s)} className="btn btn-sm" style={{
                 background: statusFilter === s ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)',
                 color: statusFilter === s ? 'white' : 'var(--text-secondary)',
                 border: '1px solid ' + (statusFilter === s ? 'var(--accent-blue)' : 'var(--border-subtle)'),
                 whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}>{s}</button>
             ))}
           </div>
