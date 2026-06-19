@@ -84,7 +84,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           <Menu size={18} />
         </button>
 
-        <div ref={workspaceRef} style={{ position: 'relative' }}>
+        <div ref={workspaceRef} style={{ position: 'relative', minWidth: 0, flex: 1 }}>
           {displayBreadcrumb && (
             <div 
               style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: isPlatformOwner ? 'pointer' : 'default' }}

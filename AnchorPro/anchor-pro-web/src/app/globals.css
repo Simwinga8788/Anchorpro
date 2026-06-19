@@ -88,7 +88,7 @@ html, body {
   justify-content: space-between; padding: 0 20px; flex-shrink: 0; position: sticky; top: 0; z-index: 100;
 }
 .topbar-breadcrumb { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); line-height: 1; }
-.topbar-title { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 19.5px; font-weight: 600; color: var(--text-primary); line-height: 1.2; letter-spacing: -0.01em; }
+.topbar-title { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 19.5px; font-weight: 600; color: var(--text-primary); line-height: 1.2; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-hamburger { display: none; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; border-radius: var(--radius-md); }
 .topbar-search-wrap { display: block; }
 .search-input {
