@@ -94,7 +94,6 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
               {isPlatformOwner && <ChevronDown size={12} style={{ color: 'var(--text-muted)', marginTop: -1 }} />}
             </div>
           )}
-          <div className="topbar-title">{title}</div>
           
           {workspaceMenuOpen && isPlatformOwner && tenants.length > 0 && (
             <div style={{
