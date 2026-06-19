@@ -1311,7 +1311,7 @@ export default function SettingsPage() {
         <div className="settings-container">
 
           {/* ── Sidebar ── */}
-          <div className="settings-sidebar">
+          <div className="settings-sidebar" style={{ minWidth: 0 }}>
             <div className="card settings-sidebar-card">
               {NAV_GROUPS.map(group => (
                 <div key={group.label}>
