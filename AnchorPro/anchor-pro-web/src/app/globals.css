@@ -436,7 +436,7 @@ html, body {
    RESPONSIVE — Small Phone (≤480px)
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .stats-grid-4 { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stats-grid-4 { grid-template-columns: 1fr; gap: 8px; }
   .stats-grid-3 { grid-template-columns: 1fr; }
   .page-content { padding: 10px 8px; }
   .page-title { font-size: 18px; }

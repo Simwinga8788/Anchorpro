@@ -176,18 +176,18 @@ export default function IntelligencePage() {
         ].map(s => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div>
-                  <div className="stat-label">{s.label}</div>
+            <div key={s.label} className="stat-card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
                   {s.value === null
-                    ? <Skeleton h={28} w="70px" />
-                    : <div className="stat-value" style={{ color: s.color, fontSize: 22 }}>{s.value}</div>
+                    ? <Skeleton h={36} w="100px" />
+                    : <div className="stat-value" style={{ color: s.color, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{s.value}</div>
                   }
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>{s.sub}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 500 }}>{s.sub}</div>
                 </div>
-                <div className="stat-icon" style={{ background: s.color + '20' }}>
-                  <Icon size={16} style={{ color: s.color }} />
+                <div className="stat-icon" style={{ background: s.color + '20', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={24} style={{ color: s.color }} />
                 </div>
               </div>
             </div>
@@ -218,15 +218,17 @@ export default function IntelligencePage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={profitChart} margin={{ top: 4, right: 12, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fill: '#6b6b6b', fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `K${(v/1000).toFixed(0)}k`} />
+                <BarChart data={profitChart} margin={{ top: 10, right: 12, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `K${(v/1000).toFixed(0)}k`} dx={-10} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ fontWeight: 600 }}
                     formatter={(v: any, name: string) => [`K ${Number(v).toLocaleString()}`, name]}
                   />
-                  <Bar dataKey="revenue" name="Revenue" fill="#0F9D67" radius={[4, 4, 0, 0]} barSize={18} />
-                  <Bar dataKey="cost"    name="Cost"    fill="#EB5757" radius={[4, 4, 0, 0]} barSize={18} />
+                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent-emerald)" radius={[6, 6, 0, 0]} barSize={24} />
+                  <Bar dataKey="cost"    name="Cost"    fill="var(--accent-rose)" radius={[6, 6, 0, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -290,24 +292,25 @@ export default function IntelligencePage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={trendChart} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <AreaChart data={trendChart} margin={{ top: 10, right: 16, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0F9D67" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#0F9D67" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--accent-emerald)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--accent-emerald)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2383E2" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#2383E2" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="date" tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="date" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ fontWeight: 600 }}
                   />
-                  <Area type="monotone" dataKey="completed" name="Completed" stroke="#0F9D67" strokeWidth={2} fill="url(#completedGrad)" dot={false} />
-                  <Area type="monotone" dataKey="created"   name="Created"   stroke="#2383E2" strokeWidth={2} fill="url(#createdGrad)"   dot={false} />
+                  <Area type="monotone" dataKey="completed" name="Completed" stroke="var(--accent-emerald)" strokeWidth={3} fill="url(#completedGrad)" dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Area type="monotone" dataKey="created"   name="Created"   stroke="var(--accent-blue)" strokeWidth={3} fill="url(#createdGrad)"   dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
