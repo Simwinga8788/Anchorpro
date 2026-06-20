@@ -138,7 +138,7 @@ const NAV_GROUPS = [
     label: 'System',
     items: [
       { id: 'billing',      icon: <CreditCard size={15} />, label: 'Plans & Billing' },
-      { id: 'tools',        icon: <Database size={15} />,   label: 'Data & Tools' },
+
     ],
   },
 ];
@@ -156,7 +156,7 @@ export default function SettingsPage() {
   const [showInviteSlide, setShowInviteSlide] = useState(false);
 
   // ── Billing ─────────────────────────────────────────────────────────────────
-  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [upgrading, setUpgrading] = useState(false);
 
@@ -237,8 +237,8 @@ export default function SettingsPage() {
     setProfileForm({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
 
     subscriptionsApi.getCurrent()
-      .then(r => setCurrentPlan(r?.plan ?? { name: 'Anchor Pro', description: 'Full access', priceMonthly: 0 }))
-      .catch(() => setCurrentPlan({ name: 'Anchor Pro', description: 'Full access', priceMonthly: 0 }));
+      .then(r => setSubscriptionData(r))
+      .catch(() => setSubscriptionData(null));
     subscriptionsApi.getPlans().then(setAllPlans).catch(() => {});
 
     departmentsApi.getAll().then(setDepartments).catch(() => setDepartments([]));
@@ -499,7 +499,7 @@ export default function SettingsPage() {
       const res = await subscriptionsApi.upgrade({ planId });
       show((res as any)?.message || 'Plan upgrade requested');
       setShowUpgradeModal(false);
-      subscriptionsApi.getCurrent().then(r => setCurrentPlan(r?.plan ?? currentPlan)).catch(() => {});
+      subscriptionsApi.getCurrent().then(setSubscriptionData).catch(() => {});
     } catch (e: any) { show(e.message || 'Upgrade failed', 'error'); }
     finally { setUpgrading(false); }
   };
@@ -896,11 +896,7 @@ export default function SettingsPage() {
             <div>
               {[
                 { id: 'api',     icon: '⚙️', name: 'REST API Access',   status: 'configured',     desc: 'Public API for custom integrations & BI tools' },
-                { id: 'webhook', icon: '🔗', name: 'Webhooks',          status: 'not-configured', desc: 'Push real-time events to external systems on job changes' },
                 { id: 'email',   icon: '📧', name: 'Email (SMTP)',      status: isSmtpConfigured ? 'configured' : 'not-configured', desc: 'Send job notifications and reports by email' },
-                { id: 'sms',     icon: '📱', name: 'SMS Gateway',       status: 'not-configured', desc: 'Alert technicians via SMS on urgent jobs' },
-                { id: 'retrix',  icon: '🚗', name: 'Retrix Car Rental', status: 'not-configured', desc: 'Sync damage reports to Anchor Pro service orders automatically' },
-                { id: 'google',  icon: '🔵', name: 'Google Workspace',  status: 'not-configured', desc: 'Calendar sync and Drive report exports' },
               ].map((intg, i, arr) => {
                 const ok = intg.status === 'configured';
                 return (
@@ -944,10 +940,6 @@ export default function SettingsPage() {
               <button className="btn btn-secondary btn-sm" onClick={() => window.open('https://anchorpro-production.up.railway.app/swagger', '_blank')}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <ExternalLink size={12} /> View API Docs
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => show('API key generation coming soon — contact support@anchorpro.co.zm', 'info')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Key size={12} /> Generate API Key
               </button>
             </div>
           </SectionCard>
@@ -1060,18 +1052,19 @@ export default function SettingsPage() {
       // ── Billing ────────────────────────────────────────────────────────────
       case 'billing': return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title={`Current Plan: ${currentPlan?.name || '...'}`} subtitle={currentPlan?.description || ''} icon={<CreditCard size={16} />}>
+          <SectionCard title={`Current Plan: ${subscriptionData?.plan?.name || 'Anchor Pro'}`} subtitle={subscriptionData?.plan?.description || 'Full Access'} icon={<CreditCard size={16} />}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, fontFamily: 'Barlow Condensed, sans-serif' }}>
-                  K {(currentPlan?.priceMonthly || 0).toLocaleString()}
+                  K {(subscriptionData?.plan?.priceMonthly || 0).toLocaleString()}
                   <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 6, fontWeight: 600 }}>Billed monthly · Cancel anytime</div>
+                <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 6, fontWeight: 600 }}>
+                  {subscriptionData?.subscription?.status === 'Trial' ? `Trial active · ${subscriptionData.daysRemaining} days remaining` : 'Billed monthly · Cancel anytime'}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-secondary btn-sm">Billing Portal</button>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Upgrade Plan</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Change Plan</button>
               </div>
             </div>
             <div className="settings-grid-3">
@@ -1085,49 +1078,6 @@ export default function SettingsPage() {
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Barlow Condensed, sans-serif' }}>
                     {s.used} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>/ {s.max} {s.unit}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        </div>
-      );
-
-      // ── Data & Tools ───────────────────────────────────────────────────────
-      case 'tools': return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title="Demo Data Generator" subtitle="Instantly populate your workspace with sample industrial data for demos" icon={<Database size={16} />}
-            footer={
-              <button className="btn btn-primary btn-sm" disabled={seeding} onClick={async () => {
-                setSeeding(true);
-                await new Promise(r => setTimeout(r, 1200));
-                show('Demo seeding not available in this build', 'info');
-                setSeeding(false);
-              }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                {seeding ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Generating...</> : <><Database size={13} />Generate Sample Data</>}
-              </button>
-            }>
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              Populates your workspace with realistic industrial assets (CAT Trucks, Komatsu Excavators), historical job cards, and stocked inventory.
-              Perfect for demos and onboarding new team members.
-            </p>
-          </SectionCard>
-
-          <SectionCard title="Data Export" subtitle="Export your workspace data for backup or migration" icon={<RefreshCw size={16} />}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { label: 'Export All Assets',    desc: 'Download equipment registry as Excel' },
-                { label: 'Export Job Cards',     desc: 'Full service order history as Excel' },
-                { label: 'Export Inventory',     desc: 'Current parts catalogue and stock levels' },
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{item.desc}</div>
-                  </div>
-                  <button className="btn btn-secondary btn-sm" onClick={() => show('Export coming soon', 'info')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ExternalLink size={12} /> Export
-                  </button>
                 </div>
               ))}
             </div>
@@ -1257,7 +1207,7 @@ export default function SettingsPage() {
           {allPlans.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>Loading plans...</div>
           ) : allPlans.map(plan => {
-            const active = currentPlan?.id === plan.id;
+            const active = subscriptionData?.plan?.id === plan.id;
             return (
               <div key={plan.id} style={{ padding: 18, border: `1px solid ${active ? 'var(--accent-blue)' : 'var(--border-subtle)'}`, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: active ? 'var(--accent-blue-dim)' : 'transparent' }}>
                 <div style={{ flex: 1, paddingRight: 16 }}>
