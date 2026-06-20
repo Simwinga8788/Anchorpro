@@ -223,6 +223,15 @@ export default function SettingsPage() {
   // ── Seed ─────────────────────────────────────────────────────────────────────
   const [seeding, setSeeding] = useState(false);
 
+  // ── Integrations (SMTP) ──────────────────────────────────────────────────────
+  const [smtpForm, setSmtpForm] = useState({
+    Smtp_Host: '', Smtp_Port: '587', Smtp_User: '', Smtp_Pass: '',
+    Email_From_Name: '', Email_From_Address: ''
+  });
+  const [showSmtpModal, setShowSmtpModal] = useState(false);
+  const [savingSmtp, setSavingSmtp] = useState(false);
+  const [isSmtpConfigured, setIsSmtpConfigured] = useState(false);
+
   // ─── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     setProfileForm({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
@@ -266,6 +275,15 @@ export default function SettingsPage() {
         notifyWeeklySummary:      g('Notify.WeeklySummary',         'true') === 'true',
         notifyCriticalAsset:      g('Notify.CriticalAsset',         'true') === 'true',
       }));
+      setSmtpForm({
+        Smtp_Host: g('Smtp_Host', ''),
+        Smtp_Port: g('Smtp_Port', '587'),
+        Smtp_User: g('Smtp_User', ''),
+        Smtp_Pass: g('Smtp_Pass', ''),
+        Email_From_Name: g('Email_From_Name', ''),
+        Email_From_Address: g('Email_From_Address', ''),
+      });
+      setIsSmtpConfigured(!!g('Smtp_Host', ''));
     }).catch(() => {});
   }, [user]);
 
@@ -398,9 +416,28 @@ export default function SettingsPage() {
     if (!confirm('Are you sure you want to delete this job type?')) return;
     try {
       await referenceDataApi.deleteJobType(id);
-      setJobTypes(jobTypes.filter((jt: any) => jt.id !== id));
-      show('Job type deleted');
-    } catch (e: any) { show(e.message || 'Failed', 'error'); }
+      setJobTypes(d => d.filter((x: any) => x.id !== id));
+      show('Job type removed');
+    } catch (e: any) { show(e.message || 'Failed to delete', 'error'); }
+  };
+
+  const handleSaveSmtp = async () => {
+    setSavingSmtp(true);
+    try {
+      await settingsApi.upsert('Smtp_Host', smtpForm.Smtp_Host, 'SMTP Host Address', 'Integrations');
+      await settingsApi.upsert('Smtp_Port', smtpForm.Smtp_Port, 'SMTP Port', 'Integrations');
+      await settingsApi.upsert('Smtp_User', smtpForm.Smtp_User, 'SMTP Username', 'Integrations');
+      await settingsApi.upsert('Smtp_Pass', smtpForm.Smtp_Pass, 'SMTP Password', 'Integrations');
+      await settingsApi.upsert('Email_From_Name', smtpForm.Email_From_Name, 'Email From Name', 'Integrations');
+      await settingsApi.upsert('Email_From_Address', smtpForm.Email_From_Address, 'Email From Address', 'Integrations');
+      setIsSmtpConfigured(!!smtpForm.Smtp_Host);
+      setShowSmtpModal(false);
+      show('SMTP configuration saved successfully');
+    } catch (e: any) {
+      show(e.message || 'Failed to save SMTP configuration', 'error');
+    } finally {
+      setSavingSmtp(false);
+    }
   };
 
   const handleDeleteDtCat = async (id: number) => {
@@ -684,7 +721,7 @@ export default function SettingsPage() {
                 border: '1px solid var(--border-subtle)', alignItems: 'center',
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>"{term.default}"</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>&quot;{term.default}&quot;</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{term.hint}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -860,7 +897,7 @@ export default function SettingsPage() {
               {[
                 { id: 'api',     icon: '⚙️', name: 'REST API Access',   status: 'configured',     desc: 'Public API for custom integrations & BI tools' },
                 { id: 'webhook', icon: '🔗', name: 'Webhooks',          status: 'not-configured', desc: 'Push real-time events to external systems on job changes' },
-                { id: 'email',   icon: '📧', name: 'Email (SMTP)',      status: 'not-configured', desc: 'Send job notifications and reports by email' },
+                { id: 'email',   icon: '📧', name: 'Email (SMTP)',      status: isSmtpConfigured ? 'configured' : 'not-configured', desc: 'Send job notifications and reports by email' },
                 { id: 'sms',     icon: '📱', name: 'SMS Gateway',       status: 'not-configured', desc: 'Alert technicians via SMS on urgent jobs' },
                 { id: 'retrix',  icon: '🚗', name: 'Retrix Car Rental', status: 'not-configured', desc: 'Sync damage reports to Anchor Pro service orders automatically' },
                 { id: 'google',  icon: '🔵', name: 'Google Workspace',  status: 'not-configured', desc: 'Calendar sync and Drive report exports' },
@@ -886,7 +923,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <button className={`btn btn-sm ${ok ? 'btn-secondary' : 'btn-primary'}`}
-                      onClick={() => show(`${intg.name} configuration coming soon`, 'info')}>
+                      onClick={() => intg.id === 'email' ? setShowSmtpModal(true) : show(`${intg.name} configuration coming soon`, 'info')}>
                       {ok ? 'Manage' : 'Configure'}
                     </button>
                   </div>
@@ -1254,7 +1291,7 @@ export default function SettingsPage() {
             This will permanently delete the <strong>Anchor Pro</strong> workspace, all job cards, inventory, and team associations.
           </p>
           <div className="form-field" style={{ marginBottom: 16 }}>
-            <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type "PERMANENTLY DELETE" to confirm</label>
+            <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type &quot;PERMANENTLY DELETE&quot; to confirm</label>
             <input className="form-input" placeholder="" />
           </div>
           <button className="btn btn-primary" style={{ background: 'var(--accent-rose)', border: 'none', width: '100%' }}>
@@ -1297,6 +1334,46 @@ export default function SettingsPage() {
           <button className="btn btn-primary" onClick={handleInviteUser} disabled={savingInvite}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
             {savingInvite ? <><Loader2 size={14} className="spin" />Creating...</> : <><Plus size={14} />Create User Account</>}
+          </button>
+        </div>
+      </SlideOver>
+
+      {/* SMTP Configuration Slide */}
+      <SlideOver open={showSmtpModal} onClose={() => setShowSmtpModal(false)} title="Email (SMTP) Configuration" subtitle="Configure your email provider to send notifications and reports.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="settings-grid-2" style={{ gap: 14 }}>
+            <div className="form-field">
+              <label className="form-label">SMTP Host *</label>
+              <input className="form-input" value={smtpForm.Smtp_Host} onChange={e => setSmtpForm(f => ({ ...f, Smtp_Host: e.target.value }))} placeholder="smtp.example.com" />
+            </div>
+            <div className="form-field">
+              <label className="form-label">SMTP Port *</label>
+              <input className="form-input" value={smtpForm.Smtp_Port} onChange={e => setSmtpForm(f => ({ ...f, Smtp_Port: e.target.value }))} placeholder="587" />
+            </div>
+          </div>
+          <div className="settings-grid-2" style={{ gap: 14 }}>
+            <div className="form-field">
+              <label className="form-label">Username</label>
+              <input className="form-input" value={smtpForm.Smtp_User} onChange={e => setSmtpForm(f => ({ ...f, Smtp_User: e.target.value }))} placeholder="user@example.com" />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Password</label>
+              <input className="form-input" type="password" value={smtpForm.Smtp_Pass} onChange={e => setSmtpForm(f => ({ ...f, Smtp_Pass: e.target.value }))} placeholder="••••••••" />
+            </div>
+          </div>
+          <div className="settings-grid-2" style={{ gap: 14 }}>
+            <div className="form-field">
+              <label className="form-label">From Name</label>
+              <input className="form-input" value={smtpForm.Email_From_Name} onChange={e => setSmtpForm(f => ({ ...f, Email_From_Name: e.target.value }))} placeholder="Anchor Pro Notifications" />
+            </div>
+            <div className="form-field">
+              <label className="form-label">From Address *</label>
+              <input className="form-input" type="email" value={smtpForm.Email_From_Address} onChange={e => setSmtpForm(f => ({ ...f, Email_From_Address: e.target.value }))} placeholder="no-reply@example.com" />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={handleSaveSmtp} disabled={savingSmtp || !smtpForm.Smtp_Host}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+            {savingSmtp ? <><Loader2 size={14} className="spin" />Saving...</> : <><Save size={14} />Save Configuration</>}
           </button>
         </div>
       </SlideOver>

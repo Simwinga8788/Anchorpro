@@ -8,6 +8,7 @@ import {
 import { jobCardsApi, referenceDataApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import SlideOver from '@/components/SlideOver';
+import Link from 'next/link';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -219,9 +220,9 @@ function JobDetailPanel({ job }: { job: Job }) {
           </div>
         ))}
       </div>
-      <a href="/dashboard/jobs" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+      <Link href="/dashboard/jobs" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <Wrench size={14} /> Open in Job Cards
-      </a>
+      </Link>
     </div>
   );
 }

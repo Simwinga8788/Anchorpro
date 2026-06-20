@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import {
   BarChart3, Download, TrendingUp, Clock, CheckCircle2,
-  Users, Activity, AlertTriangle, FileSpreadsheet, RefreshCw
+  Users, Activity, AlertTriangle, FileSpreadsheet, RefreshCw,
+  Trash2, Play, Calendar, Plus, Loader2, Save
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -12,6 +13,7 @@ import {
 import { reportingApi, intelligenceApi, dashboardApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import SlideOver from '@/components/SlideOver';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,13 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'scheduled'>('analytics');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    name: '', type: '0', cronSchedule: '0 8 * * 1', recipients: '', isEnabled: true
+  });
+
   const scheduledReports  = useApiData(() => reportingApi.getSchedules());
   const jobCompletion     = useApiData(() => intelligenceApi.getSummary());
   const techPerformance   = useApiData(() => intelligenceApi.getTechnicianUtilization(90));
@@ -76,6 +85,42 @@ export default function ReportsPage() {
     downtimeAnalysis.refresh();
     performanceData.refresh();
     dashboardStats.refresh();
+    scheduledReports.refresh();
+  };
+
+  const handleCreateSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      await reportingApi.createSchedule({
+        name: scheduleForm.name,
+        type: parseInt(scheduleForm.type, 10),
+        cronSchedule: scheduleForm.cronSchedule,
+        recipients: scheduleForm.recipients,
+        isEnabled: scheduleForm.isEnabled
+      });
+      setShowScheduleModal(false);
+      scheduledReports.refresh();
+      setScheduleForm({ name: '', type: '0', cronSchedule: '0 8 * * 1', recipients: '', isEnabled: true });
+    } catch (e: any) {
+      alert(e.message || 'Failed to create schedule');
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const handleDeleteSchedule = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this schedule?')) return;
+    try {
+      await reportingApi.deleteSchedule(id);
+      scheduledReports.refresh();
+    } catch (e: any) { alert(e.message || 'Failed to delete'); }
+  };
+
+  const handleRunNow = async (id: number) => {
+    try {
+      await reportingApi.runNow(id);
+      alert('Report triggered. Recipients will receive it shortly.');
+    } catch (e: any) { alert(e.message || 'Failed to run report'); }
   };
 
   // ── Job Completion derived data (ExecutiveKpiSummary) ──
@@ -130,16 +175,38 @@ export default function ReportsPage() {
           <p className="page-subtitle">Live analytics from the intelligence engine</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary btn-sm" onClick={refresh}>
-            <RefreshCw size={13} /> Refresh
-          </button>
-          <button className="btn btn-primary btn-sm" disabled={!!exporting}
-            onClick={() => downloadReport('0', 'maintenance-report.xlsx')}>
-            <Download size={13} /> {exporting === 'maintenance' ? 'Downloading...' : 'Export'}
-          </button>
+          {activeTab === 'analytics' && (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={refresh}>
+                <RefreshCw size={13} /> Refresh
+              </button>
+              <button className="btn btn-primary btn-sm" disabled={!!exporting}
+                onClick={() => downloadReport('0', 'maintenance-report.xlsx')}>
+                <Download size={13} /> {exporting === '0' ? 'Downloading...' : 'Export'}
+              </button>
+            </>
+          )}
+          {activeTab === 'scheduled' && (
+            <button className="btn btn-primary btn-sm" onClick={() => setShowScheduleModal(true)}>
+              <Plus size={13} /> New Schedule
+            </button>
+          )}
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border-subtle)', marginBottom: 24 }}>
+        <button className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}
+          style={{ padding: '0 0 12px', background: 'none', border: 'none', borderBottom: activeTab === 'analytics' ? '2px solid var(--accent-blue)' : '2px solid transparent', color: activeTab === 'analytics' ? 'var(--accent-blue)' : 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+          Live Analytics
+        </button>
+        <button className={`tab-btn ${activeTab === 'scheduled' ? 'active' : ''}`} onClick={() => setActiveTab('scheduled')}
+          style={{ padding: '0 0 12px', background: 'none', border: 'none', borderBottom: activeTab === 'scheduled' ? '2px solid var(--accent-blue)' : '2px solid transparent', color: activeTab === 'scheduled' ? 'var(--accent-blue)' : 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+          Scheduled Reports
+        </button>
+      </div>
+
+      {activeTab === 'analytics' && (
+        <>
       {/* ── KPI Row ── */}
       <div className="stats-grid-4" style={{ marginBottom: 20 }}>
         {[
@@ -431,6 +498,103 @@ export default function ReportsPage() {
           </div>
         ))}
       </div>
+        </>
+      )}
+
+      {activeTab === 'scheduled' && (
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <div className="section-title">Automated Reports</div>
+              <div className="section-sub">Scheduled email deliveries</div>
+            </div>
+          </div>
+          <div className="table-scroll">
+            <ResponsiveTable>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Report Name</th>
+                    <th>Type</th>
+                    <th>Schedule (Cron)</th>
+                    <th>Recipients</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scheduledReports.loading ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px 0' }}><Skeleton /></td></tr>
+                  ) : (!scheduledReports.data || scheduledReports.data.length === 0) ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>No scheduled reports found</td></tr>
+                  ) : (
+                    scheduledReports.data.map((r: any) => (
+                      <tr key={r.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
+                        <td>{['Maintenance', 'Asset Perf.', 'Tech Prod.', 'Cost', 'Procurement', 'Audit'][r.type]}</td>
+                        <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.cronSchedule}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{r.recipients}</td>
+                        <td>
+                          <span className={`badge ${r.isEnabled ? 'badge-green' : 'badge-muted'}`}>{r.isEnabled ? 'Active' : 'Disabled'}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleRunNow(r.id)} style={{ padding: '4px 8px', marginRight: 8 }} title="Run Now">
+                            <Play size={14} />
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleDeleteSchedule(r.id)} style={{ padding: '4px 8px', color: 'var(--accent-rose)' }} title="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </ResponsiveTable>
+          </div>
+        </div>
+      )}
+
+      <SlideOver open={showScheduleModal} onClose={() => setShowScheduleModal(false)} title="New Scheduled Report" subtitle="Automate email delivery of intelligence reports.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Report Name *</label>
+            <input className="form-input" value={scheduleForm.name} onChange={e => setScheduleForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Weekly Executive Summary" />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Report Type</label>
+            <select className="form-select" value={scheduleForm.type} onChange={e => setScheduleForm(f => ({ ...f, type: e.target.value }))}>
+              <option value="0">Monthly Maintenance Summary</option>
+              <option value="1">Asset Performance</option>
+              <option value="2">Technician Productivity</option>
+              <option value="3">Cost Analysis</option>
+              <option value="4">Procurement Summary</option>
+              <option value="5">Departmental Audit</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Schedule</label>
+            <select className="form-select" value={scheduleForm.cronSchedule} onChange={e => setScheduleForm(f => ({ ...f, cronSchedule: e.target.value }))}>
+              <option value="0 8 * * *">Daily at 08:00</option>
+              <option value="0 8 * * 1">Weekly (Monday 08:00)</option>
+              <option value="0 8 * * 5">Weekly (Friday 08:00)</option>
+              <option value="0 8 1 * *">Monthly (1st at 08:00)</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Recipients (comma separated) *</label>
+            <input className="form-input" value={scheduleForm.recipients} onChange={e => setScheduleForm(f => ({ ...f, recipients: e.target.value }))} placeholder="ceo@company.com, manager@company.com" />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <input type="checkbox" checked={scheduleForm.isEnabled} onChange={e => setScheduleForm(f => ({ ...f, isEnabled: e.target.checked }))} id="enable-toggle" style={{ width: 16, height: 16 }} />
+            <label htmlFor="enable-toggle" style={{ fontSize: 14, color: 'var(--text-primary)', cursor: 'pointer' }}>Enable this schedule immediately</label>
+          </div>
+          <button className="btn btn-primary" onClick={handleCreateSchedule} disabled={savingSchedule || !scheduleForm.name || !scheduleForm.recipients}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+            {savingSchedule ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />Saving...</> : <><Save size={14} />Create Schedule</>}
+          </button>
+        </div>
+      </SlideOver>
 
       <style>{`
         @keyframes pulse {
