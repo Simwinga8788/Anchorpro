@@ -260,11 +260,15 @@ export default function InvoicesPage() {
             { label: 'Unpaid Invoices', value: snapshot.unpaidInvoiceCount ?? 0, color: 'var(--accent-rose)', icon: <FileText size={16} /> },
           ].map(s => (
             <div key={s.label} className="stat-card">
-              <div className="stat-icon" style={{ background: s.color + '20' }}>
-                <span style={{ color: s.color }}>{s.icon}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="stat-label">{s.label}</div>
+                  <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                </div>
+                <div className="stat-icon" style={{ background: s.color + '20' }}>
+                  <span style={{ color: s.color }}>{s.icon}</span>
+                </div>
               </div>
-              <div className="stat-label">{s.label}</div>
-              <div className="stat-value" style={{ fontSize: 24, color: s.color }}>{s.value}</div>
             </div>
           ))}
         </div>

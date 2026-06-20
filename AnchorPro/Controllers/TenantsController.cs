@@ -53,6 +53,21 @@ namespace AnchorPro.Controllers
             _context.IgnoreTenantFilter = true;
             var tenants = await _context.Tenants
                 .OrderBy(t => t.Name)
+                .Select(t => new
+                {
+                    t.Id,
+                    Name = t.Name,
+                    Status = t.IsActive ? "Active" : "Deactivated",
+                    Users = _context.Users.Count(u => u.TenantId == t.Id),
+                    Plan = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id && (s.Status == "Active" || s.Status == "Trial"))
+                        .Select(s => s.SubscriptionPlan != null ? s.SubscriptionPlan.Name : "N/A")
+                        .FirstOrDefault(),
+                    MRR = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id && s.Status == "Active")
+                        .Select(s => s.SubscriptionPlan != null ? s.SubscriptionPlan.MonthlyPrice : 0)
+                        .FirstOrDefault()
+                })
                 .ToListAsync();
 
             return Ok(tenants);

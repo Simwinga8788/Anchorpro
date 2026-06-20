@@ -560,13 +560,15 @@ export default function JobCardsPage() {
           { label: 'Completed',        value: jobs.filter(j => j.status === 3 || j.status === 4).length, color: 'var(--accent-emerald)', icon: <CheckCircle2 size={15} /> },
           { label: 'Critical Priority',value: jobs.filter(j => j.priority === 3).length, color: 'var(--accent-rose)',  icon: <AlertTriangle size={15} /> },
         ].map(s => (
-          <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
-            <div className="stat-icon" style={{ background: s.color + '20', marginBottom: 0 }}>
-              <span style={{ color: s.color }}>{s.icon}</span>
-            </div>
-            <div>
-              <div className="stat-value" style={{ fontSize: 22, color: s.color }}>{s.value}</div>
-              <div className="stat-label" style={{ margin: 0 }}>{s.label}</div>
+          <div key={s.label} className="stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+              </div>
+              <div className="stat-icon" style={{ background: s.color + '20' }}>
+                <span style={{ color: s.color }}>{s.icon}</span>
+              </div>
             </div>
           </div>
         ))}

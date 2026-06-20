@@ -318,13 +318,15 @@ export default function ProcurementPage() {
           { label: 'Received',           value: receivedCount, color: 'var(--accent-emerald)', icon: <FileText size={16}/> },
           { label: 'Total Spend',        value: `K ${totalSpend.toLocaleString()}`, color: 'var(--accent-blue)', icon: <FileText size={16}/> },
         ].map(s => (
-          <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
-            <div className="stat-icon" style={{ background: s.color+'20', marginBottom: 0 }}>
-              <span style={{ color: s.color }}>{s.icon}</span>
-            </div>
-            <div>
-              <div className="stat-value" style={{ fontSize: typeof s.value==='string'?18:24, color: s.color }}>{s.value}</div>
-              <div className="stat-label" style={{ margin: 0 }}>{s.label}</div>
+          <div key={s.label} className="stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+              </div>
+              <div className="stat-icon" style={{ background: s.color + '20' }}>
+                <span style={{ color: s.color }}>{s.icon}</span>
+              </div>
             </div>
           </div>
         ))}

@@ -211,11 +211,15 @@ export default function AssetsPage() {
           { label: `Highest Cost ${equipLabel}`,  value: (() => { const top = Object.entries(assetCosts).sort((a,b)=>b[1]-a[1])[0]; if (!top) return '—'; const a = assets.find(x=>x.id===parseInt(top[0])); return a ? a.name.split(' ').slice(0,2).join(' ') : '—'; })(), color: 'var(--accent-rose)', icon: <AlertTriangle size={16} /> },
           { label: 'Total Value Tracked', value: `K ${Object.values(assetCosts).reduce((a,b)=>a+b,0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, color: 'var(--text-primary)', icon: <DollarSign size={16} /> }
         ].map((s, i) => (
-          <div key={i} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
-            <div className="stat-icon" style={{ background: s.color + '20', marginBottom: 0 }}><span style={{ color: s.color }}>{s.icon}</span></div>
-            <div>
-              <div className="stat-value" style={{ fontSize: 24, color: s.color }}>{s.value}</div>
-              <div className="stat-label" style={{ margin: 0 }}>{s.label}</div>
+          <div key={i} className="stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+              </div>
+              <div className="stat-icon" style={{ background: s.color + '20' }}>
+                <span style={{ color: s.color }}>{s.icon}</span>
+              </div>
             </div>
           </div>
         ))}

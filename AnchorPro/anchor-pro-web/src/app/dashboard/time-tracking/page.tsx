@@ -121,7 +121,7 @@ function TechRow({ row }: { row: TechRow }) {
           <td colSpan={8} style={{ background: 'var(--bg-secondary)', padding: 0 }}>
             <div style={{ padding: '12px 16px' }}>
               <ResponsiveTable>
-<table className="data-table" style={{ fontSize: 12 }}>
+            <table className="data-table">
                 <thead>
                   <tr>
                     <th>Job #</th>

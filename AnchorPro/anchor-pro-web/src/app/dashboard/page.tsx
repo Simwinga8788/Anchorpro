@@ -179,85 +179,83 @@ export default function DashboardPage() {
       <div className="stats-grid-4 animate-in stagger-1" style={{ marginBottom: 20 }}>
 
         {/* Jobs In Progress */}
-        <div className="stat-card" style={{ padding: '24px' }}>
+        <div className="stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jobs In Progress</div>
+              <div className="stat-label">Jobs In Progress</div>
               {stats.loading ? <Skeleton h={36} w={60} /> :
-                <div className="stat-value" style={{ fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{fmt(stats.data?.jobsInProgress)}</div>
+                <div className="stat-value">{fmt(stats.data?.jobsInProgress)}</div>
               }
-              <div className="stat-change" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500 }}>
+              <div className="stat-change">
                 <Clock size={14} /> {fmt(stats.data?.jobsScheduledToday)} scheduled today
               </div>
             </div>
-            <div className="stat-icon" style={{ background: 'var(--accent-blue-dim)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-icon" style={{ background: 'var(--accent-blue-dim)', width: 48, height: 48, borderRadius: 12 }}>
               <Wrench size={24} style={{ color: 'var(--accent-blue)' }} />
             </div>
           </div>
         </div>
 
         {/* Completed Today */}
-        <div className="stat-card" style={{ padding: '24px' }}>
+        <div className="stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Completed Today</div>
+              <div className="stat-label">Completed Today</div>
               {stats.loading ? <Skeleton h={36} w={60} /> :
-                <div className="stat-value" style={{ color: 'var(--accent-emerald)', fontSize: 32, fontWeight: 800, lineHeight: 1 }}>
+                <div className="stat-value" style={{ color: 'var(--accent-emerald)' }}>
                   {fmt(stats.data?.jobsCompletedToday)}
                 </div>
               }
-              <div className="stat-change" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-emerald)', fontSize: 13, fontWeight: 500 }}>
+              <div className="stat-change" style={{ color: 'var(--accent-emerald)' }}>
                 <TrendingUp size={14} /> {fmt(stats.data?.completedJobs)} total completed
               </div>
             </div>
-            <div className="stat-icon" style={{ background: 'var(--accent-emerald-dim)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-icon" style={{ background: 'var(--accent-emerald-dim)', width: 48, height: 48, borderRadius: 12 }}>
               <CheckCircle2 size={24} style={{ color: 'var(--accent-emerald)' }} />
             </div>
           </div>
         </div>
 
         {/* Overdue */}
-        <div className="stat-card" style={{ padding: '24px' }}>
+        <div className="stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Overdue Jobs</div>
+              <div className="stat-label">Overdue Jobs</div>
               {stats.loading ? <Skeleton h={36} w={40} /> :
                 <div className="stat-value" style={{
-                  color: (stats.data?.overdueJobs ?? 0) > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)',
-                  fontSize: 32, fontWeight: 800, lineHeight: 1
+                  color: (stats.data?.overdueJobs ?? 0) > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)'
                 }}>
                   {fmt(stats.data?.overdueJobs)}
                 </div>
               }
-              <div className="stat-change" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500 }}>
+              <div className="stat-change">
                 <TrendingDown size={14} />
                 {(stats.data?.overdueJobs ?? 0) > 0 ? 'Needs immediate action' : 'All on schedule'}
               </div>
             </div>
-            <div className="stat-icon" style={{ background: 'var(--accent-rose-dim)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-icon" style={{ background: 'var(--accent-rose-dim)', width: 48, height: 48, borderRadius: 12 }}>
               <AlertTriangle size={24} style={{ color: 'var(--accent-rose)' }} />
             </div>
           </div>
         </div>
 
         {/* Active Down Time */}
-        <div className="stat-card" style={{ padding: '24px' }}>
+        <div className="stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Down Time</div>
+              <div className="stat-label">Active Down Time</div>
               {stats.loading ? <Skeleton h={36} w={40} /> :
                 <div className="stat-value" style={{
-                  color: (stats.data?.activeBreakdownsCount ?? 0) > 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)',
-                  fontSize: 32, fontWeight: 800, lineHeight: 1
+                  color: (stats.data?.activeBreakdownsCount ?? 0) > 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)'
                 }}>
                   {fmt(stats.data?.activeBreakdownsCount)}
                 </div>
               }
-              <div className="stat-change" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500 }}>
+              <div className="stat-change">
                 <Activity size={14} /> {fmt(stats.data?.activeTechnicians)} active technicians
               </div>
             </div>
-            <div className="stat-icon" style={{ background: 'var(--accent-amber-dim)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-icon" style={{ background: 'var(--accent-amber-dim)', width: 48, height: 48, borderRadius: 12 }}>
               <BarChart3 size={24} style={{ color: 'var(--accent-amber)' }} />
             </div>
           </div>

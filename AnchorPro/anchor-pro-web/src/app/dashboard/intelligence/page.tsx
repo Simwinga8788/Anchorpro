@@ -176,17 +176,17 @@ export default function IntelligencePage() {
         ].map(s => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="stat-card" style={{ padding: '24px' }}>
+            <div key={s.label} className="stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div className="stat-label" style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+                  <div className="stat-label">{s.label}</div>
                   {s.value === null
                     ? <Skeleton h={36} w="100px" />
-                    : <div className="stat-value" style={{ color: s.color, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{s.value}</div>
+                    : <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
                   }
-                  <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 500 }}>{s.sub}</div>
+                  <div className="stat-change">{s.sub}</div>
                 </div>
-                <div className="stat-icon" style={{ background: s.color + '20', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="stat-icon" style={{ background: s.color + '20', width: 48, height: 48, borderRadius: 12 }}>
                   <Icon size={24} style={{ color: s.color }} />
                 </div>
               </div>

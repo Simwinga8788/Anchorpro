@@ -5,20 +5,7 @@ import { TrendingUp, Users, Activity, AlertCircle, CheckCircle2, Clock, Plus, Ar
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { platformApi } from '@/lib/api';
 
-// ── Fallback mock data (shown while API loads or when offline) ──────────────
-const MOCK_MRR: { month: string; mrr: number }[] = [
-  { month: 'Nov', mrr: 4000 }, { month: 'Dec', mrr: 5500 },
-  { month: 'Jan', mrr: 5500 }, { month: 'Feb', mrr: 6500 },
-  { month: 'Mar', mrr: 7200 }, { month: 'Apr', mrr: 8000 },
-];
-
-const MOCK_AUDIT = [
-  { action: 'User Login',       user: 'Platform Owner',           detail: 'Platform Owner authenticated',      time: '2m ago',  level: 'info' },
-  { action: 'Tenant Active',    user: 'System',                   detail: 'Subscription activated',             time: '1h ago',  level: 'success' },
-  { action: 'Payment Received', user: 'System',                   detail: 'K2,500 — Professional Plan',         time: '3h ago',  level: 'success' },
-  { action: 'New User Signup',  user: 'tech@anchor.com',          detail: 'Registered under tenant',            time: '5h ago',  level: 'info' },
-  { action: 'Failed Login',     user: 'unknown@test.com',         detail: '3 failed attempts — blocked',        time: '6h ago',  level: 'warning' },
-];
+import { subscriptionsApi, auditLogApi } from '@/lib/api';
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (active && payload?.length) {
@@ -37,17 +24,23 @@ export default function PlatformDashboard() {
   const [health,  setHealth]    = useState<any>(null);
   const [loading, setLoading]   = useState(true);
   const [offline, setOffline]   = useState(false);
+  const [mrrTrend, setMrrTrend] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const load = async () => {
     setLoading(true);
     try {
-      const [t, h] = await Promise.all([
+      const [t, h, mrr, auditRes] = await Promise.all([
         platformApi.getTenants(),
         platformApi.getHealth(),
+        subscriptionsApi.getMrrTrend(),
+        auditLogApi.getLogs({ pageSize: '5' })
       ]);
       setTenants(Array.isArray(t) ? t : []);
       setHealth(h);
+      setMrrTrend(Array.isArray(mrr) ? mrr : []);
+      setAuditLogs(auditRes?.logs || []);
       setOffline(false);
     } catch {
       setOffline(true);
@@ -110,7 +103,7 @@ export default function PlatformDashboard() {
           </div>
           <div style={{ padding: '16px 4px 10px' }}>
             <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={MOCK_MRR} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+              <AreaChart data={mrrTrend} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -210,19 +203,23 @@ export default function PlatformDashboard() {
             <span className="badge badge-blue">Live</span>
           </div>
           <div style={{ padding: '4px 0' }}>
-            {MOCK_AUDIT.map((log, i) => {
-              const color = log.level === 'success' ? 'var(--accent-emerald)' : log.level === 'warning' ? 'var(--accent-amber)' : 'var(--accent-blue)';
-              const Icon  = log.level === 'success' ? CheckCircle2 : log.level === 'warning' ? AlertCircle : Activity;
+            {auditLogs.length === 0 ? (
+               <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No recent activity</div>
+            ) : auditLogs.map((log: any, i: number) => {
+              const isWarning = log.action.toLowerCase().includes('fail') || log.action.toLowerCase().includes('delete');
+              const isSuccess = log.action.toLowerCase().includes('create') || log.action.toLowerCase().includes('active');
+              const color = isSuccess ? 'var(--accent-emerald)' : isWarning ? 'var(--accent-amber)' : 'var(--accent-blue)';
+              const Icon  = isSuccess ? CheckCircle2 : isWarning ? AlertCircle : Activity;
               return (
-                <div key={i} style={{ padding: '12px 20px', borderBottom: i < MOCK_AUDIT.length-1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div key={log.id ?? i} style={{ padding: '12px 20px', borderBottom: i < auditLogs.length-1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <Icon size={14} style={{ color, marginTop: 1, flexShrink: 0 }}/>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{log.action}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{log.time}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{log.detail}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{log.user}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{log.module} — {log.newValue ? `Value: ${log.newValue}` : 'Logged'}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>By: {log.changedBy}</div>
                   </div>
                 </div>
               );

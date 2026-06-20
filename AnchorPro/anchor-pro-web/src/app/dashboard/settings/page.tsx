@@ -988,12 +988,12 @@ export default function SettingsPage() {
             ) : users.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>No users found.</div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="table-scroll">
+                <table className="data-table">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <tr>
                       {['Name', 'Email', 'Employee #', 'Role', 'Status', ''].map(h => (
-                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                        <th key={h}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1002,7 +1002,7 @@ export default function SettingsPage() {
                       const active = u.isActive !== false;
                       const isCurrentUser = u.id === user?.id;
                       return (
-                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                        <tr key={u.id} style={{ transition: 'background 0.1s' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                           <td style={{ padding: '12px 12px' }}>

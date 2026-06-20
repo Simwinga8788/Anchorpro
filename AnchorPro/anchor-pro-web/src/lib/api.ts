@@ -1,8 +1,41 @@
 // Always use relative paths — Next.js rewrites proxy /api/* to backend
 const API_BASE = '';
 
+import { setOfflineData, getOfflineData, enqueueSync, getSyncQueue, dequeueSync } from './db';
+
+/**
+ * Flush the offline sync queue
+ */
+export async function flushSyncQueue() {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  const queue = await getSyncQueue();
+  for (const item of queue) {
+    try {
+      await fetch(item.url, {
+        method: item.method,
+        headers: item.headers,
+        body: item.body ? JSON.stringify(item.body) : undefined,
+      });
+      await dequeueSync(item.id);
+    } catch (err) {
+      console.error('Failed to sync offline item', item.id, err);
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushSyncQueue);
+}
+
 async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const offlineData = await getOfflineData(url);
+    if (offlineData) return offlineData as T;
+    throw new Error('Offline and no cached data available');
+  }
+
+  const res = await fetch(url, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
@@ -21,7 +54,12 @@ async function apiFetch<T>(path: string): Promise<T> {
   if (res.status === 204) return null as T;
   const text = await res.text();
   if (!text) return null as T;
-  return JSON.parse(text) as T;
+  const data = JSON.parse(text) as T;
+  
+  // Cache the response for offline use
+  await setOfflineData(url, data);
+  
+  return data;
 }
 
 function sanitizeRequestBody(body: any): any {
@@ -52,7 +90,14 @@ function sanitizeRequestBody(body: any): any {
 
 async function apiPost<T>(path: string, body: any): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+  
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' });
+    return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
+  }
+
+  const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -77,7 +122,14 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
 
 async function apiPut<T>(path: string, body: any): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' });
+    return { _offline: true, ...sanitized } as T;
+  }
+
+  const res = await fetch(url, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -126,7 +178,13 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
 }
 
 async function apiDelete(path: string): Promise<void> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' });
+    return;
+  }
+
+  const res = await fetch(url, {
     method: 'DELETE',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -486,6 +544,7 @@ export const settingsApi = {
 export const subscriptionsApi = {
   getPlans:          ()                                  => apiFetch<any[]>('/api/subscriptions/plans'),
   getCurrent:        ()                                  => apiFetch<any>('/api/subscriptions/current'),
+  getMrrTrend:       ()                                  => apiFetch<any[]>('/api/subscriptions/mrr-trend'),
   upgrade:           (data: any)                         => apiPost<any>('/api/subscriptions/upgrade', data),
   checkFeature:      (featureName: string)               => apiFetch<any>(`/api/subscriptions/features/${featureName}`),
   getHealth:         (subscriptionId: number)            => apiFetch<any>(`/api/subscriptions/health/${subscriptionId}`),

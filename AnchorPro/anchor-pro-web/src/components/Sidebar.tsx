@@ -204,9 +204,11 @@ export default function Sidebar() {
 
       {/* ── User footer ── */}
       <div style={{ padding: '8px 6px' }}>
-        <Link href="/dashboard/settings" className="sidebar-nav-item">
-          <Settings size={15} /> <span>Settings</span>
-        </Link>
+        {canAccess('/dashboard/settings', userRoles, isPlatformOwner) && (
+          <Link href="/dashboard/settings" className="sidebar-nav-item">
+            <Settings size={15} /> <span>Settings</span>
+          </Link>
+        )}
 
         {/* User row */}
         <div

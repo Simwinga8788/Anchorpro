@@ -43,7 +43,11 @@ export const ROUTE_ACCESS: Record<string, string[]> = {
   '/dashboard/contracts':      ['Admin'],
   '/dashboard/roles':          ['Admin', 'Supervisor', 'Planner'],
   '/dashboard/settings':       ['Admin'],
-  '/dashboard/my-assignments': ['Admin', 'Planner', 'Supervisor', 'Technician'],
+  '/dashboard/customers':      ['Admin', 'Planner', 'Supervisor'],
+  '/dashboard/tools':          ['Admin', 'Planner', 'Supervisor'],
+  '/dashboard/downtime':       ['Admin', 'Planner', 'Supervisor'],
+  '/dashboard/invoices':       ['Admin'],
+  '/dashboard/my-jobs':        ['Admin', 'Planner', 'Supervisor', 'Technician'],
 };
 
 /**

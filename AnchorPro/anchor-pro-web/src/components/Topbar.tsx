@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, ChevronDown, Sun, Moon, Menu, Check, RefreshCw, LogOut, Settings } from 'lucide-react';
+import { Bell, Search, ChevronDown, Sun, Moon, Menu, Check, RefreshCw, LogOut, Settings, WifiOff } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/ThemeContext';
 import { useNotifications } from '@/lib/NotificationsContext';
@@ -30,6 +30,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,19 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
       adminAccessApi.getTenants()
         .then(res => setTenants(Array.isArray(res) ? res : []))
         .catch(() => {});
+    }
+
+    // Offline detection
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    if (typeof window !== 'undefined') {
+      setIsOffline(!navigator.onLine);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
     }
   }, [isPlatformOwner]);
 
@@ -149,6 +163,18 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {isOffline && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'var(--accent-amber)', color: '#000',
+            padding: '4px 8px', borderRadius: '4px',
+            fontSize: 11, fontWeight: 600,
+          }}>
+            <WifiOff size={12} />
+            <span className="hidden sm:inline">Offline Mode</span>
+          </div>
+        )}
+
         {/* Search */}
         <div className="topbar-search-wrap" style={{ position: 'relative' }}>
           <Search size={13} style={{

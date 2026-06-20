@@ -238,17 +238,17 @@ export default function ReportsPage() {
           const Icon = s.icon;
           return (
             <div key={s.label} className="stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div className="stat-label">{s.label}</div>
                   {s.value === null
                     ? <Skeleton h={32} w="60px" />
                     : <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
                   }
-                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)' }}>{s.sub}</div>
+                  <div className="stat-change">{s.sub}</div>
                 </div>
                 <div className="stat-icon" style={{ background: s.dimColor }}>
-                  <Icon size={16} style={{ color: s.color }} />
+                  <Icon size={20} style={{ color: s.color }} />
                 </div>
               </div>
             </div>
