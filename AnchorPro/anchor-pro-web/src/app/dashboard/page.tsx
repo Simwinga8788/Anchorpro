@@ -94,7 +94,6 @@ export default function DashboardPage() {
 
   // Only documented endpoints
   const stats      = useApiData(() => dashboardApi.getStats());
-  const profitData = useApiData(() => intelligenceApi.getProfitability(30));
   const utilData   = useApiData(() => intelligenceApi.getTechnicianUtilization(30));
   const techData   = useApiData(() => referenceDataApi.getTechnicians());
 
@@ -104,7 +103,6 @@ export default function DashboardPage() {
 
   const refresh = () => {
     stats.refresh();
-    profitData.refresh();
     utilData.refresh();
     techData.refresh();
   };
@@ -116,14 +114,6 @@ export default function DashboardPage() {
   }));
 
   const PIE_COLORS = ['#2383E2', '#0F9D67', '#DFAB01', '#9065B0', '#EB5757', '#3b82f6'];
-
-  // Profitability trend from /api/intelligence/profitability (JobProfitabilityReport[])
-  // Fields: jobNumber, customerName, description, revenue, totalCost, profit, marginPercent, completedAt
-  const profitChart = (profitData.data ?? []).slice(0, 8).map((p: any) => ({
-    name: p.jobNumber ?? p.description ?? '—',
-    revenue: p.revenue ?? 0,
-    cost: p.totalCost ?? 0,
-  }));
 
   // Utilization from /api/intelligence/technician-utilization (TechUtilizationReport[])
   // Fields: technicianId, technicianName, totalJobs, hoursWorked, totalLaborCost, utilizationPercent
@@ -303,47 +293,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Profitability by Job Type — from /api/intelligence/profitability */}
-        <div className="card">
-          <div className="section-header">
-            <div>
-              <div className="section-title">Revenue vs Cost (30d)</div>
-              <div className="section-sub">By job type · intelligence engine</div>
-            </div>
-            <span className="badge badge-green">Intelligence</span>
-          </div>
-          <div style={{ padding: '16px 4px 10px' }}>
-            {profitData.loading ? (
-              <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Skeleton h={16} /><Skeleton h={16} w="80%" /><Skeleton h={16} w="60%" />
-              </div>
-            ) : profitChart.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-                No profitability data yet — complete some jobs first
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={profitChart} margin={{ top: 10, right: 16, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-rose)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--accent-rose)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 }} />
-                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke="var(--accent-blue)" strokeWidth={3} fill="url(#revenueGrad)" dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                  <Area type="monotone" dataKey="cost" name="Cost" stroke="var(--accent-rose)" strokeWidth={3} fill="url(#costGrad)" dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+
       </div>
 
       {/* ── Technician Availability — from /api/dashboard/technicians ── */}

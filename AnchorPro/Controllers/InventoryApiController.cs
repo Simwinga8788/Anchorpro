@@ -32,7 +32,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>POST /api/inventory — Create a new inventory item.</summary>
         [HttpPost]
-        [Authorize(Roles = "Admin,Storeman,Purchasing")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing,Planner")]
         public async Task<ActionResult> Create([FromBody] InventoryItem item)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -42,7 +42,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>PUT /api/inventory/{id} — Update item details (not stock levels).</summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Storeman,Purchasing")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing,Planner")]
         public async Task<ActionResult> Update(int id, [FromBody] InventoryItem item)
         {
             if (id != item.Id) return BadRequest("ID mismatch.");
@@ -66,7 +66,7 @@ namespace AnchorPro.Controllers
         /// Use positive values to add stock, negative to deduct.
         /// </summary>
         [HttpPost("{id}/adjust")]
-        [Authorize(Roles = "Admin,Storeman,Purchasing")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing,Planner")]
         public async Task<ActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -94,7 +94,7 @@ namespace AnchorPro.Controllers
         /// Imports inventory items in bulk.
         /// </summary>
         [HttpPost("import")]
-        [Authorize(Roles = "Admin,Storeman,Purchasing")]
+        [Authorize(Roles = "Admin,Storeman,Purchasing,Planner")]
         public async Task<ActionResult> Import(Microsoft.AspNetCore.Http.IFormFile file)
         {
             if (file == null || file.Length == 0)

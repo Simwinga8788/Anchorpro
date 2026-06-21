@@ -98,13 +98,6 @@ export default function IntelligencePage() {
   // Bottlenecks: categoryName, totalDowntimeHours, occurrences, percentageOfTotalDowntime
   const criticalAlerts = bottlenecks.filter(a => Number(a.percentageOfTotalDowntime ?? 0) > 30).length;
 
-  // Profitability chart shape
-  const profitChart = profitability.slice(0, 8).map(p => ({
-    label:   p.jobNumber ?? '—',
-    revenue: p.revenue ?? 0,
-    cost:    p.totalCost ?? 0,
-    profit:  p.profit ?? 0,
-  }));
 
   // Utilization chart shape
   const utilChart = utilization.slice(0, 8).map(t => ({
@@ -196,44 +189,7 @@ export default function IntelligencePage() {
       </div>
 
       {/* ── Charts Row 1 ── */}
-      <div className="stats-grid-2" style={{ marginBottom: 20 }}>
-
-        {/* Revenue vs Cost */}
-        <div className="card">
-          <div className="section-header">
-            <div>
-              <div className="section-title">Revenue vs Cost</div>
-              <div className="section-sub">Top {Math.min(profitability.length, 8)} jobs · last {days}d</div>
-            </div>
-            <span className="badge badge-green">Profitability</span>
-          </div>
-          <div style={{ padding: '16px 4px 10px' }}>
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16 }}>
-                <Skeleton /><Skeleton w="80%" /><Skeleton w="60%" />
-              </div>
-            ) : profitChart.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-                No completed jobs in this period
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={profitChart} margin={{ top: 10, right: 12, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `K${(v/1000).toFixed(0)}k`} dx={-10} />
-                  <Tooltip
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
-                    itemStyle={{ fontWeight: 600, color: '#fff' }}
-                    formatter={(v: any, name: string) => [`K ${Number(v).toLocaleString()}`, name]}
-                  />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent-emerald)" radius={[6, 6, 0, 0]} barSize={24} />
-                  <Bar dataKey="cost"    name="Cost"    fill="var(--accent-rose)" radius={[6, 6, 0, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+      <div style={{ marginBottom: 20 }}>
 
         {/* Technician Utilization */}
         <div className="card">
