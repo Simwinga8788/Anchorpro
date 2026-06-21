@@ -223,8 +223,8 @@ export default function IntelligencePage() {
                   <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `K${(v/1000).toFixed(0)}k`} dx={-10} />
                   <Tooltip
                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
-                    itemStyle={{ fontWeight: 600 }}
+                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
+                    itemStyle={{ fontWeight: 600, color: '#fff' }}
                     formatter={(v: any, name: string) => [`K ${Number(v).toLocaleString()}`, name]}
                   />
                   <Bar dataKey="revenue" name="Revenue" fill="var(--accent-emerald)" radius={[6, 6, 0, 0]} barSize={24} />
@@ -306,8 +306,8 @@ export default function IntelligencePage() {
                   <XAxis dataKey="date" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
                   <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
                   <Tooltip
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
-                    itemStyle={{ fontWeight: 600 }}
+                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
+                    itemStyle={{ fontWeight: 600, color: '#fff' }}
                   />
                   <Area type="monotone" dataKey="completed" name="Completed" stroke="var(--accent-emerald)" strokeWidth={3} fill="url(#completedGrad)" dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
                   <Area type="monotone" dataKey="created"   name="Created"   stroke="var(--accent-blue)" strokeWidth={3} fill="url(#createdGrad)"   dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />

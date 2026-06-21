@@ -289,7 +289,8 @@ export default function ReportsPage() {
                   <XAxis dataKey="date" tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
                     cursor={{ stroke: 'rgba(255,255,255,0.05)' }}
                   />
                   <Area type="monotone" dataKey="count" name="Completed" stroke="#0F9D67" strokeWidth={2} fill="url(#completionGrad)" dot={false} />
@@ -326,7 +327,8 @@ export default function ReportsPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
                     formatter={(v: any) => [v, 'Jobs']}
                   />
                   <Legend iconType="circle" iconSize={8} formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{val}</span>} />
@@ -364,7 +366,8 @@ export default function ReportsPage() {
                   <XAxis dataKey="name" tick={{ fill: '#6b6b6b', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
                   />
                   <Bar dataKey="jobs" name="Jobs Completed" fill="#2383E2" radius={[4, 4, 0, 0]} barSize={24} />
                   <Bar dataKey="util" name="Utilization %" fill="#0F9D67" radius={[4, 4, 0, 0]} barSize={24} />
@@ -398,7 +401,8 @@ export default function ReportsPage() {
                   <XAxis dataKey="name" tick={{ fill: '#6b6b6b', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
                   />
                   <Bar dataKey="hours" name="Total Hours" fill="#EB5757" radius={[4, 4, 0, 0]} barSize={24} />
                   <Bar dataKey="occurrences" name="Events" fill="#DFAB01" radius={[4, 4, 0, 0]} barSize={24} />

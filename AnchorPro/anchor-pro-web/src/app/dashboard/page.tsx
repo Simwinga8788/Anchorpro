@@ -292,8 +292,8 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
-                    itemStyle={{ fontWeight: 600 }}
+                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
+                    itemStyle={{ fontWeight: 600, color: '#fff' }}
                     formatter={(v: any) => [v, 'Jobs']}
                   />
                   <Legend iconType="circle" iconSize={10} formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>{val}</span>} />

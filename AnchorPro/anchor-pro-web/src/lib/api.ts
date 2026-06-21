@@ -35,11 +35,19 @@ async function apiFetch<T>(path: string): Promise<T> {
     throw new Error('Offline and no cached data available');
   }
 
-  const res = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+  } catch (err) {
+    // Network error (server unreachable)
+    const offlineData = await getOfflineData(url);
+    if (offlineData) return offlineData as T;
+    throw new Error('Server unreachable and no cached data available');
+  }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
       window.location.href = '/login';
@@ -97,12 +105,19 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
   }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sanitized),
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sanitized),
+    });
+  } catch (err) {
+    // Network error (server unreachable)
+    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' });
+    return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
+  }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
       window.location.href = '/login';
@@ -129,12 +144,18 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
     return { _offline: true, ...sanitized } as T;
   }
 
-  const res = await fetch(url, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sanitized),
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sanitized),
+    });
+  } catch (err) {
+    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' });
+    return { _offline: true, ...sanitized } as T;
+  }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
       window.location.href = '/login';
@@ -154,12 +175,19 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
 
 async function apiPatch<T>(path: string, body: any): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'PATCH',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sanitized),
-  });
+  const url = `${API_BASE}${path}`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sanitized),
+    });
+  } catch (err) {
+    await enqueueSync(url, 'PATCH', sanitized, { 'Content-Type': 'application/json' });
+    return { _offline: true, ...sanitized } as T;
+  }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
       window.location.href = '/login';
@@ -184,11 +212,17 @@ async function apiDelete(path: string): Promise<void> {
     return;
   }
 
-  const res = await fetch(url, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' });
+    return;
+  }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
       window.location.href = '/login';
