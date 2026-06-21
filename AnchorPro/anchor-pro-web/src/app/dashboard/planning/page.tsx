@@ -91,6 +91,7 @@ function JobChip({ job, onClick, onDragStart }: { job: Job; onClick: () => void;
         marginBottom: 3, fontSize: 11, lineHeight: 1.3,
         color: 'var(--text-primary)', display: 'block',
         transition: 'background 0.1s',
+        overflow: 'hidden',
       }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
@@ -537,14 +538,14 @@ export default function PlanningPage() {
           </div>
 
           {/* Day headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
             {DAYS.map(d => (
               <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.5, textTransform: 'uppercase' }}>{d}</div>
             ))}
           </div>
 
           {/* Cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
             {cells.map((date, i) => {
               if (!date) {
                 return <div key={`e-${i}`} style={{ minHeight: 100, borderRight: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', opacity: 0.4 }} />;
