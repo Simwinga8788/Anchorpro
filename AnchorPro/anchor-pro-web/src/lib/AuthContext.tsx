@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 const API_BASE = '';
+import { authApi } from './api';
 
 export interface UserProfile {
   id: string;
@@ -32,10 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, try to fetch current user from the C# backend session
+  // On mount, try to fetch current user from the C# backend session (or offline cache)
   useEffect(() => {
-    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
+    authApi.getMe()
       .then(data => setUser(data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
@@ -56,8 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data: UserProfile = await res.json();
       setUser(data);
       return { ok: true, user: data };
-    } catch {
-      return { ok: false, error: 'Cannot reach server' };
+    } catch (err: any) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return { ok: false, error: 'You are offline. Please connect to the internet to log in.' };
+      }
+      return { ok: false, error: err?.message || 'Cannot reach server' };
     }
   };
 

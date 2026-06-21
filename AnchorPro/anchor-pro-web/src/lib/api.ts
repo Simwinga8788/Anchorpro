@@ -115,6 +115,9 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     });
   } catch (err) {
     // Network error (server unreachable)
+    if (path.includes('/auth/')) {
+      throw new Error('Cannot reach server to authenticate.');
+    }
     await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' });
     return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
   }
