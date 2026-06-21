@@ -10,9 +10,9 @@ import { subscriptionsApi, auditLogApi } from '@/lib/api';
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (active && payload?.length) {
     return (
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-        <div style={{ color: 'var(--text-tertiary)', marginBottom: 4 }}>{label}</div>
-        <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>K {payload[0].value.toLocaleString()} MRR</div>
+      <div style={{ background: '#1e1e1e', border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+        <div style={{ color: '#9ca3af', marginBottom: 4 }}>{label}</div>
+        <div style={{ color: '#fff', fontWeight: 700 }}>K {payload[0].value.toLocaleString()} MRR</div>
       </div>
     );
   }

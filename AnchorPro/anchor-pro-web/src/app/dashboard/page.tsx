@@ -73,9 +73,9 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
         background: '#1e1e1e', border: 'none',
         borderRadius: 8, padding: '12px 16px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
       }}>
-        <div style={{ color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600 }}>{label}</div>
+        <div style={{ color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>{label}</div>
         {payload.map((p, i) => (
-          <div key={i} style={{ color: 'var(--text-primary)', fontWeight: 700, marginTop: 4 }}>
+          <div key={i} style={{ color: '#fff', fontWeight: 700, marginTop: 4 }}>
             {p.name}: {p.value}
           </div>
         ))}
