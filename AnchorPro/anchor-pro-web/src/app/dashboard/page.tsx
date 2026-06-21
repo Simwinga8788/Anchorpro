@@ -337,7 +337,7 @@ export default function DashboardPage() {
           <div className="section-header">
             <div>
               <div className="section-title">Recent {jobsLabel}</div>
-              <div className="section-sub">Latest activity across all assets</div>
+              <div className="section-sub">Latest activity across all {t('Equipment', 'assets').toLowerCase()}</div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={() => window.location.href = '/dashboard/jobs'}>View All</button>
           </div>
@@ -347,7 +347,8 @@ export default function DashboardPage() {
               <thead>
                 <tr>
                   <th>Reference</th>
-                  <th>Asset</th>
+                  <th>{t('Equipment', 'Asset')}</th>
+                  <th>Description</th>
                   <th>Type</th>
                   <th>Priority</th>
                   <th>Status</th>
@@ -358,19 +359,19 @@ export default function DashboardPage() {
                 {stats.loading ? (
                   [1, 2, 3, 4, 5].map(i => (
                     <tr key={i}>
-                      {[1, 2, 3, 4, 5, 6].map(j => <td key={j}><Skeleton h={14} /></td>)}
+                      {[1, 2, 3, 4, 5, 6, 7].map(j => <td key={j}><Skeleton h={14} /></td>)}
                     </tr>
                   ))
                 ) : stats.error ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
                       <WifiOff size={20} style={{ marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
                       API offline — connect the backend to see live data
                     </td>
                   </tr>
                 ) : (stats.data?.recentActivity ?? []).length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0', fontSize: 13 }}>
+                    <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0', fontSize: 13 }}>
                       No jobs yet — create your first {jobLabel.toLowerCase()}
                     </td>
                   </tr>
@@ -384,6 +385,9 @@ export default function DashboardPage() {
                       </td>
                       <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                         {job.equipment?.name ?? '—'}
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {job.description || '—'}
                       </td>
                       <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{job.jobType?.name ?? '—'}</td>
                       <td><PriorityBadge priority={job.priority} /></td>
