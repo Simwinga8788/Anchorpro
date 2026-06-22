@@ -5,10 +5,7 @@ import {
   Activity, TrendingUp, DollarSign, Users, Bell,
   Cpu, RefreshCw, AlertTriangle, CheckCircle2, Info
 } from 'lucide-react';
-import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend
-} from 'recharts';
+// recharts removed — using plain visual cards instead
 import { intelligenceApi } from '@/lib/api';
 
 function HealthBar({ value, color = '#3b82f6' }: { value: number; color?: string }) {
@@ -231,45 +228,43 @@ export default function IntelligencePage() {
         </div>
       </div>
 
-      {/* ── Trends ── */}
-      {(loading || trendChart.length > 0) && (
+      {/* ── Top Customers by Revenue ── */}
+      {(loading || revenueByCustomer.length > 0) && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="section-header">
             <div>
-              <div className="section-title">Operational Trends</div>
-              <div className="section-sub">Jobs created vs completed over time</div>
+              <div className="section-title">Top Customers by Revenue</div>
+              <div className="section-sub">Who is generating the most work this period</div>
             </div>
-            <span className="badge badge-blue">Trends</span>
+            <span className="badge badge-blue">Last {days}d</span>
           </div>
-          <div style={{ padding: '16px 4px 10px' }}>
+          <div style={{ padding: '12px 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16 }}>
-                <Skeleton /><Skeleton w="85%" /><Skeleton w="70%" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={trendChart} margin={{ top: 10, right: 16, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-emerald)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--accent-emerald)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fill: '#888888', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
-                  <Tooltip
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
-                    itemStyle={{ fontWeight: 600, color: '#fff' }}
-                  />
-                  <Area type="monotone" dataKey="completed" name="Completed" stroke="var(--accent-emerald)" strokeWidth={3} fill="url(#completedGrad)" dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                  <Area type="monotone" dataKey="created"   name="Created"   stroke="var(--accent-blue)" strokeWidth={3} fill="url(#createdGrad)"   dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+              [1,2,3].map(i => <Skeleton key={i} h={48} />)
+            ) : revenueByCustomer.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>No data for this period</div>
+            ) : (() => {
+              const maxRev = Math.max(...revenueByCustomer.map((c: any) => c.totalRevenue ?? 0)) || 1;
+              return revenueByCustomer.slice(0, 6).map((c: any, i: number) => {
+                const pct = Math.round(((c.totalRevenue ?? 0) / maxRev) * 100);
+                return (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {c.customerName ?? 'Unknown'}
+                      </span>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.jobCount ?? 0} jobs</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-emerald)' }}>
+                          K {(c.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </div>
+                    <HealthBar value={pct} color="var(--accent-emerald)" />
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       )}
