@@ -164,7 +164,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>GET /api/jobcards/parts/requests — Get all pending parts requests.</summary>
         [HttpGet("parts/requests")]
-        [Authorize(Roles = "Admin,Supervisor,Storeman")]
+        [Authorize(Roles = "Admin,Supervisor,Storeman,Planner")]
         public async Task<ActionResult<List<JobCardPart>>> GetPendingPartsRequests()
         {
             var requests = await _jobService.GetPendingPartsRequestsAsync();
@@ -173,7 +173,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>POST /api/jobcards/parts/{jobCardPartId}/issue — Issue requested parts.</summary>
         [HttpPost("parts/{jobCardPartId}/issue")]
-        [Authorize(Roles = "Admin,Supervisor,Storeman")]
+        [Authorize(Roles = "Admin,Supervisor,Storeman,Planner")]
         public async Task<ActionResult> IssuePart(int jobCardPartId)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
