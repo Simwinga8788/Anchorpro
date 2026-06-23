@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Clock, RefreshCw, Users, CheckCircle2, Wrench,
-  TrendingUp, Calendar, Search, ChevronDown, Activity
+  Users, Clock, CheckCircle, Briefcase, Search, ChevronDown, ChevronRight, Activity, RefreshCw, Wrench
 } from 'lucide-react';
 import { jobCardsApi, referenceDataApi, intelligenceApi } from '@/lib/api';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,6 +91,7 @@ function UtilBar({ pct }: { pct: number }) {
 
 function TechRow({ row }: { row: TechRow }) {
   const [open, setOpen] = useState(false);
+  const { t } = useDictionary();
 
   return (
     <>
@@ -124,9 +125,9 @@ function TechRow({ row }: { row: TechRow }) {
             <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Job #</th>
-                    <th>Description</th>
-                    <th>Equipment</th>
+                    <th style={{ width: 40 }}></th>
+                  <th>{t('Technician')}</th>
+                    <th style={{ textAlign: 'center' }}>{t('Jobs')}</th>
                     <th>Status</th>
                     <th>Scheduled Start</th>
                     <th>Est. Hours</th>
@@ -168,6 +169,7 @@ export default function TimeTrackingPage() {
   const [loading, setLoading]           = useState(true);
   const [period, setPeriod]             = useState('30d');
   const [search, setSearch]             = useState('');
+  const { t } = useDictionary();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -241,7 +243,7 @@ export default function TimeTrackingPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: -0.5, marginBottom: 4 }}>Time Tracking</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Technician workload and job hours derived from job card assignments</p>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{t('Technician')} workload and job hours derived from job card assignments</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* Period selector */}
@@ -263,9 +265,9 @@ export default function TimeTrackingPage() {
       {/* KPI strip */}
       <div className="stats-grid-4" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Active Technicians', value: loading ? '…' : activeTechs,   icon: <Users size={16} />,        color: 'var(--accent-blue)',    bg: 'linear-gradient(135deg,rgba(59,130,246,.15),rgba(59,130,246,.05))' },
+          { label: `Active ${t('Technicians')}`, value: loading ? '…' : activeTechs,   icon: <Users size={16} />,        color: 'var(--accent-blue)',    bg: 'linear-gradient(135deg,rgba(59,130,246,.15),rgba(59,130,246,.05))' },
           { label: 'Assigned Jobs',      value: loading ? '…' : totalAssigned,  icon: <Wrench size={16} />,       color: 'var(--accent-violet)',   bg: 'linear-gradient(135deg,rgba(139,92,246,.15),rgba(139,92,246,.05))' },
-          { label: 'Jobs Completed',     value: loading ? '…' : totalCompleted, icon: <CheckCircle2 size={16} />, color: 'var(--accent-emerald)', bg: 'linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))' },
+          { label: 'Jobs Completed',     value: loading ? '…' : totalCompleted, icon: <CheckCircle size={16} />, color: 'var(--accent-emerald)', bg: 'linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))' },
           { label: 'Est. Total Hours',   value: loading ? '…' : `${totalHours}h`, icon: <Clock size={16} />,      color: 'var(--accent-amber)',   bg: 'linear-gradient(135deg,rgba(245,166,35,.15),rgba(245,166,35,.05))' },
         ].map(kpi => (
           <div key={kpi.label} style={{ background: kpi.bg, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -282,16 +284,16 @@ export default function TimeTrackingPage() {
 
       {/* Technician table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-        <div className="section-header" style={{ padding: '14px 20px', marginBottom: 0 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div className="section-title">Technician Workload</div>
+            <div className="section-title">{t('Technician')} Workload</div>
             <div className="section-sub">Click a row to see assigned jobs</div>
           </div>
           <div style={{ position: 'relative' }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               className="input"
-              placeholder="Search technician…"
+              placeholder={`Search ${t('technician').toLowerCase()}...`}
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ paddingLeft: 30, height: 32, fontSize: 13, width: 180 }}
@@ -302,8 +304,8 @@ export default function TimeTrackingPage() {
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
         ) : techRows.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-            {search ? 'No technicians match your search' : 'No technicians found'}
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            {search ? `No ${t('technicians').toLowerCase()} match your search` : `No ${t('technicians').toLowerCase()} found`}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -311,7 +313,7 @@ export default function TimeTrackingPage() {
 <table className="data-table">
               <thead>
                 <tr>
-                  <th>Technician</th>
+                  <th>{t('Technician')}</th>
                   <th>Total Jobs</th>
                   <th>Completed</th>
                   <th>In Progress</th>
@@ -333,12 +335,14 @@ export default function TimeTrackingPage() {
       {/* Unassigned jobs */}
       {unassigned.length > 0 && (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="section-header" style={{ padding: '14px 20px', marginBottom: 0 }}>
-            <div>
-              <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Activity size={14} style={{ color: 'var(--accent-amber)' }} /> Unassigned Jobs
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="section-title" style={{ color: 'var(--status-red)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Activity size={14} /> Unassigned
+                </div>
+                <div className="section-sub">{unassigned.length} job{unassigned.length !== 1 ? 's' : ''} without a {t('technician').toLowerCase()}</div>
               </div>
-              <div className="section-sub">{unassigned.length} job{unassigned.length !== 1 ? 's' : ''} without a technician</div>
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>

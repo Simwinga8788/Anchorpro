@@ -172,7 +172,12 @@ namespace AnchorPro.Services
                 // 2.1 Technician Utilization (Based on Job Duration - Net)
                 var techGroups = completedJobs
                     .Where(j => j.AssignedTechnician != null && j.ActualEndDate.HasValue)
-                    .GroupBy(j => j.AssignedTechnician!.UserName);
+                    .GroupBy(j => new { 
+                        j.AssignedTechnician!.Id, 
+                        Name = string.IsNullOrWhiteSpace(j.AssignedTechnician.FirstName) && string.IsNullOrWhiteSpace(j.AssignedTechnician.LastName) 
+                            ? j.AssignedTechnician.UserName 
+                            : $"{j.AssignedTechnician.FirstName} {j.AssignedTechnician.LastName}".Trim() 
+                    });
 
                 foreach (var group in techGroups)
                 {
@@ -188,7 +193,7 @@ namespace AnchorPro.Services
 
                     metrics.TechnicianStats.Add(new TechnicianStat
                     {
-                        TechnicianName = group.Key ?? "Unknown",
+                        TechnicianName = group.Key.Name ?? "Unknown",
                         JobsCompleted = group.Count(),
                         TotalHoursWorked = Math.Round(totalNetHours, 1),
                         AvgJobTimeHours = Math.Round(totalNetHours / group.Count(), 1),

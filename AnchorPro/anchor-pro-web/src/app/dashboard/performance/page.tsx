@@ -6,6 +6,7 @@ import {
   Activity, CheckCircle, Clock, AlertTriangle, Briefcase, RefreshCw
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtNum(n: number | undefined | null) {
@@ -16,6 +17,7 @@ function fmtNum(n: number | undefined | null) {
 export default function PerformancePage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useDictionary();
 
   const fetchMetrics = async () => {
     setLoading(true);
@@ -38,7 +40,7 @@ export default function PerformancePage() {
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Activity size={22} className="text-accent-blue" /> Performance Metrics
           </h1>
-          <p className="page-subtitle">Analyze asset reliability and technician efficiency</p>
+          <p className="page-subtitle">Analyze asset reliability and {t('technician')} efficiency</p>
         </div>
         <button className="btn btn-secondary" onClick={fetchMetrics} disabled={loading}>
           <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
@@ -92,7 +94,7 @@ export default function PerformancePage() {
             {/* Technician Performance */}
             <div className="card">
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Technician Performance</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{t('Technicians')} Performance</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Utilization and efficiency</p>
               </div>
               <div className="table-scroll">
@@ -100,7 +102,7 @@ export default function PerformancePage() {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Technician</th>
+                        <th>{t('Technician')}</th>
                         <th style={{ textAlign: 'center' }}>Jobs</th>
                         <th style={{ textAlign: 'center' }}>Hours</th>
                         <th style={{ textAlign: 'right' }}>Util %</th>
