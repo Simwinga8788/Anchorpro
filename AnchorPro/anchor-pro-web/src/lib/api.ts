@@ -418,7 +418,7 @@ export const jobCardsApi = {
   create:           (data: any)           => apiPost<any>('/api/jobcards', data),
   update:           (id: number, data: any) => apiPut<any>(`/api/jobcards/${id}`, data),
   delete:           (id: number)          => apiDelete(`/api/jobcards/${id}`),
-  updateStatus:     (id: number, status: any) => apiPatch<any>(`/api/jobcards/${id}/status`, status),
+  updateStatus:     (id: number, status: any) => apiPatch<any>(`/api/jobcards/${id}/status`, { status }),
   assign:           (id: number, data: any)   => apiPost<any>(`/api/jobcards/${id}/assign`, data),
   checkConflicts:   (id: number, techId: string, start: string, end: string) =>
     apiFetch<any>(`/api/jobcards/${id}/conflicts?technicianId=${techId}&startDate=${start}&endDate=${end}`),
@@ -517,7 +517,7 @@ export const procurementApi = {
   getOrderById:    (id: number)              => apiFetch<any>(`/api/procurement/orders/${id}`),
   getOrdersByJob:  (jobCardId: number)       => apiFetch<any[]>(`/api/procurement/orders/job/${jobCardId}`),
   createOrder:     (data: any)               => apiPost<any>('/api/procurement/orders', data),
-  updateOrderStatus:(id: number, status: any)=> apiPatch<any>(`/api/procurement/orders/${id}/status`, status),
+  updateOrderStatus:(id: number, status: any)=> apiPatch<any>(`/api/procurement/orders/${id}/status`, { status }),
   receiveItems:    (id: number, items: any[])=> apiPost<any>(`/api/procurement/orders/${id}/receive`, items),
   getSuppliers:    ()                        => apiFetch<any[]>('/api/procurement/suppliers'),
   getSupplierById: (id: number)              => apiFetch<any>(`/api/procurement/suppliers/${id}`),

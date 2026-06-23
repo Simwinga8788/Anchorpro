@@ -55,11 +55,16 @@ namespace AnchorPro.Controllers
         /// PATCH /api/procurement/orders/{id}/status
         /// Body: integer enum value (0=Draft, 1=Submitted, 2=PartiallyReceived, 3=Received, 4=Cancelled)
         /// </summary>
+        public class UpdateOrderStatusRequest
+        {
+            public PurchaseOrderStatus Status { get; set; }
+        }
+
         [HttpPatch("orders/{id}/status")]
-        public async Task<ActionResult> UpdateOrderStatus(int id, [FromBody] PurchaseOrderStatus status)
+        public async Task<ActionResult> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            await _procurementService.UpdatePurchaseOrderStatusAsync(id, status, userId);
+            await _procurementService.UpdatePurchaseOrderStatusAsync(id, req.Status, userId);
             return NoContent();
         }
 

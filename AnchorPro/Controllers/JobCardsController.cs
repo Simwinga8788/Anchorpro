@@ -100,11 +100,16 @@ namespace AnchorPro.Controllers
         /// Body: integer enum value  (0=Unscheduled, 1=Scheduled, 2=InProgress, 3=Completed, 4=Cancelled, 5=OnHold)
         /// Completing a job triggers full financial-trinity calculation + inventory deduction.
         /// </summary>
+        public class UpdateJobStatusRequest
+        {
+            public JobStatus Status { get; set; }
+        }
+
         [HttpPatch("{id}/status")]
-        public async Task<ActionResult> UpdateStatus(int id, [FromBody] JobStatus status)
+        public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateJobStatusRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            await _jobService.UpdateJobStatusAsync(id, status, userId);
+            await _jobService.UpdateJobStatusAsync(id, req.Status, userId);
             return NoContent();
         }
 
