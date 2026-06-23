@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260623214611_AddToolRequests")]
+    partial class AddToolRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -450,183 +453,6 @@ namespace AnchorPro.Migrations
                     b.ToTable("DowntimeEntries");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.EmployeeProfile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BankAccountNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("BankAccountType")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("BankBranch")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("BankName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("EmergencyContactName")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("EmergencyContactPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("EmergencyContactRelation")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("EmploymentStartDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("EmploymentType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Gender")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("HomeAddress")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("IdDocumentUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("JobTitle")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("MaritalStatus")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("NationalIdNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Nationality")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("PersonalEmail")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("PersonalPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ProfilePhotoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("EmployeeProfiles");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.EmploymentContract", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AgreedMonthlySalary")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ContractType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DocumentUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<decimal>("HourlyRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("JobTitle")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("NoticePeriodDays")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TerminationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("EmploymentContracts");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.Equipment", b =>
                 {
                     b.Property<int>("Id")
@@ -685,63 +511,6 @@ namespace AnchorPro.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.ToTable("Equipment");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.Expense", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("ExpenseDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int?>("JobCardId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ReceiptUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("RecordedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("JobCardId");
-
-                    b.ToTable("Expenses");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.InventoryItem", b =>
@@ -1251,79 +1020,6 @@ namespace AnchorPro.Migrations
                     b.ToTable("JobTypes");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.LedgerEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int?>("ExpenseId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("InvoiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("PayrollRunId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RecordedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<int?>("VendorBillId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpenseId");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.HasIndex("PayrollRunId");
-
-                    b.HasIndex("VendorBillId");
-
-                    b.ToTable("LedgerEntries");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.PaymentTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -1389,159 +1085,6 @@ namespace AnchorPro.Migrations
                     b.HasIndex("TenantSubscriptionId");
 
                     b.ToTable("Payments", (string)null);
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.PayrollRun", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("FinalisedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("FinalisedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("PaidBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("PeriodMonth")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PeriodYear")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("RunDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("TotalDeductions")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalEmployerNapsa")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalGross")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalNet")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PayrollRuns");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.PayslipEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("BasicSalary")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("GrossPay")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("HousingAllowance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("NapsaEmployee")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("NapsaEmployer")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("NetPay")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("NhimaContribution")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("OtherAllowances")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("OtherDeductions")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("OtherDeductionsNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<decimal>("OvertimeHours")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("OvertimePay")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("OvertimeRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("PayeTax")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PayrollRunId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("TotalDeductions")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TransportAllowance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PayrollRunId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PayslipEntries");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PermitToWork", b =>
@@ -2488,70 +2031,6 @@ namespace AnchorPro.Migrations
                     b.ToTable("ToolTransactions");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.VendorBill", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("BillDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("BillNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<DateTime>("DueDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int?>("PurchaseOrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PurchaseOrderId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("VendorBills");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
                     b.Property<int>("Id")
@@ -2764,28 +2243,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("JobTask");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.EmployeeProfile", b =>
-                {
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.EmploymentContract", b =>
-                {
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.Equipment", b =>
                 {
                     b.HasOne("AnchorPro.Data.Entities.Department", "Department")
@@ -2793,15 +2250,6 @@ namespace AnchorPro.Migrations
                         .HasForeignKey("DepartmentId");
 
                     b.Navigation("Department");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.Expense", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.JobCard", "JobCard")
-                        .WithMany()
-                        .HasForeignKey("JobCardId");
-
-                    b.Navigation("JobCard");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.Invoice", b =>
@@ -2914,33 +2362,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("JobCard");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.LedgerEntry", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.Expense", "Expense")
-                        .WithMany()
-                        .HasForeignKey("ExpenseId");
-
-                    b.HasOne("AnchorPro.Data.Entities.Invoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId");
-
-                    b.HasOne("AnchorPro.Data.Entities.PayrollRun", "PayrollRun")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunId");
-
-                    b.HasOne("AnchorPro.Data.Entities.VendorBill", "VendorBill")
-                        .WithMany()
-                        .HasForeignKey("VendorBillId");
-
-                    b.Navigation("Expense");
-
-                    b.Navigation("Invoice");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("VendorBill");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.PaymentTransaction", b =>
                 {
                     b.HasOne("AnchorPro.Data.Entities.Tenant", "Tenant")
@@ -2954,25 +2375,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("TenantSubscription");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.PayslipEntry", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.PayrollRun", "PayrollRun")
-                        .WithMany("PayslipEntries")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PermitToWork", b =>
@@ -3121,23 +2523,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("Tool");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.VendorBill", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.PurchaseOrder", "PurchaseOrder")
-                        .WithMany()
-                        .HasForeignKey("PurchaseOrderId");
-
-                    b.HasOne("AnchorPro.Data.Entities.Supplier", "Supplier")
-                        .WithMany()
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PurchaseOrder");
-
-                    b.Navigation("Supplier");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -3230,11 +2615,6 @@ namespace AnchorPro.Migrations
             modelBuilder.Entity("AnchorPro.Data.Entities.JobTask", b =>
                 {
                     b.Navigation("DowntimeEntries");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.PayrollRun", b =>
-                {
-                    b.Navigation("PayslipEntries");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrder", b =>

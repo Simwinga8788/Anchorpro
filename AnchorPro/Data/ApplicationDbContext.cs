@@ -29,6 +29,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.SystemSetting> SystemSettings { get; set; }
     public DbSet<Entities.Tool> Tools { get; set; }
     public DbSet<Entities.ToolTransaction> ToolTransactions { get; set; }
+    public DbSet<Entities.ToolRequest> ToolRequests { get; set; }
     
     // Mini-ERP Layers
     public DbSet<Department> Departments { get; set; }
@@ -39,6 +40,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<Entities.Quotation> Quotations { get; set; }
+    
+    // Finance Module
+    public DbSet<Entities.VendorBill> VendorBills { get; set; }
+    public DbSet<Entities.Expense> Expenses { get; set; }
+    public DbSet<Entities.LedgerEntry> LedgerEntries { get; set; }
+
+    // HR Module
+    public DbSet<Entities.EmployeeProfile> EmployeeProfiles { get; set; }
+    public DbSet<Entities.EmploymentContract> EmploymentContracts { get; set; }
+    public DbSet<Entities.PayrollRun> PayrollRuns { get; set; }
+    public DbSet<Entities.PayslipEntry> PayslipEntries { get; set; }
+
 
     // Data Protection Keys
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }

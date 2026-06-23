@@ -13,7 +13,7 @@ namespace AnchorPro.Data
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-            string[] roles = { "Admin", "Planner", "Supervisor", "Technician", "Purchasing", "Storeman" };
+            string[] roles = { "Admin", "HR", "Planner", "Supervisor", "Technician", "Purchasing", "Storeman" };
 
             foreach (var role in roles)
             {

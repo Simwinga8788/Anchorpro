@@ -6,10 +6,6 @@ import {
   Users, Activity, AlertTriangle, FileSpreadsheet, RefreshCw,
   Trash2, Play, Calendar, Plus, Loader2, Save
 } from 'lucide-react';
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, Legend, AreaChart, Area
-} from 'recharts';
 import { reportingApi, intelligenceApi, dashboardApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import ResponsiveTable from '@/components/ResponsiveTable';
@@ -278,24 +274,19 @@ export default function ReportsPage() {
                 No trend data yet
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={completionTrend} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="completionGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0F9D67" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#0F9D67" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                    cursor={{ stroke: 'rgba(255,255,255,0.05)' }}
-                  />
-                  <Area type="monotone" dataKey="count" name="Completed" stroke="#0F9D67" strokeWidth={2} fill="url(#completionGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, padding: '20px 16px 10px', gap: 4 }}>
+                {completionTrend.map((t: any, i: number) => {
+                  const maxVal = Math.max(...completionTrend.map((d: any) => d.count), 1);
+                  const hPct = (t.count / maxVal) * 100;
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 8, height: '100%' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: t.count > 0 ? 1 : 0 }}>{t.count}</div>
+                      <div style={{ width: '100%', maxWidth: 24, height: `${hPct}%`, background: 'var(--accent-emerald)', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`${t.count} jobs on ${t.date}`} />
+                      <div style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{t.date.split(' ')[0]}</div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -319,21 +310,25 @@ export default function ReportsPage() {
                 No type data yet
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={typeDistribution} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {typeDistribution.map((_: any, i: number) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                    formatter={(v: any) => [v, 'Jobs']}
-                  />
-                  <Legend iconType="circle" iconSize={8} formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{val}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px' }}>
+                {typeDistribution.map((j: any, i: number) => {
+                  const maxVal = Math.max(...typeDistribution.map((d: any) => d.value));
+                  const pct = maxVal > 0 ? (j.value / maxVal) * 100 : 0;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{j.value} jobs</span>
+                        </div>
+                        <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -361,18 +356,28 @@ export default function ReportsPage() {
                 No technician data yet
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={techStats} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fill: '#6b6b6b', fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Bar dataKey="jobs" name="Jobs Completed" fill="#2383E2" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar dataKey="util" name="Utilization %" fill="#0F9D67" radius={[4, 4, 0, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px' }}>
+                {techStats.map((tech, i) => {
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="avatar" style={{ background: '#2383E2', width: 28, height: 28, fontSize: 10, flexShrink: 0 }}>
+                        {tech.name[0]?.toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {tech.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          {tech.jobs} jobs
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-emerald)', flexShrink: 0 }}>
+                        {tech.util}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -396,18 +401,25 @@ export default function ReportsPage() {
                 No down time recorded — great sign
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={downtimeBreakdown} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fill: '#6b6b6b', fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 12, color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Bar dataKey="hours" name="Total Hours" fill="#EB5757" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar dataKey="occurrences" name="Events" fill="#DFAB01" radius={[4, 4, 0, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px' }}>
+                {downtimeBreakdown.map((d: any, i: number) => {
+                  const maxVal = Math.max(...downtimeBreakdown.map((dt: any) => dt.hours));
+                  const pct = maxVal > 0 ? (d.hours / maxVal) * 100 : 0;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{d.hours}h ({d.occurrences} events)</span>
+                        </div>
+                        <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent-rose)', borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

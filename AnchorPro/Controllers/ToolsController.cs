@@ -182,4 +182,44 @@ public class ToolsController(IToolService toolService) : ControllerBase
             return BadRequest(new { message = msg });
         }
     }
+
+    // ─── Tool Requests ───────────────────────────────────────────────────
+
+    public class CreateToolRequestModel
+    {
+        public string RequestedToolName { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+
+    [HttpPost("requests")]
+    public async Task<ActionResult> CreateToolRequest([FromBody] CreateToolRequestModel req)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+        var result = await toolService.CreateToolRequestAsync(userId, req.RequestedToolName, req.Notes);
+        return Ok(result);
+    }
+
+    [HttpGet("requests")]
+    public async Task<ActionResult> GetPendingToolRequests()
+    {
+        var result = await toolService.GetPendingToolRequestsAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("requests/my")]
+    public async Task<ActionResult> GetMyToolRequests()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+        var result = await toolService.GetMyToolRequestsAsync(userId);
+        return Ok(result);
+    }
+
+    [HttpPost("requests/{id}/reject")]
+    [Authorize(Roles = "Admin,Supervisor,Planner")]
+    public async Task<ActionResult> RejectToolRequest(int id)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+        await toolService.RejectToolRequestAsync(id, userId);
+        return NoContent();
+    }
 }

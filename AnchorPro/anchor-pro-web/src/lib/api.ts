@@ -665,6 +665,11 @@ export const toolsApi = {
   receiveTool:   (data: any)               => apiPost<any>('/api/tools/receive', data),
   issueTool:     (data: any)               => apiPost<any>('/api/tools/issue', data),
   returnTool:    (data: any)               => apiPost<any>('/api/tools/return', data),
+  // Tool Requests
+  createRequest: (data: any)               => apiPost<any>('/api/tools/requests', data),
+  getPendingRequests: ()                   => apiFetch<any[]>('/api/tools/requests'),
+  getMyRequests: ()                        => apiFetch<any[]>('/api/tools/requests/my'),
+  rejectRequest: (id: number)              => apiPost<any>(`/api/tools/requests/${id}/reject`, {}),
 };
 
 // ─── Upload API ── /api/upload ─────────────────────────────────────────────────
@@ -724,3 +729,54 @@ export const quotationsApi = {
   accept:        (id: number)          => apiPost<any>(`/api/quotations/${id}/accept`, {}),
   reject:        (id: number, reason: string) => apiPost<any>(`/api/quotations/${id}/reject`, { reason }),
 };
+
+// ─── HR API ── /api/hr ─────────────────────────────────────────────────────────
+export const hrApi = {
+  // Employees
+  getEmployees:           ()                        => apiFetch<any[]>('/api/hr/employees'),
+  getProfile:             (userId: string)          => apiFetch<any>(`/api/hr/employees/${userId}/profile`),
+  upsertProfile:          (userId: string, data: any) => apiPut<any>(`/api/hr/employees/${userId}/profile`, data),
+
+  // Employment Contracts
+  getAllContracts:         ()                        => apiFetch<any[]>('/api/hr/contracts'),
+  getMyContracts:         ()                        => apiFetch<any[]>('/api/hr/contracts/mine'),
+  getUserContracts:       (userId: string)          => apiFetch<any[]>(`/api/hr/contracts/user/${userId}`),
+  createContract:         (data: any)               => apiPost<any>('/api/hr/contracts', data),
+  updateContract:         (id: number, data: any)   => apiPut<any>(`/api/hr/contracts/${id}`, data),
+
+  // Payroll Runs
+  getPayrollRuns:         ()                        => apiFetch<any[]>('/api/hr/payroll'),
+  getPayrollRun:          (id: number)              => apiFetch<any>(`/api/hr/payroll/${id}`),
+  createPayrollRun:       (month: number, year: number) => apiPost<any>('/api/hr/payroll', { month, year }),
+  finalisePayrollRun:     (id: number)              => apiPost<any>(`/api/hr/payroll/${id}/finalise`, {}),
+  markPayrollRunPaid:     (id: number)              => apiPost<any>(`/api/hr/payroll/${id}/paid`, {}),
+
+  // Payslips
+  getPayslips:            (runId: number)           => apiFetch<any[]>(`/api/hr/payroll/${runId}/payslips`),
+  getMyPayslip:           (runId: number)           => apiFetch<any>(`/api/hr/payroll/${runId}/payslips/mine`),
+  updatePayslip:          (id: number, data: any)   => apiPut<any>(`/api/hr/payroll/payslips/${id}`, data),
+};
+
+// ─── Finance API ── /api/finance ───────────────────────────────────────────────
+export const financeApi = {
+  // Vendor Bills
+  getVendorBills:         ()                        => apiFetch<any[]>('/api/finance/vendor-bills'),
+  getVendorBillById:      (id: number)              => apiFetch<any>(`/api/finance/vendor-bills/${id}`),
+  createVendorBillFromPO: (poId: number)            => apiPost<any>(`/api/finance/vendor-bills/from-po/${poId}`, {}),
+  recordVendorBillPayment:(id: number, amount: number) => apiPost<any>(`/api/finance/vendor-bills/${id}/record-payment`, { amount }),
+
+  // Ad-Hoc Expenses
+  getExpenses:            ()                        => apiFetch<any[]>('/api/finance/expenses'),
+  recordExpense:          (data: any)               => apiPost<any>('/api/finance/expenses', data),
+
+  // Ledger & Reporting
+  getLedgerEntries:       (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const qs = params.toString();
+    return apiFetch<any[]>(`/api/finance/ledger${qs ? `?${qs}` : ''}`);
+  },
+  getProfitAndLoss:       (month: number, year: number) => apiFetch<any>(`/api/finance/profit-and-loss?month=${month}&year=${year}`),
+};
+

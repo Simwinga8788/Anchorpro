@@ -45,7 +45,7 @@ public class ToolService(ApplicationDbContext context) : IToolService
             .ToListAsync();
     }
 
-    public async Task<ToolTransaction> IssueToolAsync(int toolId, string assignedToUserId, string issuedByUserId, ToolCondition condition, DateTime? expectedReturnDate, string? notes)
+    public async Task<ToolTransaction> IssueToolAsync(int toolId, string assignedToUserId, string issuedByUserId, ToolCondition condition, DateTime? expectedReturnDate, string? notes, int? toolRequestId = null)
     {
         var tool = await context.Tools.FindAsync(toolId);
         if (tool == null)
@@ -70,6 +70,20 @@ public class ToolService(ApplicationDbContext context) : IToolService
 
         context.ToolTransactions.Add(transaction);
         await context.SaveChangesAsync();
+
+        if (toolRequestId.HasValue)
+        {
+            var request = await context.ToolRequests.FindAsync(toolRequestId.Value);
+            if (request != null && request.Status == ToolRequestStatus.Pending)
+            {
+                request.Status = ToolRequestStatus.Approved;
+                request.IssuedToolTransactionId = transaction.Id;
+                request.ResolvedAt = DateTime.UtcNow;
+                request.UpdatedAt = DateTime.UtcNow;
+                request.UpdatedBy = issuedByUserId;
+                await context.SaveChangesAsync();
+            }
+        }
 
         return transaction;
     }
@@ -268,5 +282,57 @@ public class ToolService(ApplicationDbContext context) : IToolService
         }
         result.Add(current.ToString().Trim());
         return result;
+    }
+
+    // ─── Tool Requests ───────────────────────────────────────────────────
+
+    public async Task<ToolRequest> CreateToolRequestAsync(string requestedByUserId, string toolName, string? notes)
+    {
+        var request = new ToolRequest
+        {
+            RequestedByUserId = requestedByUserId,
+            RequestedToolName = toolName,
+            Notes = notes,
+            Status = ToolRequestStatus.Pending,
+            RequestedAt = DateTime.UtcNow
+        };
+        context.ToolRequests.Add(request);
+        await context.SaveChangesAsync();
+        return request;
+    }
+
+    public async Task<List<ToolRequest>> GetPendingToolRequestsAsync()
+    {
+        return await context.ToolRequests
+            .Include(r => r.RequestedByUser)
+            .Where(r => r.Status == ToolRequestStatus.Pending)
+            .OrderByDescending(r => r.RequestedAt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<List<ToolRequest>> GetMyToolRequestsAsync(string userId)
+    {
+        return await context.ToolRequests
+            .Include(r => r.RequestedByUser)
+            .Include(r => r.IssuedToolTransaction)
+                .ThenInclude(t => t.Tool)
+            .Where(r => r.RequestedByUserId == userId)
+            .OrderByDescending(r => r.RequestedAt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task RejectToolRequestAsync(int requestId, string userId)
+    {
+        var request = await context.ToolRequests.FindAsync(requestId);
+        if (request != null && request.Status == ToolRequestStatus.Pending)
+        {
+            request.Status = ToolRequestStatus.Rejected;
+            request.ResolvedAt = DateTime.UtcNow;
+            request.UpdatedAt = DateTime.UtcNow;
+            request.UpdatedBy = userId;
+            await context.SaveChangesAsync();
+        }
     }
 }

@@ -8,35 +8,48 @@ export default function IssueToolModal({
   toolId,
   toolName,
   currentCondition,
+  toolRequestId,
+  assignedToUserId,
   onClose, 
   onSuccess 
 }: { 
   toolId: number, 
   toolName: string,
   currentCondition: number,
+  toolRequestId?: number,
+  assignedToUserId?: string,
   onClose: () => void, 
   onSuccess: () => void 
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [users, setUsers] = useState<any[]>([]);
+  const [availableTools, setAvailableTools] = useState<any[]>([]);
   const submittingRef = useRef(false);
   
   const [formData, setFormData] = useState({
     toolId: toolId,
-    assignedToUserId: '',
+    assignedToUserId: assignedToUserId || '',
     condition: currentCondition,
     expectedReturnDate: '',
-    notes: ''
+    notes: '',
+    toolRequestId: toolRequestId || null
   });
 
   useEffect(() => {
     usersApi.getAll().then(setUsers).catch(console.error);
-  }, []);
+    if (!toolId) {
+      toolsApi.getAvailable().then(setAvailableTools).catch(console.error);
+    }
+  }, [toolId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submittingRef.current) return;
+    if (!formData.toolId) {
+      setError('Please select a tool to issue');
+      return;
+    }
     if (!formData.assignedToUserId) {
       setError('Please select a technician');
       return;
@@ -85,7 +98,7 @@ export default function IssueToolModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Issue Tool</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{toolName}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{toolName || 'Fulfilling Request'}</p>
           </div>
           <button className="btn btn-ghost btn-sm" style={{ padding: 6 }} onClick={onClose}>
             <X size={16} />
@@ -99,6 +112,26 @@ export default function IssueToolModal({
         )}
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
+          
+          {!toolId && (
+            <div className="form-field">
+              <label className="form-label">Select Tool to Issue</label>
+              <select 
+                className="form-select"
+                value={formData.toolId}
+                onChange={e => setFormData({...formData, toolId: Number(e.target.value)})}
+                required
+              >
+                <option value={0}>Select a tool...</option>
+                {availableTools.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.toolTag} - {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="form-field">
             <label className="form-label">Assign To</label>
             <select 

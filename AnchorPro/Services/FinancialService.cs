@@ -157,6 +157,21 @@ namespace AnchorPro.Services
                     invoice.PaymentStatus = InvoicePaymentStatus.Partial;
                 }
 
+                var entry = new LedgerEntry
+                {
+                    TransactionDate = DateTime.UtcNow,
+                    Type = LedgerTransactionType.Income,
+                    Amount = payment.Amount,
+                    Category = "Revenue - Services",
+                    Description = $"Payment received for Invoice {invoice.InvoiceNumber}",
+                    InvoiceId = invoice.Id,
+                    RecordedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.LedgerEntries.Add(entry);
+
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -235,6 +250,208 @@ namespace AnchorPro.Services
                     report.Days90Plus += inv.Balance;
                 }
             }
+
+            return report;
+        }
+        // ACCOUNTS PAYABLE (VENDOR BILLS)
+        // ==========================================
+        public async Task<List<VendorBill>> GetAllVendorBillsAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.VendorBills
+                .Include(b => b.Supplier)
+                .Include(b => b.PurchaseOrder)
+                .OrderByDescending(b => b.BillDate)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<VendorBill?> GetVendorBillByIdAsync(int id)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.VendorBills
+                .Include(b => b.Supplier)
+                .Include(b => b.PurchaseOrder)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == id);
+        }
+
+        public async Task<VendorBill> CreateVendorBillFromPOAsync(int poId, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            var po = await context.PurchaseOrders
+                .FirstOrDefaultAsync(p => p.Id == poId);
+
+            if (po == null) throw new Exception("Purchase Order not found");
+
+            // Check if bill already exists for this PO
+            var existing = await context.VendorBills.FirstOrDefaultAsync(b => b.PurchaseOrderId == poId);
+            if (existing != null) return existing;
+
+            var bill = new VendorBill
+            {
+                BillNumber = $"VB-PO-{po.Id}",
+                SupplierId = po.SupplierId,
+                PurchaseOrderId = po.Id,
+                TotalAmount = po.TotalAmount,
+                AmountPaid = 0,
+                BillDate = DateTime.UtcNow,
+                DueDate = DateTime.UtcNow.AddDays(30), // standard 30 day terms
+                Status = VendorBillStatus.Unpaid,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            context.VendorBills.Add(bill);
+            await context.SaveChangesAsync();
+
+            return bill;
+        }
+
+        public async Task RecordVendorBillPaymentAsync(int billId, decimal amount, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            using var transaction = await context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var bill = await context.VendorBills
+                    .Include(b => b.Supplier)
+                    .FirstOrDefaultAsync(b => b.Id == billId);
+
+                if (bill == null) throw new Exception("Vendor Bill not found");
+
+                bill.AmountPaid += amount;
+                
+                if (bill.Balance <= 0)
+                {
+                    bill.Status = VendorBillStatus.Paid;
+                    bill.AmountPaid = bill.TotalAmount; // don't overpay
+                }
+                else
+                {
+                    bill.Status = VendorBillStatus.Partial;
+                }
+
+                // Add Ledger Entry for cash outflow
+                var entry = new LedgerEntry
+                {
+                    TransactionDate = DateTime.UtcNow,
+                    Type = LedgerTransactionType.Expense,
+                    Amount = amount,
+                    Category = "Vendor Bills",
+                    Description = $"Payment for Vendor Bill {bill.BillNumber} to {bill.Supplier?.Name}",
+                    VendorBillId = bill.Id,
+                    RecordedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.LedgerEntries.Add(entry);
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ==========================================
+        // AD-HOC EXPENSES
+        // ==========================================
+        public async Task<List<Expense>> GetAllExpensesAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.Expenses
+                .Include(e => e.JobCard)
+                .OrderByDescending(e => e.ExpenseDate)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<Expense> RecordExpenseAsync(Expense expense, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            using var transaction = await context.Database.BeginTransactionAsync();
+
+            try
+            {
+                expense.CreatedAt = DateTime.UtcNow;
+                expense.CreatedBy = userId;
+                expense.RecordedBy = userId;
+
+                context.Expenses.Add(expense);
+                await context.SaveChangesAsync(); // save to get ID
+
+                // Add Ledger Entry for cash outflow
+                var entry = new LedgerEntry
+                {
+                    TransactionDate = expense.ExpenseDate,
+                    Type = LedgerTransactionType.Expense,
+                    Amount = expense.Amount,
+                    Category = expense.Category.ToString(),
+                    Description = expense.Description,
+                    ExpenseId = expense.Id,
+                    RecordedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.LedgerEntries.Add(entry);
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return expense;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ==========================================
+        // LEDGER & REPORTING
+        // ==========================================
+        public async Task<List<LedgerEntry>> GetLedgerEntriesAsync(DateTime? from, DateTime? to)
+        {
+            using var context = _factory.CreateDbContext();
+            var query = context.LedgerEntries.AsQueryable();
+
+            if (from.HasValue) query = query.Where(e => e.TransactionDate >= from.Value);
+            if (to.HasValue) query = query.Where(e => e.TransactionDate <= to.Value);
+
+            return await query
+                .OrderByDescending(e => e.TransactionDate)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var endDate = startDate.AddMonths(1).AddSeconds(-1);
+
+            var ledgerEntries = await context.LedgerEntries
+                .Where(e => e.TransactionDate >= startDate && e.TransactionDate <= endDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var report = new ProfitAndLossReport
+            {
+                FromDate = startDate,
+                ToDate = endDate,
+                TotalIncome = ledgerEntries.Where(e => e.Type == LedgerTransactionType.Income).Sum(e => e.Amount),
+                TotalVendorBills = ledgerEntries.Where(e => e.Type == LedgerTransactionType.Expense && e.VendorBillId != null).Sum(e => e.Amount),
+                TotalPayroll = ledgerEntries.Where(e => e.Type == LedgerTransactionType.Expense && e.PayrollRunId != null).Sum(e => e.Amount),
+                TotalAdHocExpenses = ledgerEntries.Where(e => e.Type == LedgerTransactionType.Expense && e.ExpenseId != null).Sum(e => e.Amount)
+            };
 
             return report;
         }

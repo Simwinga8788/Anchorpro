@@ -194,6 +194,26 @@ namespace AnchorPro.Services
                             }
                         }
                     }
+
+                    // Auto-Generate Vendor Bill
+                    var existingBill = await context.VendorBills.FirstOrDefaultAsync(b => b.PurchaseOrderId == po.Id);
+                    if (existingBill == null)
+                    {
+                        var bill = new VendorBill
+                        {
+                            BillNumber = $"VB-PO-{po.Id}",
+                            SupplierId = po.SupplierId,
+                            PurchaseOrderId = po.Id,
+                            TotalAmount = po.TotalAmount,
+                            AmountPaid = 0,
+                            BillDate = DateTime.UtcNow,
+                            DueDate = DateTime.UtcNow.AddDays(30),
+                            Status = VendorBillStatus.Unpaid,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userId
+                        };
+                        context.VendorBills.Add(bill);
+                    }
                 }
                 else if (po.Items.Any(i => i.QuantityReceived > 0))
                 {

@@ -7,10 +7,6 @@ import {
   CheckCircle2, Clock, Users, Zap, BarChart3,
   Activity, RefreshCw, WifiOff
 } from 'lucide-react';
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
-  Tooltip, PieChart, Pie, Cell, Legend
-} from 'recharts';
 import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import Modal from '@/components/Modal';
@@ -273,22 +269,30 @@ export default function DashboardPage() {
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>
                 No job data yet
               </div>
+            ) : jobTypeData.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>
+                No type data yet
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={jobTypeData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none">
-                    {jobTypeData.map((_: any, i: number) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background: '#1e1e1e', border: 'none', borderRadius: 8, fontSize: 13, padding: '12px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', color: '#fff' }}
-                    itemStyle={{ fontWeight: 600, color: '#fff' }}
-                    formatter={(v: any) => [v, 'Jobs']}
-                  />
-                  <Legend iconType="circle" iconSize={10} formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>{val}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px' }}>
+                {jobTypeData.map((j: any, i: number) => {
+                  const maxVal = Math.max(...jobTypeData.map((d: any) => d.value));
+                  const pct = maxVal > 0 ? (j.value / maxVal) * 100 : 0;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{j.value} jobs</span>
+                        </div>
+                        <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

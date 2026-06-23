@@ -2,22 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { TrendingUp, Users, Activity, AlertCircle, CheckCircle2, Clock, Plus, ArrowRight, RefreshCw } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { platformApi } from '@/lib/api';
-
 import { subscriptionsApi, auditLogApi } from '@/lib/api';
-
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
-  if (active && payload?.length) {
-    return (
-      <div style={{ background: '#1e1e1e', border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-        <div style={{ color: '#9ca3af', marginBottom: 4 }}>{label}</div>
-        <div style={{ color: '#fff', fontWeight: 700 }}>K {payload[0].value.toLocaleString()} MRR</div>
-      </div>
-    );
-  }
-  return null;
-};
 
 export default function PlatformDashboard() {
   const [tenants, setTenants]   = useState<any[]>([]);
@@ -101,22 +87,19 @@ export default function PlatformDashboard() {
             <div><div className="section-title">Revenue Growth (MRR)</div><div className="section-sub">Monthly recurring revenue trend</div></div>
             <span className="badge badge-green">Live</span>
           </div>
-          <div style={{ padding: '16px 4px 10px' }}>
-            <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={mrrTrend} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="month" tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fill: '#6b6b6b', fontSize: 10 }} axisLine={false} tickLine={false}/>
-                <Tooltip content={<CustomTooltip/>}/>
-                <Area type="monotone" dataKey="mrr" stroke="#10b981" strokeWidth={2} fill="url(#mrrGrad)" dot={false}/>
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 160, padding: '20px 16px 10px', gap: 4 }}>
+              {mrrTrend.map((t: any, i: number) => {
+                const maxVal = Math.max(...mrrTrend.map((d: any) => d.mrr), 1);
+                const hPct = (t.mrr / maxVal) * 100;
+                return (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 8, height: '100%' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: t.mrr > 0 ? 1 : 0 }}>${t.mrr}k</div>
+                    <div style={{ width: '100%', maxWidth: 24, height: `${hPct}%`, background: '#10b981', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`$${t.mrr}k in ${t.month}`} />
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{t.month}</div>
+                  </div>
+                );
+              })}
+            </div>
         </div>
 
         <div className="card">

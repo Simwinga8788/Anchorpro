@@ -21,6 +21,7 @@
 // Roles that exist in the system
 export const ROLES = {
   ADMIN:            'Admin',
+  HR:               'HR',
   PLANNER:          'Planner',
   SUPERVISOR:       'Supervisor',
   TECHNICIAN:       'Technician',
@@ -29,25 +30,27 @@ export const ROLES = {
 
 // The roles that can access each route. Empty array = any authenticated user.
 export const ROUTE_ACCESS: Record<string, string[]> = {
-  '/dashboard':                ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/intelligence':   ['Admin'],
-  '/dashboard/jobs':           ['Admin', 'Planner', 'Supervisor', 'Technician'],
-  '/dashboard/planning':       ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/time-tracking':  ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/assets':         ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/inventory':      ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/procurement':    ['Admin'],
-  '/dashboard/team':           ['Admin'],
-  '/dashboard/reports':        ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/safety':         ['Admin', 'Planner', 'Supervisor', 'Technician'],
-  '/dashboard/contracts':      ['Admin'],
+  '/dashboard':                ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/intelligence':   ['Admin', 'HR'],
+  '/dashboard/jobs':           ['Admin', 'HR', 'Planner', 'Supervisor', 'Technician'],
+  '/dashboard/planning':       ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/time-tracking':  ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/assets':         ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/inventory':      ['Admin', 'HR', 'Planner', 'Supervisor', 'Storeman'],
+  '/dashboard/procurement':    ['Admin', 'HR'],
+  '/dashboard/team':           ['Admin', 'HR'],
+  '/dashboard/hr':             ['Admin', 'HR'],
+  '/dashboard/reports':        ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/safety':         ['Admin', 'HR', 'Planner', 'Supervisor', 'Technician'],
+  '/dashboard/contracts':      ['Admin', 'HR'],
   '/dashboard/roles':          ['Admin', 'Supervisor', 'Planner'],
   '/dashboard/settings':       ['Admin'],
-  '/dashboard/customers':      ['Admin', 'Planner', 'Supervisor'],
+  '/dashboard/customers':      ['Admin', 'HR', 'Planner', 'Supervisor'],
   '/dashboard/tools':          ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/downtime':       ['Admin', 'Planner', 'Supervisor'],
-  '/dashboard/invoices':       ['Admin'],
-  '/dashboard/my-jobs':        ['Admin', 'Planner', 'Supervisor', 'Technician'],
+  '/dashboard/my-tools':       ['Admin', 'HR', 'Planner', 'Supervisor', 'Technician', 'Storeman'],
+  '/dashboard/downtime':       ['Admin', 'HR', 'Planner', 'Supervisor'],
+  '/dashboard/invoices':       ['Admin', 'HR'],
+  '/dashboard/my-jobs':        ['Admin', 'HR', 'Planner', 'Supervisor', 'Technician'],
 };
 
 /**

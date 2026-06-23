@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield
+  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield, UserCog
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -17,41 +17,49 @@ import { adminAccessApi } from '@/lib/api';
 
 const navSections = [
   {
-    label: 'Workspace',
+    label: 'Operations & Planning',
     items: [
-      { href: '/dashboard',              label: 'Dashboard',      icon: LayoutDashboard },
-      { href: '/dashboard/my-jobs',      label: 'My Assignments', icon: ClipboardList },
-      { href: '/dashboard/intelligence', label: 'Intelligence',   icon: TrendingUp },
+      { href: '/dashboard',              label: 'Dashboard',            icon: LayoutDashboard },
+      { href: '/dashboard/performance',  label: 'Performance Metrics',  icon: Activity },
+      { href: '/dashboard/my-jobs',      label: 'My Assignments',       icon: ClipboardList },
+      { href: '/dashboard/jobs',         label: 'Job Cards',            icon: ClipboardList },
+      { href: '/dashboard/planning',     label: 'Planning Board',       icon: Activity },
+      { href: '/dashboard/time-tracking',label: 'Time Tracking',        icon: Timer },
+      { href: '/dashboard/downtime',     label: 'Down Time Log',        icon: Pause },
+      { href: '/dashboard/safety',       label: 'Safety & Compliance',  icon: ShieldCheck },
     ]
   },
   {
-    label: 'Operations',
+    label: 'Human Resources',
     items: [
-      { href: '/dashboard/jobs',          label: 'Job Cards',       icon: ClipboardList },
-      { href: '/dashboard/planning',      label: 'Planning Board',  icon: Activity },
-      { href: '/dashboard/time-tracking', label: 'Time Tracking',   icon: Timer },
-      { href: '/dashboard/assets',        label: 'Asset Registry',  icon: Building2 },
-      { href: '/dashboard/downtime',      label: 'Down Time Log',    icon: Pause },
-      { href: '/dashboard/customers',     label: 'CRM & Customers', icon: Users },
+      { href: '/dashboard/hr',           label: 'HR Overview',          icon: UserCog },
+      { href: '/dashboard/team',         label: 'Team Management',      icon: Users },
+      { href: '/dashboard/roles',        label: 'Roles & Permissions',  icon: Shield },
     ]
   },
   {
-    label: 'Resources',
+    label: 'Finance',
     items: [
-      { href: '/dashboard/inventory',   label: 'Inventory & Parts', icon: Package },
-      { href: '/dashboard/tools',       label: 'Tools Registry',    icon: Wrench },
-      { href: '/dashboard/procurement', label: 'Procurement',       icon: Zap },
-      { href: '/dashboard/team',        label: 'Team',              icon: Users },
+      { href: '/dashboard/finance',      label: 'Cashbook & Payables',  icon: DollarSign },
+      { href: '/dashboard/invoices',     label: 'Invoices & Billing',   icon: DollarSign },
+      { href: '/dashboard/intelligence', label: 'Intelligence',         icon: TrendingUp },
+      { href: '/dashboard/reports',      label: 'System Reports',       icon: BarChart3 },
     ]
   },
   {
-    label: 'Governance',
+    label: 'Sales & Customer',
     items: [
-      { href: '/dashboard/reports',   label: 'Reports',             icon: BarChart3 },
-      { href: '/dashboard/safety',    label: 'Safety & Compliance', icon: ShieldCheck },
-      { href: '/dashboard/invoices',  label: 'Invoices & Billing',  icon: DollarSign },
-      { href: '/dashboard/contracts', label: 'Contracts',           icon: FileText },
-      { href: '/dashboard/roles',     label: 'Roles & Permissions', icon: Shield },
+      { href: '/dashboard/customers',    label: 'CRM & Customers',      icon: Users },
+      { href: '/dashboard/contracts',    label: 'Client Contracts',     icon: FileText },
+    ]
+  },
+  {
+    label: 'Enterprise Asset Mgt',
+    items: [
+      { href: '/dashboard/assets',       label: 'Asset Registry',       icon: Building2 },
+      { href: '/dashboard/inventory',    label: 'Inventory & Parts',    icon: Package },
+      { href: '/dashboard/tools',        label: 'Tools Registry',       icon: Wrench },
+      { href: '/dashboard/procurement',  label: 'Procurement',          icon: Zap },
     ]
   }
 ];
