@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { hrApi, departmentsApi } from '@/lib/api';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
@@ -53,7 +53,7 @@ function daysUntilExpiry(endDate?: string | null) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-type Tab = 'employees' | 'contracts' | 'payroll';
+type Tab = 'employees' | 'contracts' | 'payroll' | 'team' | 'departments';
 
 export default function HRPage() {
   const [activeTab, setActiveTab] = useState<Tab>('employees');

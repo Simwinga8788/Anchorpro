@@ -110,7 +110,7 @@ const NAV_GROUPS = [
     label: 'Workspace',
     items: [
       { id: 'workspace',    icon: <Building2 size={15} />, label: 'General' },
-      { id: 'departments',  icon: <Users size={15} />,     label: 'Departments' },
+      
       { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Terminology' },
     ],
   },
@@ -174,9 +174,9 @@ export default function SettingsPage() {
   const [savingOrg, setSavingOrg] = useState(false);
 
   // ── Departments ──────────────────────────────────────────────────────────────
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [newDeptName, setNewDeptName] = useState('');
-  const [savingDept, setSavingDept] = useState(false);
+  
+  
+  
 
   // ── Nomenclature ─────────────────────────────────────────────────────────────
   const [dictState, setDictState] = useState<Record<string, string>>({});
@@ -241,7 +241,7 @@ export default function SettingsPage() {
       .catch(() => setSubscriptionData(null));
     subscriptionsApi.getPlans().then(setAllPlans).catch(() => {});
 
-    departmentsApi.getAll().then(setDepartments).catch(() => setDepartments([]));
+    
     referenceDataApi.getJobTypes().then(setJobTypes).catch(() => setJobTypes([]));
     referenceDataApi.getDowntimeCategories().then(setDowntimeCategories).catch(() => setDowntimeCategories([]));
 
@@ -334,24 +334,9 @@ export default function SettingsPage() {
     finally { setSavingOrg(false); }
   };
 
-  const handleAddDepartment = async () => {
-    if (!newDeptName.trim()) return;
-    setSavingDept(true);
-    try {
-      await departmentsApi.create({ name: newDeptName.trim() });
-      setNewDeptName('');
-      departmentsApi.getAll().then(setDepartments).catch(() => {});
-      show('Department added');
-    } catch (e: any) { show(e.message || 'Failed', 'error'); }
-    finally { setSavingDept(false); }
-  };
+  
 
-  const handleDeleteDepartment = async (id: number) => {
-    if (!confirm('Delete this department?')) return;
-    await departmentsApi.delete(id);
-    setDepartments(d => d.filter((x: any) => x.id !== id));
-    show('Department removed');
-  };
+  
 
   const handleSaveDictionary = async () => {
     setSavingDict(true);
@@ -664,45 +649,7 @@ export default function SettingsPage() {
       );
 
       // ── Departments ────────────────────────────────────────────────────────
-      case 'departments': return (
-        <SectionCard title="Departments" subtitle="Organise your team members and job cards by department" icon={<Users size={16} />}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-            <input className="form-input" style={{ flex: 1 }} placeholder="e.g. Electrical, Mechanical, HVAC..."
-              value={newDeptName} onChange={e => setNewDeptName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAddDepartment(); }} />
-            <button className="btn btn-primary btn-sm" onClick={handleAddDepartment} disabled={savingDept || !newDeptName.trim()}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {savingDept ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={13} />} Add
-            </button>
-          </div>
-          {departments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-              No departments yet. Add one above to get started.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {departments.map((d: any) => (
-                <div key={d.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '11px 16px', background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 8, transition: 'border-color 0.15s',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-blue)' }} />
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{d.name}</span>
-                  </div>
-                  <button onClick={() => handleDeleteDepartment(d.id)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 4, transition: 'color 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-rose)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
-      );
+      
 
       // ── Terminology ───────────────────────────────────────────────────────
       case 'dictionary': return (

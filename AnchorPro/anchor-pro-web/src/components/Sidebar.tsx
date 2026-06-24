@@ -32,8 +32,7 @@ const navSections = [
   {
     label: 'Human Resources',
     items: [
-      { href: '/dashboard/hr',           label: 'HR Overview',          icon: UserCog },
-      { href: '/dashboard/team',         label: 'Team Management',      icon: Users },
+      { href: '/dashboard/hr',           label: 'HR & Team',            icon: UserCog },
       { href: '/dashboard/roles',        label: 'Roles & Permissions',  icon: Shield },
     ]
   },
@@ -43,7 +42,6 @@ const navSections = [
       { href: '/dashboard/finance',      label: 'Cashbook & Payables',  icon: DollarSign },
       { href: '/dashboard/invoices',     label: 'Invoices & Billing',   icon: DollarSign },
       { href: '/dashboard/intelligence', label: 'Intelligence',         icon: TrendingUp },
-      { href: '/dashboard/reports',      label: 'System Reports',       icon: BarChart3 },
     ]
   },
   {

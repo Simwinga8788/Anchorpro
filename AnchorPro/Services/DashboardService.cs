@@ -112,7 +112,7 @@ namespace AnchorPro.Services
                     j.ScheduledStartDate,
                     j.ScheduledEndDate,
                     j.ActualEndDate,
-                    AssignedTechnician = j.AssignedTechnician != null ? new { j.AssignedTechnician.UserName } : null,
+                    AssignedTechnician = j.AssignedTechnician != null ? new { j.AssignedTechnician.Id, j.AssignedTechnician.UserName, j.AssignedTechnician.FirstName, j.AssignedTechnician.LastName } : null,
                     Equipment = j.Equipment != null ? new { j.Equipment.Name } : null,
                     JobType = j.JobType != null ? new { j.JobType.Name } : null,
                     DowntimeMinutes = j.JobTasks.SelectMany(t => t.DowntimeEntries).Sum(d => d.DurationMinutes)

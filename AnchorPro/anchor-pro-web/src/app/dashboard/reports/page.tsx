@@ -274,7 +274,7 @@ export default function ReportsPage() {
                 No trend data yet
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, padding: '20px 16px 10px', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, padding: '20px 16px 10px', gap: 4, overflowX: 'auto', minWidth: 0 }}>
                 {completionTrend.map((t: any, i: number) => {
                   const maxVal = Math.max(...completionTrend.map((d: any) => d.count), 1);
                   const hPct = (t.count / maxVal) * 100;
