@@ -29,9 +29,11 @@ const quotationStatusMap: Record<number, { label: string; badge: string }> = {
 };
 
 const invoiceStatusMap: Record<number, { label: string; badge: string }> = {
-  0: { label: 'Unpaid',  badge: 'badge-rose'  },
-  1: { label: 'Partial', badge: 'badge-amber' },
-  2: { label: 'Paid',    badge: 'badge-green' },
+  0: { label: 'Unpaid',    badge: 'badge-rose'   },
+  1: { label: 'Partial',   badge: 'badge-amber'  },
+  2: { label: 'Paid',      badge: 'badge-green'  },
+  3: { label: 'Overdue',   badge: 'badge-rose'   },
+  4: { label: 'Cancelled', badge: 'badge-muted'  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -155,17 +157,44 @@ function ProfitAndLossTab() {
 
   useEffect(() => { fetchReport(); }, [month, year]);
 
+  // Calculations for enhanced visuals
+  const totalIncome = report?.totalIncome ?? 0;
+  const totalExpenses = report?.totalExpenses ?? 0;
+  const netProfit = report?.netProfit ?? 0;
+  
+  const profitMargin = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0;
+  const expenseRatio = totalIncome > 0 ? Math.round((totalExpenses / totalIncome) * 100) : 0;
+
+  const vendorBillPct = totalExpenses > 0 ? Math.round((report?.totalVendorBills / totalExpenses) * 100) : 0;
+  const payrollPct = totalExpenses > 0 ? Math.round((report?.totalPayroll / totalExpenses) * 100) : 0;
+  const adHocPct = totalExpenses > 0 ? Math.round((report?.totalAdHocExpenses / totalExpenses) * 100) : 0;
+
   return (
-    <div className="card" style={{ maxWidth: 800 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600 }}>Profit &amp; Loss Report</h3>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <select className="input-field" value={month} onChange={e => setMonth(Number(e.target.value))}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}>
+      
+      {/* Header card with filters */}
+      <div className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Statement of Cash Flows</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Real-time cash book summary for the selected period</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select 
+            className="form-select" 
+            style={{ padding: '6px 12px', fontSize: 13, fontWeight: 600, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}
+            value={month} 
+            onChange={e => setMonth(Number(e.target.value))}
+          >
             {Array.from({length: 12}).map((_, i) => (
               <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
             ))}
           </select>
-          <select className="input-field" value={year} onChange={e => setYear(Number(e.target.value))}>
+          <select 
+            className="form-select" 
+            style={{ padding: '6px 12px', fontSize: 13, fontWeight: 600, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}
+            value={year} 
+            onChange={e => setYear(Number(e.target.value))}
+          >
             {[year-1, year, year+1].map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
@@ -173,39 +202,264 @@ function ProfitAndLossTab() {
         </div>
       </div>
 
-      {loading ? <p>Loading...</p> : report && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ padding: 15, background: 'var(--accent-blue-dim)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Total Income (Cash In)</span>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>{fmt(report.totalIncome)}</div>
+      {loading ? (
+        <div className="card" style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
+          <div className="spinner" style={{ margin: '0 auto 12px' }}></div>
+          Loading financial data...
+        </div>
+      ) : report ? (
+        <>
+          {/* Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            
+            {/* Total Income Card */}
+            <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <span className="stat-label">Total Income (Cash In)</span>
+                  <div className="stat-value" style={{ color: 'var(--accent-emerald)', marginTop: 8, fontSize: 22, fontWeight: 700 }}>
+                    {fmt(totalIncome)}
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 6 }}>Payments credited to cashbook</span>
+                </div>
+                <div style={{ padding: 8, borderRadius: 8, background: 'rgba(var(--accent-emerald-rgb), 0.1)', color: 'var(--accent-emerald)' }}>
+                  <DollarSign size={18} />
+                </div>
+              </div>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'var(--accent-emerald)', opacity: 0.7 }} />
+            </div>
+
+            {/* Total Expenses Card */}
+            <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <span className="stat-label">Total Expenses (Cash Out)</span>
+                  <div className="stat-value" style={{ color: 'var(--accent-rose)', marginTop: 8, fontSize: 22, fontWeight: 700 }}>
+                    {fmt(totalExpenses)}
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 6 }}>Payables, payroll, and ad-hoc debits</span>
+                </div>
+                <div style={{ padding: 8, borderRadius: 8, background: 'rgba(var(--accent-rose-rgb), 0.1)', color: 'var(--accent-rose)' }}>
+                  <CreditCard size={18} />
+                </div>
+              </div>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'var(--accent-rose)', opacity: 0.7 }} />
+            </div>
+
+            {/* Net Profit Card */}
+            <div className="stat-card" style={{ 
+              position: 'relative', 
+              overflow: 'hidden',
+              background: netProfit >= 0 ? 'rgba(var(--accent-emerald-rgb), 0.04)' : 'rgba(var(--accent-rose-rgb), 0.04)',
+              border: `1px solid ${netProfit >= 0 ? 'rgba(var(--accent-emerald-rgb), 0.2)' : 'rgba(var(--accent-rose-rgb), 0.2)'}`
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <span className="stat-label">Net Profit / Position</span>
+                  <div className="stat-value" style={{ 
+                    color: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', 
+                    marginTop: 8, 
+                    fontSize: 22, 
+                    fontWeight: 800 
+                  }}>
+                    {fmt(netProfit)}
+                  </div>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span className={`badge ${netProfit >= 0 ? 'badge-green' : 'badge-rose'}`} style={{ fontSize: 9, padding: '1px 5px' }}>
+                      {netProfit >= 0 ? 'Surplus' : 'Deficit'}
+                    </span>
+                    {totalIncome > 0 && (
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        {profitMargin}% margin
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ 
+                  padding: 8, 
+                  borderRadius: 8, 
+                  background: netProfit >= 0 ? 'rgba(var(--accent-emerald-rgb), 0.15)' : 'rgba(var(--accent-rose-rgb), 0.15)', 
+                  color: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' 
+                }}>
+                  <Activity size={18} />
+                </div>
+              </div>
+              <div style={{ 
+                position: 'absolute', 
+                bottom: 0, 
+                left: 0, 
+                right: 0, 
+                height: 3, 
+                background: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' 
+              }} />
+            </div>
+
           </div>
 
-          <div>
-            <h4 style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10 }}>Expenses (Cash Out)</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 15px', background: 'var(--bg-elevated)', borderRadius: 6 }}>
-                <span>Vendor Bills</span>
-                <span style={{ fontWeight: 600 }}>{fmt(report.totalVendorBills)}</span>
+          {/* Two Column Layout for Breakdown and Insights */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'stretch' }}>
+            
+            {/* Left: Expenses Breakdown */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 14, marginBottom: 16 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Operating Expenditures</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Proportional breakdown of outbound cash flow</p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 15px', background: 'var(--bg-elevated)', borderRadius: 6 }}>
-                <span>Payroll</span>
-                <span style={{ fontWeight: 600 }}>{fmt(report.totalPayroll)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 15px', background: 'var(--bg-elevated)', borderRadius: 6 }}>
-                <span>Ad-Hoc Expenses</span>
-                <span style={{ fontWeight: 600 }}>{fmt(report.totalAdHocExpenses)}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', marginTop: 8, background: 'var(--bg-card)', borderRadius: 6, border: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontWeight: 600 }}>Total Expenses</span>
-              <span style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>{fmt(report.totalExpenses)}</span>
-            </div>
-          </div>
 
-          <div style={{ marginTop: 10, padding: 20, background: report.netProfit >= 0 ? 'var(--accent-emerald-dim)' : 'var(--accent-rose-dim)', borderRadius: 8, border: `1px solid ${report.netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'}` }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: report.netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>NET PROFIT</span>
-            <div style={{ fontSize: 28, fontWeight: 800, color: report.netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{fmt(report.netProfit)}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+                
+                {/* Vendor Bills */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Vendor Bills &amp; Payables</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalVendorBills)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({vendorBillPct}%)</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '100%', height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${vendorBillPct}%`, height: '100%', background: 'var(--accent-blue)', borderRadius: 3, transition: 'width 0.5s ease-in-out' }} />
+                  </div>
+                </div>
+
+                {/* Payroll */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Employee Payroll</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalPayroll)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({payrollPct}%)</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '100%', height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${payrollPct}%`, height: '100%', background: 'var(--accent-amber)', borderRadius: 3, transition: 'width 0.5s ease-in-out' }} />
+                  </div>
+                </div>
+
+                {/* Ad-Hoc Expenses */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Ad-Hoc Expenses</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalAdHocExpenses)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({adHocPct}%)</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '100%', height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${adHocPct}%`, height: '100%', background: 'var(--accent-rose)', borderRadius: 3, transition: 'width 0.5s ease-in-out' }} />
+                  </div>
+                </div>
+
+                <div style={{ 
+                  marginTop: 'auto', 
+                  padding: '12px 14px', 
+                  background: 'var(--bg-app)', 
+                  borderRadius: 8, 
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center' 
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Total Expenditures</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-rose)' }}>{fmt(totalExpenses)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Health Metrics & Smart Insights */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 14, marginBottom: 16 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Efficiency &amp; Diagnostics</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>Operating ratio and automated performance insights</p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, flex: 1 }}>
+                
+                {/* Profit Margin bar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Operating Profit Margin</span>
+                    <span style={{ color: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontWeight: 700 }}>{profitMargin}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 8, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${Math.min(100, Math.max(0, profitMargin))}%`, 
+                      height: '100%', 
+                      background: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)',
+                      borderRadius: 4 
+                    }} />
+                  </div>
+                </div>
+
+                {/* Expense-to-Income ratio */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Expense-to-Income Ratio</span>
+                    <span style={{ color: expenseRatio > 70 ? 'var(--accent-rose)' : 'var(--text-secondary)', fontWeight: 700 }}>{expenseRatio}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 8, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${Math.min(100, Math.max(0, expenseRatio))}%`, 
+                      height: '100%', 
+                      background: expenseRatio > 70 ? 'var(--accent-rose)' : 'var(--accent-blue)',
+                      borderRadius: 4 
+                    }} />
+                  </div>
+                </div>
+
+                {/* Smart Insights list */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
+                    Automated Insights
+                  </div>
+                  
+                  {/* Insight 1: Net Margin */}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', marginTop: 5, flexShrink: 0 }} />
+                    <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      {netProfit >= 0 
+                        ? `The business operations are currently running at a ${profitMargin}% net surplus for this month.` 
+                        : "Operating expenses exceed cash inflow for this month. Action is recommended to defer optional expenses."}
+                    </span>
+                  </div>
+
+                  {/* Insight 2: Vendor Bills vs Income */}
+                  {report.totalVendorBills > 0 && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-blue)', marginTop: 5, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        Supplier and vendor payables constitute {vendorBillPct}% of total expenditures this period.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Insight 3: Payroll flag */}
+                  {report.totalPayroll === 0 ? (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        No payroll payouts have been recorded in the cashbook for this calendar period yet.
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        Payroll payments represent {payrollPct}% of your operational costs.
+                      </span>
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+            </div>
+
           </div>
+        </>
+      ) : (
+        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+          No records found for this period.
         </div>
       )}
     </div>
@@ -735,9 +989,9 @@ function InvoicesTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalInvoiced   = invoices.reduce((s, i) => s + (i.totalAmount ?? 0), 0);
-  const totalCollected  = invoices.reduce((s, i) => s + (i.paidAmount ?? 0), 0);
-  const totalOutstanding = totalInvoiced - totalCollected;
+  const totalInvoiced   = invoices.reduce((s, i) => s + (i.total ?? 0), 0);
+  const totalCollected  = invoices.reduce((s, i) => s + (i.amountPaid ?? 0), 0);
+  const totalOutstanding = invoices.reduce((s, i) => s + (i.balance ?? 0), 0);
 
   return (
     <>
@@ -784,14 +1038,14 @@ function InvoicesTab() {
                 </tr>
               ) : (
                 invoices.map(inv => {
-                  const st = invoiceStatusMap[inv.status] || { label: 'Unknown', badge: 'badge-muted' };
-                  const overdue = inv.status !== 2 && isOverdue(inv.dueDate);
+                  const st = invoiceStatusMap[inv.paymentStatus] || { label: 'Unknown', badge: 'badge-muted' };
+                  const overdue = inv.paymentStatus !== 2 && isOverdue(inv.dueDate);
                   return (
                     <tr key={inv.id}>
                       <td style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{inv.invoiceNumber || `INV-${inv.id}`}</td>
                       <td>{inv.customer?.name || inv.customerName || '—'}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(inv.totalAmount)}</td>
-                      <td>{fmt(inv.paidAmount)}</td>
+                      <td style={{ fontWeight: 600 }}>{fmt(inv.total)}</td>
+                      <td>{fmt(inv.amountPaid)}</td>
                       <td>
                         <span className={`badge ${st.badge}`}>{st.label}</span>
                       </td>

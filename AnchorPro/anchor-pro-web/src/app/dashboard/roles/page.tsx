@@ -530,7 +530,7 @@ export default function RolesPage() {
                   <div style={{ paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       className="btn btn-secondary btn-sm"
-                      onClick={() => window.location.href = '/dashboard/team'}
+                      onClick={() => window.location.href = '/dashboard/hr?tab=team'}
                     >
                       <Users size={13} /> Manage Team
                     </button>

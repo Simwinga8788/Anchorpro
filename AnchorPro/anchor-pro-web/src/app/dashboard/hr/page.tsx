@@ -59,6 +59,16 @@ type Tab = 'employees' | 'contracts' | 'payroll' | 'team' | 'departments';
 export default function HRPage() {
   const [activeTab, setActiveTab] = useState<Tab>('employees');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'team' || tab === 'employees' || tab === 'contracts' || tab === 'payroll') {
+        setActiveTab(tab as Tab);
+      }
+    }
+  }, []);
+
   return (
     <div className="animate-in">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -788,9 +798,23 @@ function TeamTab() {
     role: 'Technician',
     password: ''
   });
+  
+  // Edit states
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    employeeNumber: '',
+    role: 'Technician',
+    password: ''
+  });
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const AVAILABLE_ROLES = ['Admin', 'HR', 'Planner', 'Supervisor', 'Technician', 'Purchasing', 'Storeman'];
 
   const fetchUsers = async () => {
     try {
@@ -825,6 +849,56 @@ function TeamTab() {
       fetchUsers();
     } catch (err: any) {
       setError(err.message || 'Failed to create user account');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEdit = (u: any) => {
+    setEditingUser(u);
+    setEditForm({
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      employeeNumber: u.employeeNumber || '',
+      role: u.role || 'Technician',
+      password: ''
+    });
+    setError('');
+    setSuccess('');
+    setShowEdit(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.firstName) {
+      setError('First name is required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await usersApi.update(editingUser.id, {
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        employeeNumber: editForm.employeeNumber,
+        role: editForm.role,
+        hourlyRate: editingUser.hourlyRate || 450,
+        departmentId: editingUser.departmentId
+      });
+
+      if (editForm.password) {
+        await usersApi.changePassword(editingUser.id, {
+          newPassword: editForm.password
+        });
+      }
+
+      setSuccess(`User account for ${editForm.firstName} ${editForm.lastName} updated successfully.`);
+      setShowEdit(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update user account');
     } finally {
       setSaving(false);
     }
@@ -904,7 +978,7 @@ function TeamTab() {
                         <td style={{ fontFamily: 'monospace' }}>{u.employeeNumber || '—'}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {(u.roles || []).map((r: string) => (
+                            {(u.roles || [u.role]).filter(Boolean).map((r: string) => (
                               <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
                             ))}
                           </div>
@@ -915,11 +989,18 @@ function TeamTab() {
                           </span>
                         </td>
                         <td>
-                          {isAdmin && !isCurrentUser && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeactivate(u)}>
-                              {active ? 'Deactivate' : 'Reactivate'}
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {isAdmin && (
+                              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(u)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Edit size={12} /> Edit
+                              </button>
+                            )}
+                            {isAdmin && !isCurrentUser && (
+                              <button className="btn btn-secondary btn-sm" onClick={() => handleDeactivate(u)}>
+                                {active ? 'Deactivate' : 'Reactivate'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -968,7 +1049,7 @@ function TeamTab() {
                   <div className="form-group">
                     <label className="form-label">Role</label>
                     <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}>
-                      {['Technician','Supervisor','Admin','PurchasingOfficer','Storekeeper'].map(r => <option key={r} value={r}>{r}</option>)}
+                      {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
                 </div>
@@ -981,6 +1062,64 @@ function TeamTab() {
                 <button type="button" className="btn btn-secondary" onClick={() => setShowInvite(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEdit && editingUser && (
+        <div className="modal-overlay" onClick={() => { setShowEdit(false); setEditingUser(null); }}>
+          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Edit User Account</h2>
+              <button className="modal-close" onClick={() => { setShowEdit(false); setEditingUser(null); }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleUpdate}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {error && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
+                    {error}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">First Name *</label>
+                    <input className="form-input" value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Last Name</label>
+                    <input className="form-input" value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input className="form-input" type="email" value={editingUser.email} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Email address cannot be changed.</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Employee Number</label>
+                    <input className="form-input" value={editForm.employeeNumber} onChange={e => setEditForm({ ...editForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Role</label>
+                    <select className="form-select" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                      {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reset Password</label>
+                  <input className="form-input" type="password" value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep unchanged" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setEditingUser(null); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
