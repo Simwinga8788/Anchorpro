@@ -210,6 +210,8 @@ export default function ProcurementPage() {
     try {
       await procurementApi.createRequisition({
         purchaseRequisition: {
+          requisitionNumber: 'TEMP',
+          requestedById: 'TEMP',
           jobCardId: prFormData.type === 'operational' && prFormData.jobCardId ? parseInt(prFormData.jobCardId) : null,
           departmentId: prFormData.type === 'departmental' && prFormData.departmentId ? parseInt(prFormData.departmentId) : null,
           notes: prFormData.notes || null,

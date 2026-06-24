@@ -19,7 +19,7 @@ namespace AnchorPro.Data.Entities
     {
         [Required]
         [MaxLength(30)]
-        public string RequisitionNumber { get; set; } = string.Empty; // e.g., PR-2026-0001
+        public string RequisitionNumber { get; set; } = "TEMP"; // e.g., PR-2026-0001
 
         // Optional: Link to a Job Card if raised for an operational maintenance job
         public int? JobCardId { get; set; }
@@ -31,7 +31,7 @@ namespace AnchorPro.Data.Entities
 
         [Required]
         [MaxLength(85)]
-        public string RequestedById { get; set; } = string.Empty;
+        public string RequestedById { get; set; } = "TEMP";
         public ApplicationUser? RequestedBy { get; set; }
 
         public DateTime RequiredDate { get; set; } = DateTime.UtcNow.AddDays(7);
