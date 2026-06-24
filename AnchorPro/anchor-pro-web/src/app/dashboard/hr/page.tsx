@@ -5,7 +5,7 @@ import { hrApi, departmentsApi, usersApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
-  ChevronRight, AlertCircle, CheckCircle, X, Edit,
+  ChevronRight, AlertCircle, CheckCircle, X, Edit, Trash2,
   Shield, Briefcase, Phone, Home, CreditCard, Upload,
   Calendar, TrendingUp, Eye, Download
 } from 'lucide-react';
@@ -87,6 +87,7 @@ export default function HRPage() {
           { key: 'contracts', label: 'Contracts',       icon: <FileText size={13} /> },
           { key: 'payroll',   label: 'Payroll',         icon: <DollarSign size={13} /> },
           { key: 'team',      label: 'User Management', icon: <Shield size={13} /> },
+          { key: 'departments', label: 'Departments',   icon: <Briefcase size={13} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(tab => (
           <button
             key={tab.key}
@@ -111,6 +112,7 @@ export default function HRPage() {
       {activeTab === 'contracts' && <ContractsTab />}
       {activeTab === 'payroll'   && <PayrollTab />}
       {activeTab === 'team'      && <TeamTab />}
+      {activeTab === 'departments' && <DepartmentsTab />}
     </div>
   );
 }
@@ -1156,6 +1158,171 @@ function TeamTab() {
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setEditingUser(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Departments Tab ──────────────────────────────────────────────────────────
+function DepartmentsTab() {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDept, setEditingDept] = useState<any | null>(null);
+  const [form, setForm] = useState({ name: '', costCode: '', description: '' });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const data = await departmentsApi.getAll();
+      setDepartments(data || []);
+    } catch (err) {
+      console.error('Failed to load departments', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openEdit = (dept: any) => {
+    setEditingDept(dept);
+    setForm({
+      name: dept.name || '',
+      costCode: dept.costCode || '',
+      description: dept.description || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      if (editingDept) {
+        await departmentsApi.update(editingDept.id, { ...editingDept, ...form });
+      } else {
+        await departmentsApi.create(form);
+      }
+      setShowForm(false);
+      setEditingDept(null);
+      setForm({ name: '', costCode: '', description: '' });
+      load();
+    } catch (err: any) {
+      alert('Failed to save department: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this department? This may affect linked assets and users.')) return;
+    try {
+      await departmentsApi.delete(id);
+      load();
+    } catch (err: any) {
+      alert('Failed to delete department: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h3 style={{ fontSize: 15, fontWeight: 600 }}>Company Departments ({departments.length})</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Manage corporate departments, modules, and cost centers.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => { setEditingDept(null); setForm({ name: '', costCode: '', description: '' }); setShowForm(true); }}>
+          <Plus size={16} /> Add Department
+        </button>
+      </div>
+
+      <div className="card">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>Loading departments...</div>
+        ) : departments.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+            No departments found. Click "Add Department" to create one.
+          </div>
+        ) : (
+          <ResponsiveTable>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Department Name</th>
+                  <th>Cost Code / Center</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {departments.map(d => (
+                  <tr key={d.id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 14 }}>{d.name}</div>
+                    </td>
+                    <td>
+                      <span className="badge badge-blue" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                        {d.costCode || '—'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.description || '—'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEdit(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Edit size={12} /> Edit
+                        </button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(d.id)} style={{ color: 'var(--accent-rose)' }}>
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ResponsiveTable>
+        )}
+      </div>
+
+      {/* Department Modal */}
+      {showForm && (
+        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingDept(null); }}>
+          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">{editingDept ? 'Edit Department' : 'Create Department'}</h2>
+              <button className="modal-close" onClick={() => { setShowForm(false); setEditingDept(null); }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreateOrUpdate}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="form-group">
+                  <label className="form-label">Department Name *</label>
+                  <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Procurement, Safety, or IT" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Cost Code / Reference</label>
+                  <input className="form-input" value={form.costCode} onChange={e => setForm({ ...form, costCode: e.target.value })} placeholder="e.g. DEPT-PROC or 4001" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea className="form-textarea" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description of department scope or access role mapping..." />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditingDept(null); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : editingDept ? 'Save Changes' : 'Create Department'}
                 </button>
               </div>
             </form>
