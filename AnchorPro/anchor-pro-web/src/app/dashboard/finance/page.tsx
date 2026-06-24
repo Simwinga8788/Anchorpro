@@ -731,7 +731,7 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
   const fetchLedger = async () => {
     try {
       const data = await financeApi.getLedgerEntries();
-      setEntries(data);
+      setEntries(data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -741,48 +741,107 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
 
   useEffect(() => { fetchLedger(); }, []);
 
+  // Compute running balance chronologically
+  const sortedChronologically = [...entries].sort(
+    (a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime()
+  );
+
+  let cumulativeBalance = 0;
+  const entriesWithBalance = sortedChronologically.map(entry => {
+    const change = entry.type === 0 ? entry.amount : -entry.amount;
+    cumulativeBalance += change;
+    return { ...entry, runningBalance: cumulativeBalance };
+  });
+
+  // Display newest first
+  const displayEntries = [...entriesWithBalance].reverse();
+
+  // Summary card stats
+  const totalCredits = entries.filter(e => e.type === 0).reduce((s, e) => s + (e.amount ?? 0), 0);
+  const totalDebits = entries.filter(e => e.type === 1).reduce((s, e) => s + (e.amount ?? 0), 0);
+  const closingBalance = totalCredits - totalDebits;
+
   return (
-    <div className="card">
-      <div className="table-scroll">
-        <ResponsiveTable>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>User</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
-              ) : entries.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No ledger entries found.</td></tr>
-              ) : (
-                entries.map(row => {
-                  const t = ledgerTypeMap[row.type] || { label: 'Unknown', color: 'var(--text-muted)' };
-                  return (
-                    <tr key={row.id}>
-                      <td>{new Date(row.transactionDate).toLocaleString()}</td>
-                      <td><span style={{ color: t.color, fontWeight: 600 }}>{t.label}</span></td>
-                      <td>{row.category}</td>
-                      <td>{row.description}</td>
-                      <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
-                      <td>
-                        <span style={{ fontWeight: 700, color: row.type === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                          {row.type === 0 ? '+' : '-'}{fmt(row.amount)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </ResponsiveTable>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      
+      {/* Ledger Summary KPIs */}
+      {!loading && entries.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+          <div className="stat-card">
+            <span className="stat-label">Total Cash In (Credits)</span>
+            <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-emerald)', marginTop: 4 }}>
+              +{fmt(totalCredits)}
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-label">Total Cash Out (Debits)</span>
+            <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-rose)', marginTop: 4 }}>
+              -{fmt(totalDebits)}
+            </div>
+          </div>
+          <div className="stat-card" style={{ 
+            background: closingBalance >= 0 ? 'rgba(var(--accent-emerald-rgb), 0.04)' : 'rgba(var(--accent-rose-rgb), 0.04)',
+            border: `1px solid ${closingBalance >= 0 ? 'rgba(var(--accent-emerald-rgb), 0.15)' : 'rgba(var(--accent-rose-rgb), 0.15)'}`
+          }}>
+            <span className="stat-label">Closing Ledger Balance</span>
+            <div className="stat-value" style={{ 
+              fontSize: 18, 
+              fontWeight: 800, 
+              color: closingBalance >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', 
+              marginTop: 4 
+            }}>
+              {fmt(closingBalance)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="table-scroll">
+          <ResponsiveTable>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>User</th>
+                  <th>Amount</th>
+                  <th>Running Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
+                ) : displayEntries.length === 0 ? (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No ledger entries found.</td></tr>
+                ) : (
+                  displayEntries.map(row => {
+                    const t = ledgerTypeMap[row.type] || { label: 'Unknown', color: 'var(--text-muted)' };
+                    return (
+                      <tr key={row.id}>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{new Date(row.transactionDate).toLocaleString()}</td>
+                        <td><span style={{ color: t.color, fontWeight: 600 }}>{t.label}</span></td>
+                        <td>{row.category}</td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{row.description}</td>
+                        <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: row.type === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                            {row.type === 0 ? '+' : '-'}{fmt(row.amount)}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {fmt(row.runningBalance)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </ResponsiveTable>
+        </div>
       </div>
     </div>
   );
