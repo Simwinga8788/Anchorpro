@@ -156,8 +156,8 @@ function EmployeesTab() {
   );
 
   return (
-    <>
-      <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div className="card-elevated" style={{ padding: 0, overflow: 'hidden', flex: 1 }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -221,41 +221,38 @@ function EmployeesTab() {
         )}
       </div>
 
-      {/* Employee Profile Slide-Over */}
+      {/* Employee Profile Detail Card */}
       {selected && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }} onClick={() => setSelected(null)}>
-          <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }} />
-          <div
-            className="card-elevated animate-in"
-            style={{ width: 560, height: '100%', overflowY: 'auto', borderRadius: 0, padding: 0 }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div className="avatar" style={{ background: 'var(--accent-blue)', color: '#fff', fontWeight: 700, fontSize: 18, width: 52, height: 52, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {initials(selected.firstName, selected.lastName)}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text-primary)' }}>{selected.firstName} {selected.lastName}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{selected.jobTitle || selected.role} · #{selected.employeeNumber || 'No employee #'}</div>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)}><X size={16} /></button>
+        <div
+          className="card-elevated animate-in"
+          style={{ width: 480, flexShrink: 0, padding: 0 }}
+        >
+          {/* Header */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="avatar-sm" style={{ background: 'var(--accent-blue)', color: '#fff', fontWeight: 700 }}>
+              {initials(selected.firstName, selected.lastName)}
             </div>
-
-            {/* Profile Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 24px' }}>
-              {(['personal', 'bank', 'employment', 'documents'] as const).map(t => (
-                <button key={t} onClick={() => setProfileTab(t)} style={{
-                  padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: profileTab === t ? 700 : 400, textTransform: 'capitalize',
-                  color: profileTab === t ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                  borderBottom: profileTab === t ? '2px solid var(--accent-blue)' : '2px solid transparent',
-                  marginBottom: -1,
-                }}>{t === 'bank' ? '🏦 Bank Details' : t === 'personal' ? '👤 Personal' : t === 'employment' ? '💼 Employment' : '📄 Documents'}</button>
-              ))}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{selected.firstName} {selected.lastName}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selected.jobTitle || selected.role} · #{selected.employeeNumber || 'No employee #'}</div>
             </div>
+            <button className="icon-btn" onClick={() => setSelected(null)}><X size={16} /></button>
+          </div>
 
-            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Profile Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 20px' }}>
+            {(['personal', 'bank', 'employment', 'documents'] as const).map(t => (
+              <button key={t} onClick={() => setProfileTab(t)} style={{
+                padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: profileTab === t ? 700 : 400, textTransform: 'capitalize',
+                color: profileTab === t ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                borderBottom: profileTab === t ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                marginBottom: -1,
+              }}>{t === 'bank' ? '🏦 Bank Details' : t === 'personal' ? '👤 Personal' : t === 'employment' ? '💼 Employment' : '📄 Documents'}</button>
+            ))}
+          </div>
+
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
               {/* Personal Tab */}
               {profileTab === 'personal' && (
@@ -330,11 +327,10 @@ function EmployeesTab() {
                   {saving ? 'Saving...' : 'Save Profile'}
                 </button>
               )}
-            </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
