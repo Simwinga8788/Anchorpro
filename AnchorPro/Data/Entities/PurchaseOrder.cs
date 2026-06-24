@@ -61,6 +61,10 @@ namespace AnchorPro.Data.Entities
         public int? JobCardId { get; set; }
         public JobCard? JobCard { get; set; }
 
+        // Purchase Requisition link — optional, set when PO is generated from an approved PR
+        public int? PurchaseRequisitionId { get; set; }
+        public PurchaseRequisition? PurchaseRequisition { get; set; }
+
         // Navigation
         public ICollection<PurchaseOrderItem> Items { get; set; } = new List<PurchaseOrderItem>();
     }

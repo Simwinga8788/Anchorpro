@@ -40,6 +40,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<Entities.Quotation> Quotations { get; set; }
+    public DbSet<Entities.PurchaseRequisition> PurchaseRequisitions { get; set; }
+    public DbSet<Entities.PurchaseRequisitionItem> PurchaseRequisitionItems { get; set; }
     
     // Finance Module
     public DbSet<Entities.VendorBill> VendorBills { get; set; }

@@ -788,6 +788,7 @@ function TeamTab() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes('Admin') || user?.roles?.includes('PlatformOwner');
   const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({
@@ -796,7 +797,8 @@ function TeamTab() {
     email: '',
     employeeNumber: '',
     role: 'Technician',
-    password: ''
+    password: '',
+    departmentId: ''
   });
   
   // Edit states
@@ -807,7 +809,8 @@ function TeamTab() {
     lastName: '',
     employeeNumber: '',
     role: 'Technician',
-    password: ''
+    password: '',
+    departmentId: ''
   });
 
   const [saving, setSaving] = useState(false);
@@ -828,8 +831,18 @@ function TeamTab() {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const data = await departmentsApi.getAll();
+      setDepartments(data || []);
+    } catch (err) {
+      console.error('Failed to load departments', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
   }, []);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -842,9 +855,13 @@ function TeamTab() {
     setError('');
     setSuccess('');
     try {
-      await usersApi.create(inviteForm);
+      const payload = {
+        ...inviteForm,
+        departmentId: inviteForm.departmentId ? Number(inviteForm.departmentId) : null
+      };
+      await usersApi.create(payload);
       setSuccess(`User ${inviteForm.firstName} ${inviteForm.lastName} created successfully.`);
-      setInviteForm({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
+      setInviteForm({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '', departmentId: '' });
       setShowInvite(false);
       fetchUsers();
     } catch (err: any) {
@@ -861,7 +878,8 @@ function TeamTab() {
       lastName: u.lastName || '',
       employeeNumber: u.employeeNumber || '',
       role: u.role || 'Technician',
-      password: ''
+      password: '',
+      departmentId: u.departmentId ? String(u.departmentId) : ''
     });
     setError('');
     setSuccess('');
@@ -884,7 +902,7 @@ function TeamTab() {
         employeeNumber: editForm.employeeNumber,
         role: editForm.role,
         hourlyRate: editingUser.hourlyRate || 450,
-        departmentId: editingUser.departmentId
+        departmentId: editForm.departmentId ? Number(editForm.departmentId) : null
       });
 
       if (editForm.password) {
@@ -953,6 +971,7 @@ function TeamTab() {
                     <th>Email</th>
                     <th>Employee #</th>
                     <th>Role</th>
+                    <th>Department</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -982,6 +1001,9 @@ function TeamTab() {
                               <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
                             ))}
                           </div>
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>
+                          {departments.find(d => d.id === u.departmentId)?.name || '—'}
                         </td>
                         <td>
                           <span className={`badge ${active ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 10 }}>
@@ -1054,6 +1076,13 @@ function TeamTab() {
                   </div>
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Department</label>
+                  <select className="form-select" value={inviteForm.departmentId} onChange={e => setInviteForm({ ...inviteForm, departmentId: e.target.value })}>
+                    <option value="">No Department (Overhead)</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
                   <label className="form-label">Temporary Password *</label>
                   <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" required />
                 </div>
@@ -1110,6 +1139,13 @@ function TeamTab() {
                       {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Department</label>
+                  <select className="form-select" value={editForm.departmentId} onChange={e => setEditForm({ ...editForm, departmentId: e.target.value })}>
+                    <option value="">No Department (Overhead)</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Reset Password</label>

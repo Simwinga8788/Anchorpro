@@ -56,11 +56,47 @@ namespace AnchorPro.Services
             // Use JobNumber as the QuotationNumber
             var qtnNumber = !string.IsNullOrWhiteSpace(job.JobNumber) ? job.JobNumber.Trim() : $"QTN-{job.Id}";
 
-            // Subtotal is based on job's invoiceAmount (Agreed Price), fallback to TotalCost (components + external service)
-            decimal subtotal = job.InvoiceAmount;
+            // Retrieve Global Financial & Markup settings for this tenant
+            var settings = await context.SystemSettings
+                .Where(s => s.TenantId == job.TenantId)
+                .ToListAsync();
+
+            decimal partsMarkupPercent = 20m; // Fallback default
+            decimal laborBillingRate = 400m; // Fallback default
+            decimal laborMarkupPercent = 10m; // Fallback default
+
+            var partsMarkupSetting = settings.FirstOrDefault(s => s.Key == "Fin.DefaultPartsMarkupPercent");
+            if (partsMarkupSetting != null && decimal.TryParse(partsMarkupSetting.Value, out var pm))
+            {
+                partsMarkupPercent = pm;
+            }
+
+            var laborRateSetting = settings.FirstOrDefault(s => s.Key == "Fin.DefaultLaborBillingRate");
+            if (laborRateSetting != null && decimal.TryParse(laborRateSetting.Value, out var lr))
+            {
+                laborBillingRate = lr;
+            }
+
+            var laborMarkupSetting = settings.FirstOrDefault(s => s.Key == "Fin.DefaultLaborMarkupPercent");
+            if (laborMarkupSetting != null && decimal.TryParse(laborMarkupSetting.Value, out var lm))
+            {
+                laborMarkupPercent = lm;
+            }
+
+            // Calculation
+            // Quoted Parts = JobCard.PartsCost * (1 + partsMarkupPercent / 100)
+            decimal quotedParts = job.PartsCost * (1 + (partsMarkupPercent / 100));
+
+            // Quoted Labor = JobCard.EstimatedLaborHours * laborBillingRate * (1 + laborMarkupPercent / 100)
+            decimal quotedLabor = job.EstimatedLaborHours * laborBillingRate * (1 + (laborMarkupPercent / 100));
+
+            // Quotation Subtotal = Quoted Parts + Quoted Labor + DirectPurchaseCost + SubcontractingCost
+            decimal subtotal = Math.Round(quotedParts + quotedLabor + job.DirectPurchaseCost + job.SubcontractingCost, 2);
+
+            // Fallback: If subtotal is 0, use the job's invoiceAmount or totalCost
             if (subtotal <= 0)
             {
-                subtotal = job.TotalCost;
+                subtotal = job.InvoiceAmount > 0 ? job.InvoiceAmount : job.TotalCost;
             }
 
             var quotation = new Quotation

@@ -168,6 +168,24 @@ export default function SettingsPage() {
   const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW' });
   const [savingOrg, setSavingOrg] = useState(false);
 
+  // ── Financial & Markups ──────────────────────────────────────────────────────
+  const [finForm, setFinForm] = useState({ partsMarkup: '20.0', laborBillingRate: '400.0', laborMarkup: '10.0' });
+  const [savingFin, setSavingFin] = useState(false);
+
+  const handleSaveFin = async () => {
+    setSavingFin(true);
+    try {
+      await settingsApi.upsert('Fin.DefaultPartsMarkupPercent', finForm.partsMarkup, 'Default parts markup percentage', 'Financial & Markups');
+      await settingsApi.upsert('Fin.DefaultLaborBillingRate', finForm.laborBillingRate, 'Default labor billing rate per hour', 'Financial & Markups');
+      await settingsApi.upsert('Fin.DefaultLaborMarkupPercent', finForm.laborMarkup, 'Default labor markup percentage', 'Financial & Markups');
+      show('Financial & markup settings saved');
+    } catch (e: any) {
+      show(e.message || 'Failed to save financial settings', 'error');
+    } finally {
+      setSavingFin(false);
+    }
+  };
+
   // ── Departments ──────────────────────────────────────────────────────────────
   
   
@@ -241,6 +259,11 @@ export default function SettingsPage() {
       if (!Array.isArray(all)) return;
       const g = (k: string, fb: string) => all.find((s: any) => s.key === k)?.value ?? fb;
       setOrgForm({ name: g('Org.Name', ''), currency: g('Org.Currency', 'ZMW') });
+      setFinForm({
+        partsMarkup: g('Fin.DefaultPartsMarkupPercent', '20.0'),
+        laborBillingRate: g('Fin.DefaultLaborBillingRate', '400.0'),
+        laborMarkup: g('Fin.DefaultLaborMarkupPercent', '10.0'),
+      });
       setOpSettings(p => ({
         ...p,
         defaultSlaHours:        g('Op.DefaultSlaHours',        p.defaultSlaHours),
@@ -598,6 +621,23 @@ export default function SettingsPage() {
               </FormRow>
             </div>
           </SectionCard>
+
+          {isAdmin && (
+            <SectionCard title="Financial & Markup Defaults" subtitle="Set your default profit margins and hourly billing rates applied directly to new quotations" icon={<CreditCard size={16} />}
+              footer={<SaveBtn loading={savingFin} onClick={handleSaveFin} />}>
+              <div className="settings-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                <FormRow label="Default Parts Markup (%)" hint="Markup added to the inventory/parts cost (e.g. 20%)">
+                  <input className="form-input" type="number" step="0.1" min="0" value={finForm.partsMarkup} onChange={e => setFinForm({ ...finForm, partsMarkup: e.target.value })} />
+                </FormRow>
+                <FormRow label="Default Labor Billing Rate (per hour)" hint={`Hourly billing rate charged to clients (in ${orgForm.currency || 'ZMW'})`}>
+                  <input className="form-input" type="number" step="0.01" min="0" value={finForm.laborBillingRate} onChange={e => setFinForm({ ...finForm, laborBillingRate: e.target.value })} />
+                </FormRow>
+                <FormRow label="Default Labor Markup (%)" hint="Extra profit markup applied to labor billing (e.g. 10%)">
+                  <input className="form-input" type="number" step="0.1" min="0" value={finForm.laborMarkup} onChange={e => setFinForm({ ...finForm, laborMarkup: e.target.value })} />
+                </FormRow>
+              </div>
+            </SectionCard>
+          )}
 
           {isAdmin && (
             <SectionCard title="Danger Zone" subtitle="Irreversible destructive actions" icon={<AlertTriangle size={16} />}>

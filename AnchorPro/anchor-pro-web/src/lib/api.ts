@@ -528,6 +528,17 @@ export const procurementApi = {
   createSupplier:       (data: any)                  => apiPost<any>('/api/procurement/suppliers', data),
   updateSupplier:       (id: number, data: any)      => apiPut<any>(`/api/procurement/suppliers/${id}`, data),
   deleteSupplier:       (id: number)                 => apiDelete(`/api/procurement/suppliers/${id}`),
+
+  // Purchase Requisitions
+  getRequisitions:             ()                           => apiFetch<any[]>('/api/procurement/requisitions'),
+  getPendingRequisitions:      ()                           => apiFetch<any[]>('/api/procurement/requisitions/pending-approval'),
+  getRequisitionById:          (id: number)                 => apiFetch<any>(`/api/procurement/requisitions/${id}`),
+  getRequisitionsByJob:        (jobCardId: number)          => apiFetch<any[]>(`/api/procurement/requisitions/job/${jobCardId}`),
+  createRequisition:           (data: any)                  => apiPost<any>('/api/procurement/requisitions', data),
+  approveRequisition:          (id: number)                 => apiPost<any>(`/api/procurement/requisitions/${id}/approve`, {}),
+  rejectRequisition:           (id: number, reason: string) => apiPost<any>(`/api/procurement/requisitions/${id}/reject`, { reason }),
+  submitRequisition:           (id: number)                 => apiPost<any>(`/api/procurement/requisitions/${id}/submit`, {}),
+  convertToPO:                 (id: number, supplierId: number) => apiPost<any>(`/api/procurement/requisitions/${id}/convert-to-po`, { supplierId }),
 };
 
 // ─── Safety API ── /api/safety ─────────────────────────────────────────────────

@@ -40,6 +40,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     isCustomerBrought: false,
     customerItemName: '',
     customerItemSerial: '',
+    estimatedLaborHours: '0.0',
   });
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         subcontractingCost: 0,
         jobTasks: [],
         jobCardParts: [],
+        estimatedLaborHours: parseFloat(formData.estimatedLaborHours) || 0.0,
       };
 
       console.log('API SUBMISSION:', payload);
@@ -271,6 +273,18 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
               <option value="">No Contract</option>
               {refData.contracts.map(c => <option key={c.id} value={c.id}>{c.title || c.contractNumber}</option>)}
             </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Estimated Labor Hours</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              className="form-input"
+              placeholder="e.g. 5.0"
+              value={formData.estimatedLaborHours}
+              onChange={e => setFormData({ ...formData, estimatedLaborHours: e.target.value })}
+            />
           </div>
         </div>
       </div>

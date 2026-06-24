@@ -13,6 +13,7 @@ export interface UserProfile {
   roles: string[];
   tenantId?: number;
   isPlatformOwner: boolean;
+  departmentId?: number;
 }
 
 interface AuthContextValue {

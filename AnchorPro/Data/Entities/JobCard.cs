@@ -45,9 +45,13 @@ namespace AnchorPro.Data.Entities
         public ICollection<JobTask> JobTasks { get; set; } = new List<JobTask>();
         public ICollection<JobCardPart> JobCardParts { get; set; } = new List<JobCardPart>();
         public ICollection<JobAttachment> JobAttachments { get; set; } = new List<JobAttachment>();
+        public ICollection<PurchaseRequisition> PurchaseRequisitions { get; set; } = new List<PurchaseRequisition>();
 
         // Compliance
         public PermitToWork? PermitToWork { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EstimatedLaborHours { get; set; }
 
         // Financials — "Cost Trinity" Snapshot (set at completion)
         /// <summary>Internal Labor: Technician hours × hourly rate</summary>

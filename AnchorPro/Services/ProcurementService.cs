@@ -280,5 +280,200 @@ namespace AnchorPro.Services
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<List<PurchaseRequisition>> GetAllPurchaseRequisitionsAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PurchaseRequisitions
+                .Include(r => r.JobCard)
+                .Include(r => r.Department)
+                .Include(r => r.RequestedBy)
+                .Include(r => r.ApprovedBy)
+                .OrderByDescending(r => r.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<PurchaseRequisition?> GetPurchaseRequisitionByIdAsync(int id)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PurchaseRequisitions
+                .Include(r => r.JobCard)
+                .Include(r => r.Department)
+                .Include(r => r.RequestedBy)
+                .Include(r => r.ApprovedBy)
+                .Include(r => r.Items)
+                    .ThenInclude(i => i.InventoryItem)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id);
+        }
+
+        public async Task<PurchaseRequisition> CreatePurchaseRequisitionAsync(PurchaseRequisition pr, List<PurchaseRequisitionItem> items, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            pr.RequisitionNumber = $"PR-{DateTime.UtcNow:yyyyMM}-{context.PurchaseRequisitions.Count() + 1:D4}";
+            pr.CreatedAt = DateTime.UtcNow;
+            pr.CreatedBy = userId;
+            pr.RequestedById = userId;
+            pr.TotalEstimatedAmount = items.Sum(i => i.LineTotal);
+
+            foreach (var item in items)
+            {
+                item.CreatedAt = DateTime.UtcNow;
+                item.CreatedBy = userId;
+                pr.Items.Add(item);
+            }
+
+            context.PurchaseRequisitions.Add(pr);
+            await context.SaveChangesAsync();
+            return pr;
+        }
+
+        public async Task UpdatePurchaseRequisitionStatusAsync(int prId, PurchaseRequisitionStatus status, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            var pr = await context.PurchaseRequisitions.FindAsync(prId);
+            if (pr != null)
+            {
+                pr.Status = status;
+                pr.UpdatedAt = DateTime.UtcNow;
+                pr.UpdatedBy = userId;
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public async Task ApprovePurchaseRequisitionAsync(int prId, string approvedByUserId)
+        {
+            using var context = _factory.CreateDbContext();
+            var pr = await context.PurchaseRequisitions.FindAsync(prId);
+            if (pr == null) throw new InvalidOperationException($"Purchase Requisition {prId} not found.");
+            
+            pr.Status = PurchaseRequisitionStatus.Approved;
+            pr.ApprovedById = approvedByUserId;
+            pr.ApprovedDate = DateTime.UtcNow;
+            pr.UpdatedAt = DateTime.UtcNow;
+            pr.UpdatedBy = approvedByUserId;
+            await context.SaveChangesAsync();
+        }
+
+        public async Task RejectPurchaseRequisitionAsync(int prId, string reason, string rejectedByUserId)
+        {
+            using var context = _factory.CreateDbContext();
+            var pr = await context.PurchaseRequisitions.FindAsync(prId);
+            if (pr == null) throw new InvalidOperationException($"Purchase Requisition {prId} not found.");
+            
+            pr.Status = PurchaseRequisitionStatus.Rejected;
+            pr.Notes = string.IsNullOrEmpty(pr.Notes)
+                ? $"Rejected: {reason}"
+                : $"{pr.Notes} | Rejected: {reason}";
+            pr.ApprovedById = rejectedByUserId;
+            pr.ApprovedDate = DateTime.UtcNow;
+            pr.UpdatedAt = DateTime.UtcNow;
+            pr.UpdatedBy = rejectedByUserId;
+            await context.SaveChangesAsync();
+        }
+
+        public async Task<PurchaseOrder> ConvertRequisitionToPOAsync(int prId, int supplierId, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            using var transaction = await context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var pr = await context.PurchaseRequisitions
+                    .Include(r => r.Items)
+                    .FirstOrDefaultAsync(r => r.Id == prId);
+
+                if (pr == null) throw new InvalidOperationException($"Requisition {prId} not found.");
+                if (pr.Status != PurchaseRequisitionStatus.Approved) 
+                    throw new InvalidOperationException("Only approved requisitions can be converted to Purchase Orders.");
+
+                // Create the PO
+                var po = new PurchaseOrder
+                {
+                    SupplierId = supplierId,
+                    PoType = pr.JobCardId.HasValue ? PurchaseOrderType.DirectPurchase : PurchaseOrderType.InventoryReplenishment,
+                    JobCardId = pr.JobCardId,
+                    DepartmentId = pr.DepartmentId,
+                    PurchaseRequisitionId = pr.Id,
+                    Notes = pr.Notes,
+                    Status = PurchaseOrderStatus.Draft,
+                    OrderDate = DateTime.UtcNow,
+                    RaisedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                // Generate PO Number
+                po.PoNumber = $"PO-{DateTime.UtcNow:yyyyMM}-{context.PurchaseOrders.Count() + 1:D4}";
+
+                // Add Items
+                var poItems = new List<PurchaseOrderItem>();
+                foreach (var item in pr.Items)
+                {
+                    poItems.Add(new PurchaseOrderItem
+                    {
+                        InventoryItemId = item.InventoryItemId,
+                        Description = item.Description,
+                        QuantityOrdered = item.QuantityRequested,
+                        QuantityReceived = 0,
+                        UnitCost = item.EstimatedUnitCost,
+                        LineTotal = item.LineTotal,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
+
+                po.TotalAmount = poItems.Sum(i => i.LineTotal);
+                foreach (var poItem in poItems)
+                {
+                    po.Items.Add(poItem);
+                }
+
+                context.PurchaseOrders.Add(po);
+
+                // Update PR status
+                pr.Status = PurchaseRequisitionStatus.ConvertedToPO;
+                pr.UpdatedAt = DateTime.UtcNow;
+                pr.UpdatedBy = userId;
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return po;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<PurchaseRequisition>> GetPurchaseRequisitionsByJobCardIdAsync(int jobCardId)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PurchaseRequisitions
+                .Include(r => r.RequestedBy)
+                .Include(r => r.ApprovedBy)
+                .Include(r => r.Department)
+                .Where(r => r.JobCardId == jobCardId)
+                .OrderByDescending(r => r.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<List<PurchaseRequisition>> GetPendingApprovalRequisitionsAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PurchaseRequisitions
+                .Include(r => r.JobCard)
+                .Include(r => r.Department)
+                .Include(r => r.RequestedBy)
+                .Where(r => r.Status == PurchaseRequisitionStatus.PendingApproval)
+                .OrderByDescending(r => r.TotalEstimatedAmount)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

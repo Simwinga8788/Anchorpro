@@ -297,7 +297,12 @@ namespace AnchorPro.Data
                 // SAFETY & COMPLIANCE
                 new SystemSetting { Key = "Safe.PermitRequired.Electrical", Value = "true", Group = "Safety & Compliance", Description = "Mandatory PTW for electrical work", TenantId = tenantId },
                 new SystemSetting { Key = "Safe.DigitalSignature", Value = "true", Group = "Safety & Compliance", Description = "Require digital sign-off on permits", TenantId = tenantId },
-                new SystemSetting { Key = "Safe.PermitExpiryLabel", Value = "8 Hours", Group = "Safety & Compliance", Description = "Default validity of a hot work permit", TenantId = tenantId }
+                new SystemSetting { Key = "Safe.PermitExpiryLabel", Value = "8 Hours", Group = "Safety & Compliance", Description = "Default validity of a hot work permit", TenantId = tenantId },
+
+                // FINANCIAL & MARKUPS
+                new SystemSetting { Key = "Fin.DefaultPartsMarkupPercent", Value = "20.0", Group = "Financial & Markups", Description = "Default markup percentage applied to parts on quotations", TenantId = tenantId },
+                new SystemSetting { Key = "Fin.DefaultLaborBillingRate", Value = "400.0", Group = "Financial & Markups", Description = "Default labor billing rate per hour for client quoting", TenantId = tenantId },
+                new SystemSetting { Key = "Fin.DefaultLaborMarkupPercent", Value = "10.0", Group = "Financial & Markups", Description = "Default markup percentage applied to labor billing on quotations", TenantId = tenantId }
             };
 
             context.SystemSettings.AddRange(settings);

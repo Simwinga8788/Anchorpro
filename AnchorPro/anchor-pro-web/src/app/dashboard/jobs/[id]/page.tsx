@@ -7,7 +7,7 @@ import {
   DollarSign, Wrench, Tag, Package, AlertTriangle, Upload, ExternalLink,
   FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer, Download
 } from 'lucide-react';
-import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi } from '@/lib/api';
+import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi, settingsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import ResponsiveTable from '@/components/ResponsiveTable';
@@ -67,6 +67,36 @@ export default function JobDetailPage() {
   const [editingQuote, setEditingQuote] = useState(false);
   const [quoteEditForm, setQuoteEditForm] = useState({ subtotal: '', notes: '' });
   const [savingQuoteEdit, setSavingQuoteEdit] = useState(false);
+
+  // Custom markup builder states
+  const [showCustomMarkup, setShowCustomMarkup] = useState(false);
+  const [partsMarkup, setPartsMarkup] = useState(20);
+  const [laborBillingRate, setLaborBillingRate] = useState(400);
+  const [laborMarkup, setLaborMarkup] = useState(10);
+
+  const loadFinancialSettings = async () => {
+    try {
+      const settings = await settingsApi.getAll();
+      const partsMarkupSetting = settings.find((s: any) => s.key === 'Fin.DefaultPartsMarkupPercent');
+      const billingRateSetting = settings.find((s: any) => s.key === 'Fin.DefaultLaborBillingRate');
+      const laborMarkupSetting = settings.find((s: any) => s.key === 'Fin.DefaultLaborMarkupPercent');
+
+      if (partsMarkupSetting) setPartsMarkup(parseFloat(partsMarkupSetting.value) || 20);
+      if (billingRateSetting) setLaborBillingRate(parseFloat(billingRateSetting.value) || 400);
+      if (laborMarkupSetting) setLaborMarkup(parseFloat(laborMarkupSetting.value) || 10);
+    } catch (err) {
+      console.error('Failed to load financial settings', err);
+    }
+  };
+
+  useEffect(() => {
+    if (showCustomMarkup && job) {
+      const partsCost = job.partsCost || 0;
+      const hours = job.estimatedLaborHours || 0;
+      const subtotalVal = (partsCost * (1 + partsMarkup / 100)) + (hours * laborBillingRate * (1 + laborMarkup / 100));
+      setQuoteEditForm(f => ({ ...f, subtotal: subtotalVal.toFixed(2) }));
+    }
+  }, [showCustomMarkup, partsMarkup, laborBillingRate, laborMarkup, job?.partsCost, job?.estimatedLaborHours]);
   const [showDocFlow, setShowDocFlow] = useState(false);
   // Collapsible sections state
   const [isTasksExpanded, setIsTasksExpanded] = useState(true);
@@ -91,6 +121,7 @@ export default function JobDetailPage() {
     customerId: '',
     jobTypeId: '',
     contractId: '',
+    estimatedLaborHours: '0.0',
   });
 
   const [savingCore, setSavingCore] = useState(false);
@@ -110,6 +141,7 @@ export default function JobDetailPage() {
           customerId: data.customerId ?? data.customer?.id ?? '',
           jobTypeId: data.jobTypeId ?? data.jobType?.id ?? '',
           contractId: data.contractId ?? data.contract?.id ?? '',
+          estimatedLaborHours: data.estimatedLaborHours !== undefined ? String(data.estimatedLaborHours) : '0.0',
         });
       }
       // Fetch related subcontracts
@@ -170,6 +202,7 @@ export default function JobDetailPage() {
         customerId: coreForm.customerId ? parseInt(coreForm.customerId) : null,
         jobTypeId: coreForm.jobTypeId ? parseInt(coreForm.jobTypeId) : null,
         contractId: coreForm.contractId ? parseInt(coreForm.contractId) : null,
+        estimatedLaborHours: parseFloat(coreForm.estimatedLaborHours) || 0.0,
       });
       await loadJobDetails();
       setEditCore(false);
@@ -1097,6 +1130,11 @@ export default function JobDetailPage() {
                   <input type="datetime-local" className="form-input" value={coreForm.scheduledEndDate} onChange={e => setCoreForm({ ...coreForm, scheduledEndDate: e.target.value })} />
                 </div>
 
+                <div className="form-field">
+                  <label className="form-label">Estimated Labor Hours</label>
+                  <input type="number" step="0.1" min="0" className="form-input" value={coreForm.estimatedLaborHours} onChange={e => setCoreForm({ ...coreForm, estimatedLaborHours: e.target.value })} />
+                </div>
+
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                   <button type="button" onClick={() => setEditCore(false)} className="btn btn-secondary btn-sm" disabled={savingCore}>Cancel</button>
                   <button type="submit" className="btn btn-primary btn-sm" disabled={savingCore}>Save</button>
@@ -1137,6 +1175,10 @@ export default function JobDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Contract</span>
                   <span style={{ fontWeight: 600 }}>{job.contract?.title || job.contract?.contractNumber || '—'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Estimated Labor Hours</span>
+                  <span style={{ fontWeight: 600 }}>{job.estimatedLaborHours !== undefined ? `${job.estimatedLaborHours} hrs` : '—'}</span>
                 </div>
               </div>
             )}
@@ -1311,6 +1353,71 @@ export default function JobDetailPage() {
                         </div>
                       )}
                     </div>
+
+                    <div style={{ marginTop: 10, borderBottom: '1px solid rgba(99,102,241,0.15)', paddingBottom: 10 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '6px 10px' }}
+                        onClick={() => {
+                          if (!showCustomMarkup) {
+                            loadFinancialSettings();
+                          }
+                          setShowCustomMarkup(!showCustomMarkup);
+                        }}
+                      >
+                        <span>⚙️ {showCustomMarkup ? 'Hide Custom Markup Builder' : 'Use Custom Markup Builder'}</span>
+                        <span>{showCustomMarkup ? '▲' : '▼'}</span>
+                      </button>
+                    </div>
+
+                    {showCustomMarkup && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10, padding: 12, background: 'var(--surface-secondary)', borderRadius: 6, border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          MARKUP & BILLING CALCULATOR
+                        </div>
+                        
+                        <div className="form-field">
+                          <label className="form-label" style={{ fontSize: 11 }}>Parts Markup (%)</label>
+                          <input
+                            type="number" step="1" min="0"
+                            className="form-input"
+                            style={{ padding: '4px 8px', fontSize: 12 }}
+                            value={partsMarkup}
+                            onChange={e => setPartsMarkup(Math.max(0, parseFloat(e.target.value) || 0))}
+                          />
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                            Base parts: K {(job?.partsCost || 0).toLocaleString()} → Markup: K {((job?.partsCost || 0) * (1 + partsMarkup / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div className="form-field">
+                            <label className="form-label" style={{ fontSize: 11 }}>Labor Rate (K/hr)</label>
+                            <input
+                              type="number" step="1" min="0"
+                              className="form-input"
+                              style={{ padding: '4px 8px', fontSize: 12 }}
+                              value={laborBillingRate}
+                              onChange={e => setLaborBillingRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                            />
+                          </div>
+                          <div className="form-field">
+                            <label className="form-label" style={{ fontSize: 11 }}>Labor Markup (%)</label>
+                            <input
+                              type="number" step="1" min="0"
+                              className="form-input"
+                              style={{ padding: '4px 8px', fontSize: 12 }}
+                              value={laborMarkup}
+                              onChange={e => setLaborMarkup(Math.max(0, parseFloat(e.target.value) || 0))}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          Labor Hours (Est): {job?.estimatedLaborHours || 0} hrs · Quoted Labor: K {((job?.estimatedLaborHours || 0) * laborBillingRate * (1 + laborMarkup / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    )}
                     <div className="form-field" style={{ marginBottom: 10 }}>
                       <label className="form-label">Notes <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
                       <textarea

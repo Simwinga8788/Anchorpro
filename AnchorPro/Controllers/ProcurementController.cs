@@ -174,6 +174,108 @@ namespace AnchorPro.Controllers
             await _procurementService.DeleteSupplierAsync(id);
             return NoContent();
         }
+
+        // ── PURCHASE REQUISITIONS ─────────────────────────────────────────────
+
+        /// <summary>GET /api/procurement/requisitions — All purchase requisitions.</summary>
+        [HttpGet("requisitions")]
+        public async Task<ActionResult<List<PurchaseRequisition>>> GetPurchaseRequisitions()
+            => Ok(await _procurementService.GetAllPurchaseRequisitionsAsync());
+
+        /// <summary>GET /api/procurement/requisitions/pending-approval — Manager/Finance review queue.</summary>
+        [HttpGet("requisitions/pending-approval")]
+        [Authorize(Roles = "Admin,Finance,Supervisor")]
+        public async Task<ActionResult<List<PurchaseRequisition>>> GetPendingApprovalRequisitions()
+            => Ok(await _procurementService.GetPendingApprovalRequisitionsAsync());
+
+        /// <summary>GET /api/procurement/requisitions/{id}</summary>
+        [HttpGet("requisitions/{id}")]
+        public async Task<ActionResult<PurchaseRequisition>> GetPurchaseRequisitionById(int id)
+        {
+            var result = await _procurementService.GetPurchaseRequisitionByIdAsync(id);
+            return result == null ? NotFound() : Ok(result);
+        }
+
+        /// <summary>GET /api/procurement/requisitions/job/{jobCardId} — PRs linked to a job card.</summary>
+        [HttpGet("requisitions/job/{jobCardId}")]
+        public async Task<ActionResult<List<PurchaseRequisition>>> GetRequisitionsByJobCard(int jobCardId)
+            => Ok(await _procurementService.GetPurchaseRequisitionsByJobCardIdAsync(jobCardId));
+
+        /// <summary>
+        /// POST /api/procurement/requisitions — Raise a new Purchase Requisition.
+        /// Can be operational (JobCardId) or departmental (DepartmentId).
+        /// </summary>
+        [HttpPost("requisitions")]
+        public async Task<ActionResult<PurchaseRequisition>> CreatePurchaseRequisition([FromBody] CreatePurchaseRequisitionRequest req)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            
+            // If the user wants to submit immediately rather than save as draft:
+            // We can set status to PendingApproval on creation.
+            // If they are in a Supervisor/Admin/Finance role, it can be auto-approved,
+            // but normally it defaults to PendingApproval if submitted.
+            if (req.SubmitImmediately)
+            {
+                req.PurchaseRequisition.Status = PurchaseRequisitionStatus.PendingApproval;
+            }
+            else
+            {
+                req.PurchaseRequisition.Status = PurchaseRequisitionStatus.Draft;
+            }
+
+            var created = await _procurementService.CreatePurchaseRequisitionAsync(req.PurchaseRequisition, req.Items, userId);
+            return CreatedAtAction(nameof(GetPurchaseRequisitionById), new { id = created.Id }, created);
+        }
+
+        /// <summary>
+        /// POST /api/procurement/requisitions/{id}/approve — Approve a requisition.
+        /// Requires Admin, Finance, or Supervisor roles.
+        /// </summary>
+        [HttpPost("requisitions/{id}/approve")]
+        [Authorize(Roles = "Admin,Finance,Supervisor")]
+        public async Task<ActionResult> ApproveRequisition(int id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.ApprovePurchaseRequisitionAsync(id, userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// POST /api/procurement/requisitions/{id}/reject — Reject a requisition with a reason.
+        /// Requires Admin, Finance, or Supervisor roles.
+        /// </summary>
+        [HttpPost("requisitions/{id}/reject")]
+        [Authorize(Roles = "Admin,Finance,Supervisor")]
+        public async Task<ActionResult> RejectRequisition(int id, [FromBody] RejectRequisitionRequest req)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.RejectPurchaseRequisitionAsync(id, req.Reason ?? "No reason provided", userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// POST /api/procurement/requisitions/{id}/submit — Submit a draft requisition for approval.
+        /// </summary>
+        [HttpPost("requisitions/{id}/submit")]
+        public async Task<ActionResult> SubmitRequisition(int id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.UpdatePurchaseRequisitionStatusAsync(id, PurchaseRequisitionStatus.PendingApproval, userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// POST /api/procurement/requisitions/{id}/convert-to-po — Convert approved PR into PO.
+        /// Requires Admin, Purchasing, or Storeman roles.
+        /// </summary>
+        [HttpPost("requisitions/{id}/convert-to-po")]
+        [Authorize(Roles = "Admin,Purchasing,Storeman")]
+        public async Task<ActionResult<PurchaseOrder>> ConvertToPO(int id, [FromBody] ConvertToPORequest req)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var po = await _procurementService.ConvertRequisitionToPOAsync(id, req.SupplierId, userId);
+            return Ok(po);
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
@@ -188,5 +290,22 @@ namespace AnchorPro.Controllers
     {
         public int ItemId { get; set; }
         public int Quantity { get; set; }
+    }
+
+    public class CreatePurchaseRequisitionRequest
+    {
+        public PurchaseRequisition PurchaseRequisition { get; set; } = new();
+        public List<PurchaseRequisitionItem> Items { get; set; } = new();
+        public bool SubmitImmediately { get; set; } = true;
+    }
+
+    public class RejectRequisitionRequest
+    {
+        public string? Reason { get; set; }
+    }
+
+    public class ConvertToPORequest
+    {
+        public int SupplierId { get; set; }
     }
 }
