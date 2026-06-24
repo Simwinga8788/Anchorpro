@@ -25,5 +25,8 @@ namespace AnchorPro.Data.Entities
 
         [MaxLength(50)]
         public string? LocationBin { get; set; }
+
+        [MaxLength(50)]
+        public string? Category { get; set; }
     }
 }

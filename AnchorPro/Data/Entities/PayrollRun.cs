@@ -3,10 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AnchorPro.Data.Entities;
 
-public class PayrollRun
+public class PayrollRun : BaseEntity
 {
-    [Key]
-    public int Id { get; set; }
 
     public int PeriodMonth { get; set; }  // 1–12
     public int PeriodYear { get; set; }
@@ -38,11 +36,6 @@ public class PayrollRun
     // Navigation
     public ICollection<PayslipEntry> PayslipEntries { get; set; } = new List<PayslipEntry>();
 
-    // Audit
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string? UpdatedBy { get; set; }
 }
 
 public enum PayrollRunStatus

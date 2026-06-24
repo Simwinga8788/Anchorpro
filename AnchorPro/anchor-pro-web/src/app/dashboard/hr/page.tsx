@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { hrApi, departmentsApi } from '@/lib/api';
+import { hrApi, departmentsApi, usersApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
   ChevronRight, AlertCircle, CheckCircle, X, Edit,
@@ -72,9 +73,10 @@ export default function HRPage() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--border-subtle)' }}>
         {([
-          { key: 'employees', label: 'Employees',    icon: <Users size={13} /> },
-          { key: 'contracts', label: 'Contracts',    icon: <FileText size={13} /> },
-          { key: 'payroll',   label: 'Payroll',      icon: <DollarSign size={13} /> },
+          { key: 'employees', label: 'Employees',       icon: <Users size={13} /> },
+          { key: 'contracts', label: 'Contracts',       icon: <FileText size={13} /> },
+          { key: 'payroll',   label: 'Payroll',         icon: <DollarSign size={13} /> },
+          { key: 'team',      label: 'User Management', icon: <Shield size={13} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(tab => (
           <button
             key={tab.key}
@@ -98,6 +100,7 @@ export default function HRPage() {
       {activeTab === 'employees' && <EmployeesTab />}
       {activeTab === 'contracts' && <ContractsTab />}
       {activeTab === 'payroll'   && <PayrollTab />}
+      {activeTab === 'team'      && <TeamTab />}
     </div>
   );
 }
@@ -461,7 +464,7 @@ function ContractsTab() {
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
                   <label className="form-label">Employee *</label>
-                  <select className="form-control" value={form.userId || ''} onChange={e => setForm({ ...form, userId: e.target.value })} required>
+                  <select className="form-select" value={form.userId || ''} onChange={e => setForm({ ...form, userId: e.target.value })} required>
                     <option value="">Select employee...</option>
                     {employees.map(emp => (
                       <option key={emp.userId} value={emp.userId}>{emp.firstName} {emp.lastName}</option>
@@ -470,12 +473,12 @@ function ContractsTab() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Job Title *</label>
-                  <input className="form-control" value={form.jobTitle} onChange={e => setForm({ ...form, jobTitle: e.target.value })} required />
+                  <input className="form-input" value={form.jobTitle} onChange={e => setForm({ ...form, jobTitle: e.target.value })} required />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div className="form-group">
                     <label className="form-label">Contract Type</label>
-                    <select className="form-control" value={form.contractType} onChange={e => setForm({ ...form, contractType: Number(e.target.value) })}>
+                    <select className="form-select" value={form.contractType} onChange={e => setForm({ ...form, contractType: Number(e.target.value) })}>
                       <option value={0}>Permanent</option>
                       <option value={1}>Fixed-Term</option>
                       <option value={2}>Probation</option>
@@ -484,35 +487,35 @@ function ContractsTab() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Status</label>
-                    <select className="form-control" value={form.status} onChange={e => setForm({ ...form, status: Number(e.target.value) })}>
+                    <select className="form-select" value={form.status} onChange={e => setForm({ ...form, status: Number(e.target.value) })}>
                       <option value={0}>Draft</option>
                       <option value={1}>Active</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Start Date *</label>
-                    <input type="date" className="form-control" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} required />
+                    <input type="date" className="form-input" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} required />
                   </div>
                   <div className="form-group">
                     <label className="form-label">End Date (leave blank if permanent)</label>
-                    <input type="date" className="form-control" value={form.endDate || ''} onChange={e => setForm({ ...form, endDate: e.target.value })} />
+                    <input type="date" className="form-input" value={form.endDate || ''} onChange={e => setForm({ ...form, endDate: e.target.value })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Monthly Salary (ZMW)</label>
-                    <input type="number" step="0.01" className="form-control" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) })} />
+                    <input type="number" step="0.01" className="form-input" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Hourly Rate (ZMW)</label>
-                    <input type="number" step="0.01" className="form-control" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) })} />
+                    <input type="number" step="0.01" className="form-input" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Notice Period (days)</label>
-                    <input type="number" className="form-control" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) })} />
+                    <input type="number" className="form-input" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) })} />
                   </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Notes</label>
-                  <textarea className="form-control" rows={2} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
+                  <textarea className="form-textarea" rows={2} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
                 </div>
               </div>
               <div className="modal-footer">
@@ -726,13 +729,13 @@ function PayrollTab() {
               </p>
               <div className="form-group">
                 <label className="form-label">Month</label>
-                <select className="form-control" value={newMonth} onChange={e => setNewMonth(Number(e.target.value))}>
+                <select className="form-select" value={newMonth} onChange={e => setNewMonth(Number(e.target.value))}>
                   {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Year</label>
-                <input type="number" className="form-control" value={newYear} onChange={e => setNewYear(Number(e.target.value))} min={2020} max={2099} />
+                <input type="number" className="form-input" value={newYear} onChange={e => setNewYear(Number(e.target.value))} min={2020} max={2099} />
               </div>
             </div>
             <div className="modal-footer">
@@ -761,15 +764,233 @@ function ProfileField({ label, value, onChange, type = 'text', options }: {
     <div className="form-group">
       <label className="form-label">{label}</label>
       {type === 'select' ? (
-        <select className="form-control" style={style} value={value} onChange={e => onChange(e.target.value)}>
+        <select className="form-select" style={style} value={value} onChange={e => onChange(e.target.value)}>
           <option value="">— Select —</option>
           {options?.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       ) : type === 'textarea' ? (
-        <textarea className="form-control" style={style} rows={2} value={value} onChange={e => onChange(e.target.value)} />
+        <textarea className="form-textarea" style={style} rows={2} value={value} onChange={e => onChange(e.target.value)} />
       ) : (
-        <input type={type} className="form-control" style={style} value={value} onChange={e => onChange(e.target.value)} />
+        <input type={type} className="form-input" style={style} value={value} onChange={e => onChange(e.target.value)} />
       )}
     </div>
+  );
+}
+
+// ─── User Management Tab (Relocated from Settings) ──────────────────────────
+function TeamTab() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('Admin') || user?.roles?.includes('PlatformOwner');
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    employeeNumber: '',
+    role: 'Technician',
+    password: ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await usersApi.getAll();
+      setUsers(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteForm.email || !inviteForm.firstName || !inviteForm.password) {
+      setError('First name, email and password are required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await usersApi.create(inviteForm);
+      setSuccess(`User ${inviteForm.firstName} ${inviteForm.lastName} created successfully.`);
+      setInviteForm({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
+      setShowInvite(false);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create user account');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeactivate = async (u: any) => {
+    const action = u.isActive !== false ? 'Deactivate' : 'Reactivate';
+    if (!confirm(`${action} user ${u.firstName} ${u.lastName}?`)) return;
+    try {
+      if (u.isActive !== false) {
+        await usersApi.deactivate(u.id);
+      } else {
+        await usersApi.activate(u.id);
+      }
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.message || `Failed to ${action.toLowerCase()} user`);
+    }
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h3 style={{ fontSize: 15, fontWeight: 600 }}>Workspace Users ({users.length})</h3>
+        </div>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => setShowInvite(true)}>
+            <Plus size={16} /> Add User Account
+          </button>
+        )}
+      </div>
+
+      {success && (
+        <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-emerald-rgb), 0.1)', border: '1px solid var(--accent-emerald)', borderRadius: 8, marginBottom: 16, color: 'var(--accent-emerald)', fontSize: 13 }}>
+          {success}
+        </div>
+      )}
+
+      <div className="card">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>Loading workspace users...</div>
+        ) : users.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>No users found.</div>
+        ) : (
+          <div className="table-scroll">
+            <ResponsiveTable>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Employee #</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u: any) => {
+                    const active = u.isActive !== false;
+                    const isCurrentUser = u.id === user?.id;
+                    return (
+                      <tr key={u.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)', flexShrink: 0 }}>
+                              {(u.firstName?.[0] || '?').toUpperCase()}
+                            </div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {u.firstName} {u.lastName}
+                              {isCurrentUser && <span className="badge badge-blue" style={{ fontSize: 9, marginLeft: 6 }}>You</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td>{u.email}</td>
+                        <td style={{ fontFamily: 'monospace' }}>{u.employeeNumber || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {(u.roles || []).map((r: string) => (
+                              <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${active ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 10 }}>
+                            {active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          {isAdmin && !isCurrentUser && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeactivate(u)}>
+                              {active ? 'Deactivate' : 'Reactivate'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </ResponsiveTable>
+          </div>
+        )}
+      </div>
+
+      {/* Add User Modal */}
+      {showInvite && (
+        <div className="modal-overlay" onClick={() => setShowInvite(false)}>
+          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Create User Account</h2>
+              <button className="modal-close" onClick={() => setShowInvite(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleInvite}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {error && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
+                    {error}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">First Name *</label>
+                    <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Last Name</label>
+                    <input className="form-input" value={inviteForm.lastName} onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address *</label>
+                  <input className="form-input" type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} required />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Employee Number</label>
+                    <input className="form-input" value={inviteForm.employeeNumber} onChange={e => setInviteForm({ ...inviteForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Role</label>
+                    <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}>
+                      {['Technician','Supervisor','Admin','PurchasingOfficer','Storekeeper'].map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Temporary Password *</label>
+                  <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" required />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowInvite(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -55,6 +55,8 @@ namespace AnchorPro.Services
                 // Note: QuantityOnHand is handled via AdjustStock normally, but if admins want to force set it, they could.
                 // For now let's allow editing it directly for simplicity if the passed item has it.
                 existing.QuantityOnHand = item.QuantityOnHand;
+                existing.LocationBin = item.LocationBin;
+                existing.Category = item.Category;
 
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.UpdatedBy = userId;

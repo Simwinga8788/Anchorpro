@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { financeApi, financialApi, quotationsApi, procurementApi } from '@/lib/api';
+import { financeApi, financialApi, quotationsApi, procurementApi, usersApi } from '@/lib/api';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
   CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X
@@ -52,10 +52,23 @@ export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [pendingPOCount, setPendingPOCount] = useState(0);
 
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
     procurementApi.getPendingApprovals()
       .then(data => setPendingPOCount(data?.length ?? 0))
       .catch(() => {});
+
+    usersApi.getAll()
+      .then(users => {
+        const map: Record<string, string> = {};
+        users.forEach((u: any) => {
+          const name = [u.firstName, u.lastName].filter(Boolean).join(' ');
+          map[u.id] = name || u.email || u.userName || u.id;
+        });
+        setUsersMap(map);
+      })
+      .catch(err => console.error('Failed to load users for mapping:', err));
   }, []);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -112,8 +125,8 @@ export default function FinancePage() {
 
       {activeTab === 'overview'     && <ProfitAndLossTab />}
       {activeTab === 'vendor-bills' && <VendorBillsTab />}
-      {activeTab === 'expenses'     && <ExpensesTab />}
-      {activeTab === 'ledger'       && <LedgerTab />}
+      {activeTab === 'expenses'     && <ExpensesTab usersMap={usersMap} />}
+      {activeTab === 'ledger'       && <LedgerTab usersMap={usersMap} />}
       {activeTab === 'quotations'   && <QuotationsTab />}
       {activeTab === 'invoices'     && <InvoicesTab />}
       {activeTab === 'po-approvals' && <POApprovalsTab onCountChange={setPendingPOCount} />}
@@ -321,10 +334,11 @@ function VendorBillsTab() {
 }
 
 // ─── Expenses Tab ─────────────────────────────────────────────────────────────
-function ExpensesTab() {
+function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const fetchExpenses = async () => {
     try {
@@ -361,9 +375,26 @@ function ExpensesTab() {
     'SoftwareSubscriptions', 'Marketing', 'VehicleMaintenance', 'PettyCash', 'Other'
   ];
 
+  const filteredExpenses = selectedCategory === 'all'
+    ? expenses
+    : expenses.filter(e => categories[e.category] === selectedCategory);
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <select
+            className="form-select"
+            style={{ width: 220 }}
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+          >
+            <option value="all">All Expense Categories</option>
+            {categories.map((c, i) => (
+              <option key={i} value={c}>{c.replace(/([A-Z])/g, ' $1').trim()}</option>
+            ))}
+          </select>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Plus size={16} /> Record Expense
         </button>
@@ -385,15 +416,15 @@ function ExpensesTab() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
-                ) : expenses.length === 0 ? (
+                ) : filteredExpenses.length === 0 ? (
                   <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No expenses recorded.</td></tr>
                 ) : (
-                  expenses.map(row => (
+                  filteredExpenses.map(row => (
                     <tr key={row.id}>
                       <td>{new Date(row.expenseDate).toLocaleDateString()}</td>
-                      <td>{categories[row.category]}</td>
+                      <td>{categories[row.category].replace(/([A-Z])/g, ' $1').trim()}</td>
                       <td>{row.description}</td>
-                      <td>{row.recordedBy}</td>
+                      <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
                       <td>{fmt(row.amount)}</td>
                     </tr>
                   ))
@@ -406,27 +437,27 @@ function ExpensesTab() {
 
       {showAdd && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: 400 }}>
+          <div className="modal-content animate-in" style={{ maxWidth: 400 }}>
             <div className="modal-header">
               <h2>Record Ad-Hoc Expense</h2>
               <button className="icon-btn" onClick={() => setShowAdd(false)}><X size={18} /></button>
             </div>
             <form onSubmit={handleAdd} style={{ padding: '20px 24px' }}>
-              <div className="form-group">
-                <label>Category</label>
-                <select name="category" className="input-field" required>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Category</label>
+                <select name="category" className="form-select" required>
                   {categories.map((c, i) => <option key={i} value={i}>{c.replace(/([A-Z])/g, ' $1').trim()}</option>)}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Description</label>
-                <input type="text" name="description" className="input-field" required maxLength={200} />
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Description</label>
+                <input type="text" name="description" className="form-input" required maxLength={200} />
               </div>
-              <div className="form-group">
-                <label>Amount (ZMW)</label>
-                <input type="number" name="amount" className="input-field" required step="0.01" />
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label className="form-label">Amount (ZMW)</label>
+                <input type="number" name="amount" className="form-input" required step="0.01" />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Expense</button>
               </div>
@@ -439,7 +470,7 @@ function ExpensesTab() {
 }
 
 // ─── Ledger Tab ───────────────────────────────────────────────────────────────
-function LedgerTab() {
+function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -485,7 +516,7 @@ function LedgerTab() {
                       <td><span style={{ color: t.color, fontWeight: 600 }}>{t.label}</span></td>
                       <td>{row.category}</td>
                       <td>{row.description}</td>
-                      <td>{row.recordedBy}</td>
+                      <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
                       <td>
                         <span style={{ fontWeight: 700, color: row.type === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
                           {row.type === 0 ? '+' : '-'}{fmt(row.amount)}

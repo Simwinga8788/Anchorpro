@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Services;
 
-public class HRService(ApplicationDbContext context, UserManager<ApplicationUser> userManager) : IHRService
+public class HRService(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ICurrentTenantService tenantService) : IHRService
 {
     // ─── Employee Profiles ────────────────────────────────────────────────
 
@@ -58,6 +58,7 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
     public async Task<List<EmployeeProfileSummary>> GetAllEmployeeSummariesAsync()
     {
         var users = await userManager.Users
+            .Where(u => u.TenantId == tenantService.TenantId)
             .Include(u => u.Department)
             .OrderBy(u => u.FirstName)
             .ToListAsync();
@@ -192,7 +193,7 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
         await context.SaveChangesAsync();
 
         // Auto-populate payslips for all active employees
-        var users = await userManager.Users.ToListAsync();
+        var users = await userManager.Users.Where(u => u.TenantId == tenantService.TenantId).ToListAsync();
         var profiles = await context.EmployeeProfiles.ToListAsync();
         var contracts = await context.EmploymentContracts
             .Where(c => c.Status == EmploymentContractStatus.Active)

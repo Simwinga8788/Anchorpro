@@ -128,12 +128,7 @@ const NAV_GROUPS = [
       { id: 'integrations',  icon: <Link2 size={15} />,  label: 'Integrations' },
     ],
   },
-  {
-    label: 'Team',
-    items: [
-      { id: 'users',        icon: <Users size={15} />,     label: 'User Management' },
-    ],
-  },
+
   {
     label: 'System',
     items: [
@@ -153,7 +148,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showInviteSlide, setShowInviteSlide] = useState(false);
+
 
   // ── Billing ─────────────────────────────────────────────────────────────────
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
@@ -214,10 +209,7 @@ export default function SettingsPage() {
   const [savingNotif, setSavingNotif] = useState(false);
 
   // ── Users ─────────────────────────────────────────────────────────────────────
-  const [users, setUsers] = useState<any[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
-  const [savingInvite, setSavingInvite] = useState(false);
+  const [usersCount, setUsersCount] = useState(0);
   const [editUser, setEditUser] = useState<any>(null);
 
   // ── Seed ─────────────────────────────────────────────────────────────────────
@@ -296,9 +288,8 @@ export default function SettingsPage() {
         'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts',
       });
     }
-    if (activeTab === 'users' && users.length === 0) {
-      setLoadingUsers(true);
-      usersApi.getAll().then(setUsers).catch(() => setUsers([])).finally(() => setLoadingUsers(false));
+    if (activeTab === 'billing') {
+      usersApi.getAll().then(list => setUsersCount(list?.length ?? 0)).catch(() => {});
     }
   }, [activeTab]);
 
@@ -453,30 +444,7 @@ export default function SettingsPage() {
     finally { setSavingNotif(false); }
   };
 
-  const handleInviteUser = async () => {
-    if (!inviteForm.email || !inviteForm.firstName || !inviteForm.password) {
-      show('First name, email and password are required', 'error'); return;
-    }
-    setSavingInvite(true);
-    try {
-      await usersApi.create(inviteForm);
-      show(`User ${inviteForm.firstName} ${inviteForm.lastName} created`);
-      setInviteForm({ firstName: '', lastName: '', email: '', employeeNumber: '', role: 'Technician', password: '' });
-      setShowInviteSlide(false);
-      usersApi.getAll().then(setUsers).catch(() => {});
-    } catch (e: any) { show(e.message || 'Failed to create user', 'error'); }
-    finally { setSavingInvite(false); }
-  };
 
-  const handleDeactivateUser = async (u: any) => {
-    if (!confirm(`${u.isActive !== false ? 'Deactivate' : 'Reactivate'} ${u.firstName} ${u.lastName}?`)) return;
-    try {
-      if (u.isActive !== false) await usersApi.deactivate(u.id);
-      else await usersApi.activate(u.id);
-      show(`User ${u.isActive !== false ? 'deactivated' : 'reactivated'}`);
-      usersApi.getAll().then(setUsers).catch(() => {});
-    } catch (e: any) { show(e.message || 'Failed', 'error'); }
-  };
 
   const handleUpgrade = async (planId: number) => {
     setUpgrading(true);
@@ -914,87 +882,7 @@ export default function SettingsPage() {
         </div>
       );
 
-      // ── User Management ────────────────────────────────────────────────────
-      case 'users': return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title="Team Members" subtitle={`${users.length} user${users.length !== 1 ? 's' : ''} in this workspace`} icon={<Users size={16} />}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-              {isAdmin && (
-                <button className="btn btn-primary btn-sm" onClick={() => setShowInviteSlide(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Plus size={13} /> Add User
-                </button>
-              )}
-            </div>
 
-            {loadingUsers ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
-                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-                <div style={{ fontSize: 13 }}>Loading users...</div>
-              </div>
-            ) : users.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>No users found.</div>
-            ) : (
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      {['Name', 'Email', 'Employee #', 'Role', 'Status', ''].map(h => (
-                        <th key={h}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u: any) => {
-                      const active = u.isActive !== false;
-                      const isCurrentUser = u.id === user?.id;
-                      return (
-                        <tr key={u.id} style={{ transition: 'background 0.1s' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                          <td style={{ padding: '12px 12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)', flexShrink: 0 }}>
-                                {(u.firstName?.[0] || '?').toUpperCase()}
-                              </div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                                {u.firstName} {u.lastName}
-                                {isCurrentUser && <span className="badge badge-blue" style={{ fontSize: 9, marginLeft: 6 }}>You</span>}
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 12px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{u.email}</td>
-                          <td style={{ padding: '12px 12px', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{u.employeeNumber || '—'}</td>
-                          <td style={{ padding: '12px 12px' }}>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                              {(u.roles || []).map((r: string) => (
-                                <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 12px' }}>
-                            <span className={`badge ${active ? 'badge-green' : 'badge-muted'}`} style={{ fontSize: 10 }}>
-                              {active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 12px' }}>
-                            {isAdmin && !isCurrentUser && (
-                              <button className="btn btn-secondary btn-sm" onClick={() => handleDeactivateUser(u)}
-                                style={{ fontSize: 11 }}>
-                                {active ? 'Deactivate' : 'Reactivate'}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </SectionCard>
-        </div>
-      );
 
       // ── Billing ────────────────────────────────────────────────────────────
       case 'billing': return (
@@ -1016,7 +904,7 @@ export default function SettingsPage() {
             </div>
             <div className="settings-grid-3">
               {[
-                { label: 'Team Members', used: users.length || 0, max: 'Unlimited', unit: 'users' },
+                { label: 'Team Members', used: usersCount, max: 'Unlimited', unit: 'users' },
                 { label: 'Assets',       used: '—',              max: 'Unlimited', unit: '' },
                 { label: 'Storage',      used: '—',              max: '5',         unit: 'TB' },
               ].map(s => (
@@ -1198,42 +1086,7 @@ export default function SettingsPage() {
       </SlideOver>
 
       {/* Invite User Slide */}
-      <SlideOver open={showInviteSlide} onClose={() => setShowInviteSlide(false)} title="Add Team Member" subtitle="Create a new user account for your workspace.">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="settings-grid-2" style={{ gap: 14 }}>
-            <div className="form-field">
-              <label className="form-label">First Name *</label>
-              <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm(f => ({ ...f, firstName: e.target.value }))} />
-            </div>
-            <div className="form-field">
-              <label className="form-label">Last Name</label>
-              <input className="form-input" value={inviteForm.lastName} onChange={e => setInviteForm(f => ({ ...f, lastName: e.target.value }))} />
-            </div>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Email Address *</label>
-            <input className="form-input" type="email" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Employee / Man Number</label>
-            <input className="form-input" value={inviteForm.employeeNumber} onChange={e => setInviteForm(f => ({ ...f, employeeNumber: e.target.value }))} placeholder="e.g. EMP-001" />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Role</label>
-            <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
-              {['Technician','Supervisor','Admin','PurchasingOfficer','Storekeeper'].map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Temporary Password *</label>
-            <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" />
-          </div>
-          <button className="btn btn-primary" onClick={handleInviteUser} disabled={savingInvite}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
-            {savingInvite ? <><Loader2 size={14} className="spin" />Creating...</> : <><Plus size={14} />Create User Account</>}
-          </button>
-        </div>
-      </SlideOver>
+
 
       {/* SMTP Configuration Slide */}
       <SlideOver open={showSmtpModal} onClose={() => setShowSmtpModal(false)} title="Email (SMTP) Configuration" subtitle="Configure your email provider to send notifications and reports.">

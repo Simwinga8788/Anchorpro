@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624123821_AddInventoryCategory")]
+    partial class AddInventoryCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -478,8 +481,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("timestamp without time zone");
@@ -542,15 +544,11 @@ namespace AnchorPro.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -581,8 +579,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<string>("DocumentUrl")
                         .HasMaxLength(500)
@@ -612,9 +609,6 @@ namespace AnchorPro.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("TerminationReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -623,8 +617,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -1417,8 +1410,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("FinalisedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1448,9 +1440,6 @@ namespace AnchorPro.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("TotalDeductions")
                         .HasColumnType("decimal(18,2)");
 
@@ -1467,8 +1456,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1490,8 +1478,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("GrossPay")
                         .HasColumnType("decimal(18,2)");
@@ -1539,9 +1526,6 @@ namespace AnchorPro.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("TotalDeductions")
                         .HasColumnType("decimal(18,2)");
 
@@ -1552,8 +1536,7 @@ namespace AnchorPro.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserId")
                         .IsRequired()

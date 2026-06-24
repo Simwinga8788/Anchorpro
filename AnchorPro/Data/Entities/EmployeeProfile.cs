@@ -3,10 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AnchorPro.Data.Entities;
 
-public class EmployeeProfile
+public class EmployeeProfile : BaseEntity
 {
-    [Key]
-    public int Id { get; set; }
 
     [Required]
     public string UserId { get; set; } = string.Empty;
@@ -61,11 +59,6 @@ public class EmployeeProfile
     [MaxLength(500)]
     public string? IdDocumentUrl { get; set; }
 
-    // Audit
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string? UpdatedBy { get; set; }
 }
 
 public enum EmploymentType

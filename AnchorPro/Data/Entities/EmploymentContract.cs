@@ -3,10 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AnchorPro.Data.Entities;
 
-public class EmploymentContract
+public class EmploymentContract : BaseEntity
 {
-    [Key]
-    public int Id { get; set; }
 
     [Required]
     public string UserId { get; set; } = string.Empty;
@@ -39,11 +37,6 @@ public class EmploymentContract
     [MaxLength(500)]
     public string? TerminationReason { get; set; }
 
-    // Audit
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string? CreatedBy { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public string? UpdatedBy { get; set; }
 }
 
 public enum EmploymentContractType
