@@ -727,15 +727,10 @@ export default function ProcurementPage() {
                                   Submit
                                 </button>
                               )}
-                              {pr.status === 1 && canApprove && (
-                                <>
-                                  <button className="btn btn-sm" style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none' }} onClick={() => handleApproveRequisition(pr.id)}>
-                                    Approve
-                                  </button>
-                                  <button className="btn btn-sm" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }} onClick={() => handleRejectRequisition(pr.id)}>
-                                    Reject
-                                  </button>
-                                </>
+                              {pr.status === 1 && canApprove && !isExpanded && (
+                                <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setExpandedRequisitionId(pr.id); }}>
+                                  Review
+                                </button>
                               )}
                               {pr.status === 2 && canConvert && (
                                 <button className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setConvertingRequisition(pr); setSelectedSupplierId(''); }}>
@@ -765,6 +760,17 @@ export default function ProcurementPage() {
                               {pr.notes && pr.status !== 3 && (
                                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, padding: '8px 12px', borderRadius: 6, background: 'var(--surface-secondary)', borderLeft: '3px solid var(--border-muted)' }}>
                                   <strong>Purpose / Description:</strong> {pr.notes}
+                                </div>
+                              )}
+                              
+                              {pr.status === 1 && canApprove && (
+                                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+                                  <button className="btn" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }} onClick={() => handleRejectRequisition(pr.id)}>
+                                    Reject PR
+                                  </button>
+                                  <button className="btn" style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none' }} onClick={() => handleApproveRequisition(pr.id)}>
+                                    Approve PR
+                                  </button>
                                 </div>
                               )}
                             </td>
