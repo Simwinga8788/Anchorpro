@@ -281,14 +281,38 @@ namespace AnchorPro.Services
                 .ToListAsync();
         }
 
-        public async Task<List<PurchaseRequisition>> GetAllPurchaseRequisitionsAsync()
+        public async Task<List<PurchaseRequisition>> GetAllPurchaseRequisitionsAsync(string userId)
         {
             using var context = _factory.CreateDbContext();
-            return await context.PurchaseRequisitions
+            
+            var user = await context.Users.FindAsync(userId);
+            if (user == null) return new List<PurchaseRequisition>();
+
+            // Resolve roles for this user
+            var roleIds = await context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+            var roles = await context.Roles
+                .Where(r => roleIds.Contains(r.Id))
+                .Select(r => r.Name)
+                .ToListAsync();
+
+            bool hasGlobalAccess = roles.Any(r => r == "Admin" || r == "Finance" || r == "Purchasing" || r == "Storeman" || r == "Supervisor" || r == "PlatformOwner");
+
+            var query = context.PurchaseRequisitions
                 .Include(r => r.JobCard)
                 .Include(r => r.Department)
                 .Include(r => r.RequestedBy)
                 .Include(r => r.ApprovedBy)
+                .AsQueryable();
+
+            if (!hasGlobalAccess)
+            {
+                query = query.Where(r => r.RequestedById == userId || (user.DepartmentId.HasValue && r.DepartmentId == user.DepartmentId));
+            }
+
+            return await query
                 .OrderByDescending(r => r.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
@@ -312,6 +336,32 @@ namespace AnchorPro.Services
         {
             using var context = _factory.CreateDbContext();
             
+            var user = await context.Users.FindAsync(userId);
+            if (user == null) throw new InvalidOperationException("User not found.");
+
+            // Resolve roles for this user
+            var roleIds = await context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+            var roles = await context.Roles
+                .Where(r => roleIds.Contains(r.Id))
+                .Select(r => r.Name)
+                .ToListAsync();
+
+            bool hasGlobalAccess = roles.Any(r => r == "Admin" || r == "Finance" || r == "Purchasing" || r == "Storeman" || r == "Supervisor" || r == "PlatformOwner");
+
+            // Enforce departmental isolation on creation:
+            // If it's a departmental PR, and the user is not an Admin/Finance/Supervisor/Procurement power user,
+            // they can ONLY raise a PR for their own department.
+            if (pr.DepartmentId.HasValue && !hasGlobalAccess)
+            {
+                if (pr.DepartmentId != user.DepartmentId)
+                {
+                    throw new UnauthorizedAccessException("You are not authorized to raise a requisition for another department.");
+                }
+            }
+
             pr.RequisitionNumber = $"PR-{DateTime.UtcNow:yyyyMM}-{context.PurchaseRequisitions.Count() + 1:D4}";
             pr.CreatedAt = DateTime.UtcNow;
             pr.CreatedBy = userId;

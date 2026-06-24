@@ -40,9 +40,9 @@ export default function ProcurementPage() {
   
   // User authorization checks
   const roles = user?.roles || [];
-  const canApprove = roles.some((r: string) => ['Admin', 'Finance', 'Supervisor', 'PlatformOwner'].includes(r));
-  const canConvert = roles.some((r: string) => ['Admin', 'Purchasing', 'Storeman', 'PlatformOwner'].includes(r));
-
+  const canApprove = roles.some((r: string) => ['Admin', 'Finance', 'PlatformOwner'].includes(r));
+  const canConvert = roles.some((r: string) => ['Admin', 'Purchasing', 'PlatformOwner'].includes(r));
+  const isPowerUser = roles.some((r: string) => ['Admin', 'Finance', 'Supervisor', 'PlatformOwner'].includes(r));
   const [activeTab, setActiveTab] = useState<'requisitions' | 'orders' | 'suppliers'>('requisitions');
   const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
@@ -50,6 +50,10 @@ export default function ProcurementPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  
+  const allowedDepartments = isPowerUser
+    ? departments
+    : departments.filter(d => String(d.id) === String(user?.departmentId));
   const [loading, setLoading] = useState(true);
 
   // PO form state
@@ -503,7 +507,7 @@ export default function ProcurementPage() {
               <label className="form-label">Requesting Department *</label>
               <select className="form-select" required value={prFormData.departmentId} onChange={e => setPrFormData({ ...prFormData, departmentId: e.target.value })}>
                 <option value="">Select a department...</option>
-                {departments.map((d: any) => (
+                {allowedDepartments.map((d: any) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
@@ -608,8 +612,12 @@ export default function ProcurementPage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 0 }}>
         {[
           { key: 'requisitions', label: 'Requisitions (PR)', icon: <ClipboardList size={13}/> },
-          { key: 'orders', label: 'Purchase Orders', icon: <FileText size={13}/> },
-          { key: 'suppliers', label: 'Suppliers', icon: <Truck size={13}/> },
+          ...(roles.some((r: string) => ['Admin', 'Finance', 'Purchasing', 'Storeman', 'PlatformOwner'].includes(r))
+            ? [{ key: 'orders', label: 'Purchase Orders', icon: <FileText size={13}/> }]
+            : []),
+          ...(roles.some((r: string) => ['Admin', 'Finance', 'Purchasing', 'PlatformOwner'].includes(r))
+            ? [{ key: 'suppliers', label: 'Suppliers', icon: <Truck size={13}/> }]
+            : []),
         ].map(tab => (
           <button key={tab.key} onClick={() => { setActiveTab(tab.key as any); setSearch(''); }}
             style={{

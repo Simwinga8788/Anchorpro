@@ -23,7 +23,7 @@ namespace AnchorPro.Services.Interfaces
         Task<List<PurchaseOrder>> GetPendingApprovalOrdersAsync();
 
         // Purchase Requisitions
-        Task<List<PurchaseRequisition>> GetAllPurchaseRequisitionsAsync();
+        Task<List<PurchaseRequisition>> GetAllPurchaseRequisitionsAsync(string userId);
         Task<PurchaseRequisition?> GetPurchaseRequisitionByIdAsync(int id);
         Task<PurchaseRequisition> CreatePurchaseRequisitionAsync(PurchaseRequisition pr, List<PurchaseRequisitionItem> items, string userId);
         Task UpdatePurchaseRequisitionStatusAsync(int prId, PurchaseRequisitionStatus status, string userId);

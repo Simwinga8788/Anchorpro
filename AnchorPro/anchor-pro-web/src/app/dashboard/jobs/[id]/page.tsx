@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, CheckCircle2, Clock, Plus, Trash2, Users, Calendar,
   DollarSign, Wrench, Tag, Package, AlertTriangle, Upload, ExternalLink,
-  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer, Download
+  FileText, Camera, ShieldAlert, X, Eye, Play, CheckCircle, ChevronDown, ChevronRight, Printer, Download, ClipboardList
 } from 'lucide-react';
 import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi, settingsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
@@ -102,6 +102,14 @@ export default function JobDetailPage() {
   const [isTasksExpanded, setIsTasksExpanded] = useState(true);
   const [isComponentsExpanded, setIsComponentsExpanded] = useState(true);
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
+  const [isRequisitionsExpanded, setIsRequisitionsExpanded] = useState(true);
+  const [requisitions, setRequisitions] = useState<any[]>([]);
+  const [showPrModal, setShowPrModal] = useState(false);
+  const [savingPr, setSavingPr] = useState(false);
+  const [prForm, setPrForm] = useState({
+    notes: '',
+    items: [{ description: '', quantityRequested: 1, estimatedUnitCost: 0 }]
+  });
 
   // Form states
   const [newTaskName, setNewTaskName] = useState('');
@@ -147,6 +155,10 @@ export default function JobDetailPage() {
       // Fetch related subcontracts
       const pos = await procurementApi.getOrdersByJob(id).catch(() => []);
       setSubcontracts(pos || []);
+
+      // Fetch related requisitions
+      const prs = await procurementApi.getRequisitionsByJob(id).catch(() => []);
+      setRequisitions(prs || []);
 
       // Fetch Quotation and Invoice
       const q = await quotationsApi.getByJob(id).catch(() => null);
@@ -399,6 +411,35 @@ export default function JobDetailPage() {
       alert('Failed to request part: ' + err.message);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handlePrSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPr(true);
+    try {
+      await procurementApi.createRequisition({
+        purchaseRequisition: {
+          requisitionNumber: 'TEMP',
+          requestedById: 'TEMP',
+          jobCardId: id,
+          departmentId: user?.departmentId ? Number(user.departmentId) : null,
+          notes: prForm.notes || null,
+        },
+        items: prForm.items.map(i => ({
+          description: i.description,
+          quantityRequested: i.quantityRequested,
+          estimatedUnitCost: i.estimatedUnitCost
+        })),
+        submitImmediately: true
+      });
+      setShowPrModal(false);
+      setPrForm({ notes: '', items: [{ description: '', quantityRequested: 1, estimatedUnitCost: 0 }] });
+      await loadJobDetails();
+    } catch (err: any) {
+      alert("Failed to raise requisition: " + (err.message || 'Unknown error'));
+    } finally {
+      setSavingPr(false);
     }
   };
 
@@ -934,6 +975,84 @@ export default function JobDetailPage() {
             )}
           </div>
 
+          {/* Purchase Requisitions (PR) Section */}
+          <div className="card-elevated">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isRequisitionsExpanded ? 16 : 0 }}>
+              <div 
+                onClick={() => setIsRequisitionsExpanded(!isRequisitionsExpanded)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
+              >
+                {isRequisitionsExpanded ? <ChevronDown size={16} style={{ color: 'var(--accent-blue)' }} /> : <ChevronRight size={16} style={{ color: 'var(--accent-blue)' }} />}
+                <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ClipboardList size={16} className="text-accent-blue" /> Requisitions (PR)
+                </h3>
+              </div>
+              {isRequisitionsExpanded && job.status !== 3 && job.status !== 4 && (
+                <button onClick={() => {
+                  setPrForm({ notes: '', items: [{ description: '', quantityRequested: 1, estimatedUnitCost: 0 }] });
+                  setShowPrModal(true);
+                }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Plus size={14} /> Request Parts (Raise PR)
+                </button>
+              )}
+            </div>
+
+            {isRequisitionsExpanded && (
+              <>
+                {requisitions.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    No purchase requisitions raised for this job yet.
+                  </div>
+                ) : (
+                  <ResponsiveTable>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>PR Number</th>
+                          <th>Requested By</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Est. Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {requisitions.map((pr: any) => {
+                          const prStatusMap: Record<number, { label: string; badge: string }> = {
+                            0: { label: 'Draft',              badge: 'badge-muted' },
+                            1: { label: 'Pending Approval',   badge: 'badge-amber' },
+                            2: { label: 'Approved',           badge: 'badge-green' },
+                            3: { label: 'Rejected',           badge: 'badge-rose' },
+                            4: { label: 'Converted to PO',    badge: 'badge-blue' },
+                            5: { label: 'Cancelled',          badge: 'badge-muted' },
+                          };
+                          const stat = prStatusMap[pr.status] || { label: 'Unknown', badge: 'badge-muted' };
+                          return (
+                            <tr key={pr.id}>
+                              <td style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: 13 }}>{pr.requisitionNumber}</td>
+                              <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                {pr.requestedBy ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName}` : 'System'}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
+                                  <span className={`badge ${stat.badge}`}>{stat.label}</span>
+                                  {pr.status === 3 && pr.notes && (
+                                    <span style={{ fontSize: 10, color: 'var(--accent-rose)', fontStyle: 'italic', maxWidth: '180px' }}>Reason: {pr.notes}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                K {pr.totalEstimatedAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ResponsiveTable>
+                )}
+              </>
+            )}
+          </div>
+
           {/* External Service Section */}
           <div className="card-elevated">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isExternalExpanded ? 16 : 0 }}>
@@ -1227,6 +1346,79 @@ export default function JobDetailPage() {
           onClose={() => setShowSubconModal(false)}
           onSaved={loadJobDetails}
         />
+      )}
+
+      {/* ── Purchase Requisition Modal ── */}
+      {showPrModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowPrModal(false)}>
+          <div className="card-elevated" style={{ width: 520, padding: 28, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Request Parts (Raise PR)</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Create a purchase requisition for Job #{job.jobNumber}</p>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowPrModal(false)}><X size={16}/></button>
+            </div>
+
+            <form onSubmit={handlePrSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 10 }}>
+              <div className="form-field">
+                <label className="form-label">Purpose / Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                <input className="form-input" placeholder="e.g. Extra spare parts needed for engine repair..." value={prForm.notes} onChange={e => setPrForm({ ...prForm, notes: e.target.value })} />
+              </div>
+
+              <div className="section-header" style={{ marginTop: 10, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+                <div><div className="section-title" style={{ fontSize: 13 }}>Items Requested</div></div>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrForm({ ...prForm, items: [...prForm.items, { description: '', quantityRequested: 1, estimatedUnitCost: 0 }] })}><Plus size={12}/> Add Item</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '35vh', overflowY: 'auto', paddingRight: 4 }}>
+                {prForm.items.map((item, idx) => (
+                  <div key={idx} style={{ padding: 12, border: '1px solid var(--border-subtle)', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' }}>
+                    {prForm.items.length > 1 && (
+                      <button type="button" style={{ position: 'absolute', right: 10, top: 10, background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer' }} onClick={() => setPrForm({ ...prForm, items: prForm.items.filter((_, i) => i !== idx) })}>
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                    <div className="form-field">
+                      <label className="form-label" style={{ fontSize: 11 }}>Description / Part Details *</label>
+                      <input className="form-input" placeholder="Item description" required value={item.description} onChange={e => {
+                        const copy = [...prForm.items]; copy[idx].description = e.target.value; setPrForm({ ...prForm, items: copy });
+                      }} />
+                    </div>
+                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="form-field">
+                        <label className="form-label" style={{ fontSize: 11 }}>Quantity</label>
+                        <input type="number" min={1} className="form-input" required value={item.quantityRequested} onChange={e => {
+                          const copy = [...prForm.items]; copy[idx].quantityRequested = parseInt(e.target.value) || 1; setPrForm({ ...prForm, items: copy });
+                        }} />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label" style={{ fontSize: 11 }}>Est. Unit Cost (ZMW)</label>
+                        <input type="number" min={0} step="0.01" className="form-input" required value={item.estimatedUnitCost} onChange={e => {
+                          const copy = [...prForm.items]; copy[idx].estimatedUnitCost = parseFloat(e.target.value) || 0; setPrForm({ ...prForm, items: copy });
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: 14, background: 'var(--surface-secondary)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Total Estimated Amount:</span>
+                <span style={{ fontSize: 16, color: 'var(--accent-blue)', fontWeight: 700 }}>
+                  ZMW {prForm.items.reduce((sum, i) => sum + (i.quantityRequested * i.estimatedUnitCost), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPrModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={savingPr}>
+                  {savingPr ? 'Submitting...' : 'Submit Requisition'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ── Lightbox Image Preview ── */}

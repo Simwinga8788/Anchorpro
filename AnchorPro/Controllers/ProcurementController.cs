@@ -180,7 +180,10 @@ namespace AnchorPro.Controllers
         /// <summary>GET /api/procurement/requisitions — All purchase requisitions.</summary>
         [HttpGet("requisitions")]
         public async Task<ActionResult<List<PurchaseRequisition>>> GetPurchaseRequisitions()
-            => Ok(await _procurementService.GetAllPurchaseRequisitionsAsync());
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            return Ok(await _procurementService.GetAllPurchaseRequisitionsAsync(userId));
+        }
 
         /// <summary>GET /api/procurement/requisitions/pending-approval — Manager/Finance review queue.</summary>
         [HttpGet("requisitions/pending-approval")]
