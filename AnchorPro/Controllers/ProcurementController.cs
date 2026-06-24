@@ -24,6 +24,12 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult<List<PurchaseOrder>>> GetPurchaseOrders()
             => Ok(await _procurementService.GetAllPurchaseOrdersAsync());
 
+        /// <summary>GET /api/procurement/orders/pending-approval — Finance approval queue.</summary>
+        [HttpGet("orders/pending-approval")]
+        [Authorize(Roles = "Admin,Finance")]
+        public async Task<ActionResult<List<PurchaseOrder>>> GetPendingApproval()
+            => Ok(await _procurementService.GetPendingApprovalOrdersAsync());
+
         /// <summary>GET /api/procurement/orders/{id}</summary>
         [HttpGet("orders/{id}")]
         public async Task<ActionResult<PurchaseOrder>> GetPurchaseOrderById(int id)
@@ -80,6 +86,49 @@ namespace AnchorPro.Controllers
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var tuples = items.Select(i => (i.ItemId, i.Quantity)).ToList();
             await _procurementService.ReceiveItemsAsync(id, tuples, userId);
+            return NoContent();
+        }
+
+        // ── APPROVAL WORKFLOW ──────────────────────────────────────────────────
+
+        public class RejectPORequest { public string? Reason { get; set; } }
+
+        /// <summary>
+        /// POST /api/procurement/orders/{id}/send-for-approval
+        /// Moves PO from Submitted → PendingApproval for Finance review.
+        /// </summary>
+        [HttpPost("orders/{id}/send-for-approval")]
+        [Authorize(Roles = "Admin,Purchasing,Storeman")]
+        public async Task<ActionResult> SendForApproval(int id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.UpdatePurchaseOrderStatusAsync(id, PurchaseOrderStatus.PendingApproval, userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// POST /api/procurement/orders/{id}/approve
+        /// Finance approves the PO. Requires Admin or Finance role.
+        /// </summary>
+        [HttpPost("orders/{id}/approve")]
+        [Authorize(Roles = "Admin,Finance")]
+        public async Task<ActionResult> ApprovePO(int id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.ApprovePurchaseOrderAsync(id, userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// POST /api/procurement/orders/{id}/reject
+        /// Finance rejects the PO with a reason. Requires Admin or Finance role.
+        /// </summary>
+        [HttpPost("orders/{id}/reject")]
+        [Authorize(Roles = "Admin,Finance")]
+        public async Task<ActionResult> RejectPO(int id, [FromBody] RejectPORequest req)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            await _procurementService.RejectPurchaseOrderAsync(id, req.Reason ?? "No reason provided", userId);
             return NoContent();
         }
 

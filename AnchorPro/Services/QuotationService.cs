@@ -145,5 +145,16 @@ namespace AnchorPro.Services
                 await context.SaveChangesAsync();
             }
         }
+
+        public async Task<List<Quotation>> GetAllQuotationsAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.Quotations
+                .Include(q => q.JobCard)
+                    .ThenInclude(j => j!.Customer)
+                .OrderByDescending(q => q.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

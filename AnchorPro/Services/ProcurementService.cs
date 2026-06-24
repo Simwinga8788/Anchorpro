@@ -241,5 +241,44 @@ namespace AnchorPro.Services
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task ApprovePurchaseOrderAsync(int poId, string approvedByUserId)
+        {
+            using var context = _factory.CreateDbContext();
+            var po = await context.PurchaseOrders.FindAsync(poId);
+            if (po == null) throw new InvalidOperationException($"PO {poId} not found.");
+            po.Status = PurchaseOrderStatus.Approved;
+            po.ApprovedBy = approvedByUserId;
+            po.UpdatedAt = DateTime.UtcNow;
+            po.UpdatedBy = approvedByUserId;
+            await context.SaveChangesAsync();
+        }
+
+        public async Task RejectPurchaseOrderAsync(int poId, string reason, string rejectedByUserId)
+        {
+            using var context = _factory.CreateDbContext();
+            var po = await context.PurchaseOrders.FindAsync(poId);
+            if (po == null) throw new InvalidOperationException($"PO {poId} not found.");
+            po.Status = PurchaseOrderStatus.Rejected;
+            po.Notes = string.IsNullOrEmpty(po.Notes)
+                ? $"Rejected: {reason}"
+                : $"{po.Notes} | Rejected: {reason}";
+            po.UpdatedAt = DateTime.UtcNow;
+            po.UpdatedBy = rejectedByUserId;
+            await context.SaveChangesAsync();
+        }
+
+        public async Task<List<PurchaseOrder>> GetPendingApprovalOrdersAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PurchaseOrders
+                .Include(p => p.Supplier)
+                .Include(p => p.Items)
+                .Include(p => p.Department)
+                .Where(p => p.Status == PurchaseOrderStatus.PendingApproval)
+                .OrderByDescending(p => p.TotalAmount)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

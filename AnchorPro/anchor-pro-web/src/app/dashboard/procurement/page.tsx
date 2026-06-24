@@ -13,11 +13,14 @@ const typeConfig: Record<number, { label: string; badge: string; color: string }
 };
 
 const statusConfig: Record<number, { label: string; badge: string }> = {
-  0: { label: 'Draft',             badge: 'badge-muted' },
-  1: { label: 'Submitted',         badge: 'badge-blue' },
-  2: { label: 'Partially Received',badge: 'badge-amber' },
-  3: { label: 'Received',          badge: 'badge-green' },
-  4: { label: 'Cancelled',         badge: 'badge-rose' },
+  0: { label: 'Draft',              badge: 'badge-muted' },
+  1: { label: 'Submitted',          badge: 'badge-blue' },
+  2: { label: 'Pending Approval',   badge: 'badge-amber' },
+  3: { label: 'Approved',           badge: 'badge-green' },
+  4: { label: 'Partly Received',    badge: 'badge-violet' },
+  5: { label: 'Received',           badge: 'badge-green' },
+  6: { label: 'Rejected',           badge: 'badge-rose' },
+  7: { label: 'Cancelled',          badge: 'badge-muted' },
 };
 
 const SUPPLIER_BLANK = { name: '', contactPerson: '', email: '', phone: '', address: '', supplierCode: '', notes: '' };
@@ -138,14 +141,23 @@ export default function ProcurementPage() {
     }
   };
 
+  const handleSendForApproval = async (id: number) => {
+    try {
+      await procurementApi.sendForApproval(id);
+      fetchData();
+    } catch (err: any) {
+      alert('Failed to send for approval: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   const filtered = orders.filter(o =>
     o.poNumber?.toLowerCase().includes(search.toLowerCase()) ||
     o.supplier?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalSpend = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
-  const pendingCount = orders.filter(o => o.status === 1 || o.status === 2).length;
-  const receivedCount = orders.filter(o => o.status === 3).length;
+  const pendingCount = orders.filter(o => o.status >= 1 && o.status <= 4).length;
+  const receivedCount = orders.filter(o => o.status === 5).length;
 
   return (
     <div>
@@ -362,7 +374,7 @@ export default function ProcurementPage() {
             ) : filtered.map(order => {
               const typeCfg = typeConfig[order.poType] || { label: 'Unknown', badge: 'badge-muted' };
               const statCfg = statusConfig[order.status] || { label: 'Unknown', badge: 'badge-muted' };
-              const canReceive = order.status === 0 || order.status === 1 || order.status === 2; // Draft, Submitted, Partial
+              const canReceive = order.status === 3 || order.status === 4; // Approved, Partly Received
               const isExpanded = expandedOrderId === order.id;
 
               return (
@@ -375,7 +387,25 @@ export default function ProcurementPage() {
                       {order.jobCardId ? `Job #${order.jobCardId}` : '—'}
                     </td>
                     <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(order.orderDate).toLocaleDateString()}</td>
-                    <td><span className={`badge ${statCfg.badge}`}>{statCfg.label}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                        <span className={`badge ${statCfg.badge}`}>{statCfg.label}</span>
+                        {order.status === 1 && (
+                          <button
+                            className="btn btn-sm"
+                            style={{ padding: '2px 6px', fontSize: '10px', background: 'var(--accent-blue)', color: '#fff', border: 'none', marginTop: 4 }}
+                            onClick={(e) => { e.stopPropagation(); handleSendForApproval(order.id); }}
+                          >
+                            Send to Finance
+                          </button>
+                        )}
+                        {order.status === 6 && order.notes && (
+                          <div style={{ fontSize: '11px', color: 'var(--accent-rose)', fontStyle: 'italic', maxWidth: '150px' }} title={order.notes}>
+                            Reason: {order.notes}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
                       K {order.totalAmount?.toLocaleString() || '0'}
                     </td>

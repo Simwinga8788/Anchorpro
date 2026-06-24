@@ -90,9 +90,12 @@ namespace AnchorPro.Data.Entities
     public enum PurchaseOrderStatus
     {
         Draft,
-        Submitted,      // Sent to supplier
+        Submitted,          // Raised by Ops/Purchasing — awaiting Finance review
+        PendingApproval,    // Sent to Finance for approval
+        Approved,           // Finance approved — supplier can be engaged
         PartiallyReceived,
-        Received,       // All items received
+        Received,           // All items received
+        Rejected,           // Finance rejected — returned to Ops
         Cancelled
     }
 }

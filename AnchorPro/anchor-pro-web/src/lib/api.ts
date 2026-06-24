@@ -513,17 +513,21 @@ export const financialApi = {
 
 // ─── Procurement API ── /api/procurement ───────────────────────────────────────
 export const procurementApi = {
-  getOrders:       ()                        => apiFetch<any[]>('/api/procurement/orders'),
-  getOrderById:    (id: number)              => apiFetch<any>(`/api/procurement/orders/${id}`),
-  getOrdersByJob:  (jobCardId: number)       => apiFetch<any[]>(`/api/procurement/orders/job/${jobCardId}`),
-  createOrder:     (data: any)               => apiPost<any>('/api/procurement/orders', data),
-  updateOrderStatus:(id: number, status: any)=> apiPatch<any>(`/api/procurement/orders/${id}/status`, { status }),
-  receiveItems:    (id: number, items: any[])=> apiPost<any>(`/api/procurement/orders/${id}/receive`, items),
-  getSuppliers:    ()                        => apiFetch<any[]>('/api/procurement/suppliers'),
-  getSupplierById: (id: number)              => apiFetch<any>(`/api/procurement/suppliers/${id}`),
-  createSupplier:  (data: any)               => apiPost<any>('/api/procurement/suppliers', data),
-  updateSupplier:  (id: number, data: any)   => apiPut<any>(`/api/procurement/suppliers/${id}`, data),
-  deleteSupplier:  (id: number)              => apiDelete(`/api/procurement/suppliers/${id}`),
+  getOrders:            ()                           => apiFetch<any[]>('/api/procurement/orders'),
+  getOrderById:         (id: number)                 => apiFetch<any>(`/api/procurement/orders/${id}`),
+  getOrdersByJob:       (jobCardId: number)          => apiFetch<any[]>(`/api/procurement/orders/job/${jobCardId}`),
+  createOrder:          (data: any)                  => apiPost<any>('/api/procurement/orders', data),
+  updateOrderStatus:    (id: number, status: any)    => apiPatch<any>(`/api/procurement/orders/${id}/status`, { status }),
+  receiveItems:         (id: number, items: any[])   => apiPost<any>(`/api/procurement/orders/${id}/receive`, items),
+  getPendingApprovals:  ()                           => apiFetch<any[]>('/api/procurement/orders/pending-approval'),
+  approvePO:            (id: number)                 => apiPost<any>(`/api/procurement/orders/${id}/approve`, {}),
+  rejectPO:             (id: number, reason: string) => apiPost<any>(`/api/procurement/orders/${id}/reject`, { reason }),
+  sendForApproval:      (id: number)                 => apiPost<any>(`/api/procurement/orders/${id}/send-for-approval`, {}),
+  getSuppliers:         ()                           => apiFetch<any[]>('/api/procurement/suppliers'),
+  getSupplierById:      (id: number)                 => apiFetch<any>(`/api/procurement/suppliers/${id}`),
+  createSupplier:       (data: any)                  => apiPost<any>('/api/procurement/suppliers', data),
+  updateSupplier:       (id: number, data: any)      => apiPut<any>(`/api/procurement/suppliers/${id}`, data),
+  deleteSupplier:       (id: number)                 => apiDelete(`/api/procurement/suppliers/${id}`),
 };
 
 // ─── Safety API ── /api/safety ─────────────────────────────────────────────────
@@ -722,6 +726,7 @@ export const teamApi = {
 
 // ─── Quotations API ── /api/quotations ─────────────────────────────────────────
 export const quotationsApi = {
+  getAll:        ()                    => apiFetch<any[]>('/api/quotations'),
   getById:       (id: number)          => apiFetch<any>(`/api/quotations/${id}`),
   getByJob:      (jobId: number)       => apiFetch<any>(`/api/quotations/job/${jobId}`),
   createFromJob: (jobId: number)       => apiPost<any>(`/api/quotations/from-job/${jobId}`, {}),

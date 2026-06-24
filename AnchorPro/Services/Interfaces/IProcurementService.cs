@@ -18,5 +18,8 @@ namespace AnchorPro.Services.Interfaces
         Task UpdatePurchaseOrderStatusAsync(int poId, PurchaseOrderStatus status, string userId);
         Task ReceiveItemsAsync(int poId, List<(int itemId, int quantity)> receivedItems, string userId);
         Task<List<PurchaseOrder>> GetPurchaseOrdersByJobCardIdAsync(int jobCardId);
+        Task ApprovePurchaseOrderAsync(int poId, string approvedByUserId);
+        Task RejectPurchaseOrderAsync(int poId, string reason, string rejectedByUserId);
+        Task<List<PurchaseOrder>> GetPendingApprovalOrdersAsync();
     }
 }

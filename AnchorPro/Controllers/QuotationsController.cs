@@ -19,6 +19,13 @@ namespace AnchorPro.Controllers
             _quotationService = quotationService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<List<Quotation>>> GetAll()
+        {
+            var result = await _quotationService.GetAllQuotationsAsync();
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Quotation>> GetById(int id)
         {

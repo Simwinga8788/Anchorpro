@@ -4,6 +4,7 @@ namespace AnchorPro.Services.Interfaces
 {
     public interface IQuotationService
     {
+        Task<List<Quotation>> GetAllQuotationsAsync();
         Task<Quotation?> GetQuotationByIdAsync(int id);
         Task<Quotation?> GetQuotationByJobIdAsync(int jobId);
         Task<Quotation> CreateQuotationFromJobAsync(int jobId, string userId);
