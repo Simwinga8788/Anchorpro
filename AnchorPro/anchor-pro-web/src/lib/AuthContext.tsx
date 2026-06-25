@@ -14,6 +14,7 @@ export interface UserProfile {
   tenantId?: number;
   isPlatformOwner: boolean;
   departmentId?: number;
+  allowedRoutes: string[];
 }
 
 interface AuthContextValue {

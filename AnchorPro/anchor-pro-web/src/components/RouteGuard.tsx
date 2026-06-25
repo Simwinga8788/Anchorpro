@@ -20,7 +20,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     }
 
     // Logged in but no access to this route
-    if (!canAccess(pathname, user.roles, user.isPlatformOwner)) {
+    if (!canAccess(pathname, user.allowedRoutes || [], user.isPlatformOwner)) {
       router.replace('/unauthorized');
     }
   }, [user, loading, pathname, router]);

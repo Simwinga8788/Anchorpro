@@ -65,6 +65,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.SystemAuditLog> SystemAuditLogs { get; set; }
     public DbSet<Entities.PaymentTransaction> PaymentTransactions { get; set; }
     public DbSet<Entities.ReportDefinition> ReportDefinitions { get; set; }
+    public DbSet<Entities.TenantRolePermission> TenantRolePermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

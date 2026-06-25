@@ -173,7 +173,7 @@ export default function Sidebar() {
       <div style={{ flex: 1, padding: '6px 6px', overflowY: 'auto' }}>
         {navSections.map((section) => {
           const visibleItems = section.items.filter(item =>
-            canAccess(item.href, userRoles, isPlatformOwner)
+            canAccess(item.href, user?.allowedRoutes || [], isPlatformOwner)
           );
           if (visibleItems.length === 0) return null;
 
@@ -210,7 +210,7 @@ export default function Sidebar() {
 
       {/* ── User footer ── */}
       <div style={{ padding: '8px 6px' }}>
-        {canAccess('/dashboard/settings', userRoles, isPlatformOwner) && (
+        {canAccess('/dashboard/settings', user?.allowedRoutes || [], isPlatformOwner) && (
           <Link href="/dashboard/settings" className="sidebar-nav-item">
             <Settings size={15} /> <span>Settings</span>
           </Link>

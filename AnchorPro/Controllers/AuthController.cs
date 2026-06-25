@@ -36,6 +36,8 @@ namespace AnchorPro.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var isPlatformOwner = !user.TenantId.HasValue && roles.Contains("Admin");
 
+            var allowedRoutes = await GetUserAllowedRoutesAsync(user.TenantId, roles.ToList());
+
             return Ok(new UserProfileDto
             {
                 Id = user.Id,
@@ -44,7 +46,8 @@ namespace AnchorPro.Controllers
                 LastName = user.LastName,
                 Roles = roles.ToList(),
                 TenantId = user.TenantId,
-                IsPlatformOwner = isPlatformOwner
+                IsPlatformOwner = isPlatformOwner,
+                AllowedRoutes = allowedRoutes
             });
         }
 
@@ -72,6 +75,8 @@ namespace AnchorPro.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var isPlatformOwner = !user.TenantId.HasValue && roles.Contains("Admin");
 
+            var allowedRoutes = await GetUserAllowedRoutesAsync(user.TenantId, roles.ToList());
+
             return Ok(new UserProfileDto
             {
                 Id = user.Id,
@@ -80,8 +85,47 @@ namespace AnchorPro.Controllers
                 LastName = user.LastName,
                 Roles = roles.ToList(),
                 TenantId = user.TenantId,
-                IsPlatformOwner = isPlatformOwner
+                IsPlatformOwner = isPlatformOwner,
+                AllowedRoutes = allowedRoutes
             });
+        }
+
+        private async Task<List<string>> GetUserAllowedRoutesAsync(int? tenantId, List<string> roles)
+        {
+            var allowedRoutes = new HashSet<string>();
+
+            if (tenantId == null) return allowedRoutes.ToList();
+
+            foreach (var role in roles)
+            {
+                var perm = await _db.TenantRolePermissions
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.RoleName == role);
+
+                if (perm != null)
+                {
+                    var routes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(perm.AllowedRoutesJson) ?? new List<string>();
+                    foreach (var r in routes) allowedRoutes.Add(r);
+                }
+                else
+                {
+                    // Fallback defaults
+                    var defaultRoutes = role switch
+                    {
+                        "Admin" => new List<string> { "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", "/dashboard/roles", "/dashboard/settings", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs" },
+                        "HR" => new List<string> { "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", "/dashboard/customers", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs" },
+                        "Planner" => new List<string> { "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs" },
+                        "Supervisor" => new List<string> { "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs" },
+                        "Technician" => new List<string> { "/dashboard/jobs", "/dashboard/procurement", "/dashboard/safety", "/dashboard/my-tools", "/dashboard/my-jobs" },
+                        "Purchasing" => new List<string> { "/dashboard/procurement" },
+                        "Storeman" => new List<string> { "/dashboard/inventory", "/dashboard/procurement", "/dashboard/my-tools" },
+                        "Finance" => new List<string> { "/dashboard/procurement" },
+                        _ => new List<string>()
+                    };
+                    foreach (var r in defaultRoutes) allowedRoutes.Add(r);
+                }
+            }
+
+            return allowedRoutes.ToList();
         }
 
         /// <summary>
@@ -204,5 +248,6 @@ namespace AnchorPro.Controllers
         public List<string> Roles { get; set; } = [];
         public int? TenantId { get; set; }
         public bool IsPlatformOwner { get; set; }
+        public List<string> AllowedRoutes { get; set; } = new List<string>();
     }
 }
