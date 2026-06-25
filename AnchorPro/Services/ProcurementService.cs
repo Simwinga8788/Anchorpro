@@ -73,6 +73,7 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             return await context.PurchaseOrders
                 .Include(p => p.Supplier)
+                .Include(p => p.Items)
                 .OrderByDescending(p => p.OrderDate)
                 .AsNoTracking()
                 .ToListAsync();
@@ -97,14 +98,16 @@ namespace AnchorPro.Services
             po.CreatedAt = DateTime.UtcNow;
             po.CreatedBy = userId;
             po.RaisedBy = userId;
-            po.TotalAmount = items.Sum(i => i.LineTotal);
-
+            decimal totalAmount = 0;
             foreach (var item in items)
             {
+                item.LineTotal = item.QuantityOrdered * item.UnitCost;
                 item.CreatedAt = DateTime.UtcNow;
                 item.CreatedBy = userId;
                 po.Items.Add(item);
+                totalAmount += item.LineTotal;
             }
+            po.TotalAmount = totalAmount;
 
             context.PurchaseOrders.Add(po);
             await context.SaveChangesAsync();
@@ -305,6 +308,7 @@ namespace AnchorPro.Services
                 .Include(r => r.Department)
                 .Include(r => r.RequestedBy)
                 .Include(r => r.ApprovedBy)
+                .Include(r => r.Items)
                 .AsQueryable();
 
             if (!hasGlobalAccess)
@@ -368,14 +372,16 @@ namespace AnchorPro.Services
             pr.CreatedAt = DateTime.UtcNow;
             pr.CreatedBy = userId;
             pr.RequestedById = userId;
-            pr.TotalEstimatedAmount = items.Sum(i => i.LineTotal);
-
+            decimal totalAmount = 0;
             foreach (var item in items)
             {
+                item.LineTotal = item.QuantityRequested * item.EstimatedUnitCost;
                 item.CreatedAt = DateTime.UtcNow;
                 item.CreatedBy = userId;
                 pr.Items.Add(item);
+                totalAmount += item.LineTotal;
             }
+            pr.TotalEstimatedAmount = totalAmount;
 
             context.PurchaseRequisitions.Add(pr);
             await context.SaveChangesAsync();
@@ -472,8 +478,10 @@ namespace AnchorPro.Services
 
                 // Add Items
                 var poItems = new List<PurchaseOrderItem>();
+                decimal totalAmount = 0;
                 foreach (var item in pr.Items)
                 {
+                    var lineTotal = item.QuantityRequested * item.EstimatedUnitCost;
                     poItems.Add(new PurchaseOrderItem
                     {
                         InventoryItemId = item.InventoryItemId,
@@ -481,13 +489,14 @@ namespace AnchorPro.Services
                         QuantityOrdered = item.QuantityRequested,
                         QuantityReceived = 0,
                         UnitCost = item.EstimatedUnitCost,
-                        LineTotal = item.LineTotal,
+                        LineTotal = lineTotal,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = userId
                     });
+                    totalAmount += lineTotal;
                 }
 
-                po.TotalAmount = poItems.Sum(i => i.LineTotal);
+                po.TotalAmount = totalAmount;
                 foreach (var poItem in poItems)
                 {
                     po.Items.Add(poItem);
@@ -519,6 +528,7 @@ namespace AnchorPro.Services
                 .Include(r => r.RequestedBy)
                 .Include(r => r.ApprovedBy)
                 .Include(r => r.Department)
+                .Include(r => r.Items)
                 .Where(r => r.JobCardId == jobCardId)
                 .OrderByDescending(r => r.CreatedAt)
                 .AsNoTracking()
@@ -532,8 +542,9 @@ namespace AnchorPro.Services
                 .Include(r => r.JobCard)
                 .Include(r => r.Department)
                 .Include(r => r.RequestedBy)
+                .Include(r => r.Items)
                 .Where(r => r.Status == PurchaseRequisitionStatus.PendingApproval)
-                .OrderByDescending(r => r.TotalEstimatedAmount)
+                .OrderByDescending(r => r.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
         }
