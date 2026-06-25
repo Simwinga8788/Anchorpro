@@ -725,7 +725,7 @@ export default function ProcurementPage() {
                                   Submit
                                 </button>
                               )}
-                              {pr.status === 1 && canApprove && !isExpanded && (
+                              {pr.status === 1 && canApprove && pr.requestedById !== user?.id && !isExpanded && (
                                 <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setExpandedRequisitionId(pr.id); }}>
                                   Review
                                 </button>
