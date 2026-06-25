@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { financeApi, financialApi, quotationsApi, procurementApi, usersApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
-  CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X
+  CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X,
+  ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
@@ -52,13 +54,18 @@ type Tab = 'overview' | 'vendor-bills' | 'expenses' | 'ledger' | 'quotations' | 
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [pendingPOCount, setPendingPOCount] = useState(0);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
 
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    procurementApi.getPendingApprovals()
-      .then(data => setPendingPOCount(data?.length ?? 0))
+    Promise.all([
+      procurementApi.getPendingApprovals(),
+      procurementApi.getPendingRequisitions()
+    ])
+      .then(([pos, prs]) => {
+        setPendingApprovalCount((pos?.length ?? 0) + (prs?.length ?? 0));
+      })
       .catch(() => {});
 
     usersApi.getAll()
@@ -80,7 +87,7 @@ export default function FinancePage() {
     { key: 'ledger',       label: 'Ledger Log',     icon: <DollarSign size={13} />  },
     { key: 'quotations',   label: 'Quotations',     icon: <FileText size={13} />    },
     { key: 'invoices',     label: 'Receivables',    icon: <DollarSign size={13} />  },
-    { key: 'po-approvals', label: 'PO Approvals',   icon: <ShieldCheck size={13} /> },
+    { key: 'po-approvals', label: 'Approvals',      icon: <ShieldCheck size={13} /> },
   ];
 
   return (
@@ -90,7 +97,7 @@ export default function FinancePage() {
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <DollarSign size={22} /> Finance &amp; Cashbook
           </h1>
-          <p className="page-subtitle">Manage payables, expenses, ledger, invoices and PO approvals</p>
+          <p className="page-subtitle">Manage payables, expenses, ledger, invoices, PR and PO approvals</p>
         </div>
       </div>
 
@@ -112,13 +119,13 @@ export default function FinancePage() {
           >
             {tab.icon}
             {tab.label}
-            {tab.key === 'po-approvals' && pendingPOCount > 0 && (
+            {tab.key === 'po-approvals' && pendingApprovalCount > 0 && (
               <span style={{
                 background: 'var(--accent-rose)', color: '#fff',
                 borderRadius: 10, fontSize: 10, fontWeight: 700,
                 padding: '1px 6px', marginLeft: 2, lineHeight: '16px',
               }}>
-                {pendingPOCount}
+                {pendingApprovalCount}
               </span>
             )}
           </button>
@@ -131,7 +138,7 @@ export default function FinancePage() {
       {activeTab === 'ledger'       && <LedgerTab usersMap={usersMap} />}
       {activeTab === 'quotations'   && <QuotationsTab />}
       {activeTab === 'invoices'     && <InvoicesTab />}
-      {activeTab === 'po-approvals' && <POApprovalsTab onCountChange={setPendingPOCount} />}
+      {activeTab === 'po-approvals' && <ApprovalsHubTab onCountChange={setPendingApprovalCount} usersMap={usersMap} />}
     </div>
   );
 }
@@ -1245,175 +1252,511 @@ function InvoicesTab() {
   );
 }
 
-// ─── PO Approvals Tab ─────────────────────────────────────────────────────────
-function POApprovalsTab({ onCountChange }: { onCountChange: (n: number) => void }) {
+// ─── Approvals Hub Tab ────────────────────────────────────────────────────────
+function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: number) => void; usersMap: Record<string, string> }) {
+  const { user } = useAuth();
+  const [activeSubTab, setActiveSubTab] = useState<'requisitions' | 'pos'>('requisitions');
+  const [pendingPRs, setPendingPRs] = useState<any[]>([]);
   const [pendingPOs, setPendingPOs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Row expansion state
+  const [expandedPRId, setExpandedPRId] = useState<number | null>(null);
+  const [expandedPOId, setExpandedPOId] = useState<number | null>(null);
+
+  // Rejection modal state
   const [rejectTarget, setRejectTarget] = useState<any>(null);
+  const [rejectTargetType, setRejectTargetType] = useState<'pr' | 'po' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchPending = async () => {
     setLoading(true);
     try {
-      const data = await procurementApi.getPendingApprovals();
-      const list = data || [];
-      setPendingPOs(list);
-      onCountChange(list.length);
+      const [pos, prs] = await Promise.all([
+        procurementApi.getPendingApprovals(),
+        procurementApi.getPendingRequisitions()
+      ]);
+      setPendingPOs(pos || []);
+      setPendingPRs(prs || []);
+      onCountChange((pos?.length ?? 0) + (prs?.length ?? 0));
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch pending approvals:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchPending(); }, []);
+  useEffect(() => {
+    fetchPending();
+  }, []);
 
-  const handleApprove = async (id: number) => {
+  const roles = user?.roles || [];
+  const canApprove = roles.some((r: string) => ['Admin', 'Finance', 'PlatformOwner'].includes(r));
+
+  const handleApprovePR = async (id: number) => {
+    setActionLoading(true);
+    try {
+      await procurementApi.approveRequisition(id);
+      await fetchPending();
+    } catch (err: any) {
+      alert('Failed to approve PR: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApprovePO = async (id: number) => {
     setActionLoading(true);
     try {
       await procurementApi.approvePO(id);
-      fetchPending();
-    } catch (err) {
-      alert('Failed to approve PO');
+      await fetchPending();
+    } catch (err: any) {
+      alert('Failed to approve PO: ' + (err.message || 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleReject = async () => {
-    if (!rejectTarget) return;
+  const handleRejectClick = (target: any, type: 'pr' | 'po') => {
+    setRejectTarget(target);
+    setRejectTargetType(type);
+    setRejectReason('');
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTarget || !rejectTargetType) return;
     setActionLoading(true);
     try {
-      await procurementApi.rejectPO(rejectTarget.id, rejectReason);
+      if (rejectTargetType === 'pr') {
+        await procurementApi.rejectRequisition(rejectTarget.id, rejectReason);
+      } else {
+        await procurementApi.rejectPO(rejectTarget.id, rejectReason);
+      }
       setRejectTarget(null);
+      setRejectTargetType(null);
       setRejectReason('');
-      fetchPending();
-    } catch (err) {
-      alert('Failed to reject PO');
+      await fetchPending();
+    } catch (err: any) {
+      alert(`Failed to reject ${rejectTargetType.toUpperCase()}: ${err.message || 'Unknown error'}`);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const totalValue = pendingPOs.reduce((s, p) => s + (p.totalAmount ?? 0), 0);
+  const totalPRValue = pendingPRs.reduce((s, r) => s + (r.totalEstimatedAmount ?? 0), 0);
+  const totalPOValue = pendingPOs.reduce((s, p) => s + (p.totalAmount ?? 0), 0);
 
   return (
     <>
-      {/* Hero stat card */}
-      <div style={{ marginBottom: 24 }}>
-        <div className="card" style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 24, background: 'var(--accent-amber-dim)', border: '1px solid var(--accent-amber)' }}>
-          <ShieldCheck size={40} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
+      {/* Hero stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {/* PR Stat Card */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20, background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: 10 }}>
+          <FileText size={36} style={{ color: '#818cf8', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              Awaiting Finance Approval
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Pending Requisitions (PR)
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-amber)', marginTop: 4 }}>
-              {fmt(totalValue)}
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#818cf8', marginTop: 4 }}>
+              {fmt(totalPRValue)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-              {pendingPOs.length} purchase order{pendingPOs.length !== 1 ? 's' : ''} pending review
+              {pendingPRs.length} requisition{pendingPRs.length !== 1 ? 's' : ''} awaiting review
+            </div>
+          </div>
+        </div>
+
+        {/* PO Stat Card */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20, background: 'var(--accent-amber-dim)', border: '1px solid var(--accent-amber)', borderRadius: 10 }}>
+          <ShieldCheck size={36} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Pending Purchase Orders (PO)
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-amber)', marginTop: 4 }}>
+              {fmt(totalPOValue)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {pendingPOs.length} purchase order{pendingPOs.length !== 1 ? 's' : ''} awaiting review
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card">
+      {/* Sub-tab Switcher */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
+        <button
+          onClick={() => setActiveSubTab('requisitions')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 20px',
+            background: activeSubTab === 'requisitions' ? 'rgba(99, 102, 241, 0.15)' : 'none',
+            border: activeSubTab === 'requisitions' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: activeSubTab === 'requisitions' ? 600 : 400,
+            color: activeSubTab === 'requisitions' ? '#818cf8' : 'var(--text-secondary)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <FileText size={15} />
+          Purchase Requisitions (PR)
+          <span style={{
+            background: activeSubTab === 'requisitions' ? '#818cf8' : 'var(--bg-elevated)',
+            color: activeSubTab === 'requisitions' ? '#1e1b4b' : 'var(--text-secondary)',
+            borderRadius: 10,
+            fontSize: 10,
+            fontWeight: 700,
+            padding: '1px 6px',
+            marginLeft: 4,
+          }}>
+            {pendingPRs.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('pos')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 20px',
+            background: activeSubTab === 'pos' ? 'rgba(217, 119, 6, 0.12)' : 'none',
+            border: activeSubTab === 'pos' ? '1px solid rgba(217, 119, 6, 0.4)' : '1px solid transparent',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: activeSubTab === 'pos' ? 600 : 400,
+            color: activeSubTab === 'pos' ? 'var(--accent-amber)' : 'var(--text-secondary)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <ShieldCheck size={15} />
+          Purchase Orders (PO)
+          <span style={{
+            background: activeSubTab === 'pos' ? 'var(--accent-amber)' : 'var(--bg-elevated)',
+            color: activeSubTab === 'pos' ? '#451a03' : 'var(--text-secondary)',
+            borderRadius: 10,
+            fontSize: 10,
+            fontWeight: 700,
+            padding: '1px 6px',
+            marginLeft: 4,
+          }}>
+            {pendingPOs.length}
+          </span>
+        </button>
+      </div>
+
+      <div className="card" style={{ borderRadius: 10, overflow: 'hidden' }}>
         <ResponsiveTable>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>PO #</th>
-                <th>Supplier</th>
-                <th>Type</th>
-                <th>Linked Job</th>
-                <th>Value</th>
-                <th>Raised By</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
-              ) : pendingPOs.length === 0 ? (
+          {activeSubTab === 'requisitions' ? (
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan={8}>
-                    <div className="empty-state">
-                      <div className="empty-state-icon"><ShieldCheck size={32} /></div>
-                      <div className="empty-state-text">No purchase orders pending approval</div>
-                    </div>
-                  </td>
+                  <th>PR #</th>
+                  <th>Requested By</th>
+                  <th>Linkage</th>
+                  <th>Required Date</th>
+                  <th>Est. Value</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                pendingPOs.map(po => {
-                  const typeLabels: Record<number, string> = {
-                    0: 'Inventory Replenishment',
-                    1: 'Direct Purchase',
-                    2: 'External Service',
-                  };
-                  const typeBadges: Record<number, string> = {
-                    0: 'badge-blue',
-                    1: 'badge-amber',
-                    2: 'badge-violet',
-                  };
-                  return (
-                    <tr key={po.id}>
-                      <td style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{po.poNumber}</td>
-                      <td>{po.supplier?.name || '—'}</td>
-                      <td>
-                        <span className={`badge ${typeBadges[po.poType] ?? 'badge-muted'}`}>
-                          {typeLabels[po.poType] ?? 'Unknown'}
-                        </span>
-                      </td>
-                      <td style={{ color: po.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontWeight: po.jobCardId ? 600 : 400 }}>
-                        {po.jobCardId ? `Job #${po.jobCardId}` : '—'}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{fmt(po.totalAmount)}</td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{po.createdByName || po.raisedBy || '—'}</td>
-                      <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
-                        {po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '—'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            className="btn btn-primary"
-                            style={{ fontSize: 12, padding: '5px 12px' }}
-                            disabled={actionLoading}
-                            onClick={() => handleApprove(po.id)}
-                          >
-                            <CheckCircle size={13} /> Approve
-                          </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ fontSize: 12, padding: '5px 12px' }}
-                            disabled={actionLoading}
-                            onClick={() => { setRejectTarget(po); setRejectReason(''); }}
-                          >
-                            <XCircle size={13} /> Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
+                ) : pendingPRs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty-state">
+                        <div className="empty-state-icon"><FileText size={32} /></div>
+                        <div className="empty-state-text">No requisitions pending approval</div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  pendingPRs.map(pr => {
+                    const isExpanded = expandedPRId === pr.id;
+                    const isRequester = pr.requestedById === user?.id;
+                    const raisedByName = usersMap[pr.requestedById] || pr.createdByName || pr.requestedBy || '—';
+
+                    return (
+                      <React.Fragment key={pr.id}>
+                        <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedPRId(isExpanded ? null : pr.id)}>
+                          <td style={{ color: '#818cf8', fontWeight: 600 }}>{pr.requisitionNumber}</td>
+                          <td style={{ fontWeight: 500 }}>{raisedByName}</td>
+                          <td>
+                            {pr.jobCardId ? (
+                              <span className="badge badge-blue">
+                                Job #{pr.jobCard?.jobNumber || pr.jobCardId}
+                              </span>
+                            ) : pr.departmentId ? (
+                              <span className="badge badge-violet">
+                                {pr.department?.name || 'Department Overhead'}
+                              </span>
+                            ) : (
+                              <span className="badge badge-green">
+                                Inventory Stock
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ color: 'var(--text-tertiary)' }}>
+                            {pr.requiredDate ? new Date(pr.requiredDate).toLocaleDateString() : '—'}
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{fmt(pr.totalEstimatedAmount)}</td>
+                          <td onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <button
+                                className="btn btn-primary"
+                                style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                disabled={actionLoading || isRequester || !canApprove}
+                                onClick={() => handleApprovePR(pr.id)}
+                                title={isRequester ? "You cannot approve your own requisition" : "Approve Requisition"}
+                              >
+                                <CheckCircle size={13} /> Approve
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                disabled={actionLoading}
+                                onClick={() => handleRejectClick(pr, 'pr')}
+                              >
+                                <XCircle size={13} /> Reject
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: 4 }}
+                                onClick={() => setExpandedPRId(isExpanded ? null : pr.id)}
+                              >
+                                {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '0 24px 20px 24px', background: 'var(--bg-app)' }}>
+                              {isRequester && (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '10px 14px',
+                                  borderRadius: 6,
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: 'var(--accent-rose)',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  marginBottom: 16,
+                                  marginTop: 12
+                                }}>
+                                  <AlertCircle size={16} />
+                                  <span>Requester cannot self-approve. Waiting for another authorized Finance user.</span>
+                                </div>
+                              )}
+                              
+                              {pr.notes && (
+                                <div style={{ marginBottom: 16, marginTop: isRequester ? 0 : 12 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>PURPOSE / NOTES</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border-subtle)' }}>
+                                    {pr.notes}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: pr.notes || isRequester ? 0 : 12 }}>REQUISITION LINE ITEMS</div>
+                              {(pr.items || []).length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {pr.items.map((item: any) => (
+                                    <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px 140px', gap: 12, padding: '10px 14px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12, border: '1px solid var(--border-subtle)' }}>
+                                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.description}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityRequested}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{fmt(item.estimatedUnitCost)} / unit</span>
+                                      <span style={{ color: '#818cf8', textAlign: 'right', fontWeight: 600 }}>{fmt(item.estimatedUnitCost * item.quantityRequested)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 12px' }}>
+                                  No items specified.
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>PO #</th>
+                  <th>Supplier</th>
+                  <th>Type</th>
+                  <th>Linked Job</th>
+                  <th>Value</th>
+                  <th>Raised By</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading...</td></tr>
+                ) : pendingPOs.length === 0 ? (
+                  <tr>
+                    <td colSpan={8}>
+                      <div className="empty-state">
+                        <div className="empty-state-icon"><ShieldCheck size={32} /></div>
+                        <div className="empty-state-text">No purchase orders pending approval</div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  pendingPOs.map(po => {
+                    const isExpanded = expandedPOId === po.id;
+                    const isCreator = po.raisedBy === user?.id;
+                    const raisedByName = usersMap[po.raisedBy] || po.createdByName || po.raisedBy || '—';
+
+                    const typeLabels: Record<number, string> = {
+                      0: 'Inventory Replenishment',
+                      1: 'Direct Purchase',
+                      2: 'External Service',
+                    };
+                    const typeBadges: Record<number, string> = {
+                      0: 'badge-blue',
+                      1: 'badge-amber',
+                      2: 'badge-violet',
+                    };
+
+                    return (
+                      <React.Fragment key={po.id}>
+                        <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedPOId(isExpanded ? null : po.id)}>
+                          <td style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>{po.poNumber}</td>
+                          <td>{po.supplier?.name || '—'}</td>
+                          <td>
+                            <span className={`badge ${typeBadges[po.poType] ?? 'badge-muted'}`}>
+                              {typeLabels[po.poType] ?? 'Unknown'}
+                            </span>
+                          </td>
+                          <td style={{ color: po.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontWeight: po.jobCardId ? 600 : 400 }}>
+                            {po.jobCardId ? `Job #${po.jobCardId}` : '—'}
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{fmt(po.totalAmount)}</td>
+                          <td style={{ fontWeight: 500 }}>{raisedByName}</td>
+                          <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+                            {po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '—'}
+                          </td>
+                          <td onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <button
+                                className="btn btn-primary"
+                                style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                disabled={actionLoading || isCreator || !canApprove}
+                                onClick={() => handleApprovePO(po.id)}
+                                title={isCreator ? "You cannot approve your own purchase order" : "Approve Purchase Order"}
+                              >
+                                <CheckCircle size={13} /> Approve
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                disabled={actionLoading}
+                                onClick={() => handleRejectClick(po, 'po')}
+                              >
+                                <XCircle size={13} /> Reject
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: 4 }}
+                                onClick={() => setExpandedPOId(isExpanded ? null : po.id)}
+                              >
+                                {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={8} style={{ padding: '0 24px 20px 24px', background: 'var(--bg-app)' }}>
+                              {isCreator && (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '10px 14px',
+                                  borderRadius: 6,
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: 'var(--accent-rose)',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  marginBottom: 16,
+                                  marginTop: 12
+                                }}>
+                                  <AlertCircle size={16} />
+                                  <span>Creator cannot self-approve. Waiting for another authorized Finance user.</span>
+                                </div>
+                              )}
+
+                              {po.notes && (
+                                <div style={{ marginBottom: 16, marginTop: isCreator ? 0 : 12 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>INTERNAL NOTES / REFERENCE</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border-subtle)' }}>
+                                    {po.notes}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: po.notes || isCreator ? 0 : 12 }}>PURCHASE ORDER LINE ITEMS</div>
+                              {(po.items || []).length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {po.items.map((item: any) => (
+                                    <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px 140px', gap: 12, padding: '10px 14px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12, border: '1px solid var(--border-subtle)' }}>
+                                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.description}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{fmt(item.unitCost)} / unit</span>
+                                      <span style={{ color: 'var(--accent-amber)', textAlign: 'right', fontWeight: 600 }}>{fmt(item.unitCost * item.quantityOrdered)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 12px' }}>
+                                  No items specified.
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
         </ResponsiveTable>
       </div>
 
       {/* Reject Modal */}
-      {rejectTarget && (
+      {rejectTarget && rejectTargetType && (
         <div className="modal-backdrop">
           <div className="modal-content" style={{ maxWidth: 460 }}>
             <div className="modal-header">
-              <h2>Reject Purchase Order</h2>
-              <button className="icon-btn" onClick={() => setRejectTarget(null)}><X size={18} /></button>
+              <h2>Reject {rejectTargetType === 'pr' ? 'Purchase Requisition' : 'Purchase Order'}</h2>
+              <button className="icon-btn" onClick={() => { setRejectTarget(null); setRejectTargetType(null); }}><X size={18} /></button>
             </div>
             <div style={{ padding: '20px 24px' }}>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-                Rejecting <strong>{rejectTarget.poNumber}</strong> from <strong>{rejectTarget.supplier?.name}</strong> — {fmt(rejectTarget.totalAmount)}.
+                Rejecting <strong>{rejectTargetType === 'pr' ? rejectTarget.requisitionNumber : rejectTarget.poNumber}</strong> —{' '}
+                {fmt(rejectTargetType === 'pr' ? rejectTarget.totalEstimatedAmount : rejectTarget.totalAmount)}.
                 Please provide a reason for the record.
               </p>
               <div className="form-group">
@@ -1423,16 +1766,16 @@ function POApprovalsTab({ onCountChange }: { onCountChange: (n: number) => void 
                   rows={3}
                   value={rejectReason}
                   onChange={e => setRejectReason(e.target.value)}
-                  placeholder="e.g. Budget exceeded, supplier not approved..."
+                  placeholder={rejectTargetType === 'pr' ? "e.g. Budget exceeded, items not required..." : "e.g. Budget exceeded, supplier not approved..."}
                   style={{ resize: 'vertical', fontFamily: "'Barlow', sans-serif" }}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-                <button className="btn btn-secondary" onClick={() => setRejectTarget(null)}>Cancel</button>
+                <button className="btn btn-secondary" onClick={() => { setRejectTarget(null); setRejectTargetType(null); }}>Cancel</button>
                 <button
                   className="btn btn-danger"
                   disabled={actionLoading || !rejectReason.trim()}
-                  onClick={handleReject}
+                  onClick={handleConfirmReject}
                 >
                   <XCircle size={13} /> Confirm Rejection
                 </button>
