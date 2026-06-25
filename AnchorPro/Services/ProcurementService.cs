@@ -352,8 +352,9 @@ namespace AnchorPro.Services
             bool hasGlobalAccess = roles.Any(r => r == "Admin" || r == "Finance" || r == "Purchasing" || r == "Storeman" || r == "Supervisor" || r == "PlatformOwner");
 
             // Enforce departmental isolation on creation:
-            // If it's a departmental PR, and the user is not an Admin/Finance/Supervisor/Procurement power user,
-            // they can ONLY raise a PR for their own department.
+            // Relaxed to allow cross-department requests and requests by users without a set department.
+            // Requisitions require subsequent approval anyway, so this is safe and improves usability.
+            /*
             if (pr.DepartmentId.HasValue && !hasGlobalAccess)
             {
                 if (pr.DepartmentId != user.DepartmentId)
@@ -361,6 +362,7 @@ namespace AnchorPro.Services
                     throw new UnauthorizedAccessException("You are not authorized to raise a requisition for another department.");
                 }
             }
+            */
 
             pr.RequisitionNumber = $"PR-{DateTime.UtcNow:yyyyMM}-{context.PurchaseRequisitions.Count() + 1:D4}";
             pr.CreatedAt = DateTime.UtcNow;
@@ -398,6 +400,11 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var pr = await context.PurchaseRequisitions.FindAsync(prId);
             if (pr == null) throw new InvalidOperationException($"Purchase Requisition {prId} not found.");
+
+            if (pr.RequestedById == approvedByUserId)
+            {
+                throw new InvalidOperationException("Separation of duties: The requester of a purchase requisition cannot be the one who approves it.");
+            }
             
             pr.Status = PurchaseRequisitionStatus.Approved;
             pr.ApprovedById = approvedByUserId;
@@ -412,6 +419,11 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             var pr = await context.PurchaseRequisitions.FindAsync(prId);
             if (pr == null) throw new InvalidOperationException($"Purchase Requisition {prId} not found.");
+
+            if (pr.RequestedById == rejectedByUserId)
+            {
+                throw new InvalidOperationException("Separation of duties: The requester of a purchase requisition cannot be the one who rejects it.");
+            }
             
             pr.Status = PurchaseRequisitionStatus.Rejected;
             pr.Notes = string.IsNullOrEmpty(pr.Notes)

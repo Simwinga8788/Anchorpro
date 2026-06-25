@@ -51,9 +51,7 @@ export default function ProcurementPage() {
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   
-  const allowedDepartments = isPowerUser
-    ? departments
-    : departments.filter(d => String(d.id) === String(user?.departmentId));
+  const allowedDepartments = departments;
   const [loading, setLoading] = useState(true);
 
   // PO form state
@@ -764,13 +762,32 @@ export default function ProcurementPage() {
                               )}
                               
                               {pr.status === 1 && canApprove && (
-                                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
-                                  <button className="btn" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }} onClick={() => handleRejectRequisition(pr.id)}>
-                                    Reject PR
-                                  </button>
-                                  <button className="btn" style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none' }} onClick={() => handleApproveRequisition(pr.id)}>
-                                    Approve PR
-                                  </button>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+                                  {pr.requestedById === user?.id ? (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-amber)', fontWeight: 500 }}>
+                                      <AlertCircle size={14} /> Requester cannot self-approve. Waiting for another authorized user.
+                                    </span>
+                                  ) : (
+                                    <span />
+                                  )}
+                                  <div style={{ display: 'flex', gap: 10 }}>
+                                    <button 
+                                      className="btn" 
+                                      style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none', opacity: pr.requestedById === user?.id ? 0.5 : 1, cursor: pr.requestedById === user?.id ? 'not-allowed' : 'pointer' }} 
+                                      disabled={pr.requestedById === user?.id}
+                                      onClick={() => handleRejectRequisition(pr.id)}
+                                    >
+                                      Reject PR
+                                    </button>
+                                    <button 
+                                      className="btn" 
+                                      style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none', opacity: pr.requestedById === user?.id ? 0.5 : 1, cursor: pr.requestedById === user?.id ? 'not-allowed' : 'pointer' }} 
+                                      disabled={pr.requestedById === user?.id}
+                                      onClick={() => handleApproveRequisition(pr.id)}
+                                    >
+                                      Approve PR
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </td>
