@@ -484,9 +484,10 @@ export default function ProcurementPage() {
         <form onSubmit={handlePrSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-field">
             <label className="form-label">Requisition Type</label>
-            <select className="form-select" value={prFormData.type} onChange={e => setPrFormData({ ...prFormData, type: e.target.value, jobCardId: '', departmentId: user?.departmentId ? String(user.departmentId) : '' })}>
+            <select className="form-select" value={prFormData.type} onChange={e => setPrFormData({ ...prFormData, type: e.target.value, jobCardId: '', departmentId: '' })}>
               <option value="operational">Operational (Job Card Part)</option>
               <option value="departmental">Department Overhead (Overhead Expenses)</option>
+              <option value="inventory">Inventory Replenishment (Warehouse Stock)</option>
             </select>
           </div>
 
@@ -500,7 +501,7 @@ export default function ProcurementPage() {
                 ))}
               </select>
             </div>
-          ) : (
+          ) : prFormData.type === 'departmental' ? (
             <div className="form-field">
               <label className="form-label">Requesting Department *</label>
               <select className="form-select" required value={prFormData.departmentId} onChange={e => setPrFormData({ ...prFormData, departmentId: e.target.value })}>
@@ -510,7 +511,7 @@ export default function ProcurementPage() {
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
 
           <div className="form-field">
             <label className="form-label">Purpose / Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
@@ -694,13 +695,17 @@ export default function ProcurementPage() {
                             {pr.requestedBy ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName}` : 'System'}
                           </td>
                           <td>
-                            {isOperational ? (
+                            {pr.jobCardId ? (
                               <span className="badge badge-blue" style={{ fontSize: 11 }}>
                                 Job #{pr.jobCard?.jobNumber || pr.jobCardId}
                               </span>
-                            ) : (
+                            ) : pr.departmentId ? (
                               <span className="badge badge-violet" style={{ fontSize: 11 }}>
                                 {pr.department?.name || 'Department Overhead'}
+                              </span>
+                            ) : (
+                              <span className="badge badge-green" style={{ fontSize: 11 }}>
+                                Inventory Stock
                               </span>
                             )}
                           </td>
@@ -878,7 +883,7 @@ export default function ProcurementPage() {
                           <td>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                               <span className={`badge ${statCfg.badge}`}>{statCfg.label}</span>
-                              {order.status === 1 && (
+                              {(order.status === 0 || order.status === 1) && (
                                 <button
                                   className="btn btn-sm"
                                   style={{ padding: '2px 6px', fontSize: '10px', background: 'var(--accent-blue)', color: '#fff', border: 'none', marginTop: 4 }}
