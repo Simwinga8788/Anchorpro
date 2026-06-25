@@ -160,6 +160,47 @@ namespace AnchorPro.Services
                                 inv.UpdatedBy = userId;
                             }
                         }
+                        else if (po.PoType == PurchaseOrderType.InventoryReplenishment)
+                        {
+                            // Try to match by name (case-insensitive) to prevent duplicate SKUs
+                            var itemDesc = item.Description?.Trim();
+                            if (!string.IsNullOrEmpty(itemDesc))
+                            {
+                                var inv = await context.InventoryItems
+                                    .FirstOrDefaultAsync(i => i.Name.ToLower() == itemDesc.ToLower() && i.TenantId == po.TenantId);
+
+                                if (inv != null)
+                                {
+                                    // Link it and update stock
+                                    item.InventoryItemId = inv.Id;
+                                    inv.QuantityOnHand += ri.quantity;
+                                    inv.UpdatedAt = DateTime.UtcNow;
+                                    inv.UpdatedBy = userId;
+                                }
+                                else
+                                {
+                                    // Create a new inventory item automatically in the registry
+                                    var newInv = new InventoryItem
+                                    {
+                                        TenantId = po.TenantId,
+                                        Name = item.Description ?? "Unknown Item",
+                                        PartNumber = $"SKU-{DateTime.UtcNow:yyyyMMdd}-{context.InventoryItems.Count() + 1:D3}",
+                                        Description = item.Description,
+                                        QuantityOnHand = ri.quantity,
+                                        ReorderLevel = 5,
+                                        UnitCost = item.UnitCost,
+                                        LocationBin = "Warehouse",
+                                        Category = "Uncategorized",
+                                        CreatedAt = DateTime.UtcNow,
+                                        CreatedBy = userId
+                                    };
+                                    context.InventoryItems.Add(newInv);
+                                    await context.SaveChangesAsync(); // Save to generate database ID
+
+                                    item.InventoryItemId = newInv.Id;
+                                }
+                            }
+                        }
                     }
                 }
 
