@@ -523,12 +523,11 @@ function VendorBillsTab() {
     }
   };
 
-  const handleCreateBill = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPoId) return;
+  const handleCreateBillDirectly = async (poId: number) => {
+    setSelectedPoId(poId);
     setCreateLoading(true);
     try {
-      await financeApi.createVendorBillFromPO(Number(selectedPoId));
+      await financeApi.createVendorBillFromPO(poId);
       setShowCreateModal(false);
       setSelectedPoId('');
       fetchBills();
@@ -537,6 +536,12 @@ function VendorBillsTab() {
     } finally {
       setCreateLoading(false);
     }
+  };
+
+  const handleCreateBill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPoId) return;
+    await handleCreateBillDirectly(Number(selectedPoId));
   };
 
   return (
@@ -643,36 +648,51 @@ function VendorBillsTab() {
                 Select a <strong>Received</strong> Purchase Order to convert it into a Vendor Bill in Accounts Payable.
               </p>
 
-              <div className="form-group">
-                <label className="form-label">Select Purchase Order</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
                 {poLoading ? (
-                  <div style={{ padding: '10px', fontSize: 13, color: 'var(--text-secondary)' }}>Loading POs...</div>
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Purchase Orders...</div>
                 ) : availablePOs.length === 0 ? (
-                  <div style={{ padding: '10px', fontSize: 13, color: 'var(--accent-rose)', background: 'var(--bg-app)', borderRadius: 6 }}>
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--accent-rose)', background: 'var(--bg-app)', borderRadius: 6 }}>
                     No unbilled Received POs found.
                   </div>
                 ) : (
-                  <select
-                    className="form-select"
-                    required
-                    value={selectedPoId}
-                    onChange={(e) => setSelectedPoId(e.target.value ? Number(e.target.value) : '')}
-                  >
-                    <option value="">-- Choose a Received PO --</option>
-                    {availablePOs.map((po: any) => (
-                      <option key={po.id} value={po.id}>
-                        {po.poNumber} — {po.supplier?.name} ({fmt(po.totalAmount)})
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 6 }}>
+                    <table className="data-table" style={{ margin: 0 }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-card)' }}>
+                        <tr>
+                          <th>PO #</th>
+                          <th>Supplier</th>
+                          <th>Total</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {availablePOs.map((po: any) => (
+                          <tr key={po.id}>
+                            <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{po.poNumber}</td>
+                            <td>{po.supplier?.name}</td>
+                            <td style={{ fontWeight: 600 }}>{fmt(po.totalAmount)}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                style={{ padding: '4px 10px', fontSize: 12 }}
+                                disabled={createLoading && selectedPoId === po.id}
+                                onClick={() => handleCreateBillDirectly(po.id)}
+                              >
+                                {createLoading && selectedPoId === po.id ? 'Creating...' : 'Create Bill'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={createLoading || !selectedPoId}>
-                  {createLoading ? 'Converting...' : 'Create Vendor Bill'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Close</button>
               </div>
             </form>
           </div>
