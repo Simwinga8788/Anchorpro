@@ -741,20 +741,26 @@ export default function ProcurementPage() {
                             </div>
                           </td>
                         </tr>
-                        {isExpanded && (pr.items || []).length > 0 && (
+                        {isExpanded && (
                           <tr key={`${pr.id}-items`}>
                             <td colSpan={7} style={{ padding: '0 16px 14px 16px', background: 'var(--bg-app)' }}>
                               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: 8 }}>REQUISITION LINE ITEMS</div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {pr.items.map((item: any) => (
-                                  <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
-                                    <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
-                                    <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityRequested}</span>
-                                    <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.estimatedUnitCost?.toLocaleString()}/u</span>
-                                    <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.estimatedUnitCost * item.quantityRequested)?.toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
+                              {(pr.items || []).length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {pr.items.map((item: any) => (
+                                    <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
+                                      <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityRequested}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.estimatedUnitCost?.toLocaleString()}/u</span>
+                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.estimatedUnitCost * item.quantityRequested)?.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 12px' }}>
+                                  No items specified in this requisition.
+                                </div>
+                              )}
                               {pr.notes && pr.status !== 3 && (
                                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, padding: '8px 12px', borderRadius: 6, background: 'var(--surface-secondary)', borderLeft: '3px solid var(--border-muted)' }}>
                                   <strong>Purpose / Description:</strong> {pr.notes}
@@ -909,20 +915,26 @@ export default function ProcurementPage() {
                             </div>
                           </td>
                         </tr>
-                        {isExpanded && (order.items || []).length > 0 && (
+                        {isExpanded && (
                           <tr key={`${order.id}-items`}>
                             <td colSpan={8} style={{ padding: '0 16px 14px 16px', background: 'var(--bg-app)' }}>
                               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: 8 }}>LINE ITEMS</div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {order.items.map((item: any) => (
-                                  <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
-                                    <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
-                                    <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
-                                    <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.unitCost?.toLocaleString()}/u</span>
-                                    <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.unitCost * item.quantityOrdered)?.toLocaleString()}</span>
-                                  </div>
-                                ))}
-                              </div>
+                              {(order.items || []).length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {order.items.map((item: any) => (
+                                    <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
+                                      <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.unitCost?.toLocaleString()}/u</span>
+                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.unitCost * item.quantityOrdered)?.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 12px' }}>
+                                  No items specified in this purchase order.
+                                </div>
+                              )}
                             </td>
                           </tr>
                         )}
