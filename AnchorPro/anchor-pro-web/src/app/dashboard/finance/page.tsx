@@ -471,6 +471,11 @@ function VendorBillsTab() {
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [availablePOs, setAvailablePOs] = useState<any[]>([]);
+  const [poLoading, setPoLoading] = useState(false);
+  const [selectedPoId, setSelectedPoId] = useState<number | ''>('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   const fetchBills = async () => {
     try {
@@ -498,8 +503,50 @@ function VendorBillsTab() {
     }
   };
 
+  const handleOpenCreateModal = async () => {
+    setShowCreateModal(true);
+    setPoLoading(true);
+    try {
+      // Fetch all POs, filter for 'Received' (status = 5)
+      const pos = await procurementApi.getOrders();
+      const received = (pos || []).filter((p: any) => p.status === 5);
+      
+      // Filter out POs that already have a bill
+      const existingPoIds = bills.map(b => b.purchaseOrderId).filter(Boolean);
+      const available = received.filter((p: any) => !existingPoIds.includes(p.id));
+      
+      setAvailablePOs(available);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPoLoading(false);
+    }
+  };
+
+  const handleCreateBill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPoId) return;
+    setCreateLoading(true);
+    try {
+      await financeApi.createVendorBillFromPO(Number(selectedPoId));
+      setShowCreateModal(false);
+      setSelectedPoId('');
+      fetchBills();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to create Vendor Bill');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <button className="btn btn-primary" onClick={handleOpenCreateModal}>
+          <Plus size={16} /> Convert Received PO to Bill
+        </button>
+      </div>
+
       <div className="card">
         <div className="table-scroll">
           <ResponsiveTable>
@@ -578,6 +625,54 @@ function VendorBillsTab() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedBill(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Record Payment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content animate-in" style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h2>Convert PO to Vendor Bill</h2>
+              <button className="icon-btn" onClick={() => setShowCreateModal(false)}><X size={18} /></button>
+            </div>
+            <form onSubmit={handleCreateBill} style={{ padding: '20px 24px' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Select a <strong>Received</strong> Purchase Order to convert it into a Vendor Bill in Accounts Payable.
+              </p>
+
+              <div className="form-group">
+                <label className="form-label">Select Purchase Order</label>
+                {poLoading ? (
+                  <div style={{ padding: '10px', fontSize: 13, color: 'var(--text-secondary)' }}>Loading POs...</div>
+                ) : availablePOs.length === 0 ? (
+                  <div style={{ padding: '10px', fontSize: 13, color: 'var(--accent-rose)', background: 'var(--bg-app)', borderRadius: 6 }}>
+                    No unbilled Received POs found.
+                  </div>
+                ) : (
+                  <select
+                    className="form-select"
+                    required
+                    value={selectedPoId}
+                    onChange={(e) => setSelectedPoId(e.target.value ? Number(e.target.value) : '')}
+                  >
+                    <option value="">-- Choose a Received PO --</option>
+                    {availablePOs.map((po: any) => (
+                      <option key={po.id} value={po.id}>
+                        {po.poNumber} — {po.supplier?.name} ({fmt(po.totalAmount)})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={createLoading || !selectedPoId}>
+                  {createLoading ? 'Converting...' : 'Create Vendor Bill'}
+                </button>
               </div>
             </form>
           </div>
