@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { hasPermission } from '@/lib/rbac';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
-  ChevronRight, AlertCircle, CheckCircle, X, Edit, Trash2,
+  ChevronRight, AlertCircle, CheckCircle, X, Edit, Trash2, ArrowLeft,
   Shield, Briefcase, Phone, Home, CreditCard, Upload,
   Calendar, TrendingUp, Eye, Download,
   ChevronDown, ChevronUp, Mail, User,
@@ -1215,7 +1215,7 @@ function DepartmentsTab() {
   const [editingDept, setEditingDept] = useState<any | null>(null);
   const [form, setForm] = useState({ name: '', costCode: '', description: '' });
   const [saving, setSaving] = useState(false);
-  const [expandedDeptId, setExpandedDeptId] = useState<number | null>(null);
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
   const [activeSubTabs, setActiveSubTabs] = useState<Record<number, 'members' | 'assets' | 'procurement' | 'financials'>>({});
   const { user } = useAuth();
 
@@ -1288,6 +1288,323 @@ function DepartmentsTab() {
     }
   };
 
+  if (selectedDeptId) {
+    const d = departments.find(dept => dept.id === selectedDeptId);
+    if (d) {
+      const deptMembers = users.filter(u => u.departmentId === d.id);
+      const deptAssets = assets.filter(a => a.departmentId === d.id);
+      const deptRequisitions = requisitions.filter(r => r.departmentId === d.id);
+      const deptOrders = orders.filter(o => o.departmentId === d.id);
+      const deptBills = bills.filter(b => b.purchaseOrder?.departmentId === d.id);
+      const activeSubTab = activeSubTabs[d.id] || 'members';
+
+      return (
+        <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Back Button */}
+          <div>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setSelectedDeptId(null)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, paddingLeft: 0, color: 'var(--accent-blue)', fontWeight: 600 }}
+            >
+              <ArrowLeft size={14} /> Back to Departments
+            </button>
+          </div>
+
+          {/* Department Header Card */}
+          <div className="card-elevated" style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: '4px solid var(--accent-blue)', borderRadius: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{d.name}</h2>
+                <span className="badge badge-blue" style={{ fontFamily: 'monospace', fontSize: 11, padding: '2px 8px' }}>
+                  Cost Center: {d.costCode || '—'}
+                </span>
+                <span className="badge badge-muted" style={{ fontSize: 11, padding: '2px 8px' }}>
+                  {deptMembers.length} {deptMembers.length === 1 ? 'member' : 'members'}
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, margin: '8px 0 0', lineHeight: 1.5 }}>
+                {d.description || 'No description provided.'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Edit size={12} /> Edit
+              </button>
+              <button className="btn btn-sm" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={async () => { if (confirm('Are you sure you want to delete this department? This may affect linked assets and users.')) { await handleDelete(d.id); setSelectedDeptId(null); } }}>
+                <Trash2 size={12} /> Delete
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Switcher */}
+          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 0 }}>
+            {([
+              { key: 'members', label: 'Members', count: deptMembers.length, icon: <Users size={13} />, perm: null },
+              { key: 'assets', label: 'Assets (Equipment)', count: deptAssets.length, icon: <Package size={13} />, perm: '/dashboard/hr:view_department_assets' },
+              { key: 'procurement', label: 'Procurement (PR/PO)', count: deptRequisitions.length + deptOrders.length, icon: <ShoppingCart size={13} />, perm: '/dashboard/hr:view_department_procurement' },
+              { key: 'financials', label: 'Financials (Bills)', count: deptBills.length, icon: <Receipt size={13} />, perm: '/dashboard/hr:view_department_financials' },
+            ] as const)
+            .filter(tab => !tab.perm || hasPermission(tab.perm, user?.allowedRoutes || [], user?.isPlatformOwner ?? false))
+            .map(tab => {
+              const isActive = activeSubTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveSubTabs(prev => ({ ...prev, [d.id]: tab.key }))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '10px 18px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: isActive ? 700 : 400,
+                    color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    borderBottom: isActive ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                    marginBottom: -1,
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {tab.icon} {tab.label}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      background: isActive ? 'var(--accent-blue)' : 'var(--surface-secondary)',
+                      color: isActive ? '#fff' : 'var(--text-muted)',
+                      fontWeight: 700,
+                      marginLeft: 4
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab Content */}
+          <div className="card" style={{ padding: 20 }}>
+            {activeSubTab === 'members' && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+                  Department Members ({deptMembers.length})
+                </div>
+                {deptMembers.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                    {deptMembers.map(u => {
+                      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.userName || u.email || 'Unknown';
+                      return (
+                        <div key={u.id} className="card-elevated" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-elevated)' }}>
+                          <div style={{ padding: 8, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <User size={16} />
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullName}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                              <Briefcase size={10} /> {u.role || 'Staff'}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Mail size={10} /> {u.email}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ padding: '20px 0', border: '1px dashed var(--border-subtle)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                    No members currently assigned to this department.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeSubTab === 'assets' && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+                  Registered Assets &amp; Equipment ({deptAssets.length})
+                </div>
+                {deptAssets.length > 0 ? (
+                  <ResponsiveTable>
+                    <table className="data-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Asset Name</th>
+                          <th>Serial Number</th>
+                          <th>Model / Manufacturer</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deptAssets.map(asset => (
+                          <tr key={asset.id}>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset.name}</td>
+                            <td style={{ fontFamily: 'monospace' }}>{asset.serialNumber || '—'}</td>
+                            <td style={{ color: 'var(--text-secondary)' }}>
+                              {asset.modelNumber || '—'} {asset.manufacturer ? `(${asset.manufacturer})` : ''}
+                            </td>
+                            <td>
+                              <span className="badge badge-green" style={{ fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+                                Operational
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ResponsiveTable>
+                ) : (
+                  <div style={{ padding: '20px 0', border: '1px dashed var(--border-subtle)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                    No assets currently registered to this department.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeSubTab === 'procurement' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Purchase Requisitions */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Purchase Requisitions ({deptRequisitions.length})</div>
+                  {deptRequisitions.length > 0 ? (
+                    <ResponsiveTable>
+                      <table className="data-table" style={{ fontSize: 12 }}>
+                        <thead>
+                          <tr>
+                            <th>PR Number</th>
+                            <th>Date Raised</th>
+                            <th>Requested By</th>
+                            <th>Total Value</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deptRequisitions.map(pr => {
+                            const stat = prStatusConfig[pr.status] || { label: 'Unknown', badge: 'badge-muted' };
+                            return (
+                              <tr key={pr.id}>
+                                <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{pr.requisitionNumber || pr.prNumber}</td>
+                                <td style={{ color: 'var(--text-secondary)' }}>{new Date(pr.createdAt || pr.requiredDate).toLocaleDateString()}</td>
+                                <td>{pr.requestedBy?.firstName ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName || ''}` : pr.requestedBy?.userName || '—'}</td>
+                                <td style={{ fontWeight: 600 }}>{fmt(pr.totalEstimatedAmount || pr.totalAmount)}</td>
+                                <td>
+                                  <span className={`badge ${stat.badge}`}>{stat.label}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </ResponsiveTable>
+                  ) : (
+                    <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                      No purchase requisitions raised for this department.
+                    </div>
+                  )}
+                </div>
+
+                {/* Purchase Orders */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Purchase Orders ({deptOrders.length})</div>
+                  {deptOrders.length > 0 ? (
+                    <ResponsiveTable>
+                      <table className="data-table" style={{ fontSize: 12 }}>
+                        <thead>
+                          <tr>
+                            <th>PO Number</th>
+                            <th>Supplier</th>
+                            <th>Order Date</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deptOrders.map(order => {
+                            const stat = poStatusConfig[order.status] || { label: 'Unknown', badge: 'badge-muted' };
+                            return (
+                              <tr key={order.id}>
+                                <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{order.poNumber}</td>
+                                <td style={{ color: 'var(--text-primary)' }}>{order.supplier?.name || '—'}</td>
+                                <td style={{ color: 'var(--text-secondary)' }}>{new Date(order.orderDate).toLocaleDateString()}</td>
+                                <td style={{ fontWeight: 600 }}>{fmt(order.totalAmount)}</td>
+                                <td>
+                                  <span className={`badge ${stat.badge}`}>{stat.label}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </ResponsiveTable>
+                  ) : (
+                    <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                      No purchase orders linked to this department.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'financials' && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+                  Linked Vendor Bills ({deptBills.length})
+                </div>
+                {deptBills.length > 0 ? (
+                  <ResponsiveTable>
+                    <table className="data-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Bill Number</th>
+                          <th>Supplier</th>
+                          <th>Bill Date</th>
+                          <th>Due Date</th>
+                          <th>Total Amount</th>
+                          <th>Balance</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deptBills.map(bill => {
+                          const stat = vendorBillStatusMap[bill.status] || { label: 'Unknown', badge: 'badge-muted' };
+                          return (
+                            <tr key={bill.id}>
+                              <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{bill.billNumber}</td>
+                              <td>{bill.supplier?.name || '—'}</td>
+                              <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.billDate).toLocaleDateString()}</td>
+                              <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.dueDate).toLocaleDateString()}</td>
+                              <td style={{ fontWeight: 600 }}>{fmt(bill.totalAmount)}</td>
+                              <td style={{ fontWeight: 600, color: bill.balance > 0 ? 'var(--accent-rose)' : 'var(--text-secondary)' }}>
+                                {fmt(bill.balance)}
+                              </td>
+                              <td>
+                                <span className={`badge ${stat.badge}`}>{stat.label}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ResponsiveTable>
+                ) : (
+                  <div style={{ padding: '20px 0', border: '1px dashed var(--border-subtle)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                    No vendor bills linked to this department's purchases.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -1321,311 +1638,38 @@ function DepartmentsTab() {
               <tbody>
                 {departments.map(d => {
                   const deptMembers = users.filter(u => u.departmentId === d.id);
-                  const deptAssets = assets.filter(a => a.departmentId === d.id);
-                  const deptRequisitions = requisitions.filter(r => r.departmentId === d.id);
-                  const deptOrders = orders.filter(o => o.departmentId === d.id);
-                  const deptBills = bills.filter(b => b.purchaseOrder?.departmentId === d.id);
-                  const isExpanded = expandedDeptId === d.id;
-                  const activeSubTab = activeSubTabs[d.id] || 'members';
-
                   return (
-                    <React.Fragment key={d.id}>
-                      <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedDeptId(isExpanded ? null : d.id)}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 14 }}>{d.name}</div>
-                            <span className="badge badge-muted" style={{ fontSize: 10, padding: '2px 6px' }}>
-                              {deptMembers.length} {deptMembers.length === 1 ? 'member' : 'members'}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="badge badge-blue" style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                            {d.costCode || '—'}
+                    <tr key={d.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedDeptId(d.id)}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 14 }}>{d.name}</div>
+                          <span className="badge badge-muted" style={{ fontSize: 10, padding: '2px 6px' }}>
+                            {deptMembers.length} {deptMembers.length === 1 ? 'member' : 'members'}
                           </span>
-                        </td>
-                        <td style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {d.description || '—'}
-                        </td>
-                        <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => openEdit(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <Edit size={12} /> Edit
-                            </button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(d.id)} style={{ color: 'var(--accent-rose)' }}>
-                              <Trash2 size={12} /> Delete
-                            </button>
-                            <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => setExpandedDeptId(isExpanded ? null : d.id)}>
-                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={4} style={{ padding: '0 24px 20px 24px', background: 'var(--bg-app)' }}>
-                            <div style={{ marginTop: 16, marginBottom: 16 }}>
-                              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>DEPARTMENT DESCRIPTION</div>
-                              <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border-subtle)' }}>
-                                {d.description || 'No description provided.'}
-                              </div>
-                            </div>
-
-                            {/* Sub-Tabs Switcher */}
-                            <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
-                              {([
-                                { key: 'members', label: 'Members', count: deptMembers.length, icon: <Users size={12} />, perm: null },
-                                { key: 'assets', label: 'Assets (Equipment)', count: deptAssets.length, icon: <Package size={12} />, perm: '/dashboard/hr:view_department_assets' },
-                                { key: 'procurement', label: 'Procurement (PR/PO)', count: deptRequisitions.length + deptOrders.length, icon: <ShoppingCart size={12} />, perm: '/dashboard/hr:view_department_procurement' },
-                                { key: 'financials', label: 'Financials (Bills)', count: deptBills.length, icon: <Receipt size={12} />, perm: '/dashboard/hr:view_department_financials' },
-                              ] as const)
-                              .filter(tab => !tab.perm || hasPermission(tab.perm, user?.allowedRoutes || [], user?.isPlatformOwner ?? false))
-                              .map(tab => {
-                                const isActive = activeSubTab === tab.key;
-                                return (
-                                  <button
-                                    key={tab.key}
-                                    onClick={() => setActiveSubTabs(prev => ({ ...prev, [d.id]: tab.key }))}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 6,
-                                      padding: '6px 12px',
-                                      borderRadius: 6,
-                                      fontSize: 12,
-                                      fontWeight: isActive ? 600 : 400,
-                                      background: isActive ? 'var(--accent-blue-dim)' : 'transparent',
-                                      color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      transition: 'all 0.15s'
-                                    }}
-                                  >
-                                    {tab.icon} {tab.label}
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        padding: '1px 6px',
-                                        borderRadius: 10,
-                                        background: isActive ? 'var(--accent-blue)' : 'var(--surface-secondary)',
-                                        color: isActive ? '#fff' : 'var(--text-muted)',
-                                        fontWeight: 700,
-                                        marginLeft: 2
-                                      }}
-                                    >
-                                      {tab.count}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            {/* Sub-Tab Content */}
-                            {activeSubTab === 'members' && (
-                              <>
-                                {deptMembers.length > 0 ? (
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                                    {deptMembers.map(u => {
-                                      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.userName || u.email || 'Unknown';
-                                      return (
-                                        <div key={u.id} style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                          <div style={{ padding: 8, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <User size={16} />
-                                          </div>
-                                          <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullName}</div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                                              <Briefcase size={10} /> {u.role || 'Staff'}
-                                            </div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <Mail size={10} /> {u.email}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                                    No members currently assigned to this department.
-                                  </div>
-                                )}
-                              </>
-                            )}
-
-                            {activeSubTab === 'assets' && (
-                              <>
-                                {deptAssets.length > 0 ? (
-                                  <ResponsiveTable>
-                                    <table className="data-table" style={{ fontSize: 12 }}>
-                                      <thead>
-                                        <tr>
-                                          <th>Asset Name</th>
-                                          <th>Serial Number</th>
-                                          <th>Model / Manufacturer</th>
-                                          <th>Status</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {deptAssets.map(asset => (
-                                          <tr key={asset.id}>
-                                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset.name}</td>
-                                            <td style={{ fontFamily: 'monospace' }}>{asset.serialNumber || '—'}</td>
-                                            <td style={{ color: 'var(--text-secondary)' }}>
-                                              {asset.modelNumber || '—'} {asset.manufacturer ? `(${asset.manufacturer})` : ''}
-                                            </td>
-                                            <td>
-                                              <span className="badge badge-green" style={{ fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
-                                                Operational
-                                              </span>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </ResponsiveTable>
-                                ) : (
-                                  <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                                    No assets currently registered to this department.
-                                  </div>
-                                )}
-                              </>
-                            )}
-
-                            {activeSubTab === 'procurement' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                                {/* Purchase Requisitions */}
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Purchase Requisitions ({deptRequisitions.length})</div>
-                                  {deptRequisitions.length > 0 ? (
-                                    <ResponsiveTable>
-                                      <table className="data-table" style={{ fontSize: 12 }}>
-                                        <thead>
-                                          <tr>
-                                            <th>PR Number</th>
-                                            <th>Date Raised</th>
-                                            <th>Requested By</th>
-                                            <th>Total Value</th>
-                                            <th>Status</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {deptRequisitions.map(pr => {
-                                            const stat = prStatusConfig[pr.status] || { label: 'Unknown', badge: 'badge-muted' };
-                                            return (
-                                              <tr key={pr.id}>
-                                                <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{pr.prNumber}</td>
-                                                <td style={{ color: 'var(--text-secondary)' }}>{new Date(pr.createdAt).toLocaleDateString()}</td>
-                                                <td>{pr.requestedBy?.firstName ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName || ''}` : pr.requestedBy?.userName || '—'}</td>
-                                                <td style={{ fontWeight: 600 }}>{fmt(pr.totalAmount)}</td>
-                                                <td>
-                                                  <span className={`badge ${stat.badge}`}>{stat.label}</span>
-                                                </td>
-                                              </tr>
-                                            );
-                                          })}
-                                        </tbody>
-                                      </table>
-                                    </ResponsiveTable>
-                                  ) : (
-                                    <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                                      No purchase requisitions raised for this department.
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Purchase Orders */}
-                                <div>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Purchase Orders ({deptOrders.length})</div>
-                                  {deptOrders.length > 0 ? (
-                                    <ResponsiveTable>
-                                      <table className="data-table" style={{ fontSize: 12 }}>
-                                        <thead>
-                                          <tr>
-                                            <th>PO Number</th>
-                                            <th>Supplier</th>
-                                            <th>Order Date</th>
-                                            <th>Total Amount</th>
-                                            <th>Status</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {deptOrders.map(order => {
-                                            const stat = poStatusConfig[order.status] || { label: 'Unknown', badge: 'badge-muted' };
-                                            return (
-                                              <tr key={order.id}>
-                                                <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{order.poNumber}</td>
-                                                <td style={{ color: 'var(--text-primary)' }}>{order.supplier?.name || '—'}</td>
-                                                <td style={{ color: 'var(--text-secondary)' }}>{new Date(order.orderDate).toLocaleDateString()}</td>
-                                                <td style={{ fontWeight: 600 }}>{fmt(order.totalAmount)}</td>
-                                                <td>
-                                                  <span className={`badge ${stat.badge}`}>{stat.label}</span>
-                                                </td>
-                                              </tr>
-                                            );
-                                          })}
-                                        </tbody>
-                                      </table>
-                                    </ResponsiveTable>
-                                  ) : (
-                                    <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                                      No purchase orders linked to this department.
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {activeSubTab === 'financials' && (
-                              <>
-                                {deptBills.length > 0 ? (
-                                  <ResponsiveTable>
-                                    <table className="data-table" style={{ fontSize: 12 }}>
-                                      <thead>
-                                        <tr>
-                                          <th>Bill Number</th>
-                                          <th>Supplier</th>
-                                          <th>Bill Date</th>
-                                          <th>Due Date</th>
-                                          <th>Total Amount</th>
-                                          <th>Balance</th>
-                                          <th>Status</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {deptBills.map(bill => {
-                                          const stat = vendorBillStatusMap[bill.status] || { label: 'Unknown', badge: 'badge-muted' };
-                                          return (
-                                            <tr key={bill.id}>
-                                              <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{bill.billNumber}</td>
-                                              <td>{bill.supplier?.name || '—'}</td>
-                                              <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.billDate).toLocaleDateString()}</td>
-                                              <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                                              <td style={{ fontWeight: 600 }}>{fmt(bill.totalAmount)}</td>
-                                              <td style={{ fontWeight: 600, color: bill.balance > 0 ? 'var(--accent-rose)' : 'var(--text-secondary)' }}>
-                                                {fmt(bill.balance)}
-                                              </td>
-                                              <td>
-                                                <span className={`badge ${stat.badge}`}>{stat.label}</span>
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </ResponsiveTable>
-                                ) : (
-                                  <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                                    No vendor bills linked to this department's purchases.
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge badge-blue" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                          {d.costCode || '—'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {d.description || '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openEdit(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Edit size={12} /> Edit
+                          </button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(d.id)} style={{ color: 'var(--accent-rose)' }}>
+                            <Trash2 size={12} /> Delete
+                          </button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => setSelectedDeptId(d.id)}>
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
