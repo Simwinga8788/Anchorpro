@@ -186,14 +186,80 @@ namespace AnchorPro.Controllers
             // Standard backward compatible defaults based on previous rbac.ts
             return roleName switch
             {
-                "Admin" => new List<string> { "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", "/dashboard/roles", "/dashboard/settings", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs" },
-                "HR" => new List<string> { "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", "/dashboard/customers", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs" },
-                "Planner" => new List<string> { "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs" },
-                "Supervisor" => new List<string> { "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs" },
-                "Technician" => new List<string> { "/dashboard/jobs", "/dashboard/procurement", "/dashboard/safety", "/dashboard/my-tools", "/dashboard/my-jobs" },
-                "Purchasing" => new List<string> { "/dashboard/procurement" },
-                "Storeman" => new List<string> { "/dashboard/inventory", "/dashboard/procurement", "/dashboard/my-tools" },
-                "Finance" => new List<string> { "/dashboard/procurement" },
+                "Admin" => new List<string> { 
+                    "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", 
+                    "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", 
+                    "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", 
+                    "/dashboard/roles", "/dashboard/settings", "/dashboard/customers", "/dashboard/tools", 
+                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs",
+                    // HR Granular
+                    "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
+                    "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
+                    // Jobs Granular
+                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
+                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
+                    "/dashboard/jobs:close_job", "/dashboard/jobs:delete",
+                    // Procurement Granular
+                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:approve_reject", 
+                    "/dashboard/procurement:create_orders", "/dashboard/procurement:receive_goods",
+                    // Finance Granular
+                    "/dashboard/finance:record_expense", "/dashboard/finance:record_payment"
+                },
+                "HR" => new List<string> { 
+                    "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", 
+                    "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", 
+                    "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", 
+                    "/dashboard/customers", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs",
+                    // HR Granular
+                    "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
+                    "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
+                    // Jobs Granular
+                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos"
+                },
+                "Planner" => new List<string> { 
+                    "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", 
+                    "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
+                    "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
+                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
+                    // Jobs Granular
+                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
+                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
+                    "/dashboard/jobs:close_job"
+                },
+                "Supervisor" => new List<string> { 
+                    "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", 
+                    "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
+                    "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
+                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
+                    // Jobs Granular
+                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
+                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
+                    "/dashboard/jobs:close_job"
+                },
+                "Technician" => new List<string> { 
+                    "/dashboard/jobs", "/dashboard/procurement", "/dashboard/safety", "/dashboard/my-tools", "/dashboard/my-jobs",
+                    // Jobs Granular
+                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos",
+                    // Procurement Granular
+                    "/dashboard/procurement:create_requisitions"
+                },
+                "Purchasing" => new List<string> { 
+                    "/dashboard/procurement",
+                    // Procurement Granular
+                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:create_orders"
+                },
+                "Storeman" => new List<string> { 
+                    "/dashboard/inventory", "/dashboard/procurement", "/dashboard/my-tools",
+                    // Procurement Granular
+                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:receive_goods"
+                },
+                "Finance" => new List<string> { 
+                    "/dashboard/procurement", "/dashboard/finance", "/dashboard/invoices", "/dashboard/intelligence",
+                    // Procurement Granular
+                    "/dashboard/procurement:approve_reject",
+                    // Finance Granular
+                    "/dashboard/finance:record_expense", "/dashboard/finance:record_payment"
+                },
                 _ => new List<string>()
             };
         }

@@ -43,11 +43,43 @@ interface Role {
   allowedRoutes: string[];
 }
 
+const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> = {
+  '/dashboard/hr': [
+    { label: 'View Employment Contracts', token: '/dashboard/hr:view_contracts' },
+    { label: 'View & Run Payroll', token: '/dashboard/hr:view_payroll' },
+    { label: 'User & Role Management', token: '/dashboard/hr:view_user_management' },
+    { label: 'View Department Assets', token: '/dashboard/hr:view_department_assets' },
+    { label: 'View Department Procurement', token: '/dashboard/hr:view_department_procurement' },
+    { label: 'View Department Financials', token: '/dashboard/hr:view_department_financials' },
+  ],
+  '/dashboard/jobs': [
+    { label: 'Create Job Cards', token: '/dashboard/jobs:create' },
+    { label: 'Edit Job Card Details', token: '/dashboard/jobs:edit' },
+    { label: 'Assign Technicians', token: '/dashboard/jobs:assign_technicians' },
+    { label: 'Log Hours & Overtime', token: '/dashboard/jobs:log_hours' },
+    { label: 'Allocate Stock Parts', token: '/dashboard/jobs:log_parts' },
+    { label: 'Log Equipment Photos', token: '/dashboard/jobs:upload_photos' },
+    { label: 'Complete & Close Jobs', token: '/dashboard/jobs:close_job' },
+    { label: 'Delete Work Orders', token: '/dashboard/jobs:delete' },
+  ],
+  '/dashboard/procurement': [
+    { label: 'Raise Purchase Requisitions', token: '/dashboard/procurement:create_requisitions' },
+    { label: 'Approve / Reject Requisitions & POs', token: '/dashboard/procurement:approve_reject' },
+    { label: 'Raise Purchase Orders', token: '/dashboard/procurement:create_orders' },
+    { label: 'Receive Goods (Warehouse / Inventory)', token: '/dashboard/procurement:receive_goods' },
+  ],
+  '/dashboard/finance': [
+    { label: 'Record Ad-Hoc Expenses', token: '/dashboard/finance:record_expense' },
+    { label: 'Pay Vendor Bills', token: '/dashboard/finance:record_payment' },
+  ],
+};
+
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
+  const [expandedRoutePermissions, setExpandedRoutePermissions] = useState<Record<string, boolean>>({});
   
   const [newRoleName, setNewRoleName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -232,31 +264,67 @@ export default function RolesPage() {
                       Any unchecked module will be completely hidden from their sidebar.
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px 32px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px 32px' }}>
                       {Object.entries(groupedRoutes).map(([category, routes]) => (
                         <div key={category}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
                             {category}
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {routes.map(route => {
                               const isChecked = currentEdits.includes(route.id);
                               // Admins always have access to roles & settings implicitly in UI logic, but let's allow ticking anyway
                               const disabled = role.name === 'Admin' && (route.id === '/dashboard/roles' || route.id === '/dashboard/settings');
-                              
+                              const hasGranular = !!GRANULAR_PERMISSIONS[route.id];
+                              const isGranularExpanded = !!expandedRoutePermissions[`${role.name}-${route.id}`];
+
                               return (
-                                <label key={route.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
-                                  <div onClick={(e) => {
-                                    if (disabled) return;
-                                    e.preventDefault();
-                                    handleToggleRoute(role.name, route.id);
-                                  }} style={{ color: isChecked ? 'var(--accent-blue)' : 'var(--text-tertiary)', display: 'flex', marginTop: 1 }}>
-                                    {isChecked ? <CheckSquare size={16} /> : <Square size={16} />}
+                                <div key={route.id} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, flex: 1 }}>
+                                      <div onClick={(e) => {
+                                        if (disabled) return;
+                                        e.preventDefault();
+                                        handleToggleRoute(role.name, route.id);
+                                      }} style={{ color: isChecked ? 'var(--accent-blue)' : 'var(--text-tertiary)', display: 'flex', marginTop: 1 }}>
+                                        {isChecked ? <CheckSquare size={16} /> : <Square size={16} />}
+                                      </div>
+                                      <span style={{ fontSize: 13, color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isChecked ? 500 : 400 }}>
+                                        {route.label}
+                                      </span>
+                                    </label>
+                                    {hasGranular && isChecked && (
+                                      <button
+                                        onClick={() => setExpandedRoutePermissions(prev => ({ ...prev, [`${role.name}-${route.id}`]: !isGranularExpanded }))}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{ padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                      >
+                                        {isGranularExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                      </button>
+                                    )}
                                   </div>
-                                  <span style={{ fontSize: 13, color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isChecked ? 500 : 400 }}>
-                                    {route.label}
-                                  </span>
-                                </label>
+
+                                  {hasGranular && isChecked && isGranularExpanded && (
+                                    <div className="animate-in" style={{ paddingLeft: 26, paddingTop: 8, paddingBottom: 6, display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border-subtle)', marginTop: 4 }}>
+                                      {GRANULAR_PERMISSIONS[route.id].map(gp => {
+                                        const isGpChecked = currentEdits.includes(gp.token);
+                                        return (
+                                          <label key={gp.token} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                            <div onClick={(e) => {
+                                              e.preventDefault();
+                                              handleToggleRoute(role.name, gp.token);
+                                            }} style={{ color: isGpChecked ? 'var(--accent-blue)' : 'var(--text-tertiary)', display: 'flex', marginTop: 1 }}>
+                                              {isGpChecked ? <CheckSquare size={14} /> : <Square size={14} />}
+                                            </div>
+                                            <span style={{ fontSize: 12, color: isGpChecked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                              {gp.label}
+                                            </span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>

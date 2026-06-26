@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { hasPermission } from '@/lib/rbac';
 
 // ─── Status Maps ───────────────────────────────────────────────────────────────
 const vendorBillStatusMap: Record<number, { label: string; badge: string }> = {
@@ -475,6 +476,7 @@ function ProfitAndLossTab() {
 
 // ─── Vendor Bills Tab ─────────────────────────────────────────────────────────
 function VendorBillsTab() {
+  const { user } = useAuth();
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
@@ -554,9 +556,11 @@ function VendorBillsTab() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button className="btn btn-primary" onClick={handleOpenCreateModal}>
-          <Plus size={16} /> Convert Received PO to Bill
-        </button>
+        {hasPermission('/dashboard/finance:record_payment', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+          <button className="btn btn-primary" onClick={handleOpenCreateModal}>
+            <Plus size={16} /> Convert Received PO to Bill
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -591,14 +595,16 @@ function VendorBillsTab() {
                         <td>{fmt(row.totalAmount)}</td>
                         <td>{fmt(row.balance)}</td>
                         <td>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ fontSize: 12, padding: '5px 12px' }}
-                            onClick={() => setSelectedBill(row)}
-                            disabled={row.status === 2 || row.status === 3}
-                          >
-                            Pay
-                          </button>
+                          {hasPermission('/dashboard/finance:record_payment', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+                            <button
+                              className="btn btn-secondary"
+                              style={{ fontSize: 12, padding: '5px 12px' }}
+                              onClick={() => setSelectedBill(row)}
+                              disabled={row.status === 2 || row.status === 3}
+                            >
+                              Pay
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -711,6 +717,7 @@ function VendorBillsTab() {
 
 // ─── Expenses Tab ─────────────────────────────────────────────────────────────
 function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -771,9 +778,11 @@ function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
             ))}
           </select>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={16} /> Record Expense
-        </button>
+        {hasPermission('/dashboard/finance:record_expense', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <Plus size={16} /> Record Expense
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -1291,8 +1300,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
     fetchPending();
   }, []);
 
-  const roles = user?.roles || [];
-  const canApprove = roles.some((r: string) => ['Admin', 'Finance', 'PlatformOwner'].includes(r));
+  const canApprove = hasPermission('/dashboard/procurement:approve_reject', user?.allowedRoutes || [], user?.isPlatformOwner ?? false);
 
   const handleApprovePR = async (id: number) => {
     setActionLoading(true);

@@ -42,6 +42,19 @@ export function canAccess(
 }
 
 /**
+ * Check if a user has a specific granular permission token.
+ * PlatformOwners bypass all checks.
+ */
+export function hasPermission(
+  permission: string,
+  allowedRoutes: string[],
+  isPlatformOwner: boolean
+): boolean {
+  if (isPlatformOwner) return true;
+  return (allowedRoutes || []).includes(permission);
+}
+
+/**
  * Get the default landing page for a user based on their roles.
  */
 export function getDefaultRoute(roles: string[], isPlatformOwner: boolean): string {

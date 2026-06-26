@@ -6,6 +6,7 @@ import { dashboardApi, procurementApi, departmentsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { hasPermission } from '@/lib/rbac';
 
 const typeConfig: Record<number, { label: string; badge: string; color: string }> = {
   0: { label: 'Inventory Replenishment', badge: 'badge-blue',   color: 'var(--accent-blue)' },
@@ -40,7 +41,7 @@ export default function ProcurementPage() {
   
   // User authorization checks
   const roles = user?.roles || [];
-  const canApprove = roles.some((r: string) => ['Admin', 'Finance', 'PlatformOwner'].includes(r));
+  const canApprove = hasPermission('/dashboard/procurement:approve_reject', user?.allowedRoutes || [], user?.isPlatformOwner ?? false);
   const canConvert = roles.some((r: string) => ['Admin', 'Purchasing', 'PlatformOwner'].includes(r));
   const isPowerUser = roles.some((r: string) => ['Admin', 'Finance', 'Supervisor', 'PlatformOwner'].includes(r));
   const [activeTab, setActiveTab] = useState<'requisitions' | 'orders' | 'suppliers'>('requisitions');
@@ -592,15 +593,17 @@ export default function ProcurementPage() {
               : `${suppliers.length} active suppliers`}
           </p>
         </div>
-        {activeTab === 'requisitions' ? (
+        {activeTab === 'requisitions' && hasPermission('/dashboard/procurement:create_requisitions', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
           <button className="btn btn-primary" onClick={() => setIsPrSlideOpen(true)}>
             <Plus size={14}/> Raise PR
           </button>
-        ) : activeTab === 'orders' ? (
+        )}
+        {activeTab === 'orders' && hasPermission('/dashboard/procurement:create_orders', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
           <button className="btn btn-primary" onClick={() => setIsSlideOpen(true)}>
             <Plus size={14}/> Raise PO
           </button>
-        ) : (
+        )}
+        {activeTab === 'suppliers' && roles.some((r: string) => ['Admin', 'Finance', 'Purchasing', 'PlatformOwner'].includes(r)) && (
           <button className="btn btn-primary" onClick={() => setShowSupplierForm(true)}>
             <Plus size={14}/> Add Supplier
           </button>
@@ -904,7 +907,7 @@ export default function ProcurementPage() {
                           </td>
                           <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {canReceive && (
+                              {canReceive && hasPermission('/dashboard/procurement:receive_goods', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                                 <button
                                   className="btn btn-sm"
                                   style={{ background: 'var(--accent-emerald)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 5 }}

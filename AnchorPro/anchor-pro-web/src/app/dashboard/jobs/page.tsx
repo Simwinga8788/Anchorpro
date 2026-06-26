@@ -10,6 +10,7 @@ import { dashboardApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { useRouter } from 'next/navigation';
+import { hasPermission } from '@/lib/rbac';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
 import ResponsiveTable from '@/components/ResponsiveTable';
@@ -43,6 +44,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const { t } = useDictionary();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [form, setForm] = useState({
@@ -172,7 +174,15 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
             Change Status
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {Object.values(statusConfig).filter(s => s.value !== job.status).map(s => (
+            {Object.values(statusConfig)
+              .filter(s => s.value !== job.status)
+              .filter(s => {
+                if (s.value === 3) {
+                  return hasPermission('/dashboard/jobs:close_job', user?.allowedRoutes || [], user?.isPlatformOwner ?? false);
+                }
+                return true;
+              })
+              .map(s => (
               <button
                 key={s.value}
                 className={`badge ${s.badge}`}
@@ -190,7 +200,7 @@ function JobDetailPanel({ job, technicians, isTechnician, onClose, onSaved }: {
 
 
       {/* Reassign form */}
-      {!isTechnician ? (
+      {hasPermission('/dashboard/jobs:assign_technicians', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) ? (
         <form onSubmit={handleReassign}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
             Assignment & Scheduling
@@ -374,7 +384,7 @@ function SubcontractModal({ job, onClose, onSaved }: { job: any; onClose: () => 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function JobCardsPage() {
-  const { isTechnician } = useAuth();
+  const { isTechnician, user } = useAuth();
   const { t } = useDictionary();
 
   const jobsLabel = t('Job Cards', 'Job Cards');
@@ -545,9 +555,11 @@ export default function JobCardsPage() {
               accept=".csv,.xlsx"
               onChange={handleImport}
             />
-            <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Plus size={14} /> New {jobLabel}
-            </button>
+            {hasPermission('/dashboard/jobs:create', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+              <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Plus size={14} /> New {jobLabel}
+              </button>
+            )}
           </div>
         )}
       </div>

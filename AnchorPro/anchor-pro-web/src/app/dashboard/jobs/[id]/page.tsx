@@ -10,6 +10,7 @@ import {
 import { dashboardApi, jobCardsApi, jobTasksApi, uploadApi, procurementApi, financialApi, quotationsApi, settingsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
+import { hasPermission } from '@/lib/rbac';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
 const statusConfig: Record<number, { label: string; badge: string; dot: string; icon: React.ReactNode; value: number }> = {
@@ -563,7 +564,7 @@ export default function JobDetailPage() {
                     <Play size={14} /> Start Execution
                   </button>
                 )}
-                {job.status === 2 && (
+                {job.status === 2 && hasPermission('/dashboard/jobs:close_job', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                   <button disabled={actionLoading} onClick={() => handleStatusChange(3)} className="btn btn-success">
                     <CheckCircle size={14} /> Complete {jobLabel}
                   </button>
@@ -729,7 +730,7 @@ export default function JobDetailPage() {
                 <h3 className="card-title">Tasks Checklist</h3>
                 <span className="badge badge-muted">{(job.jobTasks || []).filter((t:any)=>t.isCompleted).length} / {job.jobTasks?.length || 0}</span>
               </div>
-              {isTasksExpanded && job.status !== 3 && job.status !== 4 && (
+              {isTasksExpanded && job.status !== 3 && job.status !== 4 && hasPermission('/dashboard/jobs:edit', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                 <button onClick={() => setShowAddTask(!showAddTask)} className="btn btn-ghost btn-sm">
                   <Plus size={14} /> Add Checklist Task
                 </button>
@@ -876,7 +877,7 @@ export default function JobDetailPage() {
                 {isComponentsExpanded ? <ChevronDown size={16} style={{ color: 'var(--accent-amber)' }} /> : <ChevronRight size={16} style={{ color: 'var(--accent-amber)' }} />}
                 <h3 className="card-title">Components</h3>
               </div>
-              {isComponentsExpanded && job.status !== 3 && job.status !== 4 && (
+              {isComponentsExpanded && job.status !== 3 && job.status !== 4 && hasPermission('/dashboard/jobs:log_parts', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                 <button onClick={() => setShowAddPart(!showAddPart)} className="btn btn-ghost btn-sm">
                   <Plus size={14} /> Add Component
                 </button>
@@ -1178,7 +1179,7 @@ export default function JobDetailPage() {
                 <Users size={16} style={{ color: 'var(--accent-indigo)' }} />
                 <h3 className="card-title">Properties</h3>
               </div>
-              {!editCore && (job.status !== 3 && job.status !== 4) && (
+              {!editCore && (job.status !== 3 && job.status !== 4) && hasPermission('/dashboard/jobs:edit', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                 <button onClick={() => setEditCore(true)} className="btn btn-ghost btn-sm">Edit</button>
               )}
             </div>
