@@ -46,7 +46,8 @@ function initials(first?: string, last?: string) {
   return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
 }
 
-function fmt(n: number) {
+function fmt(n: number | undefined | null) {
+  if (n === null || n === undefined) return 'ZMW 0.00';
   return `ZMW ${n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
