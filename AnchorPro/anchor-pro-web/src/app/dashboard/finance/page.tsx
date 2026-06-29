@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { financeApi, financialApi, quotationsApi, procurementApi, usersApi } from '@/lib/api';
+import { financeApi, financialApi, quotationsApi, procurementApi, usersApi, customersApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
   CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X,
-  ChevronDown, ChevronUp, AlertCircle
+  ChevronDown, ChevronUp, AlertCircle, Download
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import SlideOver from '@/components/SlideOver';
 import { hasPermission } from '@/lib/rbac';
 
 // ─── Status Maps ───────────────────────────────────────────────────────────────
@@ -986,6 +987,13 @@ function QuotationsTab() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  const [showCreateQuote, setShowCreateQuote] = useState(false);
+  const [savingQuote, setSavingQuote] = useState(false);
+  const [createQuoteForm, setCreateQuoteForm] = useState({ customerId: '', subtotal: '', notes: '' });
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<any>(null);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+
   const fetchQuotes = async () => {
     setLoading(true);
     try {
@@ -998,7 +1006,31 @@ function QuotationsTab() {
     }
   };
 
-  useEffect(() => { fetchQuotes(); }, []);
+  useEffect(() => { 
+    fetchQuotes(); 
+    customersApi.getAll().then(setCustomers).catch(() => {});
+  }, []);
+
+  const handleCreateQuote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createQuoteForm.customerId || !createQuoteForm.subtotal) return;
+    setSavingQuote(true);
+    try {
+      await quotationsApi.createAdHoc({
+        customerId: parseInt(createQuoteForm.customerId),
+        subtotal: parseFloat(createQuoteForm.subtotal),
+        notes: createQuoteForm.notes
+      });
+      setShowCreateQuote(false);
+      setCreateQuoteForm({ customerId: '', subtotal: '', notes: '' });
+      fetchQuotes();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create quotation');
+    } finally {
+      setSavingQuote(false);
+    }
+  };
 
   const handleApprove = async (id: number) => {
     setActionLoading(true);
@@ -1097,6 +1129,13 @@ function QuotationsTab() {
                         {canAct ? (
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button
+                              className="btn btn-ghost"
+                              style={{ fontSize: 12, padding: '5px 12px', color: 'var(--accent-blue)' }}
+                              onClick={() => { setSelectedQuote(q); setShowQuoteModal(true); }}
+                            >
+                              View
+                            </button>
+                            <button
                               className="btn btn-primary"
                               style={{ fontSize: 12, padding: '5px 12px' }}
                               disabled={actionLoading}
@@ -1114,7 +1153,13 @@ function QuotationsTab() {
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: 12, padding: '5px 12px', color: 'var(--accent-blue)' }}
+                            onClick={() => { setSelectedQuote(q); setShowQuoteModal(true); }}
+                          >
+                            View
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1163,6 +1208,141 @@ function QuotationsTab() {
           </div>
         </div>
       )}
+
+      {/* ── Create Quote SlideOver ── */}
+      <SlideOver open={showCreateQuote} onClose={() => setShowCreateQuote(false)} title="Create Quotation" subtitle="Generate an ad-hoc quotation">
+        <form onSubmit={handleCreateQuote} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="form-field">
+            <label className="form-label">Customer</label>
+            <select className="form-select" value={createQuoteForm.customerId} onChange={e => setCreateQuoteForm({ ...createQuoteForm, customerId: e.target.value })} required>
+              <option value="">Select customer...</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Subtotal (ZMW)</label>
+            <input className="form-input" type="number" step="0.01" required value={createQuoteForm.subtotal} onChange={e => setCreateQuoteForm({ ...createQuoteForm, subtotal: e.target.value })} />
+            {createQuoteForm.subtotal && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                VAT (16%): K {(parseFloat(createQuoteForm.subtotal || '0') * 0.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {' '}→ Total: K {(parseFloat(createQuoteForm.subtotal || '0') * 1.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            )}
+          </div>
+          <div className="form-field">
+            <label className="form-label">Notes (Optional)</label>
+            <textarea className="form-textarea" placeholder="Any notes for the customer..." value={createQuoteForm.notes} onChange={e => setCreateQuoteForm({ ...createQuoteForm, notes: e.target.value })} />
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCreateQuote(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingQuote}>
+              {savingQuote ? 'Generating...' : 'Create Quote'}
+            </button>
+          </div>
+        </form>
+      </SlideOver>
+
+      {/* ── Quotation Modal ── */}
+      {showQuoteModal && selectedQuote && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowQuoteModal(false)}>
+          <div className="card-elevated" style={{ width: 500, padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Quotation Details</div>
+                <div style={{ fontSize: 13, color: 'var(--accent-indigo)', fontWeight: 600, marginTop: 4 }}>
+                  #{selectedQuote.quotationNumber || selectedQuote.quoteNumber || `Q-${selectedQuote.id}`}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowQuoteModal(false)}><X size={16} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
+                  <span className={`badge ${
+                    selectedQuote.status === 0 ? 'badge-muted' :
+                    selectedQuote.status === 1 ? 'badge-blue' :
+                    selectedQuote.status === 2 ? 'badge-green' : 'badge-rose'
+                  }`}>
+                    {selectedQuote.status === 0 ? 'Draft' :
+                     selectedQuote.status === 1 ? 'Sent' :
+                     selectedQuote.status === 2 ? 'Accepted' : 'Rejected'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Customer</span>
+                  <span style={{ fontWeight: 600 }}>{selectedQuote.customer?.name || selectedQuote.customerName || '—'}</span>
+                </div>
+                {selectedQuote.jobCardId && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Linked Job</span>
+                    <span>#{selectedQuote.jobCardId}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Quote Date</span>
+                  <span>{selectedQuote.quoteDate ? new Date(selectedQuote.quoteDate).toLocaleDateString() : '—'}</span>
+                </div>
+                {selectedQuote.status === 3 && selectedQuote.rejectionReason && (
+                  <div style={{ marginTop: 8, padding: 10, background: 'rgba(232,72,85,0.1)', border: '1px solid var(--accent-rose)', borderRadius: 6, color: 'var(--accent-rose)', fontSize: 12 }}>
+                    <strong>Rejection Reason:</strong> {selectedQuote.rejectionReason}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                    <span style={{ fontWeight: 600 }}>K {(selectedQuote.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>VAT ({selectedQuote.taxRate}%)</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>K {(selectedQuote.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
+                    <span>Total Quote Amount</span>
+                    <span style={{ color: 'var(--accent-indigo)' }}>K {(selectedQuote.total || selectedQuote.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {selectedQuote.notes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
+                      {selectedQuote.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
+                <a
+                  href={`/dashboard/jobs/${selectedQuote.jobCardId || 0}/print-quotation?qtnId=${selectedQuote.id}`}
+                  target="_blank" rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Download size={13} /> Download PDF
+                </a>
+                {selectedQuote.status === 1 && (
+                  <>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => { handleApprove(selectedQuote.id); setShowQuoteModal(false); }}
+                    >
+                      <CheckCircle size={13} /> Approve
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => { setRejectTarget(selectedQuote); setRejectReason(''); setShowQuoteModal(false); }}
+                    >
+                      <XCircle size={13} /> Reject
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1172,12 +1352,71 @@ function InvoicesTab() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [showCreate, setShowCreate] = useState(false);
+  const [createMode, setCreateMode] = useState<'from-job' | 'adhoc'>('adhoc');
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [completedJobs, setCompletedJobs] = useState<any[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [savingInvoice, setSavingInvoice] = useState(false);
+  const [fromJobId, setFromJobId] = useState('');
+  const [adHocForm, setAdHocForm] = useState({ customerId: '', description: '', amount: '', dueDate: '' });
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const data = await financialApi.getInvoices();
+      setInvoices(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    financialApi.getInvoices()
-      .then(data => setInvoices(data || []))
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
+    fetchInvoices();
+    customersApi.getAll().then(setCustomers).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (showCreate && createMode === 'from-job') {
+      setJobsLoading(true);
+      jobCardsApi.getAll()
+        .then(jobs => setCompletedJobs(jobs.filter((j: any) => j.status === 2 && !j.invoiceId)))
+        .catch(() => {})
+        .finally(() => setJobsLoading(false));
+    }
+  }, [showCreate, createMode]);
+
+  const handleCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingInvoice(true);
+    try {
+      if (createMode === 'from-job') {
+        if (!fromJobId) throw new Error("Select a job");
+        await financialApi.createFromJob(parseInt(fromJobId));
+      } else {
+        if (!adHocForm.customerId || !adHocForm.amount) throw new Error("Missing required fields");
+        await financialApi.createAdHoc({
+          customerId: parseInt(adHocForm.customerId),
+          notes: adHocForm.description,
+          subtotal: parseFloat(adHocForm.amount),
+          taxRate: 16,
+          dueDate: adHocForm.dueDate ? new Date(adHocForm.dueDate).toISOString() : new Date().toISOString()
+        });
+      }
+      setShowCreate(false);
+      setFromJobId('');
+      setAdHocForm({ customerId: '', description: '', amount: '', dueDate: '' });
+      fetchInvoices();
+    } catch (err: any) {
+      alert('Failed to create invoice: ' + err.message);
+    } finally {
+      setSavingInvoice(false);
+    }
+  };
 
   const totalInvoiced   = invoices.reduce((s, i) => s + (i.total ?? 0), 0);
   const totalCollected  = invoices.reduce((s, i) => s + (i.amountPaid ?? 0), 0);
@@ -1201,6 +1440,12 @@ function InvoicesTab() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          <Plus size={14} /> Create Invoice
+        </button>
+      </div>
+
       <div className="card">
         <ResponsiveTable>
           <table className="data-table">
@@ -1212,6 +1457,7 @@ function InvoicesTab() {
                 <th>Paid</th>
                 <th>Status</th>
                 <th>Due Date</th>
+                <th style={{ width: 80, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1249,6 +1495,15 @@ function InvoicesTab() {
                           )}
                         </div>
                       </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--accent-blue)' }}
+                          onClick={() => { setSelectedInvoice(inv); setShowInvoiceModal(true); }}
+                        >
+                          View
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -1257,6 +1512,166 @@ function InvoicesTab() {
           </table>
         </ResponsiveTable>
       </div>
+
+      {/* ── Create Invoice SlideOver ── */}
+      <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Create Invoice" subtitle="Generate from a completed job or create manually">
+        <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-app)', borderRadius: 8, padding: 4 }}>
+            {([['from-job', 'From Completed Job'], ['adhoc', 'Ad-hoc Invoice']] as const).map(([mode, label]) => (
+              <button
+                key={mode} type="button" onClick={() => setCreateMode(mode)}
+                style={{
+                  flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600,
+                  background: createMode === mode ? 'var(--accent-blue)' : 'transparent',
+                  color: createMode === mode ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {createMode === 'from-job' ? (
+            <>
+              <div style={{ padding: 12, background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                The backend will automatically pull all cost data (labour, parts, direct purchases) from the job card and generate a complete invoice.
+              </div>
+              <div className="form-field">
+                <label className="form-label">Completed Job</label>
+                {jobsLoading ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>Loading jobs...</div>
+                ) : completedJobs.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>No completed jobs without invoices.</div>
+                ) : (
+                  <select className="form-select" value={fromJobId} onChange={e => setFromJobId(e.target.value)} required>
+                    <option value="">Select a completed job...</option>
+                    {completedJobs.map(j => (
+                      <option key={j.id} value={j.id}>
+                        {j.jobNumber} — {j.equipment?.name || j.description || 'Job'}{j.customer ? ` (${j.customer.name})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-field">
+                <label className="form-label">Customer</label>
+                <select className="form-select" value={adHocForm.customerId} onChange={e => setAdHocForm({ ...adHocForm, customerId: e.target.value })} required>
+                  <option value="">Select customer...</option>
+                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="form-field">
+                <label className="form-label">Description</label>
+                <textarea className="form-textarea" placeholder="What is this invoice for?" value={adHocForm.description} onChange={e => setAdHocForm({ ...adHocForm, description: e.target.value })} />
+              </div>
+              <div className="form-row">
+                <div className="form-field">
+                  <label className="form-label">Amount (K)</label>
+                  <input className="form-input" type="number" step="0.01" required value={adHocForm.amount} onChange={e => setAdHocForm({ ...adHocForm, amount: e.target.value })} />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Due Date</label>
+                  <input className="form-input" type="date" value={adHocForm.dueDate} onChange={e => setAdHocForm({ ...adHocForm, dueDate: e.target.value })} />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCreate(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingInvoice || (createMode === 'from-job' && jobsLoading)}>
+              {savingInvoice ? 'Generating...' : 'Create Invoice'}
+            </button>
+          </div>
+        </form>
+      </SlideOver>
+
+      {/* ── Invoice Modal ── */}
+      {showInvoiceModal && selectedInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowInvoiceModal(false)}>
+          <div className="card-elevated" style={{ width: 500, padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Invoice Details</div>
+                <div style={{ fontSize: 13, color: 'var(--accent-indigo)', fontWeight: 600, marginTop: 4 }}>
+                  {selectedInvoice.invoiceNumber || `INV-${selectedInvoice.id}`}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowInvoiceModal(false)}><X size={16} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
+                  <span className={`badge ${(invoiceStatusMap[selectedInvoice.paymentStatus] || { badge: 'badge-muted' }).badge}`}>
+                    {(invoiceStatusMap[selectedInvoice.paymentStatus] || { label: 'Unknown' }).label}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Customer</span>
+                  <span style={{ fontWeight: 600 }}>{selectedInvoice.customer?.name || selectedInvoice.customerName || '—'}</span>
+                </div>
+                {selectedInvoice.jobCardId && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Linked Job</span>
+                    <span>#{selectedInvoice.jobCardId}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Due Date</span>
+                  <span>{selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString() : '—'}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                    <span style={{ fontWeight: 600 }}>K {(selectedInvoice.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>VAT ({selectedInvoice.taxRate || 16}%)</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>K {(selectedInvoice.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
+                    <span>Total Amount</span>
+                    <span style={{ color: 'var(--text-primary)' }}>K {(selectedInvoice.total || selectedInvoice.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginTop: 4 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Amount Paid</span>
+                    <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>K {(selectedInvoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
+                    <span>Balance Due</span>
+                    <span style={{ color: 'var(--accent-rose)' }}>K {(selectedInvoice.balance || (selectedInvoice.total - (selectedInvoice.amountPaid || 0)) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {selectedInvoice.notes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
+                      {selectedInvoice.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
+                <a
+                  href={`/dashboard/invoices/${selectedInvoice.id}/print`}
+                  target="_blank" rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Download size={13} /> Download PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

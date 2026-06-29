@@ -48,6 +48,14 @@ namespace AnchorPro.Controllers
             return CreatedAtAction(nameof(GetById), new { id = quotation.Id }, quotation);
         }
 
+        [HttpPost]
+        public async Task<ActionResult<Quotation>> CreateAdHoc([FromBody] Quotation quotation)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var created = await _quotationService.CreateAdHocQuotationAsync(quotation, userId);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult<Quotation>> Update(int id, [FromBody] UpdateQuotationRequest req)
         {

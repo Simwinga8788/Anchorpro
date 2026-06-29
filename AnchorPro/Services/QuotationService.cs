@@ -123,6 +123,36 @@ namespace AnchorPro.Services
             return quotation;
         }
 
+        public async Task<Quotation> CreateAdHocQuotationAsync(Quotation quotation, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            // Set defaults for ad-hoc creation
+            quotation.QuotationNumber = $"QTN-AH-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            quotation.QuoteDate = DateTime.UtcNow;
+            if (quotation.ExpiryDate == default)
+                quotation.ExpiryDate = DateTime.UtcNow.AddDays(30);
+            
+            quotation.TaxAmount = Math.Round(quotation.Subtotal * (quotation.TaxRate / 100), 2);
+            quotation.Total = quotation.Subtotal + quotation.TaxAmount;
+            
+            quotation.Status = QuotationStatus.Draft;
+            quotation.CreatedAt = DateTime.UtcNow;
+            quotation.CreatedBy = userId;
+            
+            // Fetch first tenant id if missing
+            if (quotation.TenantId == 0)
+            {
+                var tenant = await context.Tenants.FirstOrDefaultAsync();
+                if (tenant != null) quotation.TenantId = tenant.Id;
+            }
+
+            context.Quotations.Add(quotation);
+            await context.SaveChangesAsync();
+
+            return quotation;
+        }
+
         public async Task<Quotation> UpdateQuotationAsync(int id, decimal subtotal, string? notes, string userId)
         {
             using var context = _factory.CreateDbContext();
