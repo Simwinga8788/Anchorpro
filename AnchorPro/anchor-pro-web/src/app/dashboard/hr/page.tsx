@@ -360,7 +360,16 @@ function ContractsTab() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<any>({ contractType: 0, status: 1, noticePeriodDays: 30, hourlyRate: 0, agreedMonthlySalary: 0, jobTitle: '' });
+  const [form, setForm] = useState<any>({ 
+    contractType: 0, 
+    status: 1, 
+    noticePeriodDays: 30, 
+    hourlyRate: 0, 
+    agreedMonthlySalary: 0, 
+    jobTitle: '',
+    standardHoursPerMonth: '',
+    overtimeMultiplier: ''
+  });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -390,7 +399,16 @@ function ContractsTab() {
     try {
       await hrApi.createContract(form);
       setShowForm(false);
-      setForm({ contractType: 0, status: 1, noticePeriodDays: 30, hourlyRate: 0, agreedMonthlySalary: 0, jobTitle: '' });
+      setForm({ 
+        contractType: 0, 
+        status: 1, 
+        noticePeriodDays: 30, 
+        hourlyRate: 0, 
+        agreedMonthlySalary: 0, 
+        jobTitle: '',
+        standardHoursPerMonth: '',
+        overtimeMultiplier: ''
+      });
       load();
     } finally { setSaving(false); }
   };
@@ -429,13 +447,15 @@ function ContractsTab() {
                   <th>Type</th>
                   <th>Start Date</th>
                   <th>End Date</th>
+                  <th>Std Hours</th>
+                  <th>Multiplier</th>
                   <th>Monthly Salary</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No contracts found.</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No contracts found.</td></tr>
                 ) : filtered.map(c => {
                   const days = daysUntilExpiry(c.endDate);
                   const isExpiringSoon = days !== null && days >= 0 && days <= 30;
@@ -456,6 +476,8 @@ function ContractsTab() {
                           </span>
                         ) : <span style={{ color: 'var(--text-muted)' }}>Permanent</span>}
                       </td>
+                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.standardHoursPerMonth ? `${c.standardHoursPerMonth}h` : 'Default'}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.overtimeMultiplier ? `${c.overtimeMultiplier}x` : 'Default'}</td>
                       <td style={{ fontWeight: 600 }}>{fmt(c.agreedMonthlySalary)}</td>
                       <td><span className={`badge ${contractStatusMap[c.status]?.badge || 'badge-muted'}`}>{contractStatusMap[c.status]?.label || '—'}</span></td>
                     </tr>
@@ -517,15 +539,23 @@ function ContractsTab() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Monthly Salary (ZMW)</label>
-                    <input type="number" step="0.01" className="form-input" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) })} />
+                    <input type="number" step="0.01" className="form-input" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Hourly Rate (ZMW)</label>
-                    <input type="number" step="0.01" className="form-input" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) })} />
+                    <input type="number" step="0.01" className="form-input" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Notice Period (days)</label>
-                    <input type="number" className="form-input" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) })} />
+                    <input type="number" className="form-input" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) || 30 })} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Standard Hours / Month (Optional)</label>
+                    <input type="number" step="0.5" className="form-input" placeholder="e.g. 176" value={form.standardHoursPerMonth} onChange={e => setForm({ ...form, standardHoursPerMonth: e.target.value ? parseFloat(e.target.value) : '' })} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Overtime Multiplier (Optional)</label>
+                    <input type="number" step="0.1" className="form-input" placeholder="e.g. 1.5" value={form.overtimeMultiplier} onChange={e => setForm({ ...form, overtimeMultiplier: e.target.value ? parseFloat(e.target.value) : '' })} />
                   </div>
                 </div>
                 <div className="form-group">

@@ -189,6 +189,18 @@ namespace AnchorPro.Controllers
             await _lifecycleService.ConvertTrialToPaidAsync(subscriptionId, req.NewPlanId, userId);
             return NoContent();
         }
+
+        /// <summary>
+        /// PUT /api/subscriptions/plans/{id}/price
+        /// Body: { "price": 4500.00 }
+        /// </summary>
+        [HttpPut("plans/{id}/price")]
+        [Authorize(Roles = "PlatformOwner")]
+        public async Task<ActionResult> UpdatePlanPrice(int id, [FromBody] UpdatePlanPriceRequest req)
+        {
+            var success = await _subscriptionService.UpdatePlanPriceAsync(id, req.Price);
+            return success ? Ok(new { message = "Plan price updated." }) : NotFound("Plan not found.");
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
@@ -201,5 +213,10 @@ namespace AnchorPro.Controllers
     public class LifecycleActionRequest
     {
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class UpdatePlanPriceRequest
+    {
+        public decimal Price { get; set; }
     }
 }

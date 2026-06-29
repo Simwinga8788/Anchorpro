@@ -38,7 +38,18 @@ export function canAccess(
   isPlatformOwner: boolean
 ): boolean {
   if (isPlatformOwner) return true; // Platform owners see everything
-  return allowedRoutes.includes(route);
+  
+  // Normalize dynamic numeric sub-routes (e.g. /dashboard/jobs/15 -> /dashboard/jobs)
+  let normalizedRoute = route;
+  const jobsPrefix = '/dashboard/jobs/';
+  if (route.startsWith(jobsPrefix)) {
+    const segment = route.substring(jobsPrefix.length);
+    if (/^\d+$/.test(segment)) {
+      normalizedRoute = '/dashboard/jobs';
+    }
+  }
+
+  return allowedRoutes.includes(normalizedRoute);
 }
 
 /**

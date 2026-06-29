@@ -129,4 +129,31 @@ public class SubscriptionService : ISubscriptionService
 
         return 0;
     }
+
+    public async Task<bool> UpdatePlanPriceAsync(int planId, decimal monthlyPrice)
+    {
+        var plan = await _context.SubscriptionPlans.FindAsync(planId);
+        if (plan == null) return false;
+
+        var oldPrice = plan.MonthlyPrice;
+        plan.MonthlyPrice = monthlyPrice;
+        plan.UpdatedAt = DateTime.UtcNow;
+
+        var auditLog = new SystemAuditLog
+        {
+            Action = "Update Plan Price",
+            Module = "Billing",
+            ChangedBy = "PlatformOwner",
+            OldValue = $"K {oldPrice:N2}",
+            NewValue = $"K {monthlyPrice:N2}",
+            Timestamp = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "PlatformOwner"
+        };
+
+        _context.SystemAuditLogs.Add(auditLog);
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

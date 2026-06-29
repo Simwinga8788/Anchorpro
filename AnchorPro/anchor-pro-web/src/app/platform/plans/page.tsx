@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Edit2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Edit2, RefreshCw, Loader2 } from 'lucide-react';
 import { subscriptionsApi } from '@/lib/api';
+import Modal from '@/components/Modal';
 
 const PLAN_COLORS = ['var(--accent-blue)', 'var(--accent-violet)', 'var(--accent-emerald)', 'var(--accent-amber)'];
 const PLAN_GRADIENTS = [
@@ -21,6 +22,10 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [priceInput, setPriceInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const load = () => {
     setLoading(true);
     subscriptionsApi.getPlans()
@@ -29,8 +34,34 @@ export default function PlansPage() {
       .finally(() => setLoading(false));
   };
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, []);
+
+  const handleEditClick = (plan: any) => {
+    setEditingPlan(plan);
+    setPriceInput((plan.monthlyPrice ?? plan.price ?? plan.amount ?? 0).toString());
+  };
+
+  const handleSavePrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlan) return;
+
+    const price = parseFloat(priceInput);
+    if (isNaN(price) || price < 0) {
+      alert('Please enter a valid non-negative price');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await subscriptionsApi.updatePlanPrice(editingPlan.id, price);
+      setEditingPlan(null);
+      load();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update plan price');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -97,7 +128,7 @@ export default function PlansPage() {
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     <strong style={{ color }}>{tenantCount}</strong> tenants
                   </span>
-                  <button className="btn btn-secondary btn-sm"><Edit2 size={11}/> Edit</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handleEditClick(plan)}><Edit2 size={11}/> Edit</button>
                 </div>
               </div>
             );
@@ -112,7 +143,53 @@ export default function PlansPage() {
           Tenants submit bank transfer or mobile money proof, which you review and approve here in the Platform Console.
         </p>
       </div>
+
+      <Modal
+        open={editingPlan !== null}
+        onClose={() => setEditingPlan(null)}
+        title="Update Subscription Price"
+        subtitle={`Modify the monthly subscription rate for the "${editingPlan?.name}" tier.`}
+        width={400}
+      >
+        <form onSubmit={handleSavePrice} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Monthly Price (ZMW)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className="form-input"
+              value={priceInput}
+              onChange={e => setPriceInput(e.target.value)}
+              placeholder="e.g. 4500"
+              required
+              disabled={saving}
+              autoFocus
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setEditingPlan(null)}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={saving}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {saving && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </Modal>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   );
 }
+

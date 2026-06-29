@@ -302,7 +302,11 @@ namespace AnchorPro.Data
                 // FINANCIAL & MARKUPS
                 new SystemSetting { Key = "Fin.DefaultPartsMarkupPercent", Value = "20.0", Group = "Financial & Markups", Description = "Default markup percentage applied to parts on quotations", TenantId = tenantId },
                 new SystemSetting { Key = "Fin.DefaultLaborBillingRate", Value = "400.0", Group = "Financial & Markups", Description = "Default labor billing rate per hour for client quoting", TenantId = tenantId },
-                new SystemSetting { Key = "Fin.DefaultLaborMarkupPercent", Value = "10.0", Group = "Financial & Markups", Description = "Default markup percentage applied to labor billing on quotations", TenantId = tenantId }
+                new SystemSetting { Key = "Fin.DefaultLaborMarkupPercent", Value = "10.0", Group = "Financial & Markups", Description = "Default markup percentage applied to labor billing on quotations", TenantId = tenantId },
+
+                // HUMAN RESOURCES
+                new SystemSetting { Key = "HR.DefaultStandardMonthlyHours", Value = "176.0", Group = "Human Resources", Description = "Default standard working hours per month", TenantId = tenantId },
+                new SystemSetting { Key = "HR.DefaultOvertimeMultiplier", Value = "1.5", Group = "Human Resources", Description = "Default overtime multiplier rate (1.5 is statutory as per Employment Code Act)", TenantId = tenantId }
             };
 
             context.SystemSettings.AddRange(settings);

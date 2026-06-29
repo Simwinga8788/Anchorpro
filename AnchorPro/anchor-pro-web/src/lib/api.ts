@@ -605,6 +605,7 @@ export const subscriptionsApi = {
   reactivate:        (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/reactivate`, data),
   cancel:            (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/cancel`, data),
   convertTrial:      (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/convert-trial`, data),
+  updatePlanPrice:   (id: number, price: number)         => apiPut<any>(`/api/subscriptions/plans/${id}/price`, { price }),
 };
 
 // ─── Departments API ── /api/departments ───────────────────────────────────────

@@ -37,6 +37,11 @@ public class EmploymentContract : BaseEntity
     [MaxLength(500)]
     public string? TerminationReason { get; set; }
 
+    public double? StandardHoursPerMonth { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? OvertimeMultiplier { get; set; }
+
 }
 
 public enum EmploymentContractType

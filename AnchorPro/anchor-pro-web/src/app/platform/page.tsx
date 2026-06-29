@@ -5,6 +5,41 @@ import { TrendingUp, Users, Activity, AlertCircle, CheckCircle2, Clock, Plus, Ar
 import { platformApi } from '@/lib/api';
 import { subscriptionsApi, auditLogApi } from '@/lib/api';
 
+function formatUptime(uptime: any): string {
+  if (!uptime) return '—';
+  
+  // If it's a TimeSpan object from JSON serialization (which might have days, hours, etc.)
+  if (typeof uptime === 'object') {
+    const d = uptime.days ?? 0;
+    const h = uptime.hours ?? 0;
+    return d > 0 ? `${d}d ${h}h` : `${h}h`;
+  }
+  
+  if (typeof uptime !== 'string') return '—';
+  
+  // Format is usually d.hh:mm:ss or hh:mm:ss
+  const parts = uptime.split(':');
+  if (parts.length < 2) return uptime;
+  
+  const daysParts = parts[0].split('.');
+  if (daysParts.length === 2) {
+    const d = parseInt(daysParts[0]);
+    const h = parseInt(daysParts[1]);
+    return `${d}d ${h}h`;
+  } else {
+    const h = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+}
+
+function formatMrrValue(val: number): string {
+  if (val >= 1000) {
+    return `K ${(val / 1000).toFixed(0)}k`;
+  }
+  return `K ${val}`;
+}
+
 export default function PlatformDashboard() {
   const [tenants, setTenants]   = useState<any[]>([]);
   const [health,  setHealth]    = useState<any>(null);
@@ -44,7 +79,7 @@ export default function PlatformDashboard() {
   const kpis = [
     { label: 'Total Revenue (MRR)',  value: totalMrr   ? `K ${totalMrr.toLocaleString()}` : '—', sub: 'Across all active tenants',   color: 'var(--accent-emerald)', gradient: 'linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))' },
     { label: 'Active Tenants',        value: loading ? '…' : `${activeCount} of ${tenants.length}`, sub: 'On paid subscriptions', color: 'var(--accent-blue)',    gradient: 'linear-gradient(135deg,rgba(59,130,246,.15),rgba(59,130,246,.05))' },
-    { label: 'Platform Uptime',       value: health?.uptime ? '99.9%' : '—',  sub: health ? 'All systems operating' : 'Checking…', color: 'var(--accent-emerald)', gradient: 'linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))' },
+    { label: 'Platform Uptime',       value: health?.uptime ? formatUptime(health.uptime) : '—',  sub: health ? 'All systems operating' : 'Checking…', color: 'var(--accent-emerald)', gradient: 'linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))' },
     { label: 'DB Entities',           value: health?.entityCounts ? Object.values(health.entityCounts).reduce((a: number, b) => a + (b as number), 0).toLocaleString() : '—', sub: 'Total records across platform', color: 'var(--accent-violet)', gradient: 'linear-gradient(135deg,rgba(139,92,246,.15),rgba(139,92,246,.05))' },
   ];
 
@@ -93,8 +128,8 @@ export default function PlatformDashboard() {
                 const hPct = (t.mrr / maxVal) * 100;
                 return (
                   <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 8, height: '100%' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: t.mrr > 0 ? 1 : 0 }}>${t.mrr}k</div>
-                    <div style={{ width: '100%', maxWidth: 24, height: `${hPct}%`, background: '#10b981', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`$${t.mrr}k in ${t.month}`} />
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: t.mrr > 0 ? 1 : 0 }}>{formatMrrValue(t.mrr)}</div>
+                    <div style={{ width: '100%', maxWidth: 24, height: `${hPct}%`, background: '#10b981', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`${formatMrrValue(t.mrr)} in ${t.month}`} />
                     <div style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{t.month}</div>
                   </div>
                 );

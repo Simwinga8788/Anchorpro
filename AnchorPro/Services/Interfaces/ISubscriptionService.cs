@@ -12,4 +12,5 @@ public interface ISubscriptionService
     Task<bool> CheckLimitAsync(string limitType, int currentCount, int tenantId = 1);
     Task<bool> IsTrialExpiredAsync(int tenantId = 1);
     Task<int> GetDaysRemainingAsync(int tenantId = 1);
+    Task<bool> UpdatePlanPriceAsync(int planId, decimal monthlyPrice);
 }

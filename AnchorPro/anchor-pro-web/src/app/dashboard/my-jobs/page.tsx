@@ -66,11 +66,7 @@ export default function MyJobsPage() {
     fetchJobs();
   }, [user]);
 
-  useEffect(() => {
-    if (jobs.length > 0 && !selectedJobId) {
-      loadTasks(jobs[0].id);
-    }
-  }, [jobs]);
+  // No longer auto-selecting the first job on mount to ensure working board only opens once a job is clicked.
 
   const handleStartWork = async (jobId: number) => {
     setSaving(true);

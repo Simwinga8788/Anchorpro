@@ -199,12 +199,12 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
             .Where(c => c.Status == EmploymentContractStatus.Active)
             .ToListAsync();
 
-        // Calculate overtime hours from job cards for this period
-        var periodStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var periodEnd = periodStart.AddMonths(1);
-        var jobCards = await context.JobCards
-            .Where(j => j.ActualStartDate >= periodStart && j.ActualEndDate <= periodEnd && j.AssignedTechnicianId != null)
-            .ToListAsync();
+        // Load System-level Fallback Working Hours and Overtime Multipliers
+        var defaultHoursSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultStandardMonthlyHours");
+        var defaultMultiplierSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultOvertimeMultiplier");
+
+        double fallbackHours = defaultHoursSetting != null ? (double.TryParse(defaultHoursSetting.Value, out var dh) ? dh : 176.0) : 176.0;
+        decimal fallbackMultiplier = defaultMultiplierSetting != null ? (decimal.TryParse(defaultMultiplierSetting.Value, out var dm) ? dm : 1.5m) : 1.5m;
 
         var entries = new List<PayslipEntry>();
         foreach (var user in users)
@@ -213,17 +213,14 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
             var basicSalary = contract?.AgreedMonthlySalary ?? 0;
             var hourlyRate = contract?.HourlyRate ?? user.HourlyRate;
 
-            // Calculate overtime: actual hours worked beyond 8h/day assumed standard
-            var userJobs = jobCards.Where(j => j.AssignedTechnicianId == user.Id).ToList();
-            var totalActualHours = userJobs
-                .Where(j => j.ActualStartDate.HasValue && j.ActualEndDate.HasValue)
-                .Sum(j => (j.ActualEndDate!.Value - j.ActualStartDate!.Value).TotalHours);
+            // Resolve standard hours and overtime multiplier dynamically
+            var multiplier = contract?.OvertimeMultiplier ?? fallbackMultiplier;
 
-            // Assume 22 working days × 8 hours = 176 standard hours/month
-            var standardHours = 176.0;
-            var overtimeHours = Math.Max(0, totalActualHours - standardHours);
-            var overtimeRate = hourlyRate * 1.5m;
-            var overtimePay = (decimal)overtimeHours * overtimeRate;
+            // Default overtime to 0 since there is no attendance system. 
+            // Admin can manually add overtime hours on the draft payslips before finalising.
+            var overtimeHours = 0.0;
+            var overtimeRate = hourlyRate * multiplier;
+            var overtimePay = 0.0m;
 
             var grossPay = basicSalary + overtimePay;
 
