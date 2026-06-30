@@ -1265,18 +1265,22 @@ export default function SettingsPage() {
           {/* ── Sidebar ── */}
           <div className="settings-sidebar" style={{ minWidth: 0 }}>
             <div className="card settings-sidebar-card">
-              {NAV_GROUPS.map(group => (
-                <div key={group.label}>
-                  <div className="settings-group-label">{group.label}</div>
-                  {group.items.map(item => (
-                    <button key={item.id} className={`settings-nav-item${activeTab === item.id ? ' active' : ''}`}
-                      onClick={() => setActiveTab(item.id)}>
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              ))}
+              {NAV_GROUPS.map(group => {
+                const showGroup = group.label === 'Account' || (user?.tenantId && isAdmin);
+                if (!showGroup) return null;
+                return (
+                  <div key={group.label}>
+                    <div className="settings-group-label">{group.label}</div>
+                    {group.items.map(item => (
+                      <button key={item.id} className={`settings-nav-item${activeTab === item.id ? ' active' : ''}`}
+                        onClick={() => setActiveTab(item.id)}>
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
