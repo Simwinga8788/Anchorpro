@@ -1503,17 +1503,33 @@ function InvoicesTab() {
       </div>
 
       {/* ── Create Invoice SlideOver ── */}
-                <div className="form-field">
-                  <label className="form-label">Due Date</label>
-                  <input className="form-input" type="date" value={adHocForm.dueDate} onChange={e => setAdHocForm({ ...adHocForm, dueDate: e.target.value })} />
-                </div>
-              </div>
-            </>
-          )}
+      <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Create Ad-Hoc Invoice" subtitle="Generate a manual invoice">
+        <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Customer</label>
+            <select className="form-select" value={adHocForm.customerId} onChange={e => setAdHocForm({ ...adHocForm, customerId: e.target.value })} required>
+              <option value="">Select customer...</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Description</label>
+            <textarea className="form-textarea" placeholder="What is this invoice for?" value={adHocForm.description} onChange={e => setAdHocForm({ ...adHocForm, description: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Amount (K)</label>
+              <input className="form-input" type="number" step="0.01" required value={adHocForm.amount} onChange={e => setAdHocForm({ ...adHocForm, amount: e.target.value })} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Due Date</label>
+              <input className="form-input" type="date" value={adHocForm.dueDate} onChange={e => setAdHocForm({ ...adHocForm, dueDate: e.target.value })} />
+            </div>
+          </div>
 
           <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCreate(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingInvoice || (createMode === 'from-job' && jobsLoading)}>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingInvoice}>
               {savingInvoice ? 'Generating...' : 'Create Invoice'}
             </button>
           </div>
