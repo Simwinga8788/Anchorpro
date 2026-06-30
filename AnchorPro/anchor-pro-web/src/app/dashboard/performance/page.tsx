@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { dashboardApi } from '@/lib/api';
 import {
-  Activity, CheckCircle, Clock, AlertTriangle, Briefcase, RefreshCw
+  Activity, CheckCircle, Clock, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -14,24 +14,34 @@ function fmtNum(n: number | undefined | null) {
   return n.toLocaleString();
 }
 
+const PERIOD_OPTIONS = [
+  { label: 'Last 7 days',  value: 7   },
+  { label: 'Last 30 days', value: 30  },
+  { label: 'Last 90 days', value: 90  },
+  { label: 'All time',     value: 3650 },
+];
+
 export default function PerformancePage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [days,    setDays]    = useState(30);
   const { t } = useDictionary();
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async (d: number) => {
     setLoading(true);
     try {
-      const data = await dashboardApi.getPerformance(30);
+      const data = await dashboardApi.getPerformance(d);
       setMetrics(data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchMetrics(); }, []);
+  useEffect(() => { fetchMetrics(days); }, [days, fetchMetrics]);
+
+  const selectedLabel = PERIOD_OPTIONS.find(o => o.value === days)?.label ?? `Last ${days} days`;
 
   return (
     <div className="animate-in">
@@ -42,9 +52,31 @@ export default function PerformancePage() {
           </h1>
           <p className="page-subtitle">Analyze asset reliability and {t('technician')} efficiency</p>
         </div>
-        <button className="btn btn-secondary" onClick={fetchMetrics} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
-        </button>
+
+        {/* Period selector + Refresh */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            id="perf-period-select"
+            value={days}
+            onChange={e => setDays(Number(e.target.value))}
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              padding: '6px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            {PERIOD_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <button className="btn btn-secondary" onClick={() => fetchMetrics(days)} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       {loading && !metrics ? (
@@ -85,7 +117,7 @@ export default function PerformancePage() {
                 {metrics.completedJobsInPeriod}
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Jobs (30d)
+                Jobs ({selectedLabel})
               </div>
             </div>
           </div>
@@ -95,7 +127,9 @@ export default function PerformancePage() {
             <div className="card">
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
                 <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{t('Technicians')} Performance</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Utilization and efficiency</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                  Utilization and efficiency · {selectedLabel}
+                </p>
               </div>
               <div className="table-scroll">
                 <ResponsiveTable>
@@ -109,18 +143,26 @@ export default function PerformancePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {metrics.technicianStats?.slice(0, 5).map((tech: any, i: number) => (
-                        <tr key={i}>
-                          <td style={{ fontWeight: 600 }}>{tech.technicianName}</td>
-                          <td style={{ textAlign: 'center' }}>{tech.jobsCompleted}</td>
-                          <td style={{ textAlign: 'center' }}>{tech.totalHoursWorked}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <span className={`badge ${tech.utilizationPercentage > 80 ? 'badge-green' : tech.utilizationPercentage > 50 ? 'badge-yellow' : 'badge-muted'}`}>
-                              {tech.utilizationPercentage}%
-                            </span>
+                      {metrics.technicianStats?.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
+                            No completed jobs in this period
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        metrics.technicianStats?.slice(0, 5).map((tech: any, i: number) => (
+                          <tr key={i}>
+                            <td style={{ fontWeight: 600 }}>{tech.technicianName}</td>
+                            <td style={{ textAlign: 'center' }}>{tech.jobsCompleted}</td>
+                            <td style={{ textAlign: 'center' }}>{tech.totalHoursWorked}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <span className={`badge ${tech.utilizationPercentage > 80 ? 'badge-green' : tech.utilizationPercentage > 50 ? 'badge-yellow' : 'badge-muted'}`}>
+                                {tech.utilizationPercentage}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </ResponsiveTable>
