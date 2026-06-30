@@ -584,8 +584,11 @@ function ContractsTab() {
         overtimeMultiplier: ''
       });
       load();
-      load();
-    } finally { setSaving(false); }
+    } catch (err: any) {
+      alert('Failed to create contract: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDraftModal = (c: any) => {
