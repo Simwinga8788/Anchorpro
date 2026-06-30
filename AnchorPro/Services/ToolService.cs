@@ -223,9 +223,23 @@ public class ToolService(ApplicationDbContext context) : IToolService
             string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
 
             var name = GetValue(nameIdx);
-            if (string.IsNullOrWhiteSpace(name) || name.Contains("[Example") || name.Contains("[Describe")) continue;
+            if (string.IsNullOrWhiteSpace(name)) continue;
 
-            var tag = GetValue(tagIdx);
+            // Skip example rows (case-insensitive checks)
+            if (name.Contains("[Example", StringComparison.OrdinalIgnoreCase) || 
+                name.Contains("[Describe", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("example", StringComparison.OrdinalIgnoreCase)) 
+                continue;
+
+            // Also check the index/first column for "example"
+            if (values.Count > 0 && values[0].Contains("example", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var tag = GetValue(tagIdx).Trim();
+            if (tag.Contains("leave blank", StringComparison.OrdinalIgnoreCase) || (tag.StartsWith("[") && tag.EndsWith("]")))
+            {
+                tag = string.Empty;
+            }
 
             // Parse Status
             var statusStr = GetValue(statusIdx).ToLower();

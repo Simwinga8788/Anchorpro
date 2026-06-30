@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { jobCardsApi, quotationsApi } from '@/lib/api';
+import { jobCardsApi, quotationsApi, settingsApi } from '@/lib/api';
 
 export default function PrintQuotationPage() {
   const params = useParams();
@@ -12,13 +12,30 @@ export default function PrintQuotationPage() {
   const [quotation, setQuotation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Financial settings
+  const [partsMarkup, setPartsMarkup] = useState(20);
+  const [laborBillingRate, setLaborBillingRate] = useState(400);
+  const [laborMarkup, setLaborMarkup] = useState(10);
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const jobData = await jobCardsApi.getById(id);
+        const [jobData, qData, settings] = await Promise.all([
+          jobCardsApi.getById(id),
+          quotationsApi.getByJob(id),
+          settingsApi.getAll().catch(() => [])
+        ]);
+
         setJob(jobData);
-        const qData = await quotationsApi.getByJob(id);
         setQuotation(qData);
+
+        const pm = settings.find((s: any) => s.key === 'Fin.DefaultPartsMarkupPercent');
+        const lr = settings.find((s: any) => s.key === 'Fin.DefaultLaborBillingRate');
+        const lm = settings.find((s: any) => s.key === 'Fin.DefaultLaborMarkupPercent');
+
+        if (pm) setPartsMarkup(parseFloat(pm.value) || 20);
+        if (lr) setLaborBillingRate(parseFloat(lr.value) || 400);
+        if (lm) setLaborMarkup(parseFloat(lm.value) || 10);
       } catch (e) {
         console.error(e);
       } finally {
@@ -43,6 +60,32 @@ export default function PrintQuotationPage() {
 
   if (!job || !quotation) {
     return <div style={{ padding: 40, fontFamily: 'sans-serif', color: 'red' }}>Error: Job or Quotation not found.</div>;
+  }
+
+  // Calculations
+  const estLaborHours = job.estimatedLaborHours || 0;
+  const partsCost = job.partsCost || 0;
+  const directPurchaseCost = job.directPurchaseCost || 0;
+  const subcontractingCost = job.subcontractingCost || 0;
+
+  const quotedLabor = estLaborHours * laborBillingRate * (1 + laborMarkup / 100);
+  const quotedParts = partsCost * (1 + partsMarkup / 100);
+
+  const subtotal = quotation.subtotal || 0;
+  const otherCosts = directPurchaseCost + subcontractingCost;
+  const targetLaborAndParts = Math.max(0, subtotal - otherCosts);
+  const baseLaborAndParts = quotedLabor + quotedParts;
+
+  let displayLabor = quotedLabor;
+  let displayParts = quotedParts;
+
+  if (baseLaborAndParts > 0 && Math.abs(baseLaborAndParts - targetLaborAndParts) > 0.01) {
+    const ratio = targetLaborAndParts / baseLaborAndParts;
+    displayLabor = quotedLabor * ratio;
+    displayParts = quotedParts * ratio;
+  } else if (baseLaborAndParts === 0 && targetLaborAndParts > 0) {
+    displayLabor = targetLaborAndParts / 2;
+    displayParts = targetLaborAndParts / 2;
   }
 
   return (
@@ -123,23 +166,27 @@ export default function PrintQuotationPage() {
             <tbody>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Internal Labor & Diagnostics</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Technician labor time and diagnostics</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.laborCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>
+                  {estLaborHours > 0 
+                    ? `Estimated ${estLaborHours} hrs @ K ${laborBillingRate}/hr`
+                    : 'Technician labor time and diagnostics'}
+                </td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {displayLabor.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Components</td>
-                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components reserved for job</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.partsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components with markup</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {displayParts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Direct Purchases</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Non-stock items procured for job card</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.directPurchaseCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {directPurchaseCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>External Service</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>External service POs</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.subcontractingCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {subcontractingCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
           </table>
