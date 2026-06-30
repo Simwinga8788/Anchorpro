@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import Portal from './Portal';
 
 interface SlideOverProps {
   open: boolean;
@@ -14,7 +15,7 @@ interface SlideOverProps {
 }
 
 export default function SlideOver({
-  open, onClose, title, subtitle, children, footer, width = 520
+  open, onClose, title, subtitle, children, footer, width = 540
 }: SlideOverProps) {
   // Close on Escape key
   useEffect(() => {
@@ -33,54 +34,48 @@ export default function SlideOver({
   if (!open) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="slideover-backdrop"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div
-        className="slideover-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        style={{ width }}
-      >
-        {/* Header */}
-        <div className="slideover-header">
-          <div>
-            <div className="slideover-title">{title}</div>
-            {subtitle && (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                {subtitle}
-              </div>
-            )}
+    <Portal>
+      <div className="modal-overlay" onClick={onClose}>
+        <div 
+          className="modal-content animate-in" 
+          onClick={e => e.stopPropagation()} 
+          style={{ maxWidth: width, width: '90%' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
+          {/* Header */}
+          <div className="modal-header">
+            <div>
+              <h2 className="modal-title">{title}</h2>
+              {subtitle && (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  {subtitle}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="modal-close"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm"
-            style={{ padding: 6, borderRadius: 6 }}
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
 
-        {/* Body */}
-        <div className="slideover-body">
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div className="slideover-footer">
-            {footer}
+          {/* Body */}
+          <div className="modal-body">
+            {children}
           </div>
-        )}
+
+          {/* Footer */}
+          {footer && (
+            <div className="modal-footer">
+              {footer}
+            </div>
+          )}
+        </div>
       </div>
-    </>
+    </Portal>
   );
 }
