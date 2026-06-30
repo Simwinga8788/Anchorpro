@@ -24,6 +24,7 @@ interface Job {
   equipment?: { name: string };
   jobType?: { name: string };
   customer?: { name: string };
+  estimatedLaborHours?: number;
 }
 
 interface Technician {
@@ -53,6 +54,9 @@ function techName(t?: { firstName?: string; lastName?: string; userName: string 
 }
 
 function hoursFromJob(job: Job): number {
+  if (job.estimatedLaborHours != null && job.estimatedLaborHours > 0) {
+    return job.estimatedLaborHours;
+  }
   const start = job.actualStartDate ?? job.scheduledStartDate;
   const end   = job.actualEndDate   ?? job.scheduledEndDate;
   if (!start || !end) return 4; // default estimate
