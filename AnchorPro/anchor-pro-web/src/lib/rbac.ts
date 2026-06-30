@@ -41,11 +41,26 @@ export function canAccess(
   
   // Normalize dynamic numeric sub-routes (e.g. /dashboard/jobs/15 -> /dashboard/jobs)
   let normalizedRoute = route;
+  
+  if (route.includes('/print-quotation') || route.includes('/print')) {
+    if (allowedRoutes.includes('/dashboard/jobs') || allowedRoutes.includes('/dashboard/finance')) {
+      return true;
+    }
+  }
+
   const jobsPrefix = '/dashboard/jobs/';
   if (route.startsWith(jobsPrefix)) {
     const segment = route.substring(jobsPrefix.length);
     if (/^\d+$/.test(segment)) {
       normalizedRoute = '/dashboard/jobs';
+    }
+  }
+
+  const invoicesPrefix = '/dashboard/invoices/';
+  if (route.startsWith(invoicesPrefix)) {
+    const segment = route.substring(invoicesPrefix.length);
+    if (/^\d+$/.test(segment)) {
+      normalizedRoute = '/dashboard/finance';
     }
   }
 

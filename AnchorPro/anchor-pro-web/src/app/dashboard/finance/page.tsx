@@ -989,8 +989,9 @@ function QuotationsTab() {
 
   const [showCreateQuote, setShowCreateQuote] = useState(false);
   const [savingQuote, setSavingQuote] = useState(false);
-  const [createQuoteForm, setCreateQuoteForm] = useState({ customerId: '', subtotal: '', notes: '' });
+  const [createQuoteForm, setCreateQuoteForm] = useState({ customerId: '', jobCardId: '', subtotal: '', notes: '' });
   const [customers, setCustomers] = useState<any[]>([]);
+  const [jobCards, setJobCards] = useState<any[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<any>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
@@ -1009,6 +1010,7 @@ function QuotationsTab() {
   useEffect(() => { 
     fetchQuotes(); 
     customersApi.getAll().then(setCustomers).catch(() => {});
+    jobCardsApi.getAll().then(setJobCards).catch(() => {});
   }, []);
 
   const handleCreateQuote = async (e: React.FormEvent) => {
@@ -1018,11 +1020,12 @@ function QuotationsTab() {
     try {
       await quotationsApi.createAdHoc({
         customerId: parseInt(createQuoteForm.customerId),
+        jobCardId: createQuoteForm.jobCardId ? parseInt(createQuoteForm.jobCardId) : undefined,
         subtotal: parseFloat(createQuoteForm.subtotal),
         notes: createQuoteForm.notes
       });
       setShowCreateQuote(false);
-      setCreateQuoteForm({ customerId: '', subtotal: '', notes: '' });
+      setCreateQuoteForm({ customerId: '', jobCardId: '', subtotal: '', notes: '' });
       fetchQuotes();
     } catch (err) {
       console.error(err);
@@ -1217,6 +1220,20 @@ function QuotationsTab() {
             <select className="form-select" value={createQuoteForm.customerId} onChange={e => setCreateQuoteForm({ ...createQuoteForm, customerId: e.target.value })} required>
               <option value="">Select customer...</option>
               {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Service Order (Optional)</label>
+            <select className="form-select" value={createQuoteForm.jobCardId} onChange={e => {
+              const selectedJob = jobCards.find(j => j.id.toString() === e.target.value);
+              setCreateQuoteForm({ 
+                ...createQuoteForm, 
+                jobCardId: e.target.value,
+                ...(selectedJob?.customerId ? { customerId: selectedJob.customerId.toString() } : {})
+              });
+            }}>
+              <option value="">None (Ad-Hoc Quote)</option>
+              {jobCards.map(j => <option key={j.id} value={j.id}>#{j.jobNumber || j.id} - {j.equipment?.name || 'General'}</option>)}
             </select>
           </div>
           <div className="form-field">
