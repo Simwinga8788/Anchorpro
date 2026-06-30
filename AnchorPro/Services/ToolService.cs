@@ -277,7 +277,7 @@ public class ToolService(ApplicationDbContext context) : IToolService
             else if (condStr.Contains("fair")) condition = ToolCondition.Fair;
             else if (condStr.Contains("damag")) condition = ToolCondition.Damaged;
 
-            decimal? purchaseCost = null;
+            decimal? purchaseCost = 0;
             var costStr = GetValue(costIdx);
             if (!string.IsNullOrWhiteSpace(costStr) && decimal.TryParse(costStr, out var parsedCost))
             {

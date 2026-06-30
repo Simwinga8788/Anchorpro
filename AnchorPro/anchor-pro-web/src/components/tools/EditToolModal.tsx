@@ -45,7 +45,7 @@ export default function EditToolModal({ tool, onClose, onSuccess }: Props) {
         description:  form.description.trim() || null,
         toolTag:      form.toolTag.trim(),
         condition:    Number(form.condition),
-        purchaseCost: form.purchaseCost ? parseFloat(form.purchaseCost) : null,
+        purchaseCost: form.purchaseCost ? parseFloat(form.purchaseCost) : 0,
       });
       onSuccess();
       onClose();

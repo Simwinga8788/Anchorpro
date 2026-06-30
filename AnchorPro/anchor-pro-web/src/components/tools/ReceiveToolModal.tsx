@@ -31,7 +31,7 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
         toolTag: formData.toolTag.trim() || null,
         description: formData.description.trim() || null,
         condition: Number(formData.condition),
-        purchaseCost: formData.purchaseCost ? parseFloat(formData.purchaseCost) : null
+        purchaseCost: formData.purchaseCost ? parseFloat(formData.purchaseCost) : 0
       });
       onSuccess();
       onClose();
