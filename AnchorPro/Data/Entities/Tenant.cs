@@ -23,7 +23,6 @@ namespace AnchorPro.Data.Entities
         [MaxLength(450)]
         public string? OwnerId { get; set; }
 
-        [MaxLength(500)]
         public string? LogoUrl { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
