@@ -13,6 +13,7 @@ public interface IToolService
     Task<List<ToolTransaction>> GetToolHistoryAsync(int toolId);
     Task<List<Tool>> GetAllToolsAsync();
     Task<string> ImportToolsFromCsvAsync(string csvContent, string userId);
+    Task<Tool> UpdateToolAsync(int toolId, string name, string? description, string toolTag, ToolCondition condition, decimal? purchaseCost);
 
     // Tool Requests
     Task<ToolRequest> CreateToolRequestAsync(string requestedByUserId, string toolName, string? notes);

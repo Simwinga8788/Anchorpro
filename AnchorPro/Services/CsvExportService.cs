@@ -534,9 +534,10 @@ namespace AnchorPro.Services
             ws.Cell(1, 5).Value = "Status";
             ws.Cell(1, 6).Value = "Condition";
             ws.Cell(1, 7).Value = "Purchase Cost";
+            ws.Cell(1, 8).Value = "Quantity";
 
             // Header Style: Steel Blue (#4682B4)
-            var headerRange = ws.Range(1, 1, 1, 7);
+            var headerRange = ws.Range(1, 1, 1, 8);
             headerRange.Style.Font.Bold = true;
             headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
             headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#4682B4");
@@ -551,8 +552,8 @@ namespace AnchorPro.Services
                 ws.Cell(rowNum, 1).Style.Font.Bold = true;
                 ws.Cell(rowNum, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F3F4F6");
 
-                ws.Range(rowNum, 1, rowNum, 7).Style.Border.BottomBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                ws.Range(rowNum, 1, rowNum, 7).Style.Border.BottomBorderColor = ClosedXML.Excel.XLColor.FromHtml("#E5E7EB");
+                ws.Range(rowNum, 1, rowNum, 8).Style.Border.BottomBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                ws.Range(rowNum, 1, rowNum, 8).Style.Border.BottomBorderColor = ClosedXML.Excel.XLColor.FromHtml("#E5E7EB");
             }
 
             // Dropdown validation list for Status
@@ -575,8 +576,9 @@ namespace AnchorPro.Services
             ws.Cell(7, 5).Value = "Available";
             ws.Cell(7, 6).Value = "Good";
             ws.Cell(7, 7).Value = "120.00";
+            ws.Cell(7, 8).Value = 3; // Quantity = 3 creates 3 individually-tagged records
 
-            var exampleRange = ws.Range(7, 1, 7, 7);
+            var exampleRange = ws.Range(7, 1, 7, 8);
             exampleRange.Style.Font.Italic = true;
             exampleRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#4B5563");
             exampleRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#EFF6FF");

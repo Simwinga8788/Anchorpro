@@ -55,6 +55,29 @@ public class ToolsController(IToolService toolService) : ControllerBase
         }
     }
 
+    public class UpdateToolRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string ToolTag { get; set; } = string.Empty;
+        public ToolCondition Condition { get; set; }
+        public decimal? PurchaseCost { get; set; }
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Manager,Storeman")]
+    public async Task<ActionResult<Tool>> UpdateTool(int id, [FromBody] UpdateToolRequest req)
+    {
+        try
+        {
+            var updated = await toolService.UpdateToolAsync(id, req.Name, req.Description, req.ToolTag, req.Condition, req.PurchaseCost);
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)   { return NotFound(ex.Message); }
+        catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.InnerException?.Message ?? ex.Message); }
+    }
+
     public class IssueToolRequest
     {
         public int ToolId { get; set; }

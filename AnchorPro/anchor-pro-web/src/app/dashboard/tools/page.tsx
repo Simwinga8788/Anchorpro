@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { toolsApi } from '@/lib/api';
-import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, FileSpreadsheet, Pencil } from 'lucide-react';
 import ReceiveToolModal from '@/components/tools/ReceiveToolModal';
 import IssueToolModal from '@/components/tools/IssueToolModal';
 import ReturnToolModal from '@/components/tools/ReturnToolModal';
+import EditToolModal from '@/components/tools/EditToolModal';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
 const conditionMap: Record<number, { label: string, color: string, badgeClass: string }> = {
@@ -34,6 +35,7 @@ export default function ToolsPage() {
   const [showReceive, setShowReceive] = useState(false);
   const [issueTarget, setIssueTarget] = useState<{ id: number, name: string, condition: number } | null>(null);
   const [returnTarget, setReturnTarget] = useState<{ id: number, toolName: string, assignedName: string } | null>(null);
+  const [editTarget,   setEditTarget]   = useState<any | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -248,14 +250,23 @@ export default function ToolsPage() {
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{new Date(t.receivedDate).toLocaleDateString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        {t.status === 1 /* Available */ && (
-                          <button 
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
                             className="btn btn-secondary btn-sm"
-                            onClick={() => setIssueTarget({ id: t.id, name: t.name, condition: t.condition })}
+                            title="Edit tool details / rename tag"
+                            onClick={() => setEditTarget(t)}
                           >
-                            <ArrowRightLeft size={13} /> Issue
+                            <Pencil size={13} /> Edit
                           </button>
-                        )}
+                          {t.status === 1 /* Available */ && (
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setIssueTarget({ id: t.id, name: t.name, condition: t.condition })}
+                            >
+                              <ArrowRightLeft size={13} /> Issue
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -354,6 +365,13 @@ export default function ToolsPage() {
           assignedToName={returnTarget.assignedName}
           onClose={() => setReturnTarget(null)} 
           onSuccess={fetchData} 
+        />
+      )}
+      {editTarget && (
+        <EditToolModal
+          tool={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={fetchData}
         />
       )}
     </>

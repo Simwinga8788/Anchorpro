@@ -99,6 +99,31 @@ public class ToolService(ApplicationDbContext context) : IToolService
         return tool;
     }
 
+    public async Task<Tool> UpdateToolAsync(int toolId, string name, string? description, string toolTag, ToolCondition condition, decimal? purchaseCost)
+    {
+        var tool = await context.Tools.FindAsync(toolId)
+            ?? throw new ArgumentException("Tool not found.");
+
+        // Guard: tag must be unique within the tenant (excluding this tool itself)
+        var tagTaken = await context.Tools.AnyAsync(t =>
+            t.Id != toolId &&
+            t.TenantId == tool.TenantId &&
+            t.ToolTag == toolTag);
+
+        if (tagTaken)
+            throw new InvalidOperationException($"Tag '{toolTag}' is already used by another tool.");
+
+        tool.Name        = name;
+        tool.Description = description;
+        tool.ToolTag     = toolTag;
+        tool.Condition   = condition;
+        tool.PurchaseCost = purchaseCost;
+        tool.UpdatedAt   = DateTime.UtcNow;
+
+        await context.SaveChangesAsync();
+        return tool;
+    }
+
     public async Task<ToolTransaction> ReturnToolAsync(int transactionId, string receivedByUserId, ToolCondition returnCondition, string? notes)
     {
         var transaction = await context.ToolTransactions
@@ -164,7 +189,7 @@ public class ToolService(ApplicationDbContext context) : IToolService
         }
 
         var headers = ParseCsvLine(firstLine, separator);
-        int nameIdx = -1, descIdx = -1, tagIdx = -1, statusIdx = -1, condIdx = -1, costIdx = -1;
+        int nameIdx = -1, descIdx = -1, tagIdx = -1, statusIdx = -1, condIdx = -1, costIdx = -1, qtyIdx = -1;
 
         for (int i = 0; i < headers.Count; i++)
         {
@@ -175,6 +200,7 @@ public class ToolService(ApplicationDbContext context) : IToolService
             else if (h.Contains("status")) statusIdx = i;
             else if (h.Contains("cond")) condIdx = i;
             else if (h.Contains("cost") || h.Contains("price") || h.Contains("purchase")) costIdx = i;
+            else if (h.Contains("qty") || h.Contains("quant")) qtyIdx = i;
         }
 
         if (nameIdx == -1)
@@ -200,10 +226,6 @@ public class ToolService(ApplicationDbContext context) : IToolService
             if (string.IsNullOrWhiteSpace(name) || name.Contains("[Example") || name.Contains("[Describe")) continue;
 
             var tag = GetValue(tagIdx);
-            if (string.IsNullOrWhiteSpace(tag))
-            {
-                tag = $"T-AUTO-{nextToolTag++}";
-            }
 
             // Parse Status
             var statusStr = GetValue(statusIdx).ToLower();
@@ -228,22 +250,46 @@ public class ToolService(ApplicationDbContext context) : IToolService
                 purchaseCost = parsedCost;
             }
 
-            var tool = new Tool
+            // Parse Quantity — default to 1 if column is absent or blank
+            int quantity = 1;
+            if (qtyIdx >= 0)
             {
-                TenantId = tenantId,
-                Name = name,
-                Description = GetValue(descIdx),
-                ToolTag = tag,
-                Status = status,
-                Condition = condition,
-                PurchaseCost = purchaseCost,
-                ReceivedDate = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
-            };
+                var qtyStr = GetValue(qtyIdx).Trim();
+                if (int.TryParse(qtyStr, out var parsedQty) && parsedQty > 1)
+                    quantity = parsedQty;
+            }
 
-            context.Tools.Add(tool);
-            successCount++;
+            // Create one Tool record per unit so each can be individually tracked
+            for (int unit = 1; unit <= quantity; unit++)
+            {
+                // When qty > 1 and the user supplied a base tag, append -1, -2, …
+                string unitTag;
+                if (!string.IsNullOrWhiteSpace(tag))
+                {
+                    unitTag = quantity > 1 ? $"{tag}-{unit}" : tag;
+                }
+                else
+                {
+                    unitTag = $"T-AUTO-{nextToolTag++}";
+                }
+
+                var tool = new Tool
+                {
+                    TenantId = tenantId,
+                    Name = name,
+                    Description = GetValue(descIdx),
+                    ToolTag = unitTag,
+                    Status = status,
+                    Condition = condition,
+                    PurchaseCost = purchaseCost,
+                    ReceivedDate = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.Tools.Add(tool);
+                successCount++;
+            }
         }
 
         await context.SaveChangesAsync();
