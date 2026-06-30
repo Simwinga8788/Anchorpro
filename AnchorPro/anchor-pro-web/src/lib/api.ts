@@ -765,6 +765,7 @@ export const hrApi = {
 
   // Employment Contracts
   getAllContracts:         ()                        => apiFetch<any[]>('/api/hr/contracts'),
+  getContract:             (id: number)              => apiFetch<any>(`/api/hr/contracts/${id}`),
   getMyContracts:         ()                        => apiFetch<any[]>('/api/hr/contracts/mine'),
   getUserContracts:       (userId: string)          => apiFetch<any[]>(`/api/hr/contracts/user/${userId}`),
   createContract:         (data: any)               => apiPost<any>('/api/hr/contracts', data),

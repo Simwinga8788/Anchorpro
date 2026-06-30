@@ -401,6 +401,8 @@ function ContractsTab() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showDraft, setShowDraft] = useState<any | null>(null);
+  const [draftText, setDraftText] = useState('');
   const [form, setForm] = useState<any>({ 
     contractType: 0, 
     status: 1, 
@@ -451,7 +453,33 @@ function ContractsTab() {
         overtimeMultiplier: ''
       });
       load();
+      load();
     } finally { setSaving(false); }
+  };
+
+  const openDraftModal = (c: any) => {
+    setShowDraft(c);
+    if (c.contractBody) {
+      setDraftText(c.contractBody);
+    } else {
+      const template = `EMPLOYMENT CONTRACT\n\nThis Employment Contract ("Contract") is made on ${new Date().toLocaleDateString()},\n\nEmployer: Anchor Pro (the "Company")\nEmployee: ${c.user?.firstName} ${c.user?.lastName} (the "Employee")\n\n1. POSITION AND DUTIES\nThe Employer agrees to employ the Employee as a ${c.jobTitle}. The Employee will perform duties as assigned by the Employer.\n\n2. COMPENSATION\nThe Employee will be paid a monthly salary of ZMW ${c.agreedMonthlySalary?.toLocaleString() ?? '0'}.\n\n3. WORKING HOURS\nStandard working hours are ${c.standardHoursPerMonth || 160} hours per month.\n\n4. TERM OF EMPLOYMENT\nThis contract commences on ${new Date(c.startDate).toLocaleDateString()} ${c.endDate ? `and terminates on ${new Date(c.endDate).toLocaleDateString()}` : 'and is on a permanent basis'}.\n\n5. TERMINATION\nEither party may terminate this contract by giving ${c.noticePeriodDays} days' written notice.\n\n6. CONFIDENTIALITY\nThe Employee agrees to keep confidential all proprietary information of the Employer.\n\nIN WITNESS WHEREOF, the parties have executed this Contract as of the date first above written.`;
+      setDraftText(template);
+    }
+  };
+
+  const handleSaveDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showDraft) return;
+    setSaving(true);
+    try {
+      await hrApi.updateContract(showDraft.id, { ...showDraft, contractBody: draftText });
+      setShowDraft(null);
+      load();
+    } catch (err: any) {
+      alert('Failed to save draft: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -492,11 +520,12 @@ function ContractsTab() {
                   <th>Multiplier</th>
                   <th>Monthly Salary</th>
                   <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No contracts found.</td></tr>
+                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No contracts found.</td></tr>
                 ) : filtered.map(c => {
                   const days = daysUntilExpiry(c.endDate);
                   const isExpiringSoon = days !== null && days >= 0 && days <= 30;
@@ -521,6 +550,18 @@ function ContractsTab() {
                       <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.overtimeMultiplier ? `${c.overtimeMultiplier}x` : 'Default'}</td>
                       <td style={{ fontWeight: 600 }}>{fmt(c.agreedMonthlySalary)}</td>
                       <td><span className={`badge ${contractStatusMap[c.status]?.badge || 'badge-muted'}`}>{contractStatusMap[c.status]?.label || '—'}</span></td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openDraftModal(c)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <FileText size={13} /> {c.contractBody ? 'Edit Contract' : 'Draft Contract'}
+                          </button>
+                          {c.contractBody && (
+                            <a href={`/dashboard/contracts/${c.id}/print`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Download size={13} /> Print
+                            </a>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -529,6 +570,38 @@ function ContractsTab() {
           </ResponsiveTable>
         )}
       </div>
+
+      {/* Draft Contract Modal */}
+      {showDraft && (
+        <div className="modal-overlay" onClick={() => setShowDraft(null)}>
+          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '90%' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Draft Employment Contract</h2>
+              <button className="modal-close" onClick={() => setShowDraft(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSaveDraft}>
+              <div className="modal-body">
+                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
+                  Review and edit the contract text below. This text will be used to generate the printable PDF contract.
+                </div>
+                <textarea 
+                  className="form-input" 
+                  style={{ width: '100%', minHeight: 400, fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.5 }} 
+                  value={draftText} 
+                  onChange={e => setDraftText(e.target.value)} 
+                  required
+                />
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowDraft(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Contract Text'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* New Contract Modal */}
       {showForm && (

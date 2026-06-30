@@ -91,6 +91,16 @@ public class HRController(IHRService hrService) : ControllerBase
         return Ok(contracts);
     }
 
+    [HttpGet("contracts/{id}")]
+    [Authorize(Roles = "Admin,HR")]
+    public async Task<IActionResult> GetContract(int id)
+    {
+        var contracts = await hrService.GetAllContractsAsync();
+        var contract = contracts.FirstOrDefault(c => c.Id == id);
+        if (contract == null) return NotFound();
+        return Ok(contract);
+    }
+
     [HttpPost("contracts")]
     [Authorize(Roles = "Admin,HR")]
     public async Task<IActionResult> CreateContract([FromBody] EmploymentContract contract)

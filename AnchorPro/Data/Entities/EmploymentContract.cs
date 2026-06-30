@@ -34,6 +34,8 @@ public class EmploymentContract : BaseEntity
     [MaxLength(1000)]
     public string? Notes { get; set; }
 
+    public string? ContractBody { get; set; } // Rich text / markdown contract drafted body
+
     [MaxLength(500)]
     public string? TerminationReason { get; set; }
 
