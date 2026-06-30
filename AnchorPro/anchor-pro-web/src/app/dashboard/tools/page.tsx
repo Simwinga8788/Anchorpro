@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { toolsApi } from '@/lib/api';
-import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, FileSpreadsheet, Pencil } from 'lucide-react';
+import { Wrench, Plus, ArrowRightLeft, CheckCircle, Search, Download, Upload, FileSpreadsheet, Pencil, ChevronRight, ChevronDown } from 'lucide-react';
 import ReceiveToolModal from '@/components/tools/ReceiveToolModal';
 import IssueToolModal from '@/components/tools/IssueToolModal';
 import ReturnToolModal from '@/components/tools/ReturnToolModal';
@@ -30,6 +30,7 @@ export default function ToolsPage() {
   const [tools, setTools] = useState<any[]>([]);
   const [issuedTools, setIssuedTools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   // Modals state
   const [showReceive, setShowReceive] = useState(false);
@@ -135,6 +136,53 @@ export default function ToolsPage() {
     `${tx.assignedToUser?.firstName} ${tx.assignedToUser?.lastName}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Grouping tools by name
+  const groupedToolsMap: Record<string, {
+    name: string;
+    description: string;
+    items: any[];
+    totalQty: number;
+    availQty: number;
+    conditions: Record<string, number>;
+    costs: number[];
+  }> = {};
+
+  filteredTools.forEach(tool => {
+    const key = tool.name.trim().toLowerCase();
+    if (!groupedToolsMap[key]) {
+      groupedToolsMap[key] = {
+        name: tool.name,
+        description: tool.description || '',
+        items: [],
+        totalQty: 0,
+        availQty: 0,
+        conditions: {},
+        costs: []
+      };
+    }
+    const group = groupedToolsMap[key];
+    group.items.push(tool);
+    group.totalQty += 1;
+    if (tool.status === 1) { // Available
+      group.availQty += 1;
+    }
+    const condLabel = conditionMap[tool.condition]?.label || 'Unknown';
+    group.conditions[condLabel] = (group.conditions[condLabel] || 0) + 1;
+    if (tool.purchaseCost != null) {
+      group.costs.push(tool.purchaseCost);
+    }
+  });
+
+  const groupedToolsList = Object.values(groupedToolsMap);
+
+  const toggleGroup = (groupName: string) => {
+    const key = groupName.toLowerCase();
+    setExpandedGroups(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   return (
     <>
       <div className="animate-in">
@@ -213,66 +261,134 @@ export default function ToolsPage() {
           ) : activeTab === 'all' ? (
             <div className="table-scroll">
               <ResponsiveTable>
-<table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Tag / S.N.</th>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Condition</th>
-                    <th>Received Date</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTools.length === 0 ? (
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                        No tools registered yet.
-                      </td>
+                      <th style={{ width: '40px' }}></th>
+                      <th>Tool Name</th>
+                      <th>Qty (Available / Total)</th>
+                      <th style={{ textAlign: 'right' }}>Unit Cost</th>
+                      <th style={{ textAlign: 'right' }}>Total Value</th>
+                      <th>Condition Summary</th>
                     </tr>
-                  ) : filteredTools.map(t => (
-                    <tr key={t.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--accent-blue)', fontFamily: 'monospace', fontSize: 13 }}>{t.toolTag}</td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</div>
-                        {t.description && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{t.description}</div>}
-                      </td>
-                      <td>
-                        <span className={`badge ${statusMap[t.status]?.badgeClass || 'badge-muted'}`}>
-                          {statusMap[t.status]?.label || 'Unknown'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${conditionMap[t.condition]?.badgeClass || 'badge-muted'}`}>
-                          {conditionMap[t.condition]?.label || 'Unknown'}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{new Date(t.receivedDate).toLocaleDateString()}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            title="Edit tool details / rename tag"
-                            onClick={() => setEditTarget(t)}
-                          >
-                            <Pencil size={13} /> Edit
-                          </button>
-                          {t.status === 1 /* Available */ && (
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => setIssueTarget({ id: t.id, name: t.name, condition: t.condition })}
+                  </thead>
+                  <tbody>
+                    {groupedToolsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                          No tools registered yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      groupedToolsList.map(group => {
+                        const isExpanded = !!expandedGroups[group.name.toLowerCase()];
+                        
+                        // Costs logic
+                        const totalCosts = group.costs.reduce((sum, cost) => sum + cost, 0);
+                        const avgCost = group.totalQty > 0 ? totalCosts / group.totalQty : 0;
+                        const totalValue = totalCosts; // since each item has a purchaseCost, sum of items is total value
+                        
+                        // Condition summary string
+                        const condSummary = Object.entries(group.conditions)
+                          .map(([cond, count]) => `${count} ${cond}`)
+                          .join(', ');
+
+                        return (
+                          <>
+                            {/* Group Header Row */}
+                            <tr 
+                              key={group.name} 
+                              onClick={() => toggleGroup(group.name)}
+                              style={{ cursor: 'pointer', background: 'var(--bg-card)', fontWeight: 600 }}
+                              className="hover-row"
                             >
-                              <ArrowRightLeft size={13} /> Issue
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-</ResponsiveTable>
+                              <td style={{ textAlign: 'center', padding: '12px 8px' }}>
+                                {isExpanded ? <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{group.name}</div>
+                                {group.description && <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400, marginTop: 2 }}>{group.description}</div>}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <span style={{ 
+                                  color: group.availQty > 0 ? 'var(--accent-emerald)' : 'var(--text-secondary)', 
+                                  fontWeight: 700 
+                                }}>
+                                  {group.availQty}
+                                </span>
+                                <span style={{ color: 'var(--text-secondary)' }}> / {group.totalQty} available</span>
+                              </td>
+                              <td style={{ textAlign: 'right', padding: '12px 16px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                                K {avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td style={{ textAlign: 'right', padding: '12px 16px', color: 'var(--accent-blue)', fontWeight: 700, fontFamily: 'monospace' }}>
+                                K {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>
+                                {condSummary}
+                              </td>
+                            </tr>
+
+                            {/* Sub-rows for individual tags (Only rendered if expanded) */}
+                            {isExpanded && group.items.map(t => (
+                              <tr 
+                                key={t.id} 
+                                style={{ background: 'rgba(0, 0, 0, 0.015)', borderLeft: '3px solid var(--accent-blue)' }}
+                              >
+                                <td></td>
+                                <td style={{ padding: '8px 16px 8px 32px' }}>
+                                  <div style={{ fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'monospace', fontSize: 12 }}>
+                                    {t.toolTag}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '8px 16px' }}>
+                                  <span className={`badge ${statusMap[t.status]?.badgeClass || 'badge-muted'}`} style={{ fontSize: 10, padding: '2px 6px' }}>
+                                    {statusMap[t.status]?.label || 'Unknown'}
+                                  </span>
+                                </td>
+                                <td colSpan={2} style={{ padding: '8px 16px' }}>
+                                  <span className={`badge ${conditionMap[t.condition]?.badgeClass || 'badge-muted'}`} style={{ fontSize: 10, padding: '2px 6px' }}>
+                                    {conditionMap[t.condition]?.label || 'Unknown'}
+                                  </span>
+                                  {t.purchaseCost > 0 && (
+                                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 10, fontFamily: 'monospace' }}>
+                                      Cost: K {t.purchaseCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '8px 16px', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 10 }}>
+                                      Rec: {new Date(t.receivedDate).toLocaleDateString()}
+                                    </span>
+                                    <button
+                                      className="btn btn-secondary btn-sm"
+                                      title="Edit tool details / rename tag"
+                                      style={{ padding: '3px 8px', fontSize: 11, height: 26 }}
+                                      onClick={() => setEditTarget(t)}
+                                    >
+                                      <Pencil size={11} /> Edit
+                                    </button>
+                                    {t.status === 1 /* Available */ && (
+                                      <button 
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '3px 8px', fontSize: 11, height: 26 }}
+                                        onClick={() => setIssueTarget({ id: t.id, name: t.name, condition: t.condition })}
+                                      >
+                                        <ArrowRightLeft size={11} /> Issue
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </ResponsiveTable>
             </div>
           ) : (
             <div className="table-scroll">
