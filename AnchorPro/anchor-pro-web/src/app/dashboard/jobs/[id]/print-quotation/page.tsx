@@ -50,17 +50,18 @@ export default function PrintQuotationPage() {
         setLoading(false);
       }
     };
-    loadData();
-  }, [id]);
+    if (user !== undefined) loadData();
+  }, [id, user]);
 
   useEffect(() => {
-    if (!loading && job && quotation) {
+    const hasTenantInfo = !user?.tenantId || tenant;
+    if (!loading && job && quotation && hasTenantInfo) {
       const timer = setTimeout(() => {
         window.print();
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [loading, job, quotation]);
+  }, [loading, job, quotation, tenant, user]);
 
   if (loading) {
     return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading quotation for print...</div>;
@@ -115,7 +116,7 @@ export default function PrintQuotationPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             {tenant?.logoUrl ? (
-              <img src={tenant.logoUrl} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />
+              <img src={tenant.logoUrl.replace(/^https?:/i, '')} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />
             ) : (
               <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '75px', objectFit: 'contain' }} />
             )}

@@ -75,7 +75,7 @@ export default function PrintContractPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            {tenant?.logoUrl && <img src={tenant.logoUrl} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />}
+            {tenant?.logoUrl && <img src={tenant.logoUrl.replace(/^https?:/i, '')} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />}
             <div>
               <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>{tenant?.name?.toUpperCase() || 'COMPANY NAME'}</h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>{tenant?.address || 'Company Address'}</p>
