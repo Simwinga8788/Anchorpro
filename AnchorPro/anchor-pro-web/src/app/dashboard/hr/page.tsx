@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeApi } from '@/lib/api';
+import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { hasPermission } from '@/lib/rbac';
 import {
@@ -134,7 +134,8 @@ function EmployeesTab() {
   const [profileTab, setProfileTab] = useState<'personal' | 'bank' | 'employment' | 'documents'>('personal');
   const [saving, setSaving] = useState(false);
   const [editProfile, setEditProfile] = useState<any>({});
-
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingId, setUploadingId] = useState(false);
   const load = async () => {
     try {
       setLoading(true);
@@ -167,6 +168,24 @@ function EmployeesTab() {
       setEditProfile(p || {});
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUploadDoc = async (e: React.ChangeEvent<HTMLInputElement>, field: string, setUploading: (val: boolean) => void) => {
+    const file = e.target.files?.[0];
+    if (!file || !selected) return;
+    setUploading(true);
+    try {
+      const res = await uploadApi.upload(file);
+      const url = res.url;
+      await hrApi.upsertProfile(selected.userId, { ...editProfile, userId: selected.userId, [field]: url });
+      setEditProfile((prev: any) => ({ ...prev, [field]: url }));
+      setProfile((prev: any) => ({ ...prev, [field]: url }));
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -326,17 +345,39 @@ function EmployeesTab() {
               {/* Documents Tab */}
               {profileTab === 'documents' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ padding: 14, border: '1px dashed var(--border-subtle)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <Upload size={20} style={{ marginBottom: 6 }} />
-                    <div style={{ fontSize: 13 }}>Document upload coming soon</div>
-                    <div style={{ fontSize: 11, marginTop: 4 }}>ID documents, contracts, certificates</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ padding: 14, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Profile Photo</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Upload employee headshot</div>
+                        {editProfile.profilePhotoUrl && (
+                          <a href={editProfile.profilePhotoUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'block', marginTop: 4 }}>View Current Photo</a>
+                        )}
+                      </div>
+                      <div>
+                        <input type="file" id="upload-profile-photo" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUploadDoc(e, 'profilePhotoUrl', setUploadingProfile)} />
+                        <label htmlFor="upload-profile-photo" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0, opacity: uploadingProfile ? 0.6 : 1, pointerEvents: uploadingProfile ? 'none' : 'auto' }}>
+                          {uploadingProfile ? 'Uploading...' : <><Upload size={13} style={{ marginRight: 6 }} /> Upload</>}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 14, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>ID Document</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Upload NRC, Passport, or Driver's License</div>
+                        {editProfile.idDocumentUrl && (
+                          <a href={editProfile.idDocumentUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'block', marginTop: 4 }}>View Current ID</a>
+                        )}
+                      </div>
+                      <div>
+                        <input type="file" id="upload-id-document" style={{ display: 'none' }} onChange={(e) => handleUploadDoc(e, 'idDocumentUrl', setUploadingId)} />
+                        <label htmlFor="upload-id-document" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0, opacity: uploadingId ? 0.6 : 1, pointerEvents: uploadingId ? 'none' : 'auto' }}>
+                          {uploadingId ? 'Uploading...' : <><Upload size={13} style={{ marginRight: 6 }} /> Upload</>}
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                  {editProfile.profilePhotoUrl && (
-                    <a href={editProfile.profilePhotoUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">View Profile Photo</a>
-                  )}
-                  {editProfile.idDocumentUrl && (
-                    <a href={editProfile.idDocumentUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">View ID Document</a>
-                  )}
                 </div>
               )}
 
