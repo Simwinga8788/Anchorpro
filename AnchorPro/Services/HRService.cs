@@ -47,6 +47,7 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
             existing.EmploymentStartDate = profile.EmploymentStartDate;
             existing.ProfilePhotoUrl = profile.ProfilePhotoUrl;
             existing.IdDocumentUrl = profile.IdDocumentUrl;
+            existing.DocumentsJson = profile.DocumentsJson;
             existing.UpdatedAt = DateTime.UtcNow;
             existing.UpdatedBy = profile.UpdatedBy;
             profile = existing;

@@ -33,7 +33,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
 
-  const isPrintPage = pathname?.endsWith('/print-quotation') || pathname?.endsWith('/print-invoice');
+  const isPrintPage = pathname?.endsWith('/print-quotation') || pathname?.endsWith('/print-invoice') || pathname?.endsWith('/print');
 
   if (isPrintPage) {
     return (

@@ -13,6 +13,7 @@ import {
   Package, ShoppingCart, Receipt
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import Portal from '@/components/Portal';
 
 // ─── Status Maps ───────────────────────────────────────────────────────────────
 const contractStatusMap: Record<number, { label: string; badge: string }> = {
@@ -133,9 +134,11 @@ function EmployeesTab() {
   const [profile, setProfile] = useState<any>(null);
   const [profileTab, setProfileTab] = useState<'personal' | 'bank' | 'employment' | 'documents'>('personal');
   const [saving, setSaving] = useState(false);
-  const [editProfile, setEditProfile] = useState<any>({});
-  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [editProfile, setEditProfile] = useState<any>({});  const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingId, setUploadingId] = useState(false);
+  const [docType, setDocType] = useState('NRC');
+  const [otherDocType, setOtherDocType] = useState('');
+
   const load = async () => {
     try {
       setLoading(true);
@@ -186,6 +189,55 @@ function EmployeesTab() {
     } finally {
       setUploading(false);
       e.target.value = '';
+    }
+  };
+
+  const handleAddDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selected) return;
+    setUploadingId(true);
+    try {
+      const res = await uploadApi.upload(file);
+      const url = res.url;
+      const finalDocType = docType === 'Other' ? (otherDocType || 'Other') : docType;
+      const newDoc = { type: finalDocType, url, name: file.name };
+
+      let currentDocs: any[] = [];
+      try {
+        if (editProfile.documentsJson) currentDocs = JSON.parse(editProfile.documentsJson);
+      } catch (err) {}
+
+      const updatedDocs = [...currentDocs, newDoc];
+      const updatedJson = JSON.stringify(updatedDocs);
+
+      await hrApi.upsertProfile(selected.userId, { ...editProfile, userId: selected.userId, documentsJson: updatedJson });
+      setEditProfile((prev: any) => ({ ...prev, documentsJson: updatedJson }));
+      setProfile((prev: any) => ({ ...prev, documentsJson: updatedJson }));
+      setOtherDocType('');
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploadingId(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteDocument = async (index: number) => {
+    if (!selected || !confirm('Are you sure you want to delete this document?')) return;
+    try {
+      let currentDocs: any[] = [];
+      try {
+        if (editProfile.documentsJson) currentDocs = JSON.parse(editProfile.documentsJson);
+      } catch (err) {}
+
+      const updatedDocs = currentDocs.filter((_, i) => i !== index);
+      const updatedJson = JSON.stringify(updatedDocs);
+
+      await hrApi.upsertProfile(selected.userId, { ...editProfile, userId: selected.userId, documentsJson: updatedJson });
+      setEditProfile((prev: any) => ({ ...prev, documentsJson: updatedJson }));
+      setProfile((prev: any) => ({ ...prev, documentsJson: updatedJson }));
+    } catch (err: any) {
+      alert('Delete failed: ' + err.message);
     }
   };
 
@@ -375,6 +427,85 @@ function EmployeesTab() {
                         <label htmlFor="upload-id-document" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0, opacity: uploadingId ? 0.6 : 1, pointerEvents: uploadingId ? 'none' : 'auto' }}>
                           {uploadingId ? 'Uploading...' : <><Upload size={13} style={{ marginRight: 6 }} /> Upload</>}
                         </label>
+                      </div>
+                    </div>
+
+                    {/* Additional Documents Section */}
+                    <div style={{ marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
+                      <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>Additional Documents</h4>
+                      
+                      {/* Documents List */}
+                      {(() => {
+                        let docs: any[] = [];
+                        try {
+                          if (editProfile.documentsJson) docs = JSON.parse(editProfile.documentsJson);
+                        } catch (e) {}
+                        
+                        if (docs.length === 0) {
+                          return (
+                            <div style={{ padding: 16, border: '1px dashed var(--border-subtle)', borderRadius: 8, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 14 }}>
+                              No additional documents uploaded yet (e.g. Passport, CV, Certifications).
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                            {docs.map((doc, idx) => (
+                              <div key={idx} style={{ padding: 10, border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-secondary)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <FileText size={16} style={{ color: 'var(--text-muted)' }} />
+                                  <div style={{ textAlign: 'left' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{doc.type}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all', maxWidth: 220 }}>{doc.name || 'document.pdf'}</div>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <a href={doc.url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 11 }}>
+                                    View
+                                  </a>
+                                  <button type="button" onClick={() => handleDeleteDocument(idx)} className="btn btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 11, color: 'var(--accent-rose)' }}>
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Upload Form */}
+                      <div style={{ padding: 14, border: '1px solid var(--border-subtle)', borderRadius: 8, background: 'var(--surface-secondary)', textAlign: 'left' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>Upload New Document</div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ display: 'flex', gap: 10, flexDirection: 'row' }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Document Type</label>
+                              <select className="form-select" value={docType} onChange={e => setDocType(e.target.value)} style={{ padding: '6px 10px', fontSize: 12, height: 'auto' }}>
+                                <option value="NRC">NRC</option>
+                                <option value="Passport">Passport</option>
+                                <option value="CV / Resume">CV / Resume</option>
+                                <option value="Academic Certificate">Academic Certificate</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            
+                            {docType === 'Other' && (
+                              <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Custom Type Name</label>
+                                <input className="form-input" style={{ padding: '6px 10px', fontSize: 12 }} placeholder="e.g. Certifications" value={otherDocType} onChange={e => setOtherDocType(e.target.value)} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                            <input type="file" id="upload-additional-doc" style={{ display: 'none' }} onChange={handleAddDocument} />
+                            <label htmlFor="upload-additional-doc" className="btn btn-primary btn-sm" style={{ cursor: 'pointer', margin: 0, opacity: uploadingId ? 0.6 : 1, pointerEvents: uploadingId ? 'none' : 'auto' }}>
+                              {uploadingId ? 'Uploading...' : <><Upload size={12} style={{ marginRight: 4 }} /> Select & Upload File</>}
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -573,117 +704,121 @@ function ContractsTab() {
 
       {/* Draft Contract Modal */}
       {showDraft && (
-        <div className="modal-overlay" onClick={() => setShowDraft(null)}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '90%' }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Draft Employment Contract</h2>
-              <button className="modal-close" onClick={() => setShowDraft(null)}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSaveDraft}>
-              <div className="modal-body">
-                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
-                  Review and edit the contract text below. This text will be used to generate the printable PDF contract.
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowDraft(null)}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '90%' }}>
+              <div className="modal-header">
+                <h2 className="modal-title">Draft Employment Contract</h2>
+                <button className="modal-close" onClick={() => setShowDraft(null)}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleSaveDraft}>
+                <div className="modal-body">
+                  <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Review and edit the contract text below. This text will be used to generate the printable PDF contract.
+                  </div>
+                  <textarea 
+                    className="form-input" 
+                    style={{ width: '100%', minHeight: 400, fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.5 }} 
+                    value={draftText} 
+                    onChange={e => setDraftText(e.target.value)} 
+                    required
+                  />
                 </div>
-                <textarea 
-                  className="form-input" 
-                  style={{ width: '100%', minHeight: 400, fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.5 }} 
-                  value={draftText} 
-                  onChange={e => setDraftText(e.target.value)} 
-                  required
-                />
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDraft(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Contract Text'}
-                </button>
-              </div>
-            </form>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowDraft(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Contract Text'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* New Contract Modal */}
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">New Employment Contract</h2>
-              <button className="modal-close" onClick={() => setShowForm(false)}><X size={20} /></button>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowForm(false)}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+              <div className="modal-header">
+                <h2 className="modal-title">New Employment Contract</h2>
+                <button className="modal-close" onClick={() => setShowForm(false)}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleCreate}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Employee *</label>
+                    <select className="form-select" value={form.userId || ''} onChange={e => setForm({ ...form, userId: e.target.value })} required>
+                      <option value="">Select employee...</option>
+                      {employees.map(emp => (
+                        <option key={emp.userId} value={emp.userId}>{emp.firstName} {emp.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Job Title *</label>
+                    <input className="form-input" value={form.jobTitle} onChange={e => setForm({ ...form, jobTitle: e.target.value })} required />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Contract Type</label>
+                      <select className="form-select" value={form.contractType} onChange={e => setForm({ ...form, contractType: Number(e.target.value) })}>
+                        <option value={0}>Permanent</option>
+                        <option value={1}>Fixed-Term</option>
+                        <option value={2}>Probation</option>
+                        <option value={3}>Casual</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Status</label>
+                      <select className="form-select" value={form.status} onChange={e => setForm({ ...form, status: Number(e.target.value) })}>
+                        <option value={0}>Draft</option>
+                        <option value={1}>Active</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Start Date *</label>
+                      <input type="date" className="form-input" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">End Date (leave blank if permanent)</label>
+                      <input type="date" className="form-input" value={form.endDate || ''} onChange={e => setForm({ ...form, endDate: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Monthly Salary (ZMW)</label>
+                      <input type="number" step="0.01" className="form-input" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Hourly Rate (ZMW)</label>
+                      <input type="number" step="0.01" className="form-input" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Notice Period (days)</label>
+                      <input type="number" className="form-input" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) || 30 })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Standard Hours / Month (Optional)</label>
+                      <input type="number" step="0.5" className="form-input" placeholder="e.g. 176" value={form.standardHoursPerMonth} onChange={e => setForm({ ...form, standardHoursPerMonth: e.target.value ? parseFloat(e.target.value) : '' })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Overtime Multiplier (Optional)</label>
+                      <input type="number" step="0.1" className="form-input" placeholder="e.g. 1.5" value={form.overtimeMultiplier} onChange={e => setForm({ ...form, overtimeMultiplier: e.target.value ? parseFloat(e.target.value) : '' })} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Notes</label>
+                    <textarea className="form-textarea" rows={2} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Create Contract'}</button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleCreate}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div className="form-group">
-                  <label className="form-label">Employee *</label>
-                  <select className="form-select" value={form.userId || ''} onChange={e => setForm({ ...form, userId: e.target.value })} required>
-                    <option value="">Select employee...</option>
-                    {employees.map(emp => (
-                      <option key={emp.userId} value={emp.userId}>{emp.firstName} {emp.lastName}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Job Title *</label>
-                  <input className="form-input" value={form.jobTitle} onChange={e => setForm({ ...form, jobTitle: e.target.value })} required />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">Contract Type</label>
-                    <select className="form-select" value={form.contractType} onChange={e => setForm({ ...form, contractType: Number(e.target.value) })}>
-                      <option value={0}>Permanent</option>
-                      <option value={1}>Fixed-Term</option>
-                      <option value={2}>Probation</option>
-                      <option value={3}>Casual</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Status</label>
-                    <select className="form-select" value={form.status} onChange={e => setForm({ ...form, status: Number(e.target.value) })}>
-                      <option value={0}>Draft</option>
-                      <option value={1}>Active</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Start Date *</label>
-                    <input type="date" className="form-input" value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">End Date (leave blank if permanent)</label>
-                    <input type="date" className="form-input" value={form.endDate || ''} onChange={e => setForm({ ...form, endDate: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Monthly Salary (ZMW)</label>
-                    <input type="number" step="0.01" className="form-input" value={form.agreedMonthlySalary} onChange={e => setForm({ ...form, agreedMonthlySalary: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Hourly Rate (ZMW)</label>
-                    <input type="number" step="0.01" className="form-input" value={form.hourlyRate} onChange={e => setForm({ ...form, hourlyRate: parseFloat(e.target.value) || 0 })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notice Period (days)</label>
-                    <input type="number" className="form-input" value={form.noticePeriodDays} onChange={e => setForm({ ...form, noticePeriodDays: parseInt(e.target.value) || 30 })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Standard Hours / Month (Optional)</label>
-                    <input type="number" step="0.5" className="form-input" placeholder="e.g. 176" value={form.standardHoursPerMonth} onChange={e => setForm({ ...form, standardHoursPerMonth: e.target.value ? parseFloat(e.target.value) : '' })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Overtime Multiplier (Optional)</label>
-                    <input type="number" step="0.1" className="form-input" placeholder="e.g. 1.5" value={form.overtimeMultiplier} onChange={e => setForm({ ...form, overtimeMultiplier: e.target.value ? parseFloat(e.target.value) : '' })} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Notes</label>
-                  <textarea className="form-textarea" rows={2} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Create Contract'}</button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );
@@ -875,36 +1010,38 @@ function PayrollTab() {
 
       {/* Create Payroll Run Modal */}
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">New Payroll Run</h2>
-              <button className="modal-close" onClick={() => setShowCreate(false)}><X size={20} /></button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {createError && <div className="alert alert-danger">{createError}</div>}
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                The system will auto-populate payslips for all active employees using their contract rates and job card hours for this period.
-              </p>
-              <div className="form-group">
-                <label className="form-label">Month</label>
-                <select className="form-select" value={newMonth} onChange={e => setNewMonth(Number(e.target.value))}>
-                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                </select>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+              <div className="modal-header">
+                <h2 className="modal-title">New Payroll Run</h2>
+                <button className="modal-close" onClick={() => setShowCreate(false)}><X size={20} /></button>
               </div>
-              <div className="form-group">
-                <label className="form-label">Year</label>
-                <input type="number" className="form-input" value={newYear} onChange={e => setNewYear(Number(e.target.value))} min={2020} max={2099} />
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {createError && <div className="alert alert-danger">{createError}</div>}
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  The system will auto-populate payslips for all active employees using their contract rates and job card hours for this period.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">Month</label>
+                  <select className="form-select" value={newMonth} onChange={e => setNewMonth(Number(e.target.value))}>
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Year</label>
+                  <input type="number" className="form-input" value={newYear} onChange={e => setNewYear(Number(newYear))} min={2020} max={2099} />
+                </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
-                {creating ? 'Generating...' : 'Generate Payroll Run'}
-              </button>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
+                  {creating ? 'Generating...' : 'Generate Payroll Run'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );
@@ -1189,131 +1326,135 @@ function TeamTab() {
 
       {/* Add User Modal */}
       {showInvite && (
-        <div className="modal-overlay" onClick={() => setShowInvite(false)}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Create User Account</h2>
-              <button className="modal-close" onClick={() => setShowInvite(false)}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleInvite}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {error && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
-                    {error}
-                  </div>
-                )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">First Name *</label>
-                    <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Name</label>
-                    <input className="form-input" value={inviteForm.lastName} onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email Address *</label>
-                  <input className="form-input" type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} required />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">Employee Number</label>
-                    <input className="form-input" value={inviteForm.employeeNumber} onChange={e => setInviteForm({ ...inviteForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowInvite(false)}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+              <div className="modal-header">
+                <h2 className="modal-title">Create User Account</h2>
+                <button className="modal-close" onClick={() => setShowInvite(false)}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleInvite}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {error && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
+                      {error}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">First Name *</label>
+                      <input className="form-input" value={inviteForm.firstName} onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Name</label>
+                      <input className="form-input" value={inviteForm.lastName} onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })} />
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Role</label>
-                    <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}>
-                      {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    <label className="form-label">Email Address *</label>
+                    <input className="form-input" type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} required />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Employee Number</label>
+                      <input className="form-input" value={inviteForm.employeeNumber} onChange={e => setInviteForm({ ...inviteForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Role</label>
+                      <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}>
+                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Department</label>
+                    <select className="form-select" value={inviteForm.departmentId} onChange={e => setInviteForm({ ...inviteForm, departmentId: e.target.value })}>
+                      <option value="">No Department (Overhead)</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label className="form-label">Temporary Password *</label>
+                    <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" required />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <select className="form-select" value={inviteForm.departmentId} onChange={e => setInviteForm({ ...inviteForm, departmentId: e.target.value })}>
-                    <option value="">No Department (Overhead)</option>
-                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowInvite(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Creating...' : 'Create Account'}
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Temporary Password *</label>
-                  <input className="form-input" type="password" value={inviteForm.password} onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" required />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowInvite(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Creating...' : 'Create Account'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Edit User Modal */}
       {showEdit && editingUser && (
-        <div className="modal-overlay" onClick={() => { setShowEdit(false); setEditingUser(null); }}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Edit User Account</h2>
-              <button className="modal-close" onClick={() => { setShowEdit(false); setEditingUser(null); }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleUpdate}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {error && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
-                    {error}
-                  </div>
-                )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">First Name *</label>
-                    <input className="form-input" value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Name</label>
-                    <input className="form-input" value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input className="form-input" type="email" value={editingUser.email} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Email address cannot be changed.</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">Employee Number</label>
-                    <input className="form-input" value={editForm.employeeNumber} onChange={e => setEditForm({ ...editForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+        <Portal>
+          <div className="modal-overlay" onClick={() => { setShowEdit(false); setEditingUser(null); }}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+              <div className="modal-header">
+                <h2 className="modal-title">Edit User Account</h2>
+                <button className="modal-close" onClick={() => { setShowEdit(false); setEditingUser(null); }}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleUpdate}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {error && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-rose-rgb), 0.1)', border: '1px solid var(--accent-rose)', borderRadius: 8, color: 'var(--accent-rose)', fontSize: 13 }}>
+                      {error}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">First Name *</label>
+                      <input className="form-input" value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Name</label>
+                      <input className="form-input" value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} />
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Role</label>
-                    <select className="form-select" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
-                      {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    <label className="form-label">Email Address</label>
+                    <input className="form-input" type="email" value={editingUser.email} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Email address cannot be changed.</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Employee Number</label>
+                      <input className="form-input" value={editForm.employeeNumber} onChange={e => setEditForm({ ...editForm, employeeNumber: e.target.value })} placeholder="e.g. EMP-001" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Role</label>
+                      <select className="form-select" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Department</label>
+                    <select className="form-select" value={editForm.departmentId} onChange={e => setEditForm({ ...editForm, departmentId: e.target.value })}>
+                      <option value="">No Department (Overhead)</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label className="form-label">Reset Password</label>
+                    <input className="form-input" type="password" value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep unchanged" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <select className="form-select" value={editForm.departmentId} onChange={e => setEditForm({ ...editForm, departmentId: e.target.value })}>
-                    <option value="">No Department (Overhead)</option>
-                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setEditingUser(null); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Reset Password</label>
-                  <input className="form-input" type="password" value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep unchanged" />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setEditingUser(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );
@@ -1825,34 +1966,36 @@ function DepartmentsTab() {
 
       {/* Department Modal */}
       {showForm && (
-        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingDept(null); }}>
-          <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editingDept ? 'Edit Department' : 'Create Department'}</h2>
-              <button className="modal-close" onClick={() => { setShowForm(false); setEditingDept(null); }}><X size={20} /></button>
+        <Portal>
+          <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingDept(null); }}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+              <div className="modal-header">
+                <h2 className="modal-title">{editingDept ? 'Edit Department' : 'Create Department'}</h2>
+                <button className="modal-close" onClick={() => { setShowForm(false); setEditingDept(null); }}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleCreateOrUpdate}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Department Name *</label>
+                    <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Procurement, Safety, or IT" required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Cost Code / Reference</label>
+                    <input className="form-input" value={form.costCode} onChange={e => setForm({ ...form, costCode: e.target.value })} placeholder="e.g. DEPT-PROC or 4001" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Description</label>
+                    <textarea className="form-textarea" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description of department scope or access role mapping..." />
+                  </div>
+                </div>
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditingDept(null); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Department'}</button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleCreateOrUpdate}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div className="form-group">
-                  <label className="form-label">Department Name *</label>
-                  <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Procurement, Safety, or IT" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Cost Code / Reference</label>
-                  <input className="form-input" value={form.costCode} onChange={e => setForm({ ...form, costCode: e.target.value })} placeholder="e.g. DEPT-PROC or 4001" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Description</label>
-                  <textarea className="form-textarea" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description of department scope or access role mapping..." />
-                </div>
-              </div>
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditingDept(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Department'}</button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   );

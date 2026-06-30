@@ -59,6 +59,7 @@ public class EmployeeProfile : BaseEntity
     [MaxLength(500)]
     public string? IdDocumentUrl { get; set; }
 
+    public string? DocumentsJson { get; set; } // Stores array of documents: [{type, url, name}]
 }
 
 public enum EmploymentType

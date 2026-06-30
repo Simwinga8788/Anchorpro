@@ -46,7 +46,15 @@ export default function PrintManualQuotationPage() {
     <div className="print-page-wrapper">
       {/* On-screen controls bar (hidden on print) */}
       <div className="no-print print-controls-bar">
-        <button onClick={() => router.back()} className="btn-back">
+        <button onClick={() => {
+          if (typeof window !== 'undefined') {
+            if (window.opener || window.history.length === 1) {
+              window.close();
+            } else {
+              router.back();
+            }
+          }
+        }} className="btn-back">
           ← Back
         </button>
         <span className="doc-type-badge">Quotation Preview</span>
