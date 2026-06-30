@@ -41,12 +41,12 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("receive")]
-    public async Task<ActionResult<Tool>> ReceiveTool([FromBody] Tool tool)
+    public async Task<ActionResult> ReceiveTool([FromBody] Tool tool)
     {
         try
         {
             var createdTool = await toolService.ReceiveToolAsync(tool);
-            return Ok(createdTool);
+            return Ok(new { id = createdTool.Id, name = createdTool.Name, toolTag = createdTool.ToolTag });
         }
         catch (System.Exception ex)
         {
@@ -64,12 +64,12 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Tool>> UpdateTool(int id, [FromBody] UpdateToolRequest req)
+    public async Task<ActionResult> UpdateTool(int id, [FromBody] UpdateToolRequest req)
     {
         try
         {
             var updated = await toolService.UpdateToolAsync(id, req.Name, req.Description, req.ToolTag, req.Condition, req.PurchaseCost);
-            return Ok(updated);
+            return Ok(new { id = updated.Id, name = updated.Name, toolTag = updated.ToolTag });
         }
         catch (ArgumentException ex)   { return NotFound(ex.Message); }
         catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -86,7 +86,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("issue")]
-    public async Task<ActionResult<ToolTransaction>> IssueTool([FromBody] IssueToolRequest request)
+    public async Task<ActionResult> IssueTool([FromBody] IssueToolRequest request)
     {
         try
         {
@@ -103,7 +103,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
                 request.ExpectedReturnDate, 
                 request.Notes);
 
-            return Ok(transaction);
+            return Ok(new { id = transaction.Id, toolId = transaction.ToolId, success = true });
         }
         catch (Exception ex)
         {
@@ -119,7 +119,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("return")]
-    public async Task<ActionResult<ToolTransaction>> ReturnTool([FromBody] ReturnToolRequest request)
+    public async Task<ActionResult> ReturnTool([FromBody] ReturnToolRequest request)
     {
         try
         {
@@ -134,7 +134,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
                 request.ReturnCondition,
                 request.Notes);
 
-            return Ok(transaction);
+            return Ok(new { id = transaction.Id, toolId = transaction.ToolId, success = true });
         }
         catch (Exception ex)
         {
