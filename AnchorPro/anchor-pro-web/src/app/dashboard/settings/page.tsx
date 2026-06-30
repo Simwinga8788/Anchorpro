@@ -666,16 +666,23 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label className="btn btn-sm" style={{ cursor: 'pointer', background: 'var(--accent-blue)', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <Save size={14} /> Upload Logo
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          try {
-                            const res = await uploadApi.upload(file);
-                            setOrgForm(f => ({ ...f, logoUrl: res.url }));
-                            show('Logo uploaded. Click Save settings to apply.');
-                          } catch (err: any) {
-                            show(err.message || 'Logo upload failed', 'error');
+                          if (file.size > 2 * 1024 * 1024) {
+                            show('Logo must be smaller than 2MB', 'error');
+                            return;
                           }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const base64Url = event.target?.result as string;
+                            setOrgForm(f => ({ ...f, logoUrl: base64Url }));
+                            show('Logo uploaded. Click Save Changes to apply.');
+                          };
+                          reader.onerror = () => {
+                            show('Failed to read logo file', 'error');
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }} />
                     </label>
