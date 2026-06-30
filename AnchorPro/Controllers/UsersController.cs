@@ -14,7 +14,7 @@ namespace AnchorPro.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -156,6 +156,7 @@ namespace AnchorPro.Controllers
         /// Body: { "email": "...", "firstName": "...", "lastName": "...", "employeeNumber": "...", "password": "...", "role": "Technician", "hourlyRate": 450 }
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Create([FromBody] CreateUserRequest req)
         {
             var tenantId = _tenantService.TenantId;
@@ -194,6 +195,7 @@ namespace AnchorPro.Controllers
         /// Body: { "firstName": "...", "lastName": "...", "employeeNumber": "...", "role": "Supervisor", "hourlyRate": 500, "departmentId": 2 }
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Update(string id, [FromBody] UpdateUserRequest req)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -226,6 +228,7 @@ namespace AnchorPro.Controllers
 
         /// <summary>DELETE /api/users/{id} — Remove a user from the tenant.</summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Delete(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -244,6 +247,7 @@ namespace AnchorPro.Controllers
         /// Admin override — no current password required.
         /// </summary>
         [HttpPost("{id}/change-password")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest req)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -262,6 +266,7 @@ namespace AnchorPro.Controllers
         /// Locks out a user indefinitely.
         /// </summary>
         [HttpPatch("{id}/deactivate")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeactivateUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -277,6 +282,7 @@ namespace AnchorPro.Controllers
         /// Removes the lockout from a user.
         /// </summary>
         [HttpPatch("{id}/activate")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ActivateUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);

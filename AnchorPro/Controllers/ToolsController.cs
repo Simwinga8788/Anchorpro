@@ -4,6 +4,9 @@ using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AnchorPro.Controllers;
 
 [ApiController]
@@ -40,11 +43,28 @@ public class ToolsController(IToolService toolService) : ControllerBase
         return Ok(history);
     }
 
+    public class ReceiveToolRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ToolTag { get; set; }
+        public ToolCondition Condition { get; set; }
+        public decimal? PurchaseCost { get; set; }
+    }
+
     [HttpPost("receive")]
-    public async Task<ActionResult> ReceiveTool([FromBody] Tool tool)
+    public async Task<ActionResult> ReceiveTool([FromBody] ReceiveToolRequest req)
     {
         try
         {
+            var tool = new Tool
+            {
+                Name = req.Name,
+                Description = req.Description,
+                ToolTag = req.ToolTag ?? string.Empty,
+                Condition = req.Condition,
+                PurchaseCost = req.PurchaseCost
+            };
             var createdTool = await toolService.ReceiveToolAsync(tool);
             return Ok(new { id = createdTool.Id, name = createdTool.Name, toolTag = createdTool.ToolTag });
         }
