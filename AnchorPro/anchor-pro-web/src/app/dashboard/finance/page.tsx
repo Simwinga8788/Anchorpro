@@ -1229,20 +1229,6 @@ function QuotationsTab() {
             </select>
           </div>
           <div className="form-field">
-            <label className="form-label">Service Order (Optional)</label>
-            <select className="form-select" value={createQuoteForm.jobCardId} onChange={e => {
-              const selectedJob = jobCards.find(j => j.id.toString() === e.target.value);
-              setCreateQuoteForm({ 
-                ...createQuoteForm, 
-                jobCardId: e.target.value,
-                ...(selectedJob?.customerId ? { customerId: selectedJob.customerId.toString() } : {})
-              });
-            }}>
-              <option value="">None (Ad-Hoc Quote)</option>
-              {jobCards.map(j => <option key={j.id} value={j.id}>#{j.jobNumber || j.id} - {j.equipment?.name || 'General'}</option>)}
-            </select>
-          </div>
-          <div className="form-field">
             <label className="form-label">Subtotal (ZMW)</label>
             <input className="form-input" type="number" step="0.01" required value={createQuoteForm.subtotal} onChange={e => setCreateQuoteForm({ ...createQuoteForm, subtotal: e.target.value })} />
             {createQuoteForm.subtotal && (
