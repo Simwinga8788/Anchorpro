@@ -41,7 +41,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("receive")]
-    [Authorize(Roles = "Admin,Manager,Storeman")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<Tool>> ReceiveTool([FromBody] Tool tool)
     {
         try
@@ -65,7 +65,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager,Storeman")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<Tool>> UpdateTool(int id, [FromBody] UpdateToolRequest req)
     {
         try
@@ -88,7 +88,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("issue")]
-    [Authorize(Roles = "Admin,Manager,Storeman")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<ToolTransaction>> IssueTool([FromBody] IssueToolRequest request)
     {
         try
@@ -122,7 +122,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("return")]
-    [Authorize(Roles = "Admin,Manager,Storeman")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<ToolTransaction>> ReturnTool([FromBody] ReturnToolRequest request)
     {
         try
@@ -152,7 +152,7 @@ public class ToolsController(IToolService toolService) : ControllerBase
     /// Imports tools in bulk.
     /// </summary>
     [HttpPost("import")]
-    [Authorize(Roles = "Admin,Manager,Storeman")]
+    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult> Import(Microsoft.AspNetCore.Http.IFormFile file)
     {
         if (file == null || file.Length == 0)
