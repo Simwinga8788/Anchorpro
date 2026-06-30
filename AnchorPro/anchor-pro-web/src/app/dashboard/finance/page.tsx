@@ -1068,6 +1068,12 @@ function QuotationsTab() {
 
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => setShowCreateQuote(true)}>
+          <Plus size={14} /> Create Ad-Hoc Quote
+        </button>
+      </div>
+
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div className="stat-card">
