@@ -590,6 +590,7 @@ export const settingsApi = {
   getGlobal:   ()                                      => apiFetch<any[]>('/api/settings/global'),
   getGlobalByKey:(key: string)                         => apiFetch<any>(`/api/settings/global/${key}`),
   upsertGlobal:(key: string, value: string)            => apiPut<any>(`/api/settings/global/${key}`, { value }),
+  updateMyTenant:(data: any)                           => apiPut<any>('/api/settings/my-tenant', data),
 };
 
 // ─── Subscriptions API ── /api/subscriptions ───────────────────────────────────

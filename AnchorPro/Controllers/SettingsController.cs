@@ -1,7 +1,10 @@
+using AnchorPro.Data;
 using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Controllers
 {
@@ -15,10 +18,17 @@ namespace AnchorPro.Controllers
     public class SettingsController : ControllerBase
     {
         private readonly ISettingsService _settingsService;
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public SettingsController(ISettingsService settingsService)
+        public SettingsController(
+            ISettingsService settingsService,
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _settingsService = settingsService;
+            _context = context;
+            _userManager = userManager;
         }
 
         // ── TENANT SETTINGS ───────────────────────────────────────────────────
@@ -53,6 +63,33 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// PUT /api/settings/my-tenant — Update current tenant's profile (e.g. Logo, Name).
+        /// </summary>
+        [HttpPut("my-tenant")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> UpdateMyTenant([FromBody] UpdateMyTenantRequest req)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null || !user.TenantId.HasValue) return Unauthorized();
+
+            // We must find the tenant without tenant filters because Tenant entity itself isn't scoped to itself in a way that context filters
+            _context.IgnoreTenantFilter = true;
+            var tenant = await _context.Tenants.FindAsync(user.TenantId.Value);
+            if (tenant == null) return NotFound();
+
+            tenant.Name = req.Name;
+            tenant.LogoUrl = req.LogoUrl;
+            tenant.Address = req.Address;
+            tenant.ContactEmail = req.ContactEmail;
+            tenant.ContactPhone = req.ContactPhone;
+            tenant.UpdatedAt = DateTime.UtcNow;
+            tenant.UpdatedBy = user.Id;
+
+            await _context.SaveChangesAsync();
+            return Ok(tenant);
+        }
+
         // ── GLOBAL / PLATFORM SETTINGS ────────────────────────────────────────
 
         /// <summary>
@@ -68,7 +105,7 @@ namespace AnchorPro.Controllers
         /// </summary>
         [HttpGet("global/{key}")]
         [Authorize(Roles = "PlatformOwner")]
-        public async Task<ActionResult> GetGlobalByKey(string key)
+        public async Task<ActionResult<string>> GetGlobalByKey(string key)
         {
             var value = await _settingsService.GetGlobalSettingAsync(key);
             return Ok(new { key, value });
@@ -82,7 +119,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "PlatformOwner")]
         public async Task<ActionResult> UpsertGlobal(string key, [FromBody] UpsertSettingRequest req)
         {
-            await _settingsService.SetGlobalSettingAsync(key, req.Value, req.Description, req.Group);
+            await _settingsService.SetGlobalSettingAsync(key, req.Value);
             return NoContent();
         }
     }
@@ -94,5 +131,14 @@ namespace AnchorPro.Controllers
         public string Value { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Group { get; set; } = "General";
+    }
+
+    public class UpdateMyTenantRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? LogoUrl { get; set; }
+        public string? Address { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
     }
 }

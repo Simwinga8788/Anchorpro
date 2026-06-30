@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
-import { settingsApi, subscriptionsApi, departmentsApi, usersApi, referenceDataApi } from '@/lib/api';
+import { settingsApi, subscriptionsApi, departmentsApi, usersApi, referenceDataApi, tenantsApi, uploadApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ export default function SettingsPage() {
   const [savingPw, setSavingPw] = useState(false);
 
   // ── Workspace ────────────────────────────────────────────────────────────────
-  const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW' });
+  const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW', logoUrl: '', address: '', contactEmail: '', contactPhone: '' });
   const [savingOrg, setSavingOrg] = useState(false);
 
   // ── Financial & Markups ──────────────────────────────────────────────────────
@@ -258,7 +258,11 @@ export default function SettingsPage() {
     settingsApi.getAll().then((all: any[]) => {
       if (!Array.isArray(all)) return;
       const g = (k: string, fb: string) => all.find((s: any) => s.key === k)?.value ?? fb;
-      setOrgForm({ name: g('Org.Name', ''), currency: g('Org.Currency', 'ZMW') });
+      setOrgForm(prev => ({
+        ...prev,
+        name: g('Org.Name', prev.name || ''),
+        currency: g('Org.Currency', prev.currency || 'ZMW'),
+      }));
       setFinForm({
         partsMarkup: g('Fin.DefaultPartsMarkupPercent', '20.0'),
         laborBillingRate: g('Fin.DefaultLaborBillingRate', '400.0'),
@@ -300,6 +304,21 @@ export default function SettingsPage() {
       });
       setIsSmtpConfigured(!!g('Smtp_Host', ''));
     }).catch(() => {});
+
+    if (user?.tenantId) {
+      tenantsApi.getById(user.tenantId).then((t: any) => {
+        if (t) {
+          setOrgForm(prev => ({
+            ...prev,
+            name: t.name || prev.name,
+            logoUrl: t.logoUrl || '',
+            address: t.address || '',
+            contactEmail: t.contactEmail || '',
+            contactPhone: t.contactPhone || '',
+          }));
+        }
+      }).catch(e => console.error("Failed to fetch tenant details", e));
+    }
   }, [user]);
 
   useEffect(() => {
@@ -341,6 +360,13 @@ export default function SettingsPage() {
   const handleSaveOrg = async () => {
     setSavingOrg(true);
     try {
+      await settingsApi.updateMyTenant({
+        name: orgForm.name,
+        logoUrl: orgForm.logoUrl,
+        address: orgForm.address,
+        contactEmail: orgForm.contactEmail,
+        contactPhone: orgForm.contactPhone,
+      });
       await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
       await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
       show('Workspace settings saved');
@@ -604,12 +630,71 @@ export default function SettingsPage() {
       // ── Workspace ──────────────────────────────────────────────────────────
       case 'workspace': return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title="Organisation Settings" subtitle="Your company name and base currency" icon={<Building2 size={16} />}
+          <SectionCard title="Organisation Settings" subtitle="Your company logo, name, and address details" icon={<Building2 size={16} />}
             footer={<SaveBtn loading={savingOrg} onClick={handleSaveOrg} />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <FormRow label="Organisation Name">
                 <input className="form-input" value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Acme Mining Corp" />
               </FormRow>
+
+              <FormRow label="Company Logo" hint="Recommended: Square or horizontal layout with transparent background. Max 10MB.">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '5px' }}>
+                  <div style={{
+                    width: '90px',
+                    height: '90px',
+                    borderRadius: '12px',
+                    background: 'var(--bg-hover)',
+                    border: '2px dashed var(--border-default)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    {orgForm.logoUrl ? (
+                      <img src={orgForm.logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <Building2 size={28} style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label className="btn btn-sm" style={{ cursor: 'pointer', background: 'var(--accent-blue)', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Save size={14} /> Upload Logo
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const res = await uploadApi.upload(file);
+                            setOrgForm(f => ({ ...f, logoUrl: res.url }));
+                            show('Logo uploaded. Click Save settings to apply.');
+                          } catch (err: any) {
+                            show(err.message || 'Logo upload failed', 'error');
+                          }
+                        }
+                      }} />
+                    </label>
+                    {orgForm.logoUrl && (
+                      <button className="btn btn-sm" style={{ background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }} onClick={() => setOrgForm(f => ({ ...f, logoUrl: '' }))}>
+                        Remove Logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </FormRow>
+
+              <FormRow label="Company Address">
+                <textarea className="form-input" style={{ minHeight: '60px' }} value={orgForm.address || ''} onChange={e => setOrgForm(f => ({ ...f, address: e.target.value }))} placeholder="e.g. Plot 102, Great North Road, Lusaka, Zambia" />
+              </FormRow>
+
+              <div className="settings-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <FormRow label="Contact Email" hint="For client communications and invoices">
+                  <input className="form-input" value={orgForm.contactEmail || ''} onChange={e => setOrgForm(f => ({ ...f, contactEmail: e.target.value }))} placeholder="e.g. contact@company.com" />
+                </FormRow>
+                <FormRow label="Contact Phone" hint="For general enquiries">
+                  <input className="form-input" value={orgForm.contactPhone || ''} onChange={e => setOrgForm(f => ({ ...f, contactPhone: e.target.value }))} placeholder="e.g. +260 970000000" />
+                </FormRow>
+              </div>
+
               <FormRow label="Base Currency" hint="Used on invoices, cost estimates, and reports">
                 <select className="form-select" value={orgForm.currency} onChange={e => setOrgForm(f => ({ ...f, currency: e.target.value }))}>
                   <option value="ZMW">Zambian Kwacha (ZMW)</option>

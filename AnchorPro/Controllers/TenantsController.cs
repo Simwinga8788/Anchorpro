@@ -79,8 +79,18 @@ namespace AnchorPro.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult> GetById(int id)
         {
-            if (!await IsPlatformOwnerAsync())
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            // Allow if Platform Owner OR if the user belongs to the requested Tenant
+            if (user.TenantId != null && user.TenantId != id)
+            {
+                return StatusCode(403, new { message = "Access denied. You do not belong to this tenant." });
+            }
+            if (user.TenantId == null && !await IsPlatformOwnerAsync())
+            {
                 return StatusCode(403, new { message = "Platform Owner access required." });
+            }
 
             _context.IgnoreTenantFilter = true;
             var tenant = await _context.Tenants.FindAsync(id);
