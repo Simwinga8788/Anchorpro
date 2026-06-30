@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { jobCardsApi, quotationsApi, settingsApi } from '@/lib/api';
+import { jobCardsApi, quotationsApi, settingsApi, tenantsApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function PrintQuotationPage() {
   const params = useParams();
@@ -10,7 +11,9 @@ export default function PrintQuotationPage() {
   const id = parseInt(params.id as string);
   const [job, setJob] = useState<any>(null);
   const [quotation, setQuotation] = useState<any>(null);
+  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   // Financial settings
   const [partsMarkup, setPartsMarkup] = useState(20);
@@ -28,6 +31,11 @@ export default function PrintQuotationPage() {
 
         setJob(jobData);
         setQuotation(qData);
+
+        if (user?.tenantId) {
+          const t = await tenantsApi.getById(user.tenantId).catch(() => null);
+          setTenant(t);
+        }
 
         const pm = settings.find((s: any) => s.key === 'Fin.DefaultPartsMarkupPercent');
         const lr = settings.find((s: any) => s.key === 'Fin.DefaultLaborBillingRate');
@@ -106,11 +114,21 @@ export default function PrintQuotationPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '75px', objectFit: 'contain' }} />
+            {tenant?.logoUrl ? (
+              <img src={tenant.logoUrl} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />
+            ) : (
+              <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '75px', objectFit: 'contain' }} />
+            )}
             <div>
-              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>ANCHOR PRO</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>Production Planning & Service Operation Tool</p>
-              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                {tenant?.name?.toUpperCase() || 'ANCHOR PRO'}
+              </h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>
+                {tenant?.name ? 'Production Planning & Service Operation' : 'Production Planning & Service Operation Tool'}
+              </p>
+              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+                {tenant?.address || 'Lusaka, Zambia'} {tenant?.contactEmail ? `· ${tenant.contactEmail}` : ''} {tenant?.contactPhone ? `· ${tenant.contactPhone}` : ''}
+              </p>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
