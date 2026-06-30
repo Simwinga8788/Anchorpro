@@ -612,8 +612,18 @@ namespace AnchorPro.Services
                 // Ensure index checks
                 string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
 
-                var desc = GetValue(descIdx);
-                if (string.IsNullOrWhiteSpace(desc) || desc.Contains("[Describe") || desc.Contains("[Example")) continue; // Skip empty/helper rows
+                var desc = GetValue(descIdx).Trim();
+                if (string.IsNullOrWhiteSpace(desc)) continue;
+
+                // Skip example rows (case-insensitive checks)
+                if (desc.Contains("[Describe", StringComparison.OrdinalIgnoreCase) || 
+                    desc.Contains("[Example", StringComparison.OrdinalIgnoreCase) ||
+                    desc.Contains("example", StringComparison.OrdinalIgnoreCase)) 
+                    continue;
+
+                // Also check the index/first column for "example"
+                if (values.Count > 0 && values[0].Contains("example", StringComparison.OrdinalIgnoreCase))
+                    continue;
 
                 var typeName = GetValue(typeIdx);
                 if (string.IsNullOrWhiteSpace(typeName)) typeName = "General";

@@ -169,10 +169,20 @@ namespace AnchorPro.Services
 
                 string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
 
-                var partNum = GetValue(partNumIdx);
-                var name = GetValue(nameIdx);
-                // Skip helper or empty rows
-                if (string.IsNullOrWhiteSpace(partNum) || string.IsNullOrWhiteSpace(name) || partNum.Contains("[Example") || partNum.Contains("[Describe")) continue;
+                var partNum = GetValue(partNumIdx).Trim();
+                var name = GetValue(nameIdx).Trim();
+                if (string.IsNullOrWhiteSpace(partNum) || string.IsNullOrWhiteSpace(name)) continue;
+
+                // Skip example rows (case-insensitive checks)
+                if (partNum.Contains("[Example", StringComparison.OrdinalIgnoreCase) || 
+                    partNum.Contains("[Describe", StringComparison.OrdinalIgnoreCase) ||
+                    partNum.Contains("example", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("example", StringComparison.OrdinalIgnoreCase)) 
+                    continue;
+
+                // Also check the index/first column for "example"
+                if (values.Count > 0 && values[0].Contains("example", StringComparison.OrdinalIgnoreCase))
+                    continue;
 
                 int qty = 0;
                 var qtyStr = GetValue(qtyIdx);

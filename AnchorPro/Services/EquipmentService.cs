@@ -181,10 +181,24 @@ namespace AnchorPro.Services
                 string GetValue(int idx) => idx >= 0 && idx < values.Count ? values[idx] : string.Empty;
 
                 var name = GetValue(nameIdx);
-                // Skip empty, examples, or headers repeated
-                if (string.IsNullOrWhiteSpace(name) || name.Contains("[Example") || name.Contains("[Describe")) continue;
+                if (string.IsNullOrWhiteSpace(name)) continue;
 
-                var serial = GetValue(serialIdx);
+                // Skip example rows (case-insensitive checks)
+                if (name.Contains("[Example", StringComparison.OrdinalIgnoreCase) || 
+                    name.Contains("[Describe", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("example", StringComparison.OrdinalIgnoreCase)) 
+                    continue;
+
+                // Also check the index/first column for "example"
+                if (values.Count > 0 && values[0].Contains("example", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var serial = GetValue(serialIdx).Trim();
+                if (serial.Contains("leave blank", StringComparison.OrdinalIgnoreCase) || (serial.StartsWith("[") && serial.EndsWith("]")))
+                {
+                    serial = string.Empty;
+                }
+
                 if (string.IsNullOrWhiteSpace(serial))
                 {
                     serial = $"SN-AUTO-{nextSerialNum++}";
