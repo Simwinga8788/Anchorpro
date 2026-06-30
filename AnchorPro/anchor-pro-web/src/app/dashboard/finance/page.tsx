@@ -557,7 +557,7 @@ function VendorBillsTab() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        {hasPermission('/dashboard/finance:record_payment', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+        {hasPermission('/dashboard/finance', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
           <button className="btn btn-primary" onClick={handleOpenCreateModal}>
             <Plus size={16} /> Convert Received PO to Bill
           </button>
@@ -596,7 +596,7 @@ function VendorBillsTab() {
                         <td>{fmt(row.totalAmount)}</td>
                         <td>{fmt(row.balance)}</td>
                         <td>
-                          {hasPermission('/dashboard/finance:record_payment', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+                          {hasPermission('/dashboard/finance', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                             <button
                               className="btn btn-secondary"
                               style={{ fontSize: 12, padding: '5px 12px' }}

@@ -555,7 +555,7 @@ export default function JobCardsPage() {
               accept=".csv,.xlsx"
               onChange={handleImport}
             />
-            {hasPermission('/dashboard/jobs:create', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
+            {hasPermission('/dashboard/jobs', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
               <button className="btn btn-primary" onClick={() => setIsNewJobOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Plus size={14} /> New {jobLabel}
               </button>
