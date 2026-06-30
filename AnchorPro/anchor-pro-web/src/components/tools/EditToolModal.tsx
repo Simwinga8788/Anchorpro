@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toolsApi } from '@/lib/api';
-import { X, Save, Tag } from 'lucide-react';
+import { X, Save, Tag, Trash2 } from 'lucide-react';
 
 const CONDITIONS = ['New', 'Good', 'Fair', 'Damaged'];
 
@@ -51,6 +51,24 @@ export default function EditToolModal({ tool, onClose, onSuccess }: Props) {
       onClose();
     } catch (err: any) {
       setError(err.message ?? 'Failed to save changes.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete tool "${tool.name}" (${tool.toolTag})? This action cannot be undone.`)) {
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      await toolsApi.deleteTool(tool.id);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.message ?? 'Failed to delete tool.');
     } finally {
       setSaving(false);
     }
@@ -183,25 +201,38 @@ export default function EditToolModal({ tool, onClose, onSuccess }: Props) {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
             <button
               type="button"
-              id="edit-tool-cancel"
-              className="btn btn-secondary"
-              onClick={onClose}
+              id="edit-tool-delete"
+              className="btn btn-danger btn-sm"
+              onClick={handleDelete}
               disabled={saving}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              Cancel
+              <Trash2 size={13} />
+              Delete Tool
             </button>
-            <button
-              type="submit"
-              id="edit-tool-save"
-              className="btn btn-primary"
-              disabled={saving}
-            >
-              <Save size={15} />
-              {saving ? 'Saving…' : 'Save Changes'}
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                id="edit-tool-cancel"
+                className="btn btn-secondary"
+                onClick={onClose}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                id="edit-tool-save"
+                className="btn btn-primary"
+                disabled={saving}
+              >
+                <Save size={15} />
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

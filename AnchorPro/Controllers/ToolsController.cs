@@ -41,7 +41,6 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("receive")]
-    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<Tool>> ReceiveTool([FromBody] Tool tool)
     {
         try
@@ -65,7 +64,6 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<Tool>> UpdateTool(int id, [FromBody] UpdateToolRequest req)
     {
         try
@@ -88,7 +86,6 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("issue")]
-    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<ToolTransaction>> IssueTool([FromBody] IssueToolRequest request)
     {
         try
@@ -122,7 +119,6 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("return")]
-    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult<ToolTransaction>> ReturnTool([FromBody] ReturnToolRequest request)
     {
         try
@@ -152,7 +148,6 @@ public class ToolsController(IToolService toolService) : ControllerBase
     /// Imports tools in bulk.
     /// </summary>
     [HttpPost("import")]
-    [Authorize(Roles = "Admin,Supervisor,Planner,Storeman,Manager")]
     public async Task<ActionResult> Import(Microsoft.AspNetCore.Http.IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -238,11 +233,23 @@ public class ToolsController(IToolService toolService) : ControllerBase
     }
 
     [HttpPost("requests/{id}/reject")]
-    [Authorize(Roles = "Admin,Supervisor,Planner")]
     public async Task<ActionResult> RejectToolRequest(int id)
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
         await toolService.RejectToolRequestAsync(id, userId);
         return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteTool(int id)
+    {
+        try
+        {
+            await toolService.DeleteToolAsync(id);
+            return NoContent();
+        }
+        catch (ArgumentException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return BadRequest(new { message = ex.InnerException?.Message ?? ex.Message }); }
     }
 }

@@ -696,6 +696,7 @@ export const toolsApi = {
   getMyRequests: ()                        => apiFetch<any[]>('/api/tools/requests/my'),
   rejectRequest: (id: number)              => apiPost<any>(`/api/tools/requests/${id}/reject`, {}),
   updateTool:    (id: number, data: any)   => apiPut<any>(`/api/tools/${id}`, data),
+  deleteTool:    (id: number)              => apiDelete(`/api/tools/${id}`),
 };
 
 // ─── Upload API ── /api/upload ─────────────────────────────────────────────────

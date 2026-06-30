@@ -395,4 +395,26 @@ public class ToolService(ApplicationDbContext context) : IToolService
             await context.SaveChangesAsync();
         }
     }
+
+    public async Task DeleteToolAsync(int toolId)
+    {
+        var tool = await context.Tools
+            .Include(t => t.Transactions)
+            .FirstOrDefaultAsync(t => t.Id == toolId);
+
+        if (tool == null)
+            throw new ArgumentException("Tool not found.");
+
+        if (tool.Status == ToolStatus.Issued)
+            throw new InvalidOperationException("Cannot delete a tool that is currently issued to a technician. Return the tool first.");
+
+        // Clean up transaction history before deleting the tool
+        if (tool.Transactions != null && tool.Transactions.Any())
+        {
+            context.ToolTransactions.RemoveRange(tool.Transactions);
+        }
+
+        context.Tools.Remove(tool);
+        await context.SaveChangesAsync();
+    }
 }

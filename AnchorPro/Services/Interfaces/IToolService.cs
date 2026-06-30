@@ -20,4 +20,5 @@ public interface IToolService
     Task<List<ToolRequest>> GetPendingToolRequestsAsync();
     Task<List<ToolRequest>> GetMyToolRequestsAsync(string userId);
     Task RejectToolRequestAsync(int requestId, string userId);
+    Task DeleteToolAsync(int toolId);
 }
