@@ -1324,7 +1324,7 @@ function QuotationsTab() {
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
                 <a
-                  href={`/dashboard/jobs/${selectedQuote.jobCardId || 0}/print-quotation?qtnId=${selectedQuote.id}`}
+                  href={selectedQuote.jobCardId ? `/dashboard/jobs/${selectedQuote.jobCardId}/print-quotation?qtnId=${selectedQuote.id}` : `/dashboard/quotations/${selectedQuote.id}/print`}
                   target="_blank" rel="noreferrer"
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
