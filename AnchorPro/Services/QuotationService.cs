@@ -54,7 +54,7 @@ namespace AnchorPro.Services
             if (existing != null) return existing;
 
             // Use JobNumber as the QuotationNumber
-            var qtnNumber = !string.IsNullOrWhiteSpace(job.JobNumber) ? job.JobNumber.Trim() : $"QTN-{job.Id}";
+            var qtnNumber = !string.IsNullOrWhiteSpace(job.JobNumber) ? job.JobNumber.Trim().Replace("JOB", "QTN") : $"QTN-{job.Id}";
 
             // Retrieve Global Financial & Markup settings for this tenant
             var settings = await context.SystemSettings

@@ -1123,7 +1123,7 @@ function QuotationsTab() {
               ) : (
                 quotes.map(q => {
                   const st = quotationStatusMap[q.status] || { label: 'Unknown', badge: 'badge-muted' };
-                  const canAct = q.status === 1; // only Sent quotes can be approved/rejected
+                  const canAct = q.status === 1 || q.status === 0; // Sent or Draft quotes can be approved/rejected
                   return (
                     <tr key={q.id}>
                       <td style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{q.quoteNumber || `Q-${q.id}`}</td>
@@ -1362,12 +1362,8 @@ function InvoicesTab() {
   const [loading, setLoading] = useState(true);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [createMode, setCreateMode] = useState<'from-job' | 'adhoc'>('adhoc');
   const [customers, setCustomers] = useState<any[]>([]);
-  const [completedJobs, setCompletedJobs] = useState<any[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
   const [savingInvoice, setSavingInvoice] = useState(false);
-  const [fromJobId, setFromJobId] = useState('');
   const [adHocForm, setAdHocForm] = useState({ customerId: '', description: '', amount: '', dueDate: '' });
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -1389,35 +1385,19 @@ function InvoicesTab() {
     customersApi.getAll().then(setCustomers).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (showCreate && createMode === 'from-job') {
-      setJobsLoading(true);
-      jobCardsApi.getAll()
-        .then(jobs => setCompletedJobs(jobs.filter((j: any) => j.status === 2 && !j.invoiceId)))
-        .catch(() => {})
-        .finally(() => setJobsLoading(false));
-    }
-  }, [showCreate, createMode]);
-
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingInvoice(true);
     try {
-      if (createMode === 'from-job') {
-        if (!fromJobId) throw new Error("Select a job");
-        await financialApi.createFromJob(parseInt(fromJobId));
-      } else {
-        if (!adHocForm.customerId || !adHocForm.amount) throw new Error("Missing required fields");
-        await financialApi.createAdHoc({
-          customerId: parseInt(adHocForm.customerId),
-          notes: adHocForm.description,
-          subtotal: parseFloat(adHocForm.amount),
-          taxRate: 16,
-          dueDate: adHocForm.dueDate ? new Date(adHocForm.dueDate).toISOString() : new Date().toISOString()
-        });
-      }
+      if (!adHocForm.customerId || !adHocForm.amount) throw new Error("Missing required fields");
+      await financialApi.createAdHoc({
+        customerId: parseInt(adHocForm.customerId),
+        notes: adHocForm.description,
+        subtotal: parseFloat(adHocForm.amount),
+        taxRate: 16,
+        dueDate: adHocForm.dueDate ? new Date(adHocForm.dueDate).toISOString() : new Date().toISOString()
+      });
       setShowCreate(false);
-      setFromJobId('');
       setAdHocForm({ customerId: '', description: '', amount: '', dueDate: '' });
       fetchInvoices();
     } catch (err: any) {
@@ -1523,65 +1503,6 @@ function InvoicesTab() {
       </div>
 
       {/* ── Create Invoice SlideOver ── */}
-      <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Create Invoice" subtitle="Generate from a completed job or create manually">
-        <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-app)', borderRadius: 8, padding: 4 }}>
-            {([['from-job', 'From Completed Job'], ['adhoc', 'Ad-hoc Invoice']] as const).map(([mode, label]) => (
-              <button
-                key={mode} type="button" onClick={() => setCreateMode(mode)}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 600,
-                  background: createMode === mode ? 'var(--accent-blue)' : 'transparent',
-                  color: createMode === mode ? '#fff' : 'var(--text-secondary)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {createMode === 'from-job' ? (
-            <>
-              <div style={{ padding: 12, background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-tertiary)' }}>
-                The backend will automatically pull all cost data (labour, parts, direct purchases) from the job card and generate a complete invoice.
-              </div>
-              <div className="form-field">
-                <label className="form-label">Completed Job</label>
-                {jobsLoading ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>Loading jobs...</div>
-                ) : completedJobs.length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>No completed jobs without invoices.</div>
-                ) : (
-                  <select className="form-select" value={fromJobId} onChange={e => setFromJobId(e.target.value)} required>
-                    <option value="">Select a completed job...</option>
-                    {completedJobs.map(j => (
-                      <option key={j.id} value={j.id}>
-                        {j.jobNumber} — {j.equipment?.name || j.description || 'Job'}{j.customer ? ` (${j.customer.name})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="form-field">
-                <label className="form-label">Customer</label>
-                <select className="form-select" value={adHocForm.customerId} onChange={e => setAdHocForm({ ...adHocForm, customerId: e.target.value })} required>
-                  <option value="">Select customer...</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label className="form-label">Description</label>
-                <textarea className="form-textarea" placeholder="What is this invoice for?" value={adHocForm.description} onChange={e => setAdHocForm({ ...adHocForm, description: e.target.value })} />
-              </div>
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="form-label">Amount (K)</label>
-                  <input className="form-input" type="number" step="0.01" required value={adHocForm.amount} onChange={e => setAdHocForm({ ...adHocForm, amount: e.target.value })} />
-                </div>
                 <div className="form-field">
                   <label className="form-label">Due Date</label>
                   <input className="form-input" type="date" value={adHocForm.dueDate} onChange={e => setAdHocForm({ ...adHocForm, dueDate: e.target.value })} />
