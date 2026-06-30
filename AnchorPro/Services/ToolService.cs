@@ -90,6 +90,26 @@ public class ToolService(ApplicationDbContext context) : IToolService
 
     public async Task<Tool> ReceiveToolAsync(Tool tool)
     {
+        if (string.IsNullOrWhiteSpace(tool.ToolTag))
+        {
+            var currentCount = await context.Tools.CountAsync(t => t.TenantId == tool.TenantId);
+            int offset = 1001;
+            while (await context.Tools.AnyAsync(t => t.TenantId == tool.TenantId && t.ToolTag == $"T-AUTO-{currentCount + offset}"))
+            {
+                offset++;
+            }
+            tool.ToolTag = $"T-AUTO-{currentCount + offset}";
+        }
+        else
+        {
+            var tagTaken = await context.Tools.AnyAsync(t =>
+                t.TenantId == tool.TenantId &&
+                t.ToolTag == tool.ToolTag);
+
+            if (tagTaken)
+                throw new InvalidOperationException($"Tag '{tool.ToolTag}' is already used by another tool.");
+        }
+
         tool.Status = ToolStatus.Available;
         tool.ReceivedDate = DateTime.UtcNow;
         

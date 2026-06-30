@@ -14,17 +14,25 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
     toolTag: '',
     description: '',
     condition: 1, // New = 1, Good = 2, Fair = 3, Damaged = 4
+    purchaseCost: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) { setError('Tool Name is required.'); return; }
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
     setError('');
 
     try {
-      await toolsApi.receiveTool(formData);
+      await toolsApi.receiveTool({
+        name: formData.name.trim(),
+        toolTag: formData.toolTag.trim() || null,
+        description: formData.description.trim() || null,
+        condition: Number(formData.condition),
+        purchaseCost: formData.purchaseCost ? parseFloat(formData.purchaseCost) : null
+      });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -83,29 +91,45 @@ export default function ReceiveToolModal({ onClose, onSuccess }: { onClose: () =
           </div>
           
           <div className="form-field">
-            <label className="form-label">Tool Tag / Serial Number</label>
+            <label className="form-label">Tool Tag / Serial Number (Optional)</label>
             <input 
               type="text" 
-              required
               className="form-input" 
-              placeholder="e.g. TL-WRE-0042"
+              placeholder="e.g. TL-WRE-0042 (leave blank to auto-generate)"
               value={formData.toolTag}
               onChange={e => setFormData({...formData, toolTag: e.target.value})}
             />
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+              Leave blank to automatically assign a sequential tag (e.g. T-AUTO-1002).
+            </span>
           </div>
 
-          <div className="form-field">
-            <label className="form-label">Initial Condition</label>
-            <select 
-              className="form-select"
-              value={formData.condition}
-              onChange={e => setFormData({...formData, condition: Number(e.target.value)})}
-            >
-              <option value={1}>New</option>
-              <option value={2}>Good</option>
-              <option value={3}>Fair</option>
-              <option value={4}>Damaged</option>
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-field">
+              <label className="form-label">Initial Condition</label>
+              <select 
+                className="form-select"
+                value={formData.condition}
+                onChange={e => setFormData({...formData, condition: Number(e.target.value)})}
+              >
+                <option value={1}>New</option>
+                <option value={2}>Good</option>
+                <option value={3}>Fair</option>
+                <option value={4}>Damaged</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="form-label">Purchase Cost (Optional)</label>
+              <input 
+                type="number" 
+                min="0"
+                step="0.01"
+                className="form-input" 
+                placeholder="0.00"
+                value={formData.purchaseCost}
+                onChange={e => setFormData({...formData, purchaseCost: e.target.value})}
+              />
+            </div>
           </div>
 
           <div className="form-field">
