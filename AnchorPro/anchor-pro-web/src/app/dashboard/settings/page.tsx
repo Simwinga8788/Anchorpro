@@ -138,6 +138,38 @@ const NAV_GROUPS = [
   },
 ];
 
+// ─── Render helpers ────────────────────────────────────────────────────────
+function FormRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="form-field">
+      <label className="form-label">{label}</label>
+      {children}
+      {hint && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function SaveBtn({ loading, onClick, label = 'Save Changes' }: { loading: boolean; onClick: () => void; label?: string }) {
+  return (
+    <button className="btn btn-primary btn-sm" onClick={onClick} disabled={loading}
+      style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {loading ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Saving...</> : <><Save size={13} />{label}</>}
+    </button>
+  );
+}
+
+function RuleRow({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{desc}</div>
+      </div>
+      <Toggle value={checked} onChange={onChange} />
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -505,32 +537,6 @@ export default function SettingsPage() {
     } catch (e: any) { show(e.message || 'Upgrade failed', 'error'); }
     finally { setUpgrading(false); }
   };
-
-  // ─── Render helpers ────────────────────────────────────────────────────────
-  const FormRow = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
-    <div className="form-field">
-      <label className="form-label">{label}</label>
-      {children}
-      {hint && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{hint}</div>}
-    </div>
-  );
-
-  const SaveBtn = ({ loading, onClick, label = 'Save Changes' }: { loading: boolean; onClick: () => void; label?: string }) => (
-    <button className="btn btn-primary btn-sm" onClick={onClick} disabled={loading}
-      style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      {loading ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Saving...</> : <><Save size={13} />{label}</>}
-    </button>
-  );
-
-  const RuleRow = ({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{desc}</div>
-      </div>
-      <Toggle value={checked} onChange={onChange} />
-    </div>
-  );
 
   // ─── Tab content ──────────────────────────────────────────────────────────
   const renderContent = () => {
