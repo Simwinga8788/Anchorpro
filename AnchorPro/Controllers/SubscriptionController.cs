@@ -92,7 +92,7 @@ namespace AnchorPro.Controllers
         /// Returns: Active, Trial, GracePeriod, Suspended, Cancelled.
         /// </summary>
         [HttpGet("health/{subscriptionId}")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> GetHealth(int subscriptionId)
         {
             var status = await _lifecycleService.GetSubscriptionHealthStatusAsync(subscriptionId);
@@ -105,7 +105,7 @@ namespace AnchorPro.Controllers
         /// GET /api/subscriptions/requiring-action — Subscriptions needing attention (expired trials, overdue payments).
         /// </summary>
         [HttpGet("requiring-action")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> GetRequiringAction()
             => Ok(await _lifecycleService.GetSubscriptionsRequiringActionAsync());
 
@@ -113,7 +113,7 @@ namespace AnchorPro.Controllers
         /// GET /api/subscriptions/mrr-trend — Monthly Recurring Revenue (MRR) trend.
         /// </summary>
         [HttpGet("mrr-trend")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> GetMrrTrend([FromServices] AnchorPro.Data.ApplicationDbContext context)
         {
             context.IgnoreTenantFilter = true;
@@ -142,7 +142,7 @@ namespace AnchorPro.Controllers
         /// Body: { "reason": "Payment overdue" }
         /// </summary>
         [HttpPost("{subscriptionId}/suspend")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> Suspend(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -155,7 +155,7 @@ namespace AnchorPro.Controllers
         /// Body: { "reason": "Payment received" }
         /// </summary>
         [HttpPost("{subscriptionId}/reactivate")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> Reactivate(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -168,7 +168,7 @@ namespace AnchorPro.Controllers
         /// Body: { "reason": "Customer churned" }
         /// </summary>
         [HttpPost("{subscriptionId}/cancel")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> Cancel(int subscriptionId, [FromBody] LifecycleActionRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -182,7 +182,7 @@ namespace AnchorPro.Controllers
         /// Converts a trial to a paid plan.
         /// </summary>
         [HttpPost("{subscriptionId}/convert-trial")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> ConvertTrial(int subscriptionId, [FromBody] UpgradeRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
@@ -195,7 +195,7 @@ namespace AnchorPro.Controllers
         /// Body: { "price": 4500.00 }
         /// </summary>
         [HttpPut("plans/{id}/price")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> UpdatePlanPrice(int id, [FromBody] UpdatePlanPriceRequest req)
         {
             var success = await _subscriptionService.UpdatePlanPriceAsync(id, req.Price);

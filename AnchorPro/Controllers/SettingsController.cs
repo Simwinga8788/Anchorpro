@@ -96,7 +96,7 @@ namespace AnchorPro.Controllers
         /// GET /api/settings/global — All platform-level settings (PlatformOwner only).
         /// </summary>
         [HttpGet("global")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult<List<SystemSetting>>> GetGlobal()
             => Ok(await _settingsService.GetGlobalSettingsAsync());
 
@@ -104,7 +104,7 @@ namespace AnchorPro.Controllers
         /// GET /api/settings/global/{key}
         /// </summary>
         [HttpGet("global/{key}")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult<string>> GetGlobalByKey(string key)
         {
             var value = await _settingsService.GetGlobalSettingAsync(key);
@@ -116,7 +116,7 @@ namespace AnchorPro.Controllers
         /// Body: { "value": "...", "description": "...", "group": "Platform" }
         /// </summary>
         [HttpPut("global/{key}")]
-        [Authorize(Roles = "PlatformOwner")]
+        [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> UpsertGlobal(string key, [FromBody] UpsertSettingRequest req)
         {
             await _settingsService.SetGlobalSettingAsync(key, req.Value);

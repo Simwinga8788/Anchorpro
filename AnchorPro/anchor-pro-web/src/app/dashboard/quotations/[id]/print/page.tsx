@@ -2,28 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { quotationsApi } from '@/lib/api';
+import { quotationsApi, tenantsApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function PrintManualQuotationPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
   const [quotation, setQuotation] = useState<any>(null);
+  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const qData = await quotationsApi.getById(id);
         setQuotation(qData);
+        if (user?.tenantId) {
+          const t = await tenantsApi.getById(user.tenantId);
+          setTenant(t);
+        }
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
-  }, [id]);
+    if (user !== undefined) loadData();
+  }, [id, user]);
 
   useEffect(() => {
     if (!loading && quotation) {
@@ -68,11 +75,21 @@ export default function PrintManualQuotationPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '75px', objectFit: 'contain' }} />
+            {tenant?.logoUrl ? (
+              <img src={tenant.logoUrl} alt={`${tenant?.name || 'Company'} Logo`} style={{ height: '75px', objectFit: 'contain' }} />
+            ) : (
+              <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '75px', objectFit: 'contain' }} />
+            )}
             <div>
-              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>ANCHOR PRO</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>Production Planning & Service Operation Tool</p>
-              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Lusaka, Zambia · support@anchorpro.com</p>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '26px', color: '#2563eb', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                {tenant?.name || 'ANCHOR PRO'}
+              </h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>
+                {tenant?.name ? 'Production Planning & Service Operation' : 'Production Planning & Service Operation Tool'}
+              </p>
+              <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+                {tenant?.address || 'Lusaka, Zambia'} · {tenant?.contactEmail || 'support@anchorpro.com'}
+              </p>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
