@@ -120,16 +120,23 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
         foreach (var ac in activeContracts)
             ac.Status = EmploymentContractStatus.Expired;
 
+        // Sync hourly rate to ApplicationUser and copy TenantId
+        var user = await userManager.FindByIdAsync(contract.UserId);
+        if (user != null)
+        {
+            if (contract.TenantId == null)
+            {
+                contract.TenantId = user.TenantId;
+            }
+            if (contract.HourlyRate > 0)
+            {
+                user.HourlyRate = contract.HourlyRate;
+                await userManager.UpdateAsync(user);
+            }
+        }
+
         contract.CreatedAt = DateTime.UtcNow;
         context.EmploymentContracts.Add(contract);
-
-        // Sync hourly rate to ApplicationUser
-        var user = await userManager.FindByIdAsync(contract.UserId);
-        if (user != null && contract.HourlyRate > 0)
-        {
-            user.HourlyRate = contract.HourlyRate;
-            await userManager.UpdateAsync(user);
-        }
 
         await context.SaveChangesAsync();
         return contract;
