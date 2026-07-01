@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeApi, uploadApi } from '@/lib/api';
+import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeApi, uploadApi, settingsApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { hasPermission } from '@/lib/rbac';
 import {
@@ -525,8 +525,36 @@ function EmployeesTab() {
   );
 }
 
+const DEFAULT_CONTRACT_TEMPLATE = `EMPLOYMENT CONTRACT
+
+This Employment Contract ("Contract") is made on {{CurrentDate}},
+
+Employer: {{Company}} (the "Company")
+Employee: {{EmployeeName}} (the "Employee")
+
+1. POSITION AND DUTIES
+The Employer agrees to employ the Employee as a {{JobTitle}}. The Employee will perform duties as assigned by the Employer.
+
+2. COMPENSATION
+The Employee will be paid a monthly salary of ZMW {{Salary}}.
+
+3. WORKING HOURS
+Standard working hours are {{WorkingHours}} hours per month.
+
+4. TERM OF EMPLOYMENT
+This contract commences on {{StartDate}} {{EndDateClause}}.
+
+5. TERMINATION
+Either party may terminate this contract by giving {{NoticePeriod}} days' written notice.
+
+6. CONFIDENTIALITY
+The Employee agrees to keep confidential all proprietary information of the Employer.
+
+IN WITNESS WHEREOF, the parties have executed this Contract as of the date first above written.`;
+
 // ─── Contracts Tab ────────────────────────────────────────────────────────────
 function ContractsTab() {
+  const { user } = useAuth();
   const [contracts, setContracts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -545,17 +573,39 @@ function ContractsTab() {
     overtimeMultiplier: ''
   });
   const [saving, setSaving] = useState(false);
+  const [contractTemplate, setContractTemplate] = useState(DEFAULT_CONTRACT_TEMPLATE);
+  const [tenant, setTenant] = useState<any>(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
-      const [c, e] = await Promise.all([hrApi.getAllContracts(), hrApi.getEmployees()]);
+      const [c, e, settings] = await Promise.all([
+        hrApi.getAllContracts(), 
+        hrApi.getEmployees(),
+        settingsApi.getAll().catch(() => [])
+      ]);
       setContracts(c || []);
       setEmployees(e || []);
+
+      const templateSetting = settings?.find((s: any) => s.key === 'Hr.ContractTemplate')?.value;
+      if (templateSetting) {
+        setContractTemplate(templateSetting);
+      }
+
+      if (user?.tenantId) {
+        try {
+          const t = await tenantsApi.getById(user.tenantId);
+          setTenant(t);
+        } catch (err) {
+          console.error('Failed to load tenant for contracts', err);
+        }
+      }
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user]);
 
   const expiringSoon = contracts.filter(c => {
     const days = daysUntilExpiry(c.endDate);
@@ -571,7 +621,13 @@ function ContractsTab() {
     e.preventDefault();
     setSaving(true);
     try {
-      await hrApi.createContract(form);
+      const payload = {
+        ...form,
+        endDate: form.endDate === '' ? null : form.endDate,
+        standardHoursPerMonth: form.standardHoursPerMonth === '' ? null : form.standardHoursPerMonth,
+        overtimeMultiplier: form.overtimeMultiplier === '' ? null : form.overtimeMultiplier
+      };
+      await hrApi.createContract(payload);
       setShowForm(false);
       setForm({ 
         contractType: 0, 
@@ -596,7 +652,16 @@ function ContractsTab() {
     if (c.contractBody) {
       setDraftText(c.contractBody);
     } else {
-      const template = `EMPLOYMENT CONTRACT\n\nThis Employment Contract ("Contract") is made on ${new Date().toLocaleDateString()},\n\nEmployer: Anchor Pro (the "Company")\nEmployee: ${c.user?.firstName} ${c.user?.lastName} (the "Employee")\n\n1. POSITION AND DUTIES\nThe Employer agrees to employ the Employee as a ${c.jobTitle}. The Employee will perform duties as assigned by the Employer.\n\n2. COMPENSATION\nThe Employee will be paid a monthly salary of ZMW ${c.agreedMonthlySalary?.toLocaleString() ?? '0'}.\n\n3. WORKING HOURS\nStandard working hours are ${c.standardHoursPerMonth || 160} hours per month.\n\n4. TERM OF EMPLOYMENT\nThis contract commences on ${new Date(c.startDate).toLocaleDateString()} ${c.endDate ? `and terminates on ${new Date(c.endDate).toLocaleDateString()}` : 'and is on a permanent basis'}.\n\n5. TERMINATION\nEither party may terminate this contract by giving ${c.noticePeriodDays} days' written notice.\n\n6. CONFIDENTIALITY\nThe Employee agrees to keep confidential all proprietary information of the Employer.\n\nIN WITNESS WHEREOF, the parties have executed this Contract as of the date first above written.`;
+      const template = contractTemplate
+        .replace(/{{CurrentDate}}/g, new Date().toLocaleDateString())
+        .replace(/{{Company}}/g, tenant?.name || 'Anchor Pro')
+        .replace(/{{EmployeeName}}/g, `${c.user?.firstName ?? ''} ${c.user?.lastName ?? ''}`)
+        .replace(/{{JobTitle}}/g, c.jobTitle || '')
+        .replace(/{{Salary}}/g, c.agreedMonthlySalary?.toLocaleString() ?? '0')
+        .replace(/{{WorkingHours}}/g, String(c.standardHoursPerMonth || 160))
+        .replace(/{{StartDate}}/g, new Date(c.startDate).toLocaleDateString())
+        .replace(/{{EndDateClause}}/g, c.endDate ? `and terminates on ${new Date(c.endDate).toLocaleDateString()}` : 'and is on a permanent basis')
+        .replace(/{{NoticePeriod}}/g, String(c.noticePeriodDays || 30));
       setDraftText(template);
     }
   };
@@ -613,6 +678,20 @@ function ContractsTab() {
       alert('Failed to save draft: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingTemplate(true);
+    try {
+      await settingsApi.upsert('Hr.ContractTemplate', contractTemplate, 'Default employment contract template', 'Hr');
+      setShowTemplateModal(false);
+      alert('Default template saved successfully');
+    } catch (err: any) {
+      alert('Failed to save template: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSavingTemplate(false);
     }
   };
 
@@ -633,6 +712,9 @@ function ContractsTab() {
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input className="search-input" style={{ width: '100%', paddingLeft: 30 }} placeholder="Search by name, title..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <button className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setShowTemplateModal(true)}>
+            <FileText size={13} /> Configure Template
+          </button>
           <button className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setShowForm(true)}>
             <Plus size={13} /> New Contract
           </button>
@@ -731,6 +813,59 @@ function ContractsTab() {
                   <button type="button" className="btn btn-secondary" onClick={() => setShowDraft(null)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
                     {saving ? 'Saving...' : 'Save Contract Text'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Configure Template Modal */}
+      {showTemplateModal && (
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowTemplateModal(false)}>
+            <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 850, width: '95%' }}>
+              <div className="modal-header">
+                <h2 className="modal-title">Configure Contract Template</h2>
+                <button className="modal-close" onClick={() => setShowTemplateModal(false)}><X size={20} /></button>
+              </div>
+              <form onSubmit={handleSaveTemplate}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ padding: '12px 16px', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-blue)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <AlertCircle size={14} /> Merge Tags Cheat-Sheet
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      You can use these tags inside the template. They will be dynamically replaced when drafting a contract:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px 16px', marginTop: 12 }}>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{EmployeeName}}"}</code> — Full Name of employee</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{Company}}"}</code> — Tenant organization name</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{JobTitle}}"}</code> — Employee's role/job title</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{Salary}}"}</code> — Agreed monthly salary</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{WorkingHours}}"}</code> — Standard hours per month</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{StartDate}}"}</code> — Employment start date</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{EndDateClause}}"}</code> — Fixed term end date clause</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{NoticePeriod}}"}</code> — Required days notice</div>
+                      <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{CurrentDate}}"}</code> — Today's current date</div>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 600, marginBottom: 6 }}>Template Body</label>
+                    <textarea 
+                      className="form-input" 
+                      style={{ width: '100%', minHeight: 350, fontFamily: 'monospace', fontSize: 13, lineHeight: '1.6' }} 
+                      value={contractTemplate} 
+                      onChange={e => setContractTemplate(e.target.value)} 
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowTemplateModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={savingTemplate}>
+                    {savingTemplate ? 'Saving...' : 'Save Template'}
                   </button>
                 </div>
               </form>
