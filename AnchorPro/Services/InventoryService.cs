@@ -93,8 +93,26 @@ namespace AnchorPro.Services
                     // Trigger Low Stock Alert (Safely)
                     try
                     {
+                        var tenantId = item.TenantId;
+                        string? recipient = null;
+                        if (tenantId.HasValue)
+                        {
+                            var emails = await (from u in context.Users
+                                                 join ur in context.UserRoles on u.Id equals ur.UserId
+                                                 join r in context.Roles on ur.RoleId equals r.Id
+                                                 where u.TenantId == tenantId && (r.Name == "Purchasing" || r.Name == "Storeman" || r.Name == "Admin")
+                                                 select u.Email).ToListAsync();
+                            recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                            if (string.IsNullOrEmpty(recipient))
+                            {
+                                var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                                recipient = tenant?.ContactEmail;
+                            }
+                        }
+                        recipient ??= "purchasing@anchorpro.com";
+
                         await _emailService.SendEmailAsync(
-                            "purchasing@anchorpro.com",
+                            recipient,
                             $"Low Stock Alert: {item.Name}",
                             $"Warning: Stock for {item.Name} ({item.PartNumber}) has dropped to {item.QuantityOnHand}. Reorder Level is {item.ReorderLevel}."
                         );

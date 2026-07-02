@@ -42,7 +42,26 @@ namespace AnchorPro.Services
                     category: "LowMargin",
                     jobCardId: job.Id);
 
-                await _emailService.SendEmailAsync("management@anchorpro.com",
+                // Fetch tenant admins / supervisors
+                var tenantId = job.TenantId;
+                string? recipient = null;
+                if (tenantId.HasValue)
+                {
+                    var emails = await (from u in context.Users
+                                         join ur in context.UserRoles on u.Id equals ur.UserId
+                                         join r in context.Roles on ur.RoleId equals r.Id
+                                         where u.TenantId == tenantId && (r.Name == "Admin" || r.Name == "Supervisor")
+                                         select u.Email).ToListAsync();
+                    recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                    if (string.IsNullOrEmpty(recipient))
+                    {
+                        var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                        recipient = tenant?.ContactEmail;
+                    }
+                }
+                recipient ??= "management@anchorpro.com";
+
+                await _emailService.SendEmailAsync(recipient,
                     $"Low Margin Alert: Job #{job.JobNumber}",
                     $"Job #{job.JobNumber} completed with a margin of {job.ProfitMarginPercent}%.");
             }
@@ -59,15 +78,40 @@ namespace AnchorPro.Services
 
             if (overdue.Any())
             {
-                await CreateAlertAsync(
-                    title: $"{overdue.Count} Overdue Jobs",
-                    message: $"There are {overdue.Count} jobs past their scheduled completion date.",
-                    severity: "Critical",
-                    category: "OverdueJob");
+                // Group overdue jobs by TenantId to email their respective tenant managers
+                var overdueGroups = overdue.GroupBy(j => j.TenantId);
+                foreach (var group in overdueGroups)
+                {
+                    var tenantId = group.Key;
+                    var tenantJobs = group.ToList();
 
-                await _emailService.SendEmailAsync("ops@anchorpro.com",
-                    $"Backlog Alert: {overdue.Count} Overdue Jobs",
-                    $"There are currently {overdue.Count} jobs past their scheduled completion date.");
+                    await CreateAlertAsync(
+                        title: $"{tenantJobs.Count} Overdue Jobs",
+                        message: $"There are {tenantJobs.Count} jobs past their scheduled completion date.",
+                        severity: "Critical",
+                        category: "OverdueJob");
+
+                    string? recipient = null;
+                    if (tenantId.HasValue)
+                    {
+                        var emails = await (from u in context.Users
+                                             join ur in context.UserRoles on u.Id equals ur.UserId
+                                             join r in context.Roles on ur.RoleId equals r.Id
+                                             where u.TenantId == tenantId && (r.Name == "Admin" || r.Name == "Planner" || r.Name == "Supervisor")
+                                             select u.Email).ToListAsync();
+                        recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                        if (string.IsNullOrEmpty(recipient))
+                        {
+                            var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                            recipient = tenant?.ContactEmail;
+                        }
+                    }
+                    recipient ??= "ops@anchorpro.com";
+
+                    await _emailService.SendEmailAsync(recipient,
+                        $"Backlog Alert: {tenantJobs.Count} Overdue Jobs",
+                        $"There are currently {tenantJobs.Count} jobs past their scheduled completion date.");
+                }
             }
         }
 
@@ -79,7 +123,26 @@ namespace AnchorPro.Services
                 severity: "Warning",
                 category: "TechnicianDelay");
 
-            await _emailService.SendEmailAsync("ops@anchorpro.com",
+            var tenantId = _tenantService.TenantId;
+            string? recipient = null;
+            using var context = _factory.CreateDbContext();
+            if (tenantId.HasValue)
+            {
+                var emails = await (from u in context.Users
+                                     join ur in context.UserRoles on u.Id equals ur.UserId
+                                     join r in context.Roles on ur.RoleId equals r.Id
+                                     where u.TenantId == tenantId && (r.Name == "Admin" || r.Name == "Planner" || r.Name == "Supervisor")
+                                     select u.Email).ToListAsync();
+                recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                if (string.IsNullOrEmpty(recipient))
+                {
+                    var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                    recipient = tenant?.ContactEmail;
+                }
+            }
+            recipient ??= "ops@anchorpro.com";
+
+            await _emailService.SendEmailAsync(recipient,
                 $"Active Delay Reported: Job #{jobNumber}",
                 $"Technician {technicianName} reported a block on Job #{jobNumber}. Reason: {reason}.");
         }

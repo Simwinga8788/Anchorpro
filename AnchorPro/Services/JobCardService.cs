@@ -262,8 +262,26 @@ namespace AnchorPro.Services
                     {
                         try 
                         {
+                            var tenantId = job.TenantId;
+                            string? recipient = null;
+                            if (tenantId.HasValue)
+                            {
+                                var emails = await (from u in context.Users
+                                                     join ur in context.UserRoles on u.Id equals ur.UserId
+                                                     join r in context.Roles on ur.RoleId equals r.Id
+                                                     where u.TenantId == tenantId && (r.Name == "Supervisor" || r.Name == "Planner" || r.Name == "Admin")
+                                                     select u.Email).ToListAsync();
+                                recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                                if (string.IsNullOrEmpty(recipient))
+                                {
+                                    var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                                    recipient = tenant?.ContactEmail;
+                                }
+                            }
+                            recipient ??= "supervisor@anchorpro.com";
+
                             await _emailService.SendEmailAsync(
-                                "supervisor@anchorpro.com",
+                                recipient,
                                 $"Job Completed: #{job.JobNumber}",
                                 $"Job #{job.JobNumber} has been completed by the technician."
                             );
@@ -352,8 +370,16 @@ namespace AnchorPro.Services
                 {
                     try
                     {
+                        string? recipient = null;
+                        if (!string.IsNullOrEmpty(job.AssignedTechnicianId))
+                        {
+                            var techUser = await context.Users.FindAsync(job.AssignedTechnicianId);
+                            recipient = techUser?.Email;
+                        }
+                        recipient ??= "technician@anchorpro.com";
+
                         await _emailService.SendEmailAsync(
-                            "technician@anchorpro.com",
+                            recipient,
                             $"Job Assigned: #{job.JobNumber}",
                             $"You have been assigned to Job #{job.JobNumber}. Check your task list."
                         );
