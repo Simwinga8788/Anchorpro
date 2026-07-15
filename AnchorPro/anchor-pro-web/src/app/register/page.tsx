@@ -74,7 +74,7 @@ export default function RegisterPage() {
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: admin.email, password: admin.password }),
+        body: JSON.stringify({ manNumber: admin.email, password: admin.password }),
       });
       router.push(loginRes.ok ? '/dashboard' : '/login?registered=1');
     } catch (e: unknown) {
