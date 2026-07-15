@@ -49,6 +49,7 @@ namespace AnchorPro.Data.Entities
 
         // Navigation
         public ICollection<InvoicePayment> Payments { get; set; } = new List<InvoicePayment>();
+        public ICollection<ShiftProductionLog> ShiftLogs { get; set; } = new List<ShiftProductionLog>();
     }
 
     public enum InvoicePaymentStatus

@@ -22,6 +22,11 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult<List<ShiftProductionLog>>> GetAll()
             => Ok(await _service.GetAllAsync());
 
+        /// <summary>GET /api/shift-logs/unbilled — All approved shift logs that have not been invoiced yet.</summary>
+        [HttpGet("unbilled")]
+        public async Task<ActionResult<List<ShiftProductionLog>>> GetUnbilled()
+            => Ok(await _service.GetUnbilledAsync());
+
         /// <summary>GET /api/shift-logs/{id}</summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<ShiftProductionLog>> GetById(int id)
@@ -43,6 +48,14 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult<ShiftProductionSummary>> GetSummary(
             [FromQuery] DateTime from, [FromQuery] DateTime to)
             => Ok(await _service.GetSummaryAsync(from, to));
+
+        /// <summary>
+        /// GET /api/shift-logs/chart-data?days=30
+        /// Returns aggregated daily actual vs target for charts.
+        /// </summary>
+        [HttpGet("chart-data")]
+        public async Task<ActionResult<List<ShiftProductionChartData>>> GetChartData([FromQuery] int days = 30)
+            => Ok(await _service.GetChartDataAsync(days));
 
         /// <summary>POST /api/shift-logs — Create a new Draft shift log.</summary>
         [HttpPost]

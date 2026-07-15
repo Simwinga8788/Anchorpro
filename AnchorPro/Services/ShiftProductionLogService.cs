@@ -158,6 +158,7 @@ namespace AnchorPro.Services
                 .ToListAsync();
 
             var totalQty          = logs.Sum(l => l.QuantityProduced);
+            var totalTarget       = logs.Sum(l => l.TargetQuantity ?? 0);
             var totalFuel         = logs.Sum(l => l.FuelConsumedLitres);
             var totalOpHours      = logs.Sum(l => l.OperatingHours);
             var totalDowntime     = logs.Sum(l => l.DowntimeHours);
@@ -166,9 +167,42 @@ namespace AnchorPro.Services
             var costPerUnit       = totalQty > 0 ? totalCost / totalQty : 0;
 
             return new ShiftProductionSummary(
-                totalQty, unitOfMeasure, totalFuel,
+                totalQty, totalTarget, unitOfMeasure, totalFuel,
                 totalOpHours, totalDowntime, logs.Count, costPerUnit
             );
+        }
+
+        public async Task<List<ShiftProductionLog>> GetUnbilledAsync()
+        {
+            using var ctx = _factory.CreateDbContext();
+            return await ctx.ShiftProductionLogs
+                .Where(s => s.Status == ShiftLogStatus.Approved && s.InvoiceId == null)
+                .Include(s => s.Equipment)
+                .AsNoTracking()
+                .OrderByDescending(s => s.ShiftDate)
+                .ToListAsync();
+        }
+        public async Task<List<ShiftProductionChartData>> GetChartDataAsync(int days)
+        {
+            using var ctx = _factory.CreateDbContext();
+            var fromDate = DateTime.UtcNow.Date.AddDays(-days);
+
+            var logs = await ctx.ShiftProductionLogs
+                .Where(s => s.Status != ShiftLogStatus.Rejected && s.ShiftDate >= fromDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var chartData = logs
+                .GroupBy(l => l.ShiftDate.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new ShiftProductionChartData(
+                    g.Key.ToString("MMM dd"),
+                    g.Sum(l => l.QuantityProduced),
+                    g.Sum(l => l.TargetQuantity ?? 0)
+                ))
+                .ToList();
+
+            return chartData;
         }
     }
 }

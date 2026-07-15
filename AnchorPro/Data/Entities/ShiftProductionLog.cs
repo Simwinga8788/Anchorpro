@@ -97,5 +97,8 @@ namespace AnchorPro.Data.Entities
 
         // ── Navigation ──────────────────────────────────────────────────────────
         public ICollection<WorkDocumentCostEntry> CostEntries { get; set; } = new List<WorkDocumentCostEntry>();
+
+        public int? InvoiceId { get; set; }
+        public Invoice? Invoice { get; set; }
     }
 }

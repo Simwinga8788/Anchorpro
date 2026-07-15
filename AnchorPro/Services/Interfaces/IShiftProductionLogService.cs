@@ -14,15 +14,24 @@ namespace AnchorPro.Services.Interfaces
         Task DeleteAsync(int id);
         Task<List<ShiftProductionLog>> GetByEquipmentAsync(int equipmentId);
         Task<ShiftProductionSummary> GetSummaryAsync(DateTime from, DateTime to);
+        Task<List<ShiftProductionLog>> GetUnbilledAsync();
+        Task<List<ShiftProductionChartData>> GetChartDataAsync(int days);
     }
 
     public record ShiftProductionSummary(
         decimal TotalQuantityProduced,
+        decimal TotalTargetQuantity,
         string UnitOfMeasure,
         decimal TotalFuelConsumedLitres,
         decimal TotalOperatingHours,
         decimal TotalDowntimeHours,
         int TotalShifts,
         decimal CostPerUnit
+    );
+
+    public record ShiftProductionChartData(
+        string Date,
+        decimal Actual,
+        decimal Target
     );
 }

@@ -9,6 +9,7 @@ namespace AnchorPro.Services.Interfaces
         Task<Invoice?> GetInvoiceByIdAsync(int id);
         Task<Invoice?> GetInvoiceByJobIdAsync(int jobId);
         Task<Invoice> CreateInvoiceFromJobAsync(int jobId, string userId);
+        Task<Invoice> CreateInvoiceFromProductionAsync(int contractId, List<int> shiftLogIds, string userId);
         Task CreateAdHocInvoiceAsync(Invoice invoice, string userId);
         Task UpdateInvoiceAsync(Invoice invoice, string userId);
 

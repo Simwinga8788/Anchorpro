@@ -81,6 +81,55 @@ namespace AnchorPro.Services
             return invoice;
         }
 
+        public async Task<Invoice> CreateInvoiceFromProductionAsync(int contractId, List<int> shiftLogIds, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            
+            var contract = await context.Contracts.FirstOrDefaultAsync(c => c.Id == contractId);
+            if (contract == null) throw new Exception("Contract not found");
+            if (contract.UnitRate == null || contract.UnitRate <= 0) throw new Exception("Contract does not have a valid Unit Rate configured.");
+
+            var shiftLogs = await context.ShiftProductionLogs
+                .Where(s => shiftLogIds.Contains(s.Id) && s.InvoiceId == null && s.Status == ShiftLogStatus.Approved)
+                .ToListAsync();
+
+            if (!shiftLogs.Any()) throw new Exception("No eligible, unbilled, and approved Shift Logs found.");
+
+            var totalQuantity = shiftLogs.Sum(s => s.QuantityProduced);
+            var subtotal = totalQuantity * contract.UnitRate.Value;
+
+            var invoice = new Invoice
+            {
+                InvoiceNumber = $"INV-PROD-{DateTime.UtcNow:yyyyMMdd}-{contractId}",
+                ContractId = contractId,
+                CustomerId = contract.CustomerId,
+                InvoiceDate = DateTime.UtcNow,
+                DueDate = DateTime.UtcNow.AddDays(30),
+                Subtotal = subtotal,
+                TaxRate = 16.00m,
+                Notes = $"Production Billing for {totalQuantity:N2} {contract.UnitOfMeasure ?? "Units"} @ {contract.UnitRate:N2} per unit.",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            invoice.TaxAmount = Math.Round(invoice.Subtotal * (invoice.TaxRate / 100), 2);
+            invoice.Total = invoice.Subtotal + invoice.TaxAmount;
+            invoice.Balance = invoice.Total;
+            invoice.PaymentStatus = InvoicePaymentStatus.Unpaid;
+
+            context.Invoices.Add(invoice);
+            await context.SaveChangesAsync();
+
+            // Link the shift logs to the invoice
+            foreach (var log in shiftLogs)
+            {
+                log.InvoiceId = invoice.Id;
+            }
+            await context.SaveChangesAsync();
+
+            return invoice;
+        }
+
         public async Task CreateAdHocInvoiceAsync(Invoice invoice, string userId)
         {
             using var context = _factory.CreateDbContext();

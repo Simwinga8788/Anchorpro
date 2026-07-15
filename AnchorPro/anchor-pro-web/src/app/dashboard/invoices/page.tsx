@@ -5,9 +5,9 @@ import {
   DollarSign, FileText, CheckCircle2, AlertTriangle,
   Search, Filter, Plus, CreditCard, ExternalLink, Zap
 } from 'lucide-react';
-import { financialApi, dashboardApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { shiftLogsApi, referenceDataApi, financialApi, dashboardApi } from '@/lib/api';
 
 const statusMap: Record<number, { label: string; badge: string }> = {
   0: { label: 'Unpaid',  badge: 'badge-rose' },
@@ -30,11 +30,18 @@ export default function InvoicesPage() {
 
   // Create invoice
   const [showCreate, setShowCreate]             = useState(false);
-  const [createMode, setCreateMode]             = useState<'from-job' | 'adhoc'>('from-job');
+  const [createMode, setCreateMode]             = useState<'from-job' | 'adhoc' | 'from-production'>('from-job');
   const [completedJobs, setCompletedJobs]       = useState<any[]>([]);
   const [jobsLoading, setJobsLoading]           = useState(false);
   const [savingInvoice, setSavingInvoice]       = useState(false);
   const [fromJobId, setFromJobId]               = useState('');
+  
+  // Production billing state
+  const [contracts, setContracts]               = useState<any[]>([]);
+  const [unbilledLogs, setUnbilledLogs]         = useState<any[]>([]);
+  const [selectedContractId, setSelectedContractId] = useState('');
+  const [selectedLogIds, setSelectedLogIds]     = useState<number[]>([]);
+
   const [adHocForm, setAdHocForm]               = useState({
     customerId: '', description: '', amount: '', dueDate: '',
   });
@@ -54,18 +61,25 @@ export default function InvoicesPage() {
   useEffect(() => {
     if (!showCreate) return;
     setJobsLoading(true);
-    Promise.all([dashboardApi.getJobCards(), dashboardApi.getCustomers()])
-      .then(([jobs, custs]) => {
+    Promise.all([
+      dashboardApi.getJobCards(), 
+      dashboardApi.getCustomers(),
+      referenceDataApi.getContracts(),
+      shiftLogsApi.getUnbilled()
+    ])
+      .then(([jobs, custs, ctrs, logs]) => {
         // Show only completed (status 3) jobs that don't already have invoices
         const invoicedJobIds = new Set(invoices.map((i: any) => i.jobCardId).filter(Boolean));
         setCompletedJobs(
           (jobs || []).filter((j: any) => j.status === 3 && !invoicedJobIds.has(j.id))
         );
         setCustomers(custs || []);
+        setContracts(ctrs || []);
+        setUnbilledLogs(logs || []);
       })
       .catch(console.error)
       .finally(() => setJobsLoading(false));
-  }, [showCreate]);
+  }, [showCreate, invoices]);
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +110,10 @@ export default function InvoicesPage() {
       if (createMode === 'from-job') {
         if (!fromJobId) { alert('Select a job'); setSavingInvoice(false); return; }
         await financialApi.createFromJob(parseInt(fromJobId));
+      } else if (createMode === 'from-production') {
+        if (!selectedContractId) { alert('Select a Contract'); setSavingInvoice(false); return; }
+        if (selectedLogIds.length === 0) { alert('Select at least one Shift Log to bill'); setSavingInvoice(false); return; }
+        await financialApi.createFromProduction(parseInt(selectedContractId), selectedLogIds);
       } else {
         if (!adHocForm.customerId || !adHocForm.amount) { alert('Customer and amount required'); setSavingInvoice(false); return; }
         await financialApi.createAdHoc({
@@ -107,6 +125,8 @@ export default function InvoicesPage() {
       }
       setShowCreate(false);
       setFromJobId('');
+      setSelectedContractId('');
+      setSelectedLogIds([]);
       setAdHocForm({ customerId: '', description: '', amount: '', dueDate: '' });
       loadData();
     } catch (err: any) {
@@ -162,15 +182,15 @@ export default function InvoicesPage() {
       <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Create Invoice" subtitle="Generate from a completed job or create manually">
         <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Mode toggle */}
-          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-app)', borderRadius: 8, padding: 4 }}>
-            {([['from-job', 'From Completed Job'], ['adhoc', 'Ad-hoc Invoice']] as const).map(([mode, label]) => (
+          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-app)', borderRadius: 8, padding: 4, overflowX: 'auto' }}>
+            {([['from-job', 'From Job'], ['from-production', 'From Production'], ['adhoc', 'Manual Ad-hoc']] as const).map(([mode, label]) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setCreateMode(mode)}
                 style={{
                   flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
                   background: createMode === mode ? 'var(--accent-blue)' : 'transparent',
                   color: createMode === mode ? '#fff' : 'var(--text-secondary)',
                 }}
@@ -203,6 +223,54 @@ export default function InvoicesPage() {
                   </select>
                 )}
               </div>
+            </>
+          ) : createMode === 'from-production' ? (
+            <>
+              <div style={{ padding: 12, background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Select a Contract to determine the Rate per Unit, then select the Unbilled Shift Logs you wish to invoice.
+              </div>
+              <div className="form-field">
+                <label className="form-label">Contract / Agreement</label>
+                <select className="form-select" value={selectedContractId} onChange={e => setSelectedContractId(e.target.value)} required>
+                  <option value="">Select Contract...</option>
+                  {contracts.filter(c => c.unitRate && c.unitRate > 0).map(c => (
+                    <option key={c.id} value={c.id}>{c.title} (K {c.unitRate?.toLocaleString()} / {c.unitOfMeasure})</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedContractId && (
+                <div className="form-field">
+                  <label className="form-label">Select Unbilled Shift Logs</label>
+                  {unbilledLogs.length === 0 ? (
+                    <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>No unbilled shift logs available.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: 8 }}>
+                      {unbilledLogs.map(log => (
+                        <label key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedLogIds.includes(log.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedLogIds([...selectedLogIds, log.id]);
+                              else setSelectedLogIds(selectedLogIds.filter(id => id !== log.id));
+                            }}
+                          />
+                          <span>{new Date(log.shiftDate).toLocaleDateString()} - Shift {log.shift} ({log.quantityProduced} {log.unitOfMeasure})</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {selectedLogIds.length > 0 && selectedContractId && (
+                    <div style={{ marginTop: 10, padding: 10, background: 'var(--bg-subtle)', borderRadius: 6, fontSize: 13 }}>
+                      <strong>Estimated Total:</strong> K {(
+                        unbilledLogs.filter(l => selectedLogIds.includes(l.id)).reduce((sum, l) => sum + l.quantityProduced, 0) * 
+                        (contracts.find(c => c.id === parseInt(selectedContractId))?.unitRate || 0)
+                      ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <>

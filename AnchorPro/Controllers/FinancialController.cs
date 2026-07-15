@@ -88,6 +88,31 @@ namespace AnchorPro.Controllers
             return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
         }
 
+        public class CreateFromProductionRequest
+        {
+            public int ContractId { get; set; }
+            public List<int> ShiftLogIds { get; set; } = new List<int>();
+        }
+
+        /// <summary>
+        /// POST /api/financial/invoices/from-production
+        /// Generates a production invoice based on selected Shift Production Logs and the Contract's unit rate.
+        /// </summary>
+        [HttpPost("invoices/from-production")]
+        public async Task<ActionResult<Invoice>> CreateFromProduction([FromBody] CreateFromProductionRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+                var invoice = await _financialService.CreateInvoiceFromProductionAsync(request.ContractId, request.ShiftLogIds, userId);
+                return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.Id }, invoice);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         /// <summary>POST /api/financial/invoices — Create a manual (ad-hoc) invoice.</summary>
         [HttpPost("invoices")]
         public async Task<ActionResult> CreateAdHoc([FromBody] Invoice invoice)

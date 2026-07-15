@@ -29,6 +29,12 @@ namespace AnchorPro.Data.Entities
 
         public int SLAHours { get; set; } // Resolution time target in hours
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? UnitRate { get; set; }
+
+        [MaxLength(30)]
+        public string? UnitOfMeasure { get; set; } // e.g. Tons, BCM
+
         [MaxLength(1000)]
         public string? Terms { get; set; }
 
