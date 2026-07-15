@@ -67,7 +67,10 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Upgrade([FromBody] UpgradeRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            var success = await _subscriptionService.UpgradeSubscriptionAsync(1, req.NewPlanId, userId);
+            var sub = await _subscriptionService.GetCurrentSubscriptionAsync();
+            if (sub == null) return BadRequest("No active subscription found.");
+
+            var success = await _subscriptionService.UpgradeSubscriptionAsync(sub.Id, req.NewPlanId, userId);
             return success ? Ok(new { message = "Subscription upgraded." }) : BadRequest("Upgrade failed.");
         }
 

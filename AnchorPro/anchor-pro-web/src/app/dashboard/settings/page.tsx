@@ -576,7 +576,7 @@ export default function SettingsPage() {
   const handleUpgrade = async (planId: number) => {
     setUpgrading(true);
     try {
-      const res = await subscriptionsApi.upgrade({ planId });
+      const res = await subscriptionsApi.upgrade({ newPlanId: planId });
       show((res as any)?.message || 'Plan upgrade requested');
       setShowUpgradeModal(false);
       subscriptionsApi.getCurrent().then(setSubscriptionData).catch(() => {});
