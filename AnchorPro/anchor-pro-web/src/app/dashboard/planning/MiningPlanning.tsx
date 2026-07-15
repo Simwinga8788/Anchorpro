@@ -104,8 +104,8 @@ export default function MiningPlanning() {
             <select className="form-select" required value={rosterData.operatorName} onChange={e => setRosterData({...rosterData, operatorName: e.target.value})}>
               <option value="">Select Operator...</option>
               {technicians.map(t => (
-                <option key={t.id} value={`${t.firstName || ''} ${t.lastName || ''}`.trim() || t.userName}>
-                  {`${t.firstName || ''} ${t.lastName || ''}`.trim() || t.userName}
+                <option key={t.id} value={`${t.firstName || ''} ${t.lastName || ''}`.trim() || t.email}>
+                  {`${t.firstName || ''} ${t.lastName || ''}`.trim() || t.email}
                 </option>
               ))}
             </select>

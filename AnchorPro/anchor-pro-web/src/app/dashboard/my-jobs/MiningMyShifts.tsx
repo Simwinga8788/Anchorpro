@@ -23,7 +23,7 @@ export default function MiningMyShifts() {
     try {
       const logs = await shiftLogsApi.getAll();
       // Find Draft logs assigned to this user (by name)
-      const myName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.userName;
+      const myName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
       
       const myShifts = logs.filter(l => 
         l.status === 0 && 
