@@ -15,8 +15,15 @@ const statusConfig: Record<number, { label: string; badge: string; color: string
   5: { label: 'On Hold',     badge: 'badge-amber',  color: '#f59e0b', icon: <Clock size={14} /> },
 };
 
+import MiningMyShifts from './MiningMyShifts';
+
 export default function MyJobsPage() {
   const { user } = useAuth();
+  
+  if (user?.operationMode === 1) {
+    return <MiningMyShifts />;
+  }
+
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

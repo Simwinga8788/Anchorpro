@@ -15,6 +15,8 @@ export interface UserProfile {
   isPlatformOwner: boolean;
   departmentId?: number;
   allowedRoutes: string[];
+  /** 0=JobCard, 1=ShiftProductionLog, 2=TripSheet, 3=SiteDiary, 4=MaintenanceRecord, 5=GeneralWorkOrder */
+  operationMode: number;
 }
 
 interface AuthContextValue {

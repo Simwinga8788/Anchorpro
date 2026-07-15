@@ -138,6 +138,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, Ancho
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IToolService, AnchorPro.Services.ToolService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IHRService, AnchorPro.Services.HRService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IShiftProductionLogService, AnchorPro.Services.ShiftProductionLogService>();
 
 // API & Swagger
 builder.Services.AddControllers()

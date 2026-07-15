@@ -324,8 +324,12 @@ function KanbanColumn({ title, badge, jobs, onJobClick, onDropJob }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+import MiningPlanning from './MiningPlanning';
+
 export default function PlanningPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  
   const [jobs, setJobs]               = useState<Job[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -334,6 +338,10 @@ export default function PlanningPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [techFilter, setTechFilter]   = useState('');
   const [search, setSearch]           = useState('');
+
+  if (user?.operationMode === 1) {
+    return <MiningPlanning />;
+  }
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714224453_AddOperationModeAndShiftLog")]
+    partial class AddOperationModeAndShiftLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -686,9 +689,6 @@ namespace AnchorPro.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<decimal?>("PayloadCapacity")
-                        .HasColumnType("numeric");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -2105,10 +2105,6 @@ namespace AnchorPro.Migrations
                     b.Property<int?>("CrewCount")
                         .HasColumnType("integer");
 
-                    b.Property<string>("DestinationLocation")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<decimal>("DowntimeHours")
                         .HasPrecision(8, 2)
                         .HasColumnType("numeric(8,2)");
@@ -2119,9 +2115,6 @@ namespace AnchorPro.Migrations
                     b.Property<decimal>("FuelConsumedLitres")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<int?>("LoadCount")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Location")
                         .HasMaxLength(200)
@@ -2140,9 +2133,6 @@ namespace AnchorPro.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<decimal?>("PayloadFactor")
-                        .HasColumnType("numeric");
-
                     b.Property<decimal>("QuantityProduced")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -2160,10 +2150,6 @@ namespace AnchorPro.Migrations
 
                     b.Property<DateTime>("ShiftDate")
                         .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("SourceLocation")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");

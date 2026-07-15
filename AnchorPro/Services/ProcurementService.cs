@@ -86,6 +86,9 @@ namespace AnchorPro.Services
                 .Include(p => p.Supplier)
                 .Include(p => p.Items)
                     .ThenInclude(i => i.InventoryItem)
+                .Include(p => p.PurchaseRequisition)
+                .Include(p => p.JobCard)
+                .Include(p => p.Department)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id);
         }

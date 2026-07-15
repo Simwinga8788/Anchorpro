@@ -2,6 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AnchorPro.Data.Entities
 {
+    /// <summary>
+    /// Determines which primary work document type this tenant uses in Operations.
+    /// Set once at onboarding — immutable after registration.
+    /// </summary>
+    public enum OperationMode
+    {
+        JobCard             = 0, // Default — Workshops, Engineering, Field Service
+        ShiftProductionLog  = 1, // Mining & Extraction
+        TripSheet           = 2, // Transport & Logistics
+        SiteDiary           = 3, // Construction & Civil Works
+        MaintenanceRecord   = 4, // Facilities Management
+        GeneralWorkOrder    = 5, // Generic fallback
+    }
+
     public class Tenant
     {
         public int Id { get; set; }
@@ -24,6 +38,13 @@ namespace AnchorPro.Data.Entities
         public string? OwnerId { get; set; }
 
         public string? LogoUrl { get; set; }
+
+        /// <summary>Industry selected at onboarding (e.g. "Mining & Extraction"). Immutable after registration.</summary>
+        [MaxLength(100)]
+        public string? Industry { get; set; }
+
+        /// <summary>Drives which work document type is used in the Operations module. Immutable after registration.</summary>
+        public OperationMode OperationMode { get; set; } = OperationMode.JobCard;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         [MaxLength(450)]

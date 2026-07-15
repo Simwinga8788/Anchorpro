@@ -917,9 +917,18 @@ export default function ProcurementPage() {
                                   <PackageCheck size={12} /> Receive
                                 </button>
                               )}
+                              <button
+                                className="btn btn-sm"
+                                style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px' }}
+                                onClick={() => window.open(`/dashboard/procurement/${order.id}/print-po`, '_blank')}
+                                title="Print / Save PDF of this Purchase Order"
+                              >
+                                <FileText size={12} /> Print PO
+                              </button>
                               <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}>
                                 {isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
                               </button>
+
                             </div>
                           </td>
                         </tr>

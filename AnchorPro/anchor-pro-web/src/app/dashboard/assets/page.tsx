@@ -5,17 +5,19 @@ import { useState, useEffect, useRef } from 'react';
 import { dashboardApi, equipmentApi, departmentsApi, intelligenceApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import { useDictionary } from '@/lib/DictionaryContext';
+import { useAuth } from '@/lib/AuthContext';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
 // Equipment entity has no status field — all assets default to Operational
 const getAssetStatus = (_asset: any): { label: string; badge: string; dot: string } =>
   ({ label: 'Operational', badge: 'badge-green', dot: 'green' });
 
-const BLANK: { name: string; modelNumber: string; serialNumber: string; manufacturer: string; departmentId: number | null } = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: null };
+const BLANK: { name: string; modelNumber: string; serialNumber: string; manufacturer: string; departmentId: number | null; payloadCapacity: number | null } = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: null, payloadCapacity: null };
 
 export default function AssetsPage() {
   const { t } = useDictionary();
   const equipLabel = t('Equipment', 'Equipment');
+  const { user } = useAuth(); // Import useAuth at the top if not imported
 
   const [search, setSearch] = useState('');
   const [assets, setAssets] = useState<any[]>([]);
@@ -119,7 +121,7 @@ export default function AssetsPage() {
 
   const openCreate = () => { setFormData(BLANK); setEditTarget(null); setSlideMode('create'); };
   const openEdit = (asset: any) => {
-    setFormData({ name: asset.name, modelNumber: asset.modelNumber || '', serialNumber: asset.serialNumber || '', manufacturer: asset.manufacturer || '', departmentId: asset.departmentId || 1 });
+    setFormData({ name: asset.name, modelNumber: asset.modelNumber || '', serialNumber: asset.serialNumber || '', manufacturer: asset.manufacturer || '', departmentId: asset.departmentId || null, payloadCapacity: asset.payloadCapacity || null });
     setEditTarget(asset);
     setSlideMode('edit');
   };
@@ -184,6 +186,14 @@ export default function AssetsPage() {
               </select>
             </div>
           </div>
+          {user?.operationMode === 1 && (
+            <div className="form-row">
+              <div className="form-field">
+                <label className="form-label">Payload Capacity (Tons)</label>
+                <input type="number" step="0.01" className="form-input" value={formData.payloadCapacity || ''} onChange={e => setFormData({ ...formData, payloadCapacity: parseFloat(e.target.value) || null })} placeholder="e.g. 50" />
+              </div>
+            </div>
+          )}
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSlideMode(null)} disabled={saving}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>{saving ? 'Saving...' : slideMode === 'edit' ? 'Save Changes' : `Register ${equipLabel}`}</button>

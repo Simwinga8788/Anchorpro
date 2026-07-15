@@ -640,6 +640,20 @@ export const referenceDataApi = {
   deleteDowntimeCategory: (id: number) => apiDelete(`/api/referencedata/downtimecategories/${id}`),
 };
 
+// ─── Shift Production Logs API ── /api/shift-logs ────────────────────────────
+export const shiftLogsApi = {
+  getAll:          ()                          => apiFetch<any[]>('/api/shift-logs'),
+  getById:         (id: number)               => apiFetch<any>(`/api/shift-logs/${id}`),
+  getByEquipment:  (equipmentId: number)      => apiFetch<any[]>(`/api/shift-logs/equipment/${equipmentId}`),
+  getSummary:      (from: string, to: string) => apiFetch<any>(`/api/shift-logs/summary?from=${from}&to=${to}`),
+  create:          (data: any)                => apiPost<any>('/api/shift-logs', data),
+  update:          (id: number, data: any)    => apiPut<any>(`/api/shift-logs/${id}`, data),
+  submit:          (id: number)               => apiPost<void>(`/api/shift-logs/${id}/submit`, {}),
+  approve:         (id: number)               => apiPost<void>(`/api/shift-logs/${id}/approve`, {}),
+  reject:          (id: number, reason: string) => apiPost<void>(`/api/shift-logs/${id}/reject`, { reason }),
+  delete:          (id: number)               => apiDelete(`/api/shift-logs/${id}`),
+};
+
 // ─── Tenants API ── /api/tenants ───────────────────────────────────────────────
 export const tenantsApi = {
   getAll:      ()                        => apiFetch<any[]>('/api/tenants'),

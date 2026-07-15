@@ -54,6 +54,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.PayrollRun> PayrollRuns { get; set; }
     public DbSet<Entities.PayslipEntry> PayslipEntries { get; set; }
 
+    // Operations — Parallel Work Document Types (Phase 2/3)
+    public DbSet<Entities.WorkDocumentCostEntry> WorkDocumentCostEntries { get; set; }
+    public DbSet<Entities.ShiftProductionLog> ShiftProductionLogs { get; set; }
+
 
     // Data Protection Keys
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
@@ -93,6 +97,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Quotation>().Property(e => e.TaxRate).HasPrecision(5, 2);
         builder.Entity<Quotation>().Property(e => e.TaxAmount).HasPrecision(18, 2);
         builder.Entity<Quotation>().Property(e => e.Total).HasPrecision(18, 2);
+
+        builder.Entity<Entities.ShiftProductionLog>().Property(e => e.QuantityProduced).HasPrecision(18, 3);
+        builder.Entity<Entities.ShiftProductionLog>().Property(e => e.TargetQuantity).HasPrecision(18, 3);
+        builder.Entity<Entities.ShiftProductionLog>().Property(e => e.FuelConsumedLitres).HasPrecision(18, 2);
+        builder.Entity<Entities.ShiftProductionLog>().Property(e => e.OperatingHours).HasPrecision(8, 2);
+        builder.Entity<Entities.ShiftProductionLog>().Property(e => e.DowntimeHours).HasPrecision(8, 2);
+        builder.Entity<Entities.WorkDocumentCostEntry>().Property(e => e.Amount).HasPrecision(18, 2);
 
         // Global Query Filter for Multi-Tenancy
         // 1. ApplicationUser - REMOVED to allow Login

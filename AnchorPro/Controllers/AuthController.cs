@@ -38,6 +38,17 @@ namespace AnchorPro.Controllers
 
             var allowedRoutes = await GetUserAllowedRoutesAsync(user.TenantId, roles.ToList());
 
+            // Load tenant OperationMode so the frontend sidebar knows which ops module to show
+            int operationMode = 0;
+            if (user.TenantId.HasValue)
+            {
+                _db.IgnoreTenantFilter = true;
+                var tenant = await _db.Set<AnchorPro.Data.Entities.Tenant>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == user.TenantId.Value);
+                operationMode = (int)(tenant?.OperationMode ?? AnchorPro.Data.Entities.OperationMode.JobCard);
+            }
+
             return Ok(new UserProfileDto
             {
                 Id = user.Id,
@@ -47,9 +58,11 @@ namespace AnchorPro.Controllers
                 Roles = roles.ToList(),
                 TenantId = user.TenantId,
                 IsPlatformOwner = isPlatformOwner,
-                AllowedRoutes = allowedRoutes
+                AllowedRoutes = allowedRoutes,
+                OperationMode = operationMode,
             });
         }
+
 
         /// <summary>
         /// Login endpoint for the React frontend (cookie-based, same as Blazor).
@@ -77,6 +90,17 @@ namespace AnchorPro.Controllers
 
             var allowedRoutes = await GetUserAllowedRoutesAsync(user.TenantId, roles.ToList());
 
+            // Load tenant OperationMode so the frontend sidebar knows which ops module to show
+            int loginOperationMode = 0;
+            if (user.TenantId.HasValue)
+            {
+                _db.IgnoreTenantFilter = true;
+                var tenant = await _db.Set<AnchorPro.Data.Entities.Tenant>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == user.TenantId.Value);
+                loginOperationMode = (int)(tenant?.OperationMode ?? AnchorPro.Data.Entities.OperationMode.JobCard);
+            }
+
             return Ok(new UserProfileDto
             {
                 Id = user.Id,
@@ -86,9 +110,11 @@ namespace AnchorPro.Controllers
                 Roles = roles.ToList(),
                 TenantId = user.TenantId,
                 IsPlatformOwner = isPlatformOwner,
-                AllowedRoutes = allowedRoutes
+                AllowedRoutes = allowedRoutes,
+                OperationMode = loginOperationMode,
             });
         }
+
 
         private async Task<List<string>> GetUserAllowedRoutesAsync(int? tenantId, List<string> roles)
         {
@@ -200,10 +226,20 @@ namespace AnchorPro.Controllers
             {
                 Name         = req.CompanyName,
                 ContactEmail = req.Email,
+                Industry     = req.Industry,
+                OperationMode = req.Industry switch
+                {
+                    "Mining & Extraction"   => OperationMode.ShiftProductionLog,
+                    "Logistics & Fleet"     => OperationMode.TripSheet,
+                    "Construction"          => OperationMode.SiteDiary,
+                    "Facilities Management" => OperationMode.MaintenanceRecord,
+                    _                       => OperationMode.JobCard, // Default for all other industries
+                },
                 IsActive     = true,
             };
             _db.Set<Tenant>().Add(tenant);
             await _db.SaveChangesAsync();
+
 
             // Create admin user linked to the tenant
             var user = new ApplicationUser
@@ -249,5 +285,7 @@ namespace AnchorPro.Controllers
         public int? TenantId { get; set; }
         public bool IsPlatformOwner { get; set; }
         public List<string> AllowedRoutes { get; set; } = new List<string>();
+        /// <summary>Maps to OperationMode enum: 0=JobCard, 1=ShiftProductionLog, 2=TripSheet, 3=SiteDiary, 4=MaintenanceRecord, 5=GeneralWorkOrder</summary>
+        public int OperationMode { get; set; } = 0;
     }
 }

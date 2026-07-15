@@ -27,6 +27,9 @@ namespace AnchorPro.Data.Entities
         /// <summary>Cost per hour when equipment is idle/down (Burden Rate)</summary>
         public decimal HourlyRate { get; set; } = 150.00m; 
 
+        /// <summary>Standard payload capacity (e.g. 40 tons for a dump truck)</summary>
+        public decimal? PayloadCapacity { get; set; }
+
         // Navigation property for JobCards
         public ICollection<JobCard> JobCards { get; set; } = new List<JobCard>();
     }
