@@ -226,6 +226,7 @@ export default function SettingsPage() {
   // ── Workspace ────────────────────────────────────────────────────────────────
   const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW', logoUrl: '', address: '', contactEmail: '', contactPhone: '' });
   const [savingOrg, setSavingOrg] = useState(false);
+  const [tenantMode, setTenantMode] = useState<number>(0);
 
   // ── Contract Template ────────────────────────────────────────────────────────
   const [contractTemplate, setContractTemplate] = useState('');
@@ -392,6 +393,7 @@ export default function SettingsPage() {
             contactEmail: t.contactEmail || '',
             contactPhone: t.contactPhone || '',
           }));
+          setTenantMode(t.operationMode || 0);
         }
       }).catch(e => console.error("Failed to fetch tenant details", e));
     }
@@ -1360,6 +1362,7 @@ export default function SettingsPage() {
               {NAV_GROUPS.map(group => {
                 const showGroup = group.label === 'Account' || (user?.tenantId && isAdmin);
                 if (!showGroup) return null;
+                if (group.label === 'Operations' && tenantMode === 1) return null;
                 return (
                   <div key={group.label}>
                     <div className="settings-group-label">{group.label}</div>
