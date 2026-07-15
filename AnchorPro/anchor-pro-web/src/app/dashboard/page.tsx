@@ -12,6 +12,9 @@ import { useApiData } from '@/lib/useApiData';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useAuth } from '@/lib/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +88,15 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 export default function DashboardPage() {
   const { t } = useDictionary();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.operationMode === 1) {
+      router.replace('/dashboard/performance');
+    }
+  }, [user, router]);
+
   const jobsLabel = t('Job Cards', 'Job Cards');
   const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
 
