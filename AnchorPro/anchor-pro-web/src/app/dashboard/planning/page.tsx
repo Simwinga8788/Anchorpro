@@ -9,6 +9,7 @@ import { jobCardsApi, referenceDataApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import SlideOver from '@/components/SlideOver';
 import Link from 'next/link';
+import { useAuth } from '@/lib/AuthContext';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
