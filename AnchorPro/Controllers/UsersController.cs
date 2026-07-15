@@ -243,20 +243,38 @@ namespace AnchorPro.Controllers
 
         /// <summary>
         /// POST /api/users/{id}/change-password
-        /// Body: { "newPassword": "..." }
-        /// Admin override — no current password required.
+        /// Body: { "currentPassword": "...", "newPassword": "..." }
         /// </summary>
         [HttpPost("{id}/change-password")]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest req)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var result = await _userManager.ResetPasswordAsync(user, token, req.NewPassword);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors.Select(e => e.Description));
+            var loggedInUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = User.IsInRole("Admin") || User.IsInRole("PlatformOwner");
+
+            if (loggedInUserId != id && !isAdmin)
+            {
+                return Forbid();
+            }
+
+            if (loggedInUserId == id)
+            {
+                if (string.IsNullOrEmpty(req.CurrentPassword))
+                    return BadRequest(new[] { "Current password is required." });
+
+                var result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+                if (!result.Succeeded)
+                    return BadRequest(result.Errors.Select(e => e.Description));
+            }
+            else
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var result = await _userManager.ResetPasswordAsync(user, token, req.NewPassword);
+                if (!result.Succeeded)
+                    return BadRequest(result.Errors.Select(e => e.Description));
+            }
 
             return NoContent();
         }
@@ -319,6 +337,7 @@ namespace AnchorPro.Controllers
 
     public class ChangePasswordRequest
     {
+        public string? CurrentPassword { get; set; }
         public string NewPassword { get; set; } = string.Empty;
     }
 }
