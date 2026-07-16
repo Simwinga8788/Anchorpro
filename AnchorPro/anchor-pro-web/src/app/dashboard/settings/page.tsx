@@ -205,9 +205,9 @@ export default function SettingsPage() {
   const { toasts, show } = useToast();
 
   const [activeTab, setActiveTab] = useState('profile');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showInviteConfirm, setShowInviteConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   // ── Billing ─────────────────────────────────────────────────────────────────
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
@@ -1296,9 +1296,18 @@ export default function SettingsPage() {
           </p>
           <div className="form-field" style={{ marginBottom: 16 }}>
             <label className="form-label" style={{ color: 'var(--accent-rose)' }}>Type &quot;PERMANENTLY DELETE&quot; to confirm</label>
-            <input className="form-input" placeholder="" />
+            <input 
+              className="form-input" 
+              placeholder="PERMANENTLY DELETE" 
+              value={deleteConfirmationText}
+              onChange={e => setDeleteConfirmationText(e.target.value)}
+            />
           </div>
-          <button className="btn btn-primary" style={{ background: 'var(--accent-rose)', border: 'none', width: '100%' }}>
+          <button 
+            className="btn btn-primary" 
+            style={{ background: 'var(--accent-rose)', border: 'none', width: '100%' }}
+            onClick={handleDeleteWorkspace}
+          >
             Delete Everything
           </button>
         </div>

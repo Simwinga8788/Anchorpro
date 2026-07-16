@@ -90,6 +90,28 @@ namespace AnchorPro.Controllers
             return Ok(tenant);
         }
 
+        /// <summary>
+        /// DELETE /api/settings/my-tenant — Soft-delete (deactivate) current tenant's workspace.
+        /// </summary>
+        [HttpDelete("my-tenant")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> DeleteMyTenant()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null || !user.TenantId.HasValue) return Unauthorized();
+
+            _context.IgnoreTenantFilter = true;
+            var tenant = await _context.Tenants.FindAsync(user.TenantId.Value);
+            if (tenant == null) return NotFound();
+
+            tenant.IsActive = false;
+            tenant.UpdatedAt = DateTime.UtcNow;
+            tenant.UpdatedBy = user.Id;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         // ── GLOBAL / PLATFORM SETTINGS ────────────────────────────────────────
 
         /// <summary>
