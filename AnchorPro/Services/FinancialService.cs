@@ -237,10 +237,13 @@ namespace AnchorPro.Services
             var now = DateTime.UtcNow;
             var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
-            var invoices = await context.Invoices
+            var revenueMtd = await context.Invoices
                 .Where(i => i.InvoiceDate >= monthStart)
-                .AsNoTracking()
-                .ToListAsync();
+                .SumAsync(i => i.Total);
+
+            var collectedMtd = await context.InvoicePayments
+                .Where(p => p.PaymentDate >= monthStart)
+                .SumAsync(p => p.Amount);
 
             var allInvoices = await context.Invoices
                 .AsNoTracking()
@@ -248,8 +251,8 @@ namespace AnchorPro.Services
 
             return new FinancialSnapshot
             {
-                TotalRevenueMTD = invoices.Sum(i => i.Total),
-                TotalCollectedMTD = invoices.Sum(i => i.AmountPaid),
+                TotalRevenueMTD = revenueMtd,
+                TotalCollectedMTD = collectedMtd,
                 TotalOutstanding = allInvoices.Sum(i => i.Balance),
                 OverdueAmount = allInvoices.Where(i => i.DueDate < now && i.Balance > 0).Sum(i => i.Balance),
                 UnpaidInvoiceCount = allInvoices.Count(i => i.Balance > 0)
