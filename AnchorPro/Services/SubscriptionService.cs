@@ -8,16 +8,19 @@ namespace AnchorPro.Services;
 public class SubscriptionService : ISubscriptionService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IEmailService _emailService;
 
-    public SubscriptionService(ApplicationDbContext context)
+    public SubscriptionService(ApplicationDbContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     public async Task<TenantSubscription?> GetCurrentSubscriptionAsync(int tenantId = 1)
     {
         return await _context.TenantSubscriptions
             .Include(s => s.SubscriptionPlan)
+            .Include(s => s.Tenant)
             .FirstOrDefaultAsync(s => s.TenantId == tenantId);
     }
 
@@ -67,6 +70,22 @@ public class SubscriptionService : ISubscriptionService
 
         _context.SystemAuditLogs.Add(auditLog);
         await _context.SaveChangesAsync();
+
+        // Send email notification to Platform Owner
+        var tenantName = subscription.Tenant?.Name ?? $"Tenant #{tenantId}";
+        var subject = $"Subscription Upgraded: {tenantName}";
+        var body = $@"
+            <h3>Subscription Upgrade Notification</h3>
+            <p><strong>{tenantName}</strong> has just upgraded their Anchor Pro subscription.</p>
+            <ul>
+                <li><strong>Old Plan:</strong> {subscription.SubscriptionPlan?.Name ?? "Trial/None"}</li>
+                <li><strong>New Plan:</strong> {newPlan.Name}</li>
+                <li><strong>Monthly Price:</strong> K {newPlan.MonthlyPrice:N2}</li>
+                <li><strong>Upgraded By:</strong> {userId}</li>
+            </ul>
+            <p>This change has been automatically applied to their MRR and limits.</p>
+        ";
+        await _emailService.SendEmailAsync("platform@anchorpro.com", subject, body);
 
         return true;
     }
