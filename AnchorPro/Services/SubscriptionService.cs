@@ -72,6 +72,16 @@ public class SubscriptionService : ISubscriptionService
         await _context.SaveChangesAsync();
 
         // Send email notification to Platform Owner
+        var platformOwnerRoleId = await _context.Roles
+            .Where(r => r.Name == "PlatformOwner")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        var ownerEmail = await _context.Users
+            .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == platformOwnerRoleId))
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync() ?? "platform@anchorpro.com";
+
         var tenantName = subscription.Tenant?.Name ?? $"Tenant #{tenantId}";
         var subject = $"Subscription Upgraded: {tenantName}";
         var body = $@"
@@ -85,7 +95,7 @@ public class SubscriptionService : ISubscriptionService
             </ul>
             <p>This change has been automatically applied to their MRR and limits.</p>
         ";
-        await _emailService.SendEmailAsync("platform@anchorpro.com", subject, body);
+        await _emailService.SendEmailAsync(ownerEmail, subject, body);
 
         return true;
     }
