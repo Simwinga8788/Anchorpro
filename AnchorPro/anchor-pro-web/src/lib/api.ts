@@ -742,7 +742,7 @@ export const exportApi = {
 
 // ─── Platform admin alias (uses real admin-access + tenants APIs) ──────────────
 export const platformApi = {
-  getTenants:         ()            => adminAccessApi.getTenants(),
+  getTenants:         ()            => tenantsApi.getAll(),          // rich endpoint: plan, users, MRR
   impersonate:        (id: number)  => adminAccessApi.impersonate(id),
   exitImpersonation:  ()            => adminAccessApi.exitImpersonation(),
   getStatus:          ()            => adminAccessApi.getStatus(),

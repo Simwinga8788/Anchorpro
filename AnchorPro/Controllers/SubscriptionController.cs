@@ -120,21 +120,23 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> GetMrrTrend([FromServices] AnchorPro.Data.ApplicationDbContext context)
         {
             context.IgnoreTenantFilter = true;
-            var currentMrr = await context.TenantSubscriptions
-                .Where(s => s.Status == "Active")
-                .SumAsync(s => s.SubscriptionPlan != null ? s.SubscriptionPlan.MonthlyPrice : 0m);
+            var now = DateTime.UtcNow;
+            var sixMonthsAgo = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-5);
+
+            // Real cash collected per calendar month from InvoicePayments
+            var payments = await context.InvoicePayments
+                .Where(p => p.PaymentDate >= sixMonthsAgo)
+                .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(p => p.Amount) })
+                .ToListAsync();
 
             var trend = new List<object>();
-            var now = DateTime.UtcNow;
-            
-            // Generate a synthetic 6-month trend ending at the actual current MRR
             for (int i = 5; i >= 0; i--)
             {
                 var monthDate = now.AddMonths(-i);
                 var monthName = monthDate.ToString("MMM");
-                // Scale down slightly for past months to simulate growth
-                var mrr = i == 0 ? currentMrr : Math.Max(0m, currentMrr - (i * 1500m));
-                trend.Add(new { month = monthName, mrr });
+                var real = payments.FirstOrDefault(p => p.Year == monthDate.Year && p.Month == monthDate.Month);
+                trend.Add(new { month = monthName, mrr = real?.Total ?? 0m });
             }
 
             return Ok(trend);
