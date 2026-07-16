@@ -87,6 +87,8 @@ export default function TenantsPage() {
     try {
       if ((currentStatus ?? '').toLowerCase() === 'active') {
         await platformApi.suspendTenant(id);
+      } else {
+        await platformApi.activateTenant(id);
       }
       await load();
     } catch {
@@ -221,7 +223,11 @@ export default function TenantsPage() {
                           {actId === t.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }}/> : 'Suspend'}
                         </button>
                       ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Suspended</span>
+                        <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--accent-emerald)' }}
+                          disabled={actId === t.id}
+                          onClick={() => handleSuspend(t.id, t.status)}>
+                          {actId === t.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }}/> : 'Activate'}
+                        </button>
                       )}
                     </div>
                   </td>
