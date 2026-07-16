@@ -27,7 +27,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
         {/* Platform Sidebar */}
         <aside style={{
-          width: 220, minWidth: 220, background: '#080808',
+          width: 220, minWidth: 220, background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--border-subtle)',
           display: 'flex', flexDirection: 'column',
           position: 'fixed', top: 0, left: 0, height: '100vh',
@@ -128,7 +128,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             height: 52, borderBottom: '1px solid var(--border-subtle)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 28px', position: 'sticky', top: 0,
-            background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)', zIndex: 40,
+            background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', zIndex: 40,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {/* Hamburger — mobile only */}
