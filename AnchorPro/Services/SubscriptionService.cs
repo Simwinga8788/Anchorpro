@@ -72,15 +72,28 @@ public class SubscriptionService : ISubscriptionService
         await _context.SaveChangesAsync();
 
         // Send email notification to Platform Owner
-        var platformOwnerRoleId = await _context.Roles
-            .Where(r => r.Name == "PlatformOwner")
-            .Select(r => r.Id)
+        var configuredEmail = await _context.SystemSettings
+            .IgnoreQueryFilters()
+            .Where(s => s.Key == "Platform.OwnerEmail" && s.TenantId == null)
+            .Select(s => s.Value)
             .FirstOrDefaultAsync();
 
-        var ownerEmail = await _context.Users
-            .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == platformOwnerRoleId))
-            .Select(u => u.Email)
-            .FirstOrDefaultAsync() ?? "platform@anchorpro.com";
+        var ownerEmail = configuredEmail;
+
+        if (string.IsNullOrWhiteSpace(ownerEmail))
+        {
+            var platformOwnerRoleId = await _context.Roles
+                .Where(r => r.Name == "PlatformOwner")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            ownerEmail = await _context.Users
+                .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == platformOwnerRoleId))
+                .Select(u => u.Email)
+                .FirstOrDefaultAsync();
+        }
+
+        ownerEmail ??= "platform@anchorpro.com";
 
         var tenantName = subscription.Tenant?.Name ?? $"Tenant #{tenantId}";
         var subject = $"Subscription Upgraded: {tenantName}";

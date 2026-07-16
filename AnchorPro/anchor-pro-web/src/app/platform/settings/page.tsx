@@ -12,6 +12,7 @@ export default function PlatformSettingsPage() {
 
   const [settings, setSettings] = useState({
     platformName:          'Anchor Pro',
+    ownerEmail:            '',
     supportEmail:          'support@anchorpro.co.zm',
     trialDays:             '14',
     maxTenantsPerNode:     '100',
@@ -33,6 +34,7 @@ export default function PlatformSettingsPage() {
 
   const KEY_MAP: Record<string, string> = {
     platformName:          'Platform.Name',
+    ownerEmail:            'Platform.OwnerEmail',
     supportEmail:          'Platform.SupportEmail',
     trialDays:             'Platform.TrialDays',
     maxTenantsPerNode:     'Platform.MaxTenants',
@@ -62,6 +64,7 @@ export default function PlatformSettingsPage() {
           all.find((s: any) => s.key === key)?.value ?? fallback;
         setSettings(prev => ({
           platformName:          get('Platform.Name',                 prev.platformName),
+          ownerEmail:            get('Platform.OwnerEmail',           prev.ownerEmail),
           supportEmail:          get('Platform.SupportEmail',         prev.supportEmail),
           trialDays:             get('Platform.TrialDays',            prev.trialDays),
           maxTenantsPerNode:     get('Platform.MaxTenants',           prev.maxTenantsPerNode),
@@ -181,6 +184,10 @@ export default function PlatformSettingsPage() {
           <Field label="Platform Name" sub="Displayed in all tenant portals and email headers">
             <input style={inputStyle} value={settings.platformName}
               onChange={e => setSettings(s => ({ ...s, platformName: e.target.value }))} />
+          </Field>
+          <Field label="Platform Owner Email" sub="Receives critical platform alerts and billing notifications">
+            <input style={inputStyle} value={settings.ownerEmail} placeholder="platform@anchorpro.com"
+              onChange={e => setSettings(s => ({ ...s, ownerEmail: e.target.value }))} />
           </Field>
           <Field label="Support Email" sub="Where tenant support requests are forwarded">
             <input style={inputStyle} value={settings.supportEmail}
