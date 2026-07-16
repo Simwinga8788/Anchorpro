@@ -2,10 +2,13 @@
 import "../globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard, Building2, CreditCard, ClipboardList, Settings, Shield, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <AuthProvider>
@@ -35,63 +38,86 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           className={`platform-sidebar ${sidebarOpen ? 'platform-sidebar-open' : ''}`}
         >
           {/* Logo */}
-          <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 28, height: 28, background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)',
-                borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 800, color: 'white', flexShrink: 0,
-              }}>A</div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Platform Console</div>
-                <div style={{ fontSize: 9, color: 'var(--accent-blue)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Super Admin</div>
-              </div>
-            </div>
-            {/* Close button — mobile only */}
+          <div style={{ padding: '6px 10px 0' }}>
+            {/* Mobile close button */}
             <button
               onClick={() => setSidebarOpen(false)}
               className="platform-sidebar-close"
               style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', padding: 4, borderRadius: 4, display: 'none',
+                display: 'none',
+                position: 'absolute', top: 8, right: 10,
+                background: 'transparent', border: 'none',
+                cursor: 'pointer', color: 'var(--text-muted)',
+                padding: 4, borderRadius: 4,
               }}
+              aria-label="Close sidebar"
             >
               <X size={16} />
             </button>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '10px 10px 4px',
+            }}>
+              <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
+            </div>
+            
+            <div style={{
+              display: 'flex', justifyContent: 'center', marginBottom: 4,
+            }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.8px',
+                textTransform: 'uppercase', padding: '2px 10px', borderRadius: 20,
+                background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+              }}>
+                Platform Console
+              </span>
+            </div>
           </div>
+          
+          <div style={{ height: 1, background: 'var(--border-subtle)', margin: '12px 0 4px' }} />
 
           {/* Nav */}
-          <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
+          <div style={{ flex: 1, padding: '6px 6px', overflowY: 'auto' }}>
             {[
               { label: 'Overview', section: true },
-              { href: '/platform', label: 'Dashboard', emoji: '⬛' },
+              { href: '/platform', label: 'Dashboard', icon: LayoutDashboard },
               { label: 'Governance', section: true },
-              { href: '/platform/tenants', label: 'Tenants', emoji: '🏢' },
-              { href: '/platform/payments', label: 'Payments', emoji: '💳' },
+              { href: '/platform/tenants', label: 'Tenants', icon: Building2 },
+              { href: '/platform/payments', label: 'Payments', icon: CreditCard },
               { label: 'Configuration', section: true },
-              { href: '/platform/plans', label: 'Plans', emoji: '📋' },
-              { href: '/platform/settings', label: 'Settings', emoji: '⚙️' },
+              { href: '/platform/plans', label: 'Plans', icon: ClipboardList },
+              { href: '/platform/settings', label: 'Settings', icon: Settings },
               { label: 'Compliance', section: true },
-              { href: '/platform/audit', label: 'Audit Logs', emoji: '📜' },
+              { href: '/platform/audit', label: 'Audit Logs', icon: Shield },
             ].map((item, i) => {
               if (item.section) {
-                return <div key={i} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.8, textTransform: 'uppercase', padding: '12px 8px 5px' }}>{item.label}</div>;
+                return <div key={i} className="sidebar-section-label">{item.label}</div>;
               }
+              const Icon = item.icon as any;
+              const isActive = pathname === item.href;
               return (
-                <a key={i} href={item.href} className="sidebar-nav-item" onClick={() => setSidebarOpen(false)}>
-                  <span style={{ fontSize: 14 }}>{item.emoji}</span> {item.label}
-                </a>
+                <div key={i} className="sidebar-section">
+                  <Link
+                    href={item.href!}
+                    className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon size={15} />
+                    <span>{item.label}</span>
+                  </Link>
+                </div>
               );
             })}
-          </nav>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
           {/* Exit console */}
-          <div style={{ padding: '12px 8px', borderTop: '1px solid var(--border-subtle)' }}>
-            <a href="/dashboard" style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
-              borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--accent-rose)',
-              textDecoration: 'none',
-            }}>← Exit Console</a>
+          <div style={{ padding: '8px 6px' }}>
+            <Link href="/dashboard" className="sidebar-nav-item" style={{ color: 'var(--accent-rose)' }}>
+              <LogOut size={15} /> <span>Exit Console</span>
+            </Link>
           </div>
         </aside>
 
