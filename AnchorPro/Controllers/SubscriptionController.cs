@@ -70,7 +70,7 @@ namespace AnchorPro.Controllers
             var sub = await _subscriptionService.GetCurrentSubscriptionAsync();
             if (sub == null) return BadRequest("No active subscription found.");
 
-            var success = await _subscriptionService.UpgradeSubscriptionAsync(sub.Id, req.NewPlanId, userId);
+            var success = await _subscriptionService.UpgradeSubscriptionAsync(sub.TenantId, req.NewPlanId, userId);
             return success ? Ok(new { message = "Subscription upgraded." }) : BadRequest("Upgrade failed.");
         }
 

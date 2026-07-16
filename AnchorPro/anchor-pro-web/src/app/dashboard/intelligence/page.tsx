@@ -121,13 +121,18 @@ export default function IntelligencePage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          {[7, 14, 30, 90].map(d => (
+          {[
+            { label: '1M', value: 30 },
+            { label: '3M', value: 90 },
+            { label: '6M', value: 180 },
+            { label: '1Y', value: 365 }
+          ].map(opt => (
             <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`btn btn-sm ${days === d ? 'btn-primary' : 'btn-secondary'}`}
+              key={opt.value}
+              onClick={() => setDays(opt.value)}
+              className={`btn btn-sm ${days === opt.value ? 'btn-primary' : 'btn-secondary'}`}
             >
-              {d}d
+              {opt.label}
             </button>
           ))}
           <button className="btn btn-secondary btn-sm" onClick={() => loadData(days)}>
