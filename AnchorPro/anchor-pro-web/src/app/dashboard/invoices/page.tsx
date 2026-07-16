@@ -5,6 +5,7 @@ import {
   DollarSign, FileText, CheckCircle2, AlertTriangle,
   Search, Filter, Plus, CreditCard, ExternalLink, Zap
 } from 'lucide-react';
+import { useDictionary } from '@/lib/DictionaryContext';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import { shiftLogsApi, referenceDataApi, financialApi, dashboardApi } from '@/lib/api';
@@ -16,6 +17,7 @@ const statusMap: Record<number, { label: string; badge: string }> = {
 };
 
 export default function InvoicesPage() {
+  const { t } = useDictionary();
   const [invoices, setInvoices]     = useState<any[]>([]);
   const [snapshot, setSnapshot]     = useState<any>(null);
   const [loading, setLoading]       = useState(true);
@@ -203,17 +205,17 @@ export default function InvoicesPage() {
           {createMode === 'from-job' ? (
             <>
               <div style={{ padding: 12, background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-tertiary)' }}>
-                The backend will automatically pull all cost data (labour, parts, direct purchases) from the job card and generate a complete invoice.
+                The backend will automatically pull all cost data (labour, parts, direct purchases) from the {t('Job Cards', 'job card').toLowerCase()} and generate a complete invoice.
               </div>
               <div className="form-field">
-                <label className="form-label">Completed Job</label>
+                <label className="form-label">Completed {t('Job Cards', 'Job')}</label>
                 {jobsLoading ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>Loading jobs...</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>Loading {t('Job Cards', 'jobs').toLowerCase()}...</div>
                 ) : completedJobs.length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>No completed jobs without invoices.</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>No completed {t('Job Cards', 'jobs').toLowerCase()} without invoices.</div>
                 ) : (
                   <select className="form-select" value={fromJobId} onChange={e => setFromJobId(e.target.value)} required>
-                    <option value="">Select a completed job...</option>
+                    <option value="">Select a completed {t('Job Cards', 'job').toLowerCase()}...</option>
                     {completedJobs.map(j => (
                       <option key={j.id} value={j.id}>
                         {j.jobNumber} — {j.equipment?.name || j.description || 'Job'}{j.customer ? ` (${j.customer.name})` : ''}
@@ -358,7 +360,7 @@ export default function InvoicesPage() {
             <tr>
               <th>Invoice No</th>
               <th>Customer</th>
-              <th>Job Card</th>
+              <th>{t('Job Cards', 'Job Card').toUpperCase()}</th>
               <th>Issued</th>
               <th>Due</th>
               <th>Total Amount</th>

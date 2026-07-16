@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 // recharts removed — using plain visual cards instead
 import { intelligenceApi } from '@/lib/api';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 function HealthBar({ value, color = '#3b82f6' }: { value: number; color?: string }) {
   return (
@@ -49,6 +50,7 @@ function severityColor(s: string) {
 const CHART_COLORS = ['#2383E2', '#0F9D67', '#DFAB01', '#9065B0', '#EB5757'];
 
 export default function IntelligencePage() {
+  const { t } = useDictionary();
   const [days, setDays]                   = useState(30);
   const [profitability, setProfitability] = useState<any[]>([]);
   const [utilization, setUtilization]     = useState<any[]>([]);
@@ -117,7 +119,7 @@ export default function IntelligencePage() {
         <div>
           <h1 className="page-title">Intelligence Center</h1>
           <p className="page-subtitle">
-            Profitability · technician utilization · operational trends
+            Profitability · {t('Technicians', 'technician').toLowerCase()} utilization · operational trends
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -147,7 +149,7 @@ export default function IntelligencePage() {
           {
             label: 'Revenue (Period)', icon: DollarSign,
             value: loading ? null : `K ${totalRevenue.toLocaleString()}`,
-            sub: loading ? '…' : `${profitability.length} jobs`,
+            sub: loading ? '…' : `${profitability.length} ${t('Job Cards', 'jobs').toLowerCase()}`,
             color: 'var(--accent-emerald)',
           },
           {
@@ -157,9 +159,9 @@ export default function IntelligencePage() {
             color: 'var(--accent-blue)',
           },
           {
-            label: 'Avg Tech Utilization', icon: Users,
+            label: `Avg ${t('Technicians', 'Tech')} Utilization`, icon: Users,
             value: loading ? null : `${avgUtil.toFixed(1)}%`,
-            sub: `${utilization.length} technicians`,
+            sub: `${utilization.length} ${t('Technicians', 'technicians').toLowerCase()}`,
             color: avgUtil >= 70 ? 'var(--accent-emerald)' : avgUtil >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)',
           },
           {
@@ -197,8 +199,8 @@ export default function IntelligencePage() {
         <div className="card">
           <div className="section-header">
             <div>
-              <div className="section-title">Technician Utilization</div>
-              <div className="section-sub">Jobs completed · efficiency %</div>
+              <div className="section-title">{t('Technicians', 'Technician')} Utilization</div>
+              <div className="section-sub">{t('Job Cards', 'Jobs')} completed · efficiency %</div>
             </div>
             <span className="badge badge-blue">Live</span>
           </div>
@@ -221,7 +223,7 @@ export default function IntelligencePage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {t.jobs} jobs
+                        {t.jobs} {t('Job Cards', 'jobs').toLowerCase()}
                       </span>
                     </div>
                     <HealthBar value={t.util} color={color} />
