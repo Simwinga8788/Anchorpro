@@ -37,11 +37,12 @@ export default function PaymentsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleSuspend = async (id: number) => {
+  const handleSuspend = async (subscriptionId: number) => {
+    if (!subscriptionId) { alert('No active subscription found'); return; }
     if (!confirm('Suspend this tenant subscription?')) return;
-    setActionId(id);
+    setActionId(subscriptionId);
     try {
-      await subscriptionsApi.suspend(id, { reason: 'Suspended by platform admin' });
+      await subscriptionsApi.suspend(subscriptionId, { reason: 'Suspended by platform admin' });
       load();
     } catch (e: any) {
       alert(e.message || 'Action failed');
@@ -50,10 +51,11 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleReactivate = async (id: number) => {
-    setActionId(id);
+  const handleReactivate = async (subscriptionId: number) => {
+    if (!subscriptionId) { alert('No active subscription found'); return; }
+    setActionId(subscriptionId);
     try {
-      await subscriptionsApi.reactivate(id, { reason: 'Reactivated by platform admin' });
+      await subscriptionsApi.reactivate(subscriptionId, { reason: 'Reactivated by platform admin' });
       load();
     } catch (e: any) {
       alert(e.message || 'Action failed');
@@ -121,40 +123,40 @@ export default function PaymentsPage() {
                 </tr>
               ) : (
                 filtered.map((t: any) => {
-                  const status = t.isActive === false ? 'Suspended' : (t.subscriptionStatus ?? t.status ?? 'Active');
+                  const status = t.status === 'Deactivated' ? 'Suspended' : (t.subscriptionStatus ?? 'Active');
                   const cfg = statusConfig[status] ?? statusConfig['Active'];
                   return (
                     <tr key={t.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.companyName ?? t.name ?? `Tenant #${t.id}`}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.name ?? `Tenant #${t.id}`}</td>
                       <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{t.domain ?? '—'}</td>
                       <td>
                         <span className={`badge ${cfg.badge}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {cfg.icon} {status}
                         </span>
                       </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.subscriptionPlan ?? t.planName ?? '—'}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.plan ?? '—'}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          {t.isActive !== false ? (
+                          {status !== 'Suspended' ? (
                             <button
                               className="btn btn-secondary btn-sm"
                               style={{ fontSize: 11 }}
-                              disabled={actionId === t.id}
-                              onClick={() => handleSuspend(t.id)}
+                              disabled={actionId === t.subscriptionId || !t.subscriptionId}
+                              onClick={() => handleSuspend(t.subscriptionId)}
                             >
-                              {actionId === t.id ? '...' : 'Suspend'}
+                              {actionId === t.subscriptionId ? '...' : 'Suspend'}
                             </button>
                           ) : (
                             <button
-                              className="btn btn-primary btn-sm"
+                              className="btn btn-success btn-sm"
                               style={{ fontSize: 11 }}
-                              disabled={actionId === t.id}
-                              onClick={() => handleReactivate(t.id)}
+                              disabled={actionId === t.subscriptionId || !t.subscriptionId}
+                              onClick={() => handleReactivate(t.subscriptionId)}
                             >
-                              {actionId === t.id ? '...' : 'Reactivate'}
+                              {actionId === t.subscriptionId ? '...' : 'Reactivate'}
                             </button>
                           )}
                         </div>

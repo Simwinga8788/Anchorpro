@@ -59,9 +59,21 @@ namespace AnchorPro.Controllers
                     Name = t.Name,
                     Status = t.IsActive ? "Active" : "Deactivated",
                     Users = _context.Users.Count(u => u.TenantId == t.Id),
+                    CreatedAt = t.CreatedAt,
                     Plan = _context.TenantSubscriptions
-                        .Where(s => s.TenantId == t.Id && (s.Status == "Active" || s.Status == "Trial"))
+                        .Where(s => s.TenantId == t.Id)
+                        .OrderByDescending(s => s.CreatedAt)
                         .Select(s => s.SubscriptionPlan != null ? s.SubscriptionPlan.Name : "N/A")
+                        .FirstOrDefault(),
+                    SubscriptionId = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .OrderByDescending(s => s.CreatedAt)
+                        .Select(s => (int?)s.Id)
+                        .FirstOrDefault(),
+                    SubscriptionStatus = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .OrderByDescending(s => s.CreatedAt)
+                        .Select(s => s.Status)
                         .FirstOrDefault(),
                     MRR = _context.TenantSubscriptions
                         .Where(s => s.TenantId == t.Id && s.Status == "Active")
