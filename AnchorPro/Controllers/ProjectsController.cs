@@ -101,10 +101,10 @@ namespace AnchorPro.Controllers
                 ManagerName = project.Manager != null ? project.Manager.FirstName + " " + project.Manager.LastName : null,
                 
                 // Rollups
-                TotalCost = project.JobCards.Sum(j => j.TotalCost) + project.ShiftLogs.SelectMany(s => s.CostEntries).Sum(c => c.Amount),
+                TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<CostEntry>()).Sum(c => c.Amount) ?? 0),
                 
                 // Workshop Mode Links
-                JobCards = project.JobCards.Select(j => new
+                JobCards = project.JobCards?.Select(j => new
                 {
                     j.Id,
                     j.JobNumber,
@@ -116,7 +116,7 @@ namespace AnchorPro.Controllers
                 }),
                 
                 // Mining Mode Links
-                ShiftLogs = project.ShiftLogs.Select(s => new
+                ShiftLogs = project.ShiftLogs?.Select(s => new
                 {
                     s.Id,
                     s.LogNumber,
@@ -125,7 +125,7 @@ namespace AnchorPro.Controllers
                     Status = s.Status.ToString(),
                     s.QuantityProduced,
                     s.UnitOfMeasure,
-                    TotalCost = s.CostEntries.Sum(c => c.Amount),
+                    TotalCost = s.CostEntries?.Sum(c => c.Amount) ?? 0,
                     EquipmentName = s.Equipment?.Name
                 }),
 

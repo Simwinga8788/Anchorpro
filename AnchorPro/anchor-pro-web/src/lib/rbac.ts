@@ -64,6 +64,14 @@ export function canAccess(
     }
   }
 
+  const projectsPrefix = '/dashboard/projects/';
+  if (route.startsWith(projectsPrefix)) {
+    const segment = route.substring(projectsPrefix.length);
+    if (/^\d+$/.test(segment)) {
+      normalizedRoute = '/dashboard/projects';
+    }
+  }
+
   return allowedRoutes.includes(normalizedRoute);
 }
 
