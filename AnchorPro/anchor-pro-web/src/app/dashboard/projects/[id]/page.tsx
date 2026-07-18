@@ -166,7 +166,7 @@ export default function ProjectDetailsPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border-subtle)', marginBottom: 24 }}>
-        {['overview', 'board', 'operations', 'team'].map(tab => (
+        {['overview', 'timeline', 'board', 'operations', 'team'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -182,7 +182,7 @@ export default function ProjectDetailsPage() {
               textTransform: 'capitalize'
             }}
           >
-            {tab}
+            {tab === 'board' ? 'Kanban Board' : tab}
           </button>
         ))}
       </div>
@@ -241,6 +241,95 @@ export default function ProjectDetailsPage() {
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'timeline' && (
+        <div className="card" style={{ padding: 24, overflowX: 'auto' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Project Timeline</h3>
+          
+          {!project.tasks || project.tasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No tasks available for timeline.</div>
+          ) : (
+            <div style={{ minWidth: 800 }}>
+              {/* Timeline Header (Months/Days) */}
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>
+                <div style={{ width: 250, flexShrink: 0 }}>Task</div>
+                <div style={{ flex: 1, display: 'flex', position: 'relative', height: 20 }}>
+                  <div style={{ position: 'absolute', left: '0%' }}>Start</div>
+                  <div style={{ position: 'absolute', right: '0%' }}>End</div>
+                  {/* We can map out a simple grid here based on min/max dates. For now, a simplified visual representation: */}
+                  <div style={{ position: 'absolute', left: '25%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                  <div style={{ position: 'absolute', left: '50%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                  <div style={{ position: 'absolute', left: '75%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                </div>
+              </div>
+
+              {/* Tasks List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {(() => {
+                  // Calculate min/max dates to scale the bars
+                  const validTasks = project.tasks.filter((t: any) => t.startDate && t.dueDate);
+                  if (validTasks.length === 0) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Tasks need Start and End dates to appear on the timeline.</div>;
+
+                  const minDate = new Date(Math.min(...validTasks.map((t: any) => new Date(t.startDate).getTime())));
+                  const maxDate = new Date(Math.max(...validTasks.map((t: any) => new Date(t.dueDate).getTime())));
+                  const totalDuration = maxDate.getTime() - minDate.getTime() || 1; // avoid division by zero
+
+                  return validTasks.map((t: any) => {
+                    const tStart = new Date(t.startDate).getTime();
+                    const tEnd = new Date(t.dueDate).getTime();
+                    
+                    const leftPercent = ((tStart - minDate.getTime()) / totalDuration) * 100;
+                    const widthPercent = Math.max(((tEnd - tStart) / totalDuration) * 100, 2); // min width 2%
+
+                    let barColor = 'var(--text-muted)';
+                    if (t.status === 'InProgress') barColor = 'var(--accent-blue)';
+                    if (t.status === 'Done') barColor = 'var(--accent-emerald)';
+
+                    return (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{ width: 250, flexShrink: 0, paddingRight: 16 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{new Date(t.startDate).toLocaleDateString()} - {new Date(t.dueDate).toLocaleDateString()}</div>
+                        </div>
+                        <div style={{ flex: 1, position: 'relative', height: 28, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden' }}>
+                           {/* Grid Lines */}
+                          <div style={{ position: 'absolute', left: '25%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                          <div style={{ position: 'absolute', left: '50%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                          <div style={{ position: 'absolute', left: '75%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
+                          
+                          {/* The Bar */}
+                          <div 
+                            style={{ 
+                              position: 'absolute', 
+                              left: `${leftPercent}%`, 
+                              width: `${widthPercent}%`, 
+                              height: '100%', 
+                              background: barColor, 
+                              borderRadius: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0 8px',
+                              color: '#fff',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                              transition: 'all 0.2s ease',
+                              cursor: 'pointer'
+                            }}
+                            title={`${t.title}\nAssignee: ${t.assignedToName || 'Unassigned'}\nStatus: ${t.status}`}
+                          >
+                            {widthPercent > 10 ? (t.assignedToName || '') : ''}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
