@@ -70,6 +70,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.PaymentTransaction> PaymentTransactions { get; set; }
     public DbSet<Entities.ReportDefinition> ReportDefinitions { get; set; }
     public DbSet<Entities.TenantRolePermission> TenantRolePermissions { get; set; }
+    public DbSet<Entities.Project> Projects { get; set; }
+    public DbSet<Entities.ProjectTask> ProjectTasks { get; set; }
+    public DbSet<Entities.ProjectMember> ProjectMembers { get; set; }
+    public DbSet<Entities.ProjectMilestone> ProjectMilestones { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

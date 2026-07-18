@@ -100,5 +100,8 @@ namespace AnchorPro.Data.Entities
 
         public int? InvoiceId { get; set; }
         public Invoice? Invoice { get; set; }
+
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
     }
 }

@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717182428_AddProjectManagement")]
+    partial class AddProjectManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1741,167 +1744,6 @@ namespace AnchorPro.Migrations
                     b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectMember", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ProjectRole")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ProjectMembers");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectMilestone", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("ProjectMilestones");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("ActualHours")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("AssignedToId")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<decimal>("EstimatedHours")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(85)
-                        .HasColumnType("character varying(85)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedToId");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("ProjectTasks");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -2381,9 +2223,6 @@ namespace AnchorPro.Migrations
                     b.Property<decimal?>("PayloadFactor")
                         .HasColumnType("numeric");
 
-                    b.Property<int?>("ProjectId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("QuantityProduced")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -2437,8 +2276,6 @@ namespace AnchorPro.Migrations
                     b.HasIndex("EquipmentId");
 
                     b.HasIndex("InvoiceId");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("ShiftProductionLogs");
                 });
@@ -3655,53 +3492,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("Manager");
                 });
 
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectMember", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectMilestone", b =>
-                {
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("AnchorPro.Data.Entities.ProjectTask", b =>
-                {
-                    b.HasOne("AnchorPro.Data.ApplicationUser", "AssignedTo")
-                        .WithMany()
-                        .HasForeignKey("AssignedToId");
-
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTo");
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrder", b =>
                 {
                     b.HasOne("AnchorPro.Data.Entities.Department", "Department")
@@ -3830,15 +3620,9 @@ namespace AnchorPro.Migrations
                         .WithMany("ShiftLogs")
                         .HasForeignKey("InvoiceId");
 
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany("ShiftLogs")
-                        .HasForeignKey("ProjectId");
-
                     b.Navigation("Equipment");
 
                     b.Navigation("Invoice");
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.TenantSubscription", b =>
@@ -4040,8 +3824,6 @@ namespace AnchorPro.Migrations
             modelBuilder.Entity("AnchorPro.Data.Entities.Project", b =>
                 {
                     b.Navigation("JobCards");
-
-                    b.Navigation("ShiftLogs");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrder", b =>

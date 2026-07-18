@@ -82,7 +82,7 @@ namespace AnchorPro.Services
         public async Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(int id)
         {
             using var context = _factory.CreateDbContext();
-            return await context.PurchaseOrders
+            var po = await context.PurchaseOrders
                 .Include(p => p.Supplier)
                 .Include(p => p.Items)
                     .ThenInclude(i => i.InventoryItem)
@@ -91,6 +91,21 @@ namespace AnchorPro.Services
                 .Include(p => p.Department)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (po != null)
+            {
+                if (!string.IsNullOrEmpty(po.RaisedBy))
+                {
+                    var user = await context.Users.FindAsync(po.RaisedBy);
+                    if (user != null) po.RaisedBy = $"{user.FirstName} {user.LastName}".Trim();
+                }
+                if (!string.IsNullOrEmpty(po.ApprovedBy))
+                {
+                    var user = await context.Users.FindAsync(po.ApprovedBy);
+                    if (user != null) po.ApprovedBy = $"{user.FirstName} {user.LastName}".Trim();
+                }
+            }
+            return po;
         }
 
         public async Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder po, List<PurchaseOrderItem> items, string userId)

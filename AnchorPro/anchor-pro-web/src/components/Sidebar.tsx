@@ -28,6 +28,13 @@ const OP = {
 // ── Static sections shared by ALL operation modes ─────────────────────────────
 const SHARED_SECTIONS = [
   {
+    label: 'Project Management',
+    items: [
+      { href: '/dashboard/projects',          label: 'Projects Portfolio',   icon: Building2 },
+      { href: '/dashboard/projects/my-tasks', label: 'My Project Tasks',     icon: Hash },
+    ],
+  },
+  {
     label: 'Human Resources',
     items: [
       { href: '/dashboard/hr',           label: 'HR & Team',            icon: UserCog },

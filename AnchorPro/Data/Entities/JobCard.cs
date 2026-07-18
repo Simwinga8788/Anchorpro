@@ -27,6 +27,9 @@ namespace AnchorPro.Data.Entities
         public int? ContractId { get; set; }
         public Contract? Contract { get; set; }
 
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
+
         // Scheduling
         public JobStatus Status { get; set; } = JobStatus.Unscheduled;
         public JobPriority Priority { get; set; } = JobPriority.Normal;
