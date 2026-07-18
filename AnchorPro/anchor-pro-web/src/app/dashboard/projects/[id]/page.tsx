@@ -56,26 +56,48 @@ export default function ProjectDetailsPage() {
   const handleCreateTask = async (e: any) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem('anchor_auth_token');
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       const res = await fetch('/api/projecttasks', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           projectId: id,
           title: taskForm.title,
           description: taskForm.description,
           estimatedHours: parseFloat(taskForm.estimatedHours) || 0,
+          startDate: taskForm.startDate,
+          dueDate: taskForm.dueDate,
         })
       });
       if (res.ok) {
         setShowTask(false);
-        setTaskForm({ title: '', description: '', estimatedHours: '' });
+        setTaskForm({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '' });
         loadProject();
+      } else {
+        alert('Error creating task');
       }
     } catch (err) {
       alert('Error creating task');
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: number, newStatus: string) => {
+    try {
+      const token = localStorage.getItem('anchor_auth_token');
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`/api/projecttasks/${taskId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        loadProject();
+      } else {
+        alert('Failed to update task');
+      }
+    } catch (e) {
+      alert('Error updating task');
     }
   };
 
@@ -345,7 +367,8 @@ export default function ProjectDetailsPage() {
               {todoTasks.map((t: any) => (
                 <div key={t.id} className="card-elevated" style={{ padding: 16, marginBottom: 12 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 8 }}>{t.title}</div>
-                  {t.assignedToName && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}><Users size={12} style={{ display: 'inline', marginRight: 4 }}/>{t.assignedToName}</div>}
+                  {t.assignedToName && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}><Users size={12} style={{ display: 'inline', marginRight: 4 }}/>{t.assignedToName}</div>}
+                  <button onClick={() => handleUpdateTaskStatus(t.id, 'InProgress')} style={{ width: '100%', padding: '6px', fontSize: 12, background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer', color: 'var(--accent-blue)', fontWeight: 600 }}>Start Work</button>
                 </div>
               ))}
             </div>
@@ -356,7 +379,8 @@ export default function ProjectDetailsPage() {
               {inProgressTasks.map((t: any) => (
                 <div key={t.id} className="card-elevated" style={{ padding: 16, marginBottom: 12, borderLeft: '3px solid var(--accent-blue)' }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 8 }}>{t.title}</div>
-                  {t.assignedToName && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}><Users size={12} style={{ display: 'inline', marginRight: 4 }}/>{t.assignedToName}</div>}
+                  {t.assignedToName && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}><Users size={12} style={{ display: 'inline', marginRight: 4 }}/>{t.assignedToName}</div>}
+                  <button onClick={() => handleUpdateTaskStatus(t.id, 'Done')} style={{ width: '100%', padding: '6px', fontSize: 12, background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer', color: 'var(--accent-emerald)', fontWeight: 600 }}>Complete Task</button>
                 </div>
               ))}
             </div>
@@ -367,6 +391,7 @@ export default function ProjectDetailsPage() {
               {doneTasks.map((t: any) => (
                 <div key={t.id} className="card-elevated" style={{ padding: 16, marginBottom: 12, opacity: 0.7 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 8, textDecoration: 'line-through' }}>{t.title}</div>
+                  <button onClick={() => handleUpdateTaskStatus(t.id, 'InProgress')} style={{ width: '100%', padding: '6px', fontSize: 11, background: 'none', border: '1px dashed var(--border-subtle)', borderRadius: 4, cursor: 'pointer', color: 'var(--text-muted)' }}>Reopen</button>
                 </div>
               ))}
             </div>
