@@ -21,12 +21,15 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     equipment: any[];
     jobTypes: any[];
     customers: any[];
+    customers: any[];
     contracts: any[];
+    projects: any[];
   }>({
     equipment: [],
     jobTypes: [],
     customers: [],
     contracts: [],
+    projects: [],
   });
 
   const [formData, setFormData] = useState({
@@ -41,22 +44,27 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     customerItemName: '',
     customerItemSerial: '',
     estimatedLaborHours: '0.0',
+    projectId: '',
   });
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [eq, jt, cust, cont] = await Promise.all([
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const [eq, jt, cust, cont, proj] = await Promise.all([
           dashboardApi.getEquipment(),
           dashboardApi.getJobTypes(),
           dashboardApi.getCustomers(),
           dashboardApi.getContracts(),
+          fetch('/api/projects', { headers }).then(r => r.ok ? r.json() : [])
         ]);
         setRefData({
           equipment: eq || [],
           jobTypes: jt || [],
           customers: cust || [],
           contracts: cont || [],
+          projects: proj || [],
         });
       } catch (err) {
         console.error('Failed to load ref data', err);
@@ -115,6 +123,7 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
         jobTypeId: parseInt(formData.jobTypeId),
         customerId: formData.customerId ? parseInt(formData.customerId) : null,
         contractId: formData.contractId ? parseInt(formData.contractId) : null,
+        projectId: formData.projectId ? parseInt(formData.projectId) : null,
         status: 0, // Unscheduled
         priority: parseInt(formData.priority as any) || 1,
         scheduledStartDate: null,
@@ -173,6 +182,14 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
               {refData.jobTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
             {refData.jobTypes.length === 0 && <p style={{ fontSize: 11, color: 'var(--accent-amber)', marginTop: 4 }}>No job types found.</p>}
+          </div>
+          <div className="form-field">
+            <label className="form-label">Link to Project <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <select className="form-select" value={formData.projectId}
+              onChange={e => setFormData({ ...formData, projectId: e.target.value })}>
+              <option value="">No Project</option>
+              {refData.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
           <div className="form-field">
             <label className="form-label">Priority</label>

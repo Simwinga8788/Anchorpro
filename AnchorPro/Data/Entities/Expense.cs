@@ -22,6 +22,9 @@ namespace AnchorPro.Data.Entities
         public int? JobCardId { get; set; }
         public JobCard? JobCard { get; set; }
 
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
+
         [MaxLength(100)]
         public string? RecordedBy { get; set; }
     }

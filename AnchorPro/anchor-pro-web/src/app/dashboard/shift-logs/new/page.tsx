@@ -13,12 +13,14 @@ export default function NewShiftLogPage() {
   
   // Data for dropdowns
   const [equipmentList, setEquipmentList] = useState<any[]>([]);
+  const [projectList, setProjectList] = useState<any[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
     shiftDate: new Date().toISOString().split('T')[0],
     shift: 0,
     equipmentId: '',
+    projectId: '',
     sourceLocation: '',
     destinationLocation: '',
     activityType: '',
@@ -42,11 +44,11 @@ export default function NewShiftLogPage() {
         const tokenStr = localStorage.getItem('anchor_auth_token');
         const headers: any = {};
         if (tokenStr) headers['Authorization'] = `Bearer ${tokenStr}`;
-        const res = await fetch('/api/equipment', { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setEquipmentList(data);
-        }
+        const resEq = await fetch('/api/equipment', { headers });
+        if (resEq.ok) setEquipmentList(await resEq.json());
+        
+        const resProj = await fetch('/api/projects', { headers });
+        if (resProj.ok) setProjectList(await resProj.json());
       } catch (e) {
         console.error(e);
       }
@@ -83,6 +85,7 @@ export default function NewShiftLogPage() {
         shiftDate: formData.shiftDate,
         shift: Number(formData.shift),
         equipmentId: formData.equipmentId ? Number(formData.equipmentId) : null,
+        projectId: formData.projectId ? Number(formData.projectId) : null,
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
         activityType: formData.activityType,
@@ -148,6 +151,15 @@ export default function NewShiftLogPage() {
               <label>Crew Count</label>
               <input type="number" className="input" min="1"
                 value={formData.crewCount} onChange={e => setFormData({...formData, crewCount: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label>Link to Project <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+              <select className="input" value={formData.projectId} onChange={e => setFormData({...formData, projectId: e.target.value})}>
+                <option value="">-- No Project --</option>
+                {projectList.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

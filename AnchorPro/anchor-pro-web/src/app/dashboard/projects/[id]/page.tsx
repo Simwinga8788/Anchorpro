@@ -30,6 +30,9 @@ export default function ProjectDetailsPage() {
   const [showTeam, setShowTeam] = useState(false);
   const [teamForm, setTeamForm] = useState({ userId: '', projectRole: 'Contributor' });
 
+  const [showExpense, setShowExpense] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: 'Other', expenseDate: '' });
+
   useEffect(() => {
     loadProject();
   }, [id]);
@@ -107,6 +110,25 @@ export default function ProjectDetailsPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.ok) loadProject();
+    } catch(err) { console.error(err); }
+  };
+
+  const handleCreateExpense = async (e: any) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/projects/${id}/expenses`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...expenseForm,
+          amount: parseFloat(expenseForm.amount) || 0
+        })
+      });
+      if (res.ok) {
+        setShowExpense(false);
+        setExpenseForm({ description: '', amount: '', category: 'Other', expenseDate: '' });
+        loadProject();
+      } else { alert('Error adding expense'); }
     } catch(err) { console.error(err); }
   };
 
@@ -264,38 +286,77 @@ export default function ProjectDetailsPage() {
       )}
 
       {activeTab === 'operations' && (
-        <div className="card-elevated" style={{ padding: 0 }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Operation Ref</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Rolled-up Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {project.jobCards?.map((j: any) => (
-                <tr key={`j-${j.id}`}>
-                  <td>{j.jobNumber}</td>
-                  <td><span className="badge badge-gray"><Wrench size={12} style={{ marginRight: 4 }}/> Job Card</span></td>
-                  <td>{j.status}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>K {j.totalCost?.toLocaleString() ?? 0}</td>
-                </tr>
-              ))}
-              {project.shiftLogs?.map((s: any) => (
-                <tr key={`s-${s.id}`}>
-                  <td>{s.logNumber}</td>
-                  <td><span className="badge badge-gray"><Hash size={12} style={{ marginRight: 4 }}/> Shift Log</span></td>
-                  <td>{s.status}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>K {s.totalCost?.toLocaleString() ?? 0}</td>
-                </tr>
-              ))}
-              {(project.jobCards?.length === 0 && project.shiftLogs?.length === 0) && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No operational documents linked to this project yet.</td></tr>
-              )}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Operational Costs</h3>
+            <div className="card-elevated" style={{ padding: 0 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Operation Ref</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Rolled-up Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.jobCards?.map((j: any) => (
+                    <tr key={`j-${j.id}`}>
+                      <td>{j.jobNumber}</td>
+                      <td><span className="badge badge-gray"><Wrench size={12} style={{ marginRight: 4 }}/> Job Card</span></td>
+                      <td>{j.status}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>K {j.totalCost?.toLocaleString() ?? 0}</td>
+                    </tr>
+                  ))}
+                  {project.shiftLogs?.map((s: any) => (
+                    <tr key={`s-${s.id}`}>
+                      <td>{s.logNumber}</td>
+                      <td><span className="badge badge-gray"><Hash size={12} style={{ marginRight: 4 }}/> Shift Log</span></td>
+                      <td>{s.status}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>K {s.totalCost?.toLocaleString() ?? 0}</td>
+                    </tr>
+                  ))}
+                  {(project.jobCards?.length === 0 && project.shiftLogs?.length === 0) && (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No operational documents linked to this project yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600 }}>Direct Project Expenses</h3>
+              <button className="btn btn-primary" onClick={() => setShowExpense(true)}><Plus size={16} /> Log Expense</button>
+            </div>
+            <div className="card-elevated" style={{ padding: 0 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Recorded By</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.directExpenses?.map((e: any) => (
+                    <tr key={e.id}>
+                      <td>{new Date(e.expenseDate).toLocaleDateString()}</td>
+                      <td style={{ fontWeight: 500 }}>{e.description}</td>
+                      <td><span className="badge badge-blue">{e.category}</span></td>
+                      <td>{e.recordedBy}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-rose)' }}>K {e.amount?.toLocaleString() ?? 0}</td>
+                    </tr>
+                  ))}
+                  {(!project.directExpenses || project.directExpenses.length === 0) && (
+                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No direct expenses logged yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -371,6 +432,39 @@ export default function ProjectDetailsPage() {
           </div>
           <div style={{ marginTop: 20 }}>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Assign Member</button>
+          </div>
+        </form>
+      </SlideOver>
+
+      <SlideOver open={showExpense} onClose={() => setShowExpense(false)} title="Log Direct Expense">
+        <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Description</label>
+            <input className="form-input" required value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} placeholder="e.g. Subcontractor invoice, Surveying fee" />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Amount (ZMW)</label>
+            <input className="form-input" type="number" step="0.01" required value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Category</label>
+            <select className="form-input" value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})}>
+              <option value="Other">Other</option>
+              <option value="OfficeSupplies">Office Supplies</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Rent">Rent</option>
+              <option value="Travel">Travel</option>
+              <option value="Meals">Meals</option>
+              <option value="Marketing">Marketing</option>
+              <option value="SoftwareSubscriptions">Software / IT</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Date</label>
+            <input className="form-input" type="date" required value={expenseForm.expenseDate} onChange={e => setExpenseForm({...expenseForm, expenseDate: e.target.value})} />
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Log Expense</button>
           </div>
         </form>
       </SlideOver>

@@ -30,6 +30,7 @@ namespace AnchorPro.Controllers
                 .Include(p => p.JobCards)
                 .Include(p => p.ShiftLogs)
                     .ThenInclude(s => s.CostEntries)
+                .Include(p => p.Expenses)
                 .Select(p => new
                 {
                     p.Id,
@@ -42,8 +43,8 @@ namespace AnchorPro.Controllers
                     CustomerName = p.Customer != null ? p.Customer.Name : null,
                     ManagerName = p.Manager != null ? p.Manager.FirstName + " " + p.Manager.LastName : null,
                     OperationsCount = p.JobCards.Count + p.ShiftLogs.Count,
-                    // Roll up costs from both Job Cards and Shift Logs
-                    TotalCost = p.JobCards.Sum(j => j.TotalCost) + p.ShiftLogs.SelectMany(s => s.CostEntries).Sum(c => c.Amount)
+                    // Roll up costs from Job Cards, Shift Logs, and Direct Expenses
+                    TotalCost = p.JobCards.Sum(j => j.TotalCost) + p.ShiftLogs.SelectMany(s => s.CostEntries).Sum(c => c.Amount) + p.Expenses.Sum(e => e.Amount)
                 })
                 .ToListAsync();
 
@@ -58,6 +59,7 @@ namespace AnchorPro.Controllers
                 .Include(p => p.Manager)
                 .Include(p => p.Members)
                     .ThenInclude(m => m.User)
+                .Include(p => p.Expenses)
                 .Include(p => p.JobCards)
                     .ThenInclude(j => j.AssignedTechnician)
                 .Include(p => p.ShiftLogs)
@@ -103,7 +105,7 @@ namespace AnchorPro.Controllers
                 ManagerName = project.Manager != null ? project.Manager.FirstName + " " + project.Manager.LastName : null,
                 
                 // Rollups
-                TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<CostEntry>()).Sum(c => c.Amount) ?? 0),
+                TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<WorkDocumentCostEntry>()).Sum(c => c.Amount) ?? 0) + (project.Expenses?.Sum(e => e.Amount) ?? 0),
                 
                 // Workshop Mode Links
                 JobCards = project.JobCards?.Select(j => new
@@ -141,8 +143,40 @@ namespace AnchorPro.Controllers
                     m.UserId,
                     UserName = m.User != null ? m.User.FirstName + " " + m.User.LastName : null,
                     m.ProjectRole
-                })
+                }),
+
+                // Direct Expenses
+                DirectExpenses = project.Expenses?.Select(e => new
+                {
+                    e.Id,
+                    e.Description,
+                    e.Amount,
+                    e.ExpenseDate,
+                    Category = e.Category.ToString(),
+                    e.RecordedBy
+                }).OrderByDescending(e => e.ExpenseDate)
             });
+        }
+
+        [HttpPost("{id}/expenses")]
+        public async Task<IActionResult> AddExpense(int id, ExpenseDto dto)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) return NotFound();
+
+            var expense = new Expense
+            {
+                ProjectId = id,
+                Description = dto.Description,
+                Amount = dto.Amount,
+                Category = Enum.TryParse<ExpenseCategory>(dto.Category, out var cat) ? cat : ExpenseCategory.Other,
+                ExpenseDate = dto.ExpenseDate ?? DateTime.UtcNow,
+                RecordedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User"
+            };
+
+            _context.Expenses.Add(expense);
+            await _context.SaveChangesAsync();
+            return Ok(expense);
         }
 
         [HttpPost]
@@ -231,6 +265,14 @@ namespace AnchorPro.Controllers
     {
         public string UserId { get; set; } = string.Empty;
         public string ProjectRole { get; set; } = "Viewer";
+    }
+
+    public class ExpenseDto
+    {
+        public string Description { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Category { get; set; } = "Other";
+        public DateTime? ExpenseDate { get; set; }
     }
 
     public class ProjectDto
