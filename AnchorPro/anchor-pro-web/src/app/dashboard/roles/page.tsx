@@ -16,8 +16,9 @@ const MODULE_ROUTES = [
   { id: '/dashboard/time-tracking', label: 'Time Tracking', category: 'Operations & Planning' },
   { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
   { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
-  { id: '/dashboard/projects', label: 'Project Management', category: 'Operations & Planning' },
-  { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Operations & Planning' },
+  
+  { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
+  { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Project Management' },
   
   { id: '/dashboard/hr', label: 'HR & Team', category: 'Human Resources' },
   { id: '/dashboard/roles', label: 'Roles & Permissions', category: 'Human Resources' },
