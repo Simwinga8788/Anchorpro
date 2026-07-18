@@ -21,7 +21,6 @@ export default function JobCardForm({ onSuccess, onCancel }: JobCardFormProps) {
     equipment: any[];
     jobTypes: any[];
     customers: any[];
-    customers: any[];
     contracts: any[];
     projects: any[];
   }>({
