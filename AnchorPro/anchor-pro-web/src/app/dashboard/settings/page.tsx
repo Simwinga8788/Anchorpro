@@ -229,6 +229,11 @@ export default function SettingsPage() {
   const [savingOrg, setSavingOrg] = useState(false);
   const [tenantMode, setTenantMode] = useState<number>(0);
 
+  const handleDeleteWorkspace = async () => {
+    // Implement delete workspace logic
+    setShowDeleteConfirm(false);
+  };
+
   // ── Contract Template ────────────────────────────────────────────────────────
   const [contractTemplate, setContractTemplate] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
