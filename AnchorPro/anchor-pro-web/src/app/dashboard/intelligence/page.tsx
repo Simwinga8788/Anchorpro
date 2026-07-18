@@ -212,21 +212,21 @@ export default function IntelligencePage() {
                 No utilization data available
               </div>
             ) : (
-              utilChart.map((t, i) => {
-                const color = t.util >= 80
+              utilChart.map((tech, i) => {
+                const color = tech.util >= 80
                   ? 'var(--accent-emerald)'
-                  : t.util >= 50 ? 'var(--accent-blue)'
-                  : t.util >= 30 ? 'var(--accent-amber)'
+                  : tech.util >= 50 ? 'var(--accent-blue)'
+                  : tech.util >= 30 ? 'var(--accent-amber)'
                   : 'var(--accent-rose)';
                 return (
                   <div key={i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{tech.name}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {t.jobs} {t('Job Cards', 'jobs').toLowerCase()}
+                        {tech.jobs} {t('Job Cards', 'jobs').toLowerCase()}
                       </span>
                     </div>
-                    <HealthBar value={t.util} color={color} />
+                    <HealthBar value={tech.util} color={color} />
                   </div>
                 );
               })
