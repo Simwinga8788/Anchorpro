@@ -213,6 +213,7 @@ export default function SettingsPage() {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [upgrading, setUpgrading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // ── Profile ──────────────────────────────────────────────────────────────────
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '' });
