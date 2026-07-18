@@ -62,6 +62,7 @@ namespace AnchorPro.Controllers
                 .Include(p => p.Expenses)
                 .Include(p => p.Invoices)
                 .Include(p => p.Documents)
+                    .ThenInclude(d => d.UploadedBy)
                 .Include(p => p.JobCards)
                     .ThenInclude(j => j.AssignedTechnician)
                 .Include(p => p.ShiftLogs)
@@ -109,8 +110,26 @@ namespace AnchorPro.Controllers
                 // Rollups
                 TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<WorkDocumentCostEntry>()).Sum(c => c.Amount) ?? 0) + (project.Expenses?.Sum(e => e.Amount) ?? 0),
                 
-                Invoices = project.Invoices,
-                Documents = project.Documents,
+                Invoices = project.Invoices?.Select(i => new
+                {
+                    i.Id,
+                    i.InvoiceNumber,
+                    i.InvoiceDate,
+                    i.DueDate,
+                    i.Total,
+                    PaymentStatus = i.PaymentStatus.ToString()
+                }),
+                Documents = project.Documents?.Select(d => new
+                {
+                    d.Id,
+                    d.FileName,
+                    d.FileUrl,
+                    d.UploadedAt,
+                    UploadedBy = new {
+                        d.UploadedBy?.FirstName,
+                        d.UploadedBy?.LastName
+                    }
+                }),
 
                 // Workshop Mode Links
                 JobCards = project.JobCards?.Select(j => new
