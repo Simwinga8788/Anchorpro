@@ -39,5 +39,6 @@ namespace AnchorPro.Data.Entities
         // Navigation
         public ICollection<JobCard> JobCards { get; set; } = new List<JobCard>();
         public ICollection<ShiftProductionLog> ShiftLogs { get; set; } = new List<ShiftProductionLog>();
+        public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     }
 }

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Building2, ArrowLeft, Plus, Clock, Users, Wrench, CheckCircle, Hash } from 'lucide-react';
+import { Building2, ArrowLeft, Plus, Clock, Users, Wrench, CheckCircle, Hash, Trash2 } from 'lucide-react';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SlideOver from '@/components/SlideOver';
 
 function HealthBar({ current, total }: { current: number, total: number }) {
@@ -24,6 +25,10 @@ export default function ProjectDetailsPage() {
 
   const [showTask, setShowTask] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '' });
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [showTeam, setShowTeam] = useState(false);
+  const [teamForm, setTeamForm] = useState({ userId: '', projectRole: 'Contributor' });
 
   useEffect(() => {
     loadProject();
@@ -70,6 +75,44 @@ export default function ProjectDetailsPage() {
       alert('Error creating task');
     }
   };
+
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }});
+      if (res.ok) setUsers(await res.json());
+    } catch(err) { console.error(err); }
+  };
+
+  const handleAddMember = async (e: any) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/projects/${id}/members`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(teamForm)
+      });
+      if (res.ok) {
+        setShowTeam(false);
+        setTeamForm({ userId: '', projectRole: 'Contributor' });
+        loadProject();
+      } else { alert('Error adding member'); }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm('Remove member from project?')) return;
+    try {
+      const res = await fetch(`/api/projects/${id}/members/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) loadProject();
+    } catch(err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (showTeam && users.length === 0) loadUsers();
+  }, [showTeam]);
 
   if (loading) return <div className="page-container">Loading project...</div>;
   if (!project) return <div className="page-container">Project not found.</div>;
@@ -123,20 +166,57 @@ export default function ProjectDetailsPage() {
       </div>
 
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL BUDGET</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>K {project.budget?.toLocaleString() ?? 0}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL BUDGET</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>K {project.budget?.toLocaleString() ?? 0}</div>
+            </div>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>ACTUAL COSTS TO DATE</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>K {project.totalCost?.toLocaleString() ?? 0}</div>
+              <HealthBar current={project.totalCost} total={project.budget} />
+            </div>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>REMAINING BUDGET</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: budgetRemaining < 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                K {budgetRemaining?.toLocaleString() ?? 0}
+              </div>
+            </div>
           </div>
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>ACTUAL COSTS TO DATE</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>K {project.totalCost?.toLocaleString() ?? 0}</div>
-            <HealthBar current={project.totalCost} total={project.budget} />
-          </div>
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>REMAINING BUDGET</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: budgetRemaining < 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
-              K {budgetRemaining?.toLocaleString() ?? 0}
+
+          <div className="card" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Spend vs. Budget Tracking</h3>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={[
+                  { name: 'Start', Budget: 0, Actual: 0 },
+                  { name: '25%', Budget: (project.budget || 0) * 0.25, Actual: (project.totalCost || 0) * 0.1 },
+                  { name: '50%', Budget: (project.budget || 0) * 0.50, Actual: (project.totalCost || 0) * 0.35 },
+                  { name: '75%', Budget: (project.budget || 0) * 0.75, Actual: (project.totalCost || 0) * 0.8 },
+                  { name: 'Today', Budget: project.budget || 0, Actual: project.totalCost || 0 },
+                ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorBudget" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent-rose)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--accent-rose)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" />
+                  <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `K${val/1000}k`} />
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--bg-popover)', border: '1px solid var(--border-subtle)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(val: number) => [`K ${val.toLocaleString()}`, undefined]}
+                  />
+                  <Area type="monotone" dataKey="Budget" stroke="var(--accent-blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorBudget)" />
+                  <Area type="monotone" dataKey="Actual" stroke="var(--accent-rose)" strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -220,8 +300,39 @@ export default function ProjectDetailsPage() {
       )}
 
       {activeTab === 'team' && (
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ color: 'var(--text-muted)' }}>Team management coming soon.</div>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button className="btn btn-primary" onClick={() => setShowTeam(true)}><Plus size={16} /> Assign Member</button>
+          </div>
+          <div className="card-elevated" style={{ padding: 0 }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th style={{ width: 80 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {project.members?.map((m: any) => (
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{m.userName}</div>
+                    </td>
+                    <td><span className="badge badge-gray">{m.projectRole}</span></td>
+                    <td>
+                      <button onClick={() => handleRemoveMember(m.userId)} className="btn btn-secondary" style={{ padding: 6, color: 'var(--accent-red)' }} title="Remove Member">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {(!project.members || project.members.length === 0) && (
+                  <tr><td colSpan={3} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No team members assigned yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -241,6 +352,28 @@ export default function ProjectDetailsPage() {
         </form>
       </SlideOver>
 
+      <SlideOver open={showTeam} onClose={() => setShowTeam(false)} title="Assign Team Member">
+        <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Select User</label>
+            <select className="form-input" required value={teamForm.userId} onChange={e => setTeamForm({...teamForm, userId: e.target.value})}>
+              <option value="">Select a user...</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Project Role</label>
+            <select className="form-input" value={teamForm.projectRole} onChange={e => setTeamForm({...teamForm, projectRole: e.target.value})}>
+              <option value="Viewer">Viewer</option>
+              <option value="Contributor">Contributor</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Assign Member</button>
+          </div>
+        </form>
+      </SlideOver>
     </div>
   );
 }

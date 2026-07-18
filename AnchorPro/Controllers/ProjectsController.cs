@@ -56,6 +56,8 @@ namespace AnchorPro.Controllers
             var project = await _context.Projects
                 .Include(p => p.Customer)
                 .Include(p => p.Manager)
+                .Include(p => p.Members)
+                    .ThenInclude(m => m.User)
                 .Include(p => p.JobCards)
                     .ThenInclude(j => j.AssignedTechnician)
                 .Include(p => p.ShiftLogs)
@@ -130,7 +132,16 @@ namespace AnchorPro.Controllers
                 }),
 
                 // Kanban Tasks
-                Tasks = projectTasks
+                Tasks = projectTasks,
+                
+                // Team Members
+                Members = project.Members?.Select(m => new
+                {
+                    m.Id,
+                    m.UserId,
+                    UserName = m.User != null ? m.User.FirstName + " " + m.User.LastName : null,
+                    m.ProjectRole
+                })
             });
         }
 
@@ -183,6 +194,43 @@ namespace AnchorPro.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
+
+        [HttpPost("{id}/members")]
+        public async Task<IActionResult> AddMember(int id, ProjectMemberDto dto)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) return NotFound();
+
+            var member = new ProjectMember
+            {
+                ProjectId = id,
+                UserId = dto.UserId,
+                ProjectRole = dto.ProjectRole
+            };
+
+            _context.ProjectMembers.Add(member);
+            await _context.SaveChangesAsync();
+            return Ok(member);
+        }
+
+        [HttpDelete("{id}/members/{userId}")]
+        public async Task<IActionResult> RemoveMember(int id, string userId)
+        {
+            var member = await _context.ProjectMembers
+                .FirstOrDefaultAsync(m => m.ProjectId == id && m.UserId == userId);
+            
+            if (member == null) return NotFound();
+
+            _context.ProjectMembers.Remove(member);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+    }
+
+    public class ProjectMemberDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string ProjectRole { get; set; } = "Viewer";
     }
 
     public class ProjectDto
