@@ -24,7 +24,7 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
   const [showTask, setShowTask] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '' });
 
   const [users, setUsers] = useState<any[]>([]);
   const [showTeam, setShowTeam] = useState(false);
