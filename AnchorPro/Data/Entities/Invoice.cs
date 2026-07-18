@@ -12,6 +12,10 @@ namespace AnchorPro.Data.Entities
         public int? JobCardId { get; set; }
         public JobCard? JobCard { get; set; }
 
+        // Link to a Project (nullable)
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
+
         // Billed to
         public int? CustomerId { get; set; }
         public Customer? Customer { get; set; }

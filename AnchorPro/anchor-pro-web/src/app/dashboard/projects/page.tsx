@@ -12,6 +12,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [viewMode, setViewMode] = useState<'portfolio' | 'resource'>('portfolio');
   const [form, setForm] = useState({ name: '', description: '', budget: '', startDate: '', endDate: '' });
 
   useEffect(() => {
@@ -77,7 +78,24 @@ export default function ProjectsPage() {
         </button>
       </div>
 
-      <div className="card-elevated" style={{ padding: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid var(--border-subtle)', marginBottom: 20 }}>
+        <button 
+          onClick={() => setViewMode('portfolio')}
+          style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: viewMode === 'portfolio' ? '2px solid var(--accent-blue)' : '2px solid transparent', color: viewMode === 'portfolio' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+        >
+          Project Portfolio
+        </button>
+        <button 
+          onClick={() => setViewMode('resource')}
+          style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: viewMode === 'resource' ? '2px solid var(--accent-blue)' : '2px solid transparent', color: viewMode === 'resource' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+        >
+          Resource Allocation
+        </button>
+      </div>
+
+      {viewMode === 'portfolio' && (
+        <>
+          <div className="card-elevated" style={{ padding: 16, marginBottom: 20 }}>
         <div className="search-bar">
           <Search size={16} />
           <input 
@@ -141,6 +159,54 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
+      </>
+      )}
+
+      {viewMode === 'resource' && (
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Team Workload</h3>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Active Tasks</th>
+                <th>Est. Hours</th>
+                <th>Workload Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const employeeWorkload: any = {};
+                projects.forEach(p => {
+                  p.tasks?.forEach((t: any) => {
+                    if (t.status === 'Done') return; // Only count active
+                    const name = t.assignedToName || 'Unassigned';
+                    if (!employeeWorkload[name]) employeeWorkload[name] = { tasks: 0, hours: 0 };
+                    employeeWorkload[name].tasks += 1;
+                    employeeWorkload[name].hours += t.estimatedHours || 0;
+                  });
+                });
+                
+                return Object.entries(employeeWorkload).map(([name, data]: any) => {
+                  const overAllocated = data.hours > 40;
+                  return (
+                    <tr key={name}>
+                      <td style={{ fontWeight: 600 }}>{name}</td>
+                      <td>{data.tasks}</td>
+                      <td>{data.hours} hrs</td>
+                      <td>
+                        <span className={`badge ${overAllocated ? 'badge-orange' : 'badge-green'}`}>
+                          {overAllocated ? 'Over-Allocated' : 'Optimal'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                });
+              })()}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Create New Project">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

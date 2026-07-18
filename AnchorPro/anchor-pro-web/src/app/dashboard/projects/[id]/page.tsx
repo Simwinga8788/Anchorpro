@@ -168,6 +168,10 @@ export default function ProjectDetailsPage() {
   const inProgressTasks = project.tasks?.filter((t: any) => t.status === 'InProgress') || [];
   const doneTasks = project.tasks?.filter((t: any) => t.status === 'Done') || [];
 
+  // Financial calculations
+  const totalInvoiced = project.invoices?.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
+  const profitMargin = totalInvoiced > 0 ? ((totalInvoiced - (project.totalCost || 0)) / totalInvoiced) * 100 : 0;
+
   return (
     <div className="page-container">
       <div style={{ marginBottom: 20 }}>
@@ -188,7 +192,7 @@ export default function ProjectDetailsPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border-subtle)', marginBottom: 24 }}>
-        {['overview', 'timeline', 'board', 'operations', 'team'].map(tab => (
+        {['overview', 'timeline', 'board', 'operations', 'invoices', 'documents', 'team'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -222,9 +226,13 @@ export default function ProjectDetailsPage() {
               <HealthBar current={project.totalCost} total={project.budget} />
             </div>
             <div className="card" style={{ padding: 20 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>REMAINING BUDGET</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: budgetRemaining < 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
-                K {budgetRemaining?.toLocaleString() ?? 0}
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL INVOICED (REVENUE)</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>K {totalInvoiced.toLocaleString()}</div>
+            </div>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>PROFIT MARGIN</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: profitMargin >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                {profitMargin.toFixed(1)}%
               </div>
             </div>
           </div>
@@ -395,6 +403,80 @@ export default function ProjectDetailsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'invoices' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Invoices</h3>
+            <button className="btn btn-primary"><Plus size={16} style={{ marginRight: 6 }}/> Create Invoice</button>
+          </div>
+          
+          <div className="card-elevated" style={{ padding: 0 }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Invoice Number</th>
+                  <th>Date</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {project.invoices?.map((inv: any) => (
+                  <tr key={`inv-${inv.id}`}>
+                    <td style={{ fontWeight: 600 }}>{inv.invoiceNumber}</td>
+                    <td>{new Date(inv.invoiceDate).toLocaleDateString()}</td>
+                    <td>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
+                    <td><span className={`badge ${inv.paymentStatus === 'Paid' ? 'badge-green' : 'badge-orange'}`}>{inv.paymentStatus}</span></td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>K {inv.total?.toLocaleString() ?? 0}</td>
+                  </tr>
+                ))}
+                {(!project.invoices || project.invoices.length === 0) && (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No invoices have been generated for this project yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'documents' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Documents</h3>
+            <button className="btn btn-secondary"><Plus size={16} style={{ marginRight: 6 }}/> Upload File</button>
+          </div>
+          
+          <div className="card-elevated" style={{ padding: 0 }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Uploaded At</th>
+                  <th>Uploaded By</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {project.documents?.map((doc: any) => (
+                  <tr key={`doc-${doc.id}`}>
+                    <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{doc.fileName}</td>
+                    <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
+                    <td>{doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>Download</a>
+                    </td>
+                  </tr>
+                ))}
+                {(!project.documents || project.documents.length === 0) && (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No documents uploaded.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

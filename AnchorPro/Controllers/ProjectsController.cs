@@ -60,6 +60,8 @@ namespace AnchorPro.Controllers
                 .Include(p => p.Members)
                     .ThenInclude(m => m.User)
                 .Include(p => p.Expenses)
+                .Include(p => p.Invoices)
+                .Include(p => p.Documents)
                 .Include(p => p.JobCards)
                     .ThenInclude(j => j.AssignedTechnician)
                 .Include(p => p.ShiftLogs)
@@ -107,6 +109,9 @@ namespace AnchorPro.Controllers
                 // Rollups
                 TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<WorkDocumentCostEntry>()).Sum(c => c.Amount) ?? 0) + (project.Expenses?.Sum(e => e.Amount) ?? 0),
                 
+                Invoices = project.Invoices,
+                Documents = project.Documents,
+
                 // Workshop Mode Links
                 JobCards = project.JobCards?.Select(j => new
                 {

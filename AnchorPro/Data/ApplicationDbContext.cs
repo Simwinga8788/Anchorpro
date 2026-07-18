@@ -74,6 +74,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.ProjectTask> ProjectTasks { get; set; }
     public DbSet<Entities.ProjectMember> ProjectMembers { get; set; }
     public DbSet<Entities.ProjectMilestone> ProjectMilestones { get; set; }
+    public DbSet<Entities.ProjectDocument> ProjectDocuments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
