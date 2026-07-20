@@ -275,89 +275,164 @@ export default function ProjectDetailsPage() {
       )}
 
       {activeTab === 'timeline' && (
-        <div className="card" style={{ padding: 24, overflowX: 'auto' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Project Timeline</h3>
+        <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+          <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Project Gantt Chart</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 4 }}>Visual timeline of all scheduled tasks and milestones.</p>
+          </div>
           
           {!project.tasks || project.tasks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No tasks available for timeline.</div>
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>No tasks available for timeline.</div>
           ) : (
-            <div style={{ minWidth: 800 }}>
-              {/* Timeline Header (Months/Days) */}
-              <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>
-                <div style={{ width: 250, flexShrink: 0 }}>Task</div>
-                <div style={{ flex: 1, display: 'flex', position: 'relative', height: 20 }}>
-                  <div style={{ position: 'absolute', left: '0%' }}>Start</div>
-                  <div style={{ position: 'absolute', right: '0%' }}>End</div>
-                  {/* We can map out a simple grid here based on min/max dates. For now, a simplified visual representation: */}
-                  <div style={{ position: 'absolute', left: '25%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                  <div style={{ position: 'absolute', left: '50%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                  <div style={{ position: 'absolute', left: '75%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                </div>
-              </div>
+            <div style={{ minWidth: 900, overflowX: 'auto', padding: 24 }}>
+              {(() => {
+                const validTasks = project.tasks.filter((t: any) => t.startDate && t.dueDate);
+                if (validTasks.length === 0) return <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>Tasks need Start and End dates to appear on the timeline.</div>;
 
-              {/* Tasks List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {(() => {
-                  // Calculate min/max dates to scale the bars
-                  const validTasks = project.tasks.filter((t: any) => t.startDate && t.dueDate);
-                  if (validTasks.length === 0) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Tasks need Start and End dates to appear on the timeline.</div>;
+                const rawMin = Math.min(...validTasks.map((t: any) => new Date(t.startDate).getTime()));
+                const rawMax = Math.max(...validTasks.map((t: any) => new Date(t.dueDate).getTime()));
+                
+                // Pad the timeline by 7 days on each side for breathing room
+                const paddingMs = 7 * 24 * 60 * 60 * 1000;
+                const minDate = new Date(rawMin - paddingMs);
+                const maxDate = new Date(rawMax + paddingMs);
+                const totalDuration = maxDate.getTime() - minDate.getTime();
+                
+                const today = new Date().getTime();
+                const showToday = today >= minDate.getTime() && today <= maxDate.getTime();
+                const todayPercent = showToday ? ((today - minDate.getTime()) / totalDuration) * 100 : 0;
 
-                  const minDate = new Date(Math.min(...validTasks.map((t: any) => new Date(t.startDate).getTime())));
-                  const maxDate = new Date(Math.max(...validTasks.map((t: any) => new Date(t.dueDate).getTime())));
-                  const totalDuration = maxDate.getTime() - minDate.getTime() || 1; // avoid division by zero
+                // Generate Month Markers
+                const monthMarkers = [];
+                let currMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+                while (currMonth.getTime() <= maxDate.getTime()) {
+                  const leftPct = ((currMonth.getTime() - minDate.getTime()) / totalDuration) * 100;
+                  if (leftPct >= 0 && leftPct <= 100) {
+                    monthMarkers.push({
+                      label: currMonth.toLocaleString('default', { month: 'short', year: '2-digit' }),
+                      left: leftPct
+                    });
+                  }
+                  currMonth = new Date(currMonth.getFullYear(), currMonth.getMonth() + 1, 1);
+                }
 
-                  return validTasks.map((t: any) => {
-                    const tStart = new Date(t.startDate).getTime();
-                    const tEnd = new Date(t.dueDate).getTime();
-                    
-                    const leftPercent = ((tStart - minDate.getTime()) / totalDuration) * 100;
-                    const widthPercent = Math.max(((tEnd - tStart) / totalDuration) * 100, 2); // min width 2%
-
-                    let barColor = 'var(--text-muted)';
-                    if (t.status === 'InProgress') barColor = 'var(--accent-blue)';
-                    if (t.status === 'Done') barColor = 'var(--accent-emerald)';
-
-                    return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ width: 250, flexShrink: 0, paddingRight: 16 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{new Date(t.startDate).toLocaleDateString()} - {new Date(t.dueDate).toLocaleDateString()}</div>
-                        </div>
-                        <div style={{ flex: 1, position: 'relative', height: 28, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden' }}>
-                           {/* Grid Lines */}
-                          <div style={{ position: 'absolute', left: '25%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                          <div style={{ position: 'absolute', left: '50%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                          <div style={{ position: 'absolute', left: '75%', borderLeft: '1px dashed var(--border-subtle)', height: '100%' }} />
-                          
-                          {/* The Bar */}
-                          <div 
-                            style={{ 
-                              position: 'absolute', 
-                              left: `${leftPercent}%`, 
-                              width: `${widthPercent}%`, 
-                              height: '100%', 
-                              background: barColor, 
-                              borderRadius: 4,
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '0 8px',
-                              color: '#fff',
-                              fontSize: 11,
-                              fontWeight: 600,
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                              transition: 'all 0.2s ease',
-                              cursor: 'pointer'
-                            }}
-                            title={`${t.title}\nAssignee: ${t.assignedToName || 'Unassigned'}\nStatus: ${t.status}`}
-                          >
-                            {widthPercent > 10 ? (t.assignedToName || '') : ''}
+                return (
+                  <div>
+                    {/* Header Row */}
+                    <div style={{ display: 'flex', borderBottom: '2px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
+                      <div style={{ width: 280, flexShrink: 0, fontWeight: 600, color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Task Name & Assignee</div>
+                      <div style={{ flex: 1, position: 'relative', height: 20 }}>
+                        {monthMarkers.map((m, i) => (
+                          <div key={i} style={{ position: 'absolute', left: `${m.left}%`, transform: 'translateX(-50%)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>
+                            {m.label}
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    );
-                  });
-                })()}
-              </div>
+                    </div>
+
+                    {/* Gantt Body */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative' }}>
+                      
+                      {/* Background Grid Lines */}
+                      <div style={{ position: 'absolute', top: 0, left: 280, right: 0, bottom: 0, pointerEvents: 'none' }}>
+                        {monthMarkers.map((m, i) => (
+                          <div key={i} style={{ position: 'absolute', left: `${m.left}%`, top: 0, bottom: 0, borderLeft: '1px dashed var(--border-subtle)', opacity: 0.5 }} />
+                        ))}
+                        {/* Today Line */}
+                        {showToday && (
+                          <div style={{ position: 'absolute', left: `${todayPercent}%`, top: -10, bottom: -10, borderLeft: '2px solid var(--accent-rose)', zIndex: 10 }}>
+                            <div style={{ position: 'absolute', top: -14, left: -24, background: 'var(--accent-rose)', color: '#fff', fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>TODAY</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tasks */}
+                      {validTasks.map((t: any) => {
+                        const tStart = new Date(t.startDate).getTime();
+                        const tEnd = new Date(t.dueDate).getTime();
+                        const leftPercent = ((tStart - minDate.getTime()) / totalDuration) * 100;
+                        const widthPercent = Math.max(((tEnd - tStart) / totalDuration) * 100, 1.5); 
+
+                        let gradient = 'linear-gradient(90deg, #4b5563, #374151)'; // ToDo
+                        let shadow = '0 4px 12px rgba(75, 85, 99, 0.2)';
+                        if (t.status === 'InProgress') {
+                          gradient = 'linear-gradient(90deg, var(--accent-blue), #6366f1)';
+                          shadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                        } else if (t.status === 'Done') {
+                          gradient = 'linear-gradient(90deg, var(--accent-emerald), #10b981)';
+                          shadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                        }
+                        
+                        // Check if overdue
+                        const isOverdue = tEnd < today && t.status !== 'Done';
+                        if (isOverdue) {
+                          gradient = 'linear-gradient(90deg, var(--accent-rose), #f43f5e)';
+                          shadow = '0 4px 12px rgba(225, 29, 72, 0.3)';
+                        }
+
+                        // Avatar Initials
+                        const initials = t.assignedToName ? t.assignedToName.split(' ').map((n:string)=>n[0]).join('').substring(0,2).toUpperCase() : '?';
+
+                        return (
+                          <div key={t.id} className="gantt-row" style={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1, padding: '4px 0', borderRadius: 8, transition: 'background 0.2s' }}>
+                            <div style={{ width: 280, flexShrink: 0, paddingRight: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                {initials}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{new Date(t.startDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} - {new Date(t.dueDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} {isOverdue && <span style={{color: 'var(--accent-rose)', fontWeight: 600, marginLeft: 4}}>(Overdue)</span>}</div>
+                              </div>
+                            </div>
+                            
+                            <div style={{ flex: 1, position: 'relative', height: 32, background: 'rgba(255,255,255,0.02)', borderRadius: 16 }}>
+                              <div 
+                                className="gantt-bar"
+                                style={{ 
+                                  position: 'absolute', 
+                                  left: `${leftPercent}%`, 
+                                  width: `${widthPercent}%`, 
+                                  height: '100%', 
+                                  background: gradient, 
+                                  borderRadius: 16,
+                                  boxShadow: shadow,
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '0 12px',
+                                  color: '#fff',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                                title={`${t.title}\nStatus: ${t.status}\nAssignee: ${t.assignedToName || 'Unassigned'}`}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px) scaleY(1.1) scaleX(1.01)';
+                                  e.currentTarget.style.filter = 'brightness(1.15)';
+                                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+                                  e.currentTarget.style.zIndex = '20';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0) scaleY(1) scaleX(1)';
+                                  e.currentTarget.style.filter = 'brightness(1)';
+                                  e.currentTarget.style.boxShadow = shadow;
+                                  e.currentTarget.style.zIndex = '1';
+                                }}
+                              >
+                                {widthPercent > 12 && (
+                                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
+                                    {t.status === 'InProgress' ? 'In Progress' : t.status}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
