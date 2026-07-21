@@ -32,6 +32,7 @@ namespace AnchorPro.Controllers
             }
 
             int fixedCount = 0;
+            int permFixedCount = 0;
             var users = await _userManager.Users.ToListAsync();
             foreach (var user in users)
             {
@@ -43,7 +44,15 @@ namespace AnchorPro.Controllers
                 }
             }
 
-            return Ok(new { message = $"Fixed {fixedCount} users by assigning them the Admin role." });
+            var emptyPerms = await _db.TenantRolePermissions.Where(p => p.AllowedRoutesJson == "[]").ToListAsync();
+            foreach (var perm in emptyPerms)
+            {
+                _db.TenantRolePermissions.Remove(perm);
+                permFixedCount++;
+            }
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = $"Fixed {fixedCount} users (missing roles) and deleted {permFixedCount} empty permissions." });
         }
     }
 }
