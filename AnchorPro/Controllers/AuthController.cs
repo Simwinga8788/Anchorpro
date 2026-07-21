@@ -13,12 +13,18 @@ namespace AnchorPro.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _db;
 
-        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ApplicationDbContext db)
+        public AuthController(
+            UserManager<ApplicationUser> userManager, 
+            SignInManager<ApplicationUser> signInManager, 
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext db)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _roleManager = roleManager;
             _db = db;
         }
 
@@ -260,7 +266,19 @@ namespace AnchorPro.Controllers
                 return BadRequest(new { errors = createResult.Errors.Select(e => e.Description) });
             }
 
-            await _userManager.AddToRoleAsync(user, "Admin");
+            if (!await _roleManager.RoleExistsAsync("Admin"))
+            {
+                await _roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+
+            var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            if (!roleResult.Succeeded)
+            {
+                _db.Set<Tenant>().Remove(tenant);
+                await _userManager.DeleteAsync(user);
+                await _db.SaveChangesAsync();
+                return BadRequest(new { errors = roleResult.Errors.Select(e => e.Description) });
+            }
 
             // Update tenant owner
             tenant.OwnerId = user.Id;
