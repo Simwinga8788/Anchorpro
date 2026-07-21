@@ -72,6 +72,11 @@ export function canAccess(
     }
   }
 
+  // Allow access to base dashboard for anyone with any dashboard access
+  if (normalizedRoute === '/dashboard' && allowedRoutes.some(r => r.startsWith('/dashboard'))) {
+    return true;
+  }
+
   return allowedRoutes.includes(normalizedRoute);
 }
 
