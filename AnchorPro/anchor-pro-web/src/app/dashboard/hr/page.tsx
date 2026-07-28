@@ -560,6 +560,7 @@ function ContractsTab() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingContractId, setEditingContractId] = useState<number | null>(null);
   const [showDraft, setShowDraft] = useState<any | null>(null);
   const [draftText, setDraftText] = useState('');
   const [form, setForm] = useState<any>({ 
@@ -627,8 +628,13 @@ function ContractsTab() {
         standardHoursPerMonth: form.standardHoursPerMonth === '' ? null : form.standardHoursPerMonth,
         overtimeMultiplier: form.overtimeMultiplier === '' ? null : form.overtimeMultiplier
       };
-      await hrApi.createContract(payload);
+      if (editingContractId) {
+        await hrApi.updateContract(editingContractId, payload);
+      } else {
+        await hrApi.createContract(payload);
+      }
       setShowForm(false);
+      setEditingContractId(null);
       setForm({ 
         contractType: 0, 
         status: 1, 
@@ -641,10 +647,29 @@ function ContractsTab() {
       });
       load();
     } catch (err: any) {
-      alert('Failed to create contract: ' + (err.message || 'Unknown error'));
+      alert(`Failed to ${editingContractId ? 'update' : 'create'} contract: ` + (err.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }
+  };
+
+  const openEditContract = (c: any) => {
+    setForm({
+      userId: c.userId,
+      jobTitle: c.jobTitle || '',
+      contractType: c.contractType || 0,
+      status: c.status || 0,
+      startDate: c.startDate ? c.startDate.split('T')[0] : '',
+      endDate: c.endDate ? c.endDate.split('T')[0] : '',
+      agreedMonthlySalary: c.agreedMonthlySalary || 0,
+      hourlyRate: c.hourlyRate || 0,
+      noticePeriodDays: c.noticePeriodDays || 30,
+      standardHoursPerMonth: c.standardHoursPerMonth || '',
+      overtimeMultiplier: c.overtimeMultiplier || '',
+      notes: c.notes || ''
+    });
+    setEditingContractId(c.id);
+    setShowForm(true);
   };
 
   const openDraftModal = (c: any) => {
@@ -768,6 +793,9 @@ function ContractsTab() {
                       <td><span className={`badge ${contractStatusMap[c.status]?.badge || 'badge-muted'}`}>{contractStatusMap[c.status]?.label || '—'}</span></td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openEditContract(c)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Edit size={13} /> Edit Details
+                          </button>
                           <button className="btn btn-secondary btn-sm" onClick={() => openDraftModal(c)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <FileText size={13} /> {c.contractBody ? 'Edit Contract' : 'Draft Contract'}
                           </button>
@@ -874,14 +902,14 @@ function ContractsTab() {
         </Portal>
       )}
 
-      {/* New Contract Modal */}
+      {/* New/Edit Contract Modal */}
       {showForm && (
         <Portal>
-          <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingContractId(null); }}>
             <div className="modal-content animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
               <div className="modal-header">
-                <h2 className="modal-title">New Employment Contract</h2>
-                <button className="modal-close" onClick={() => setShowForm(false)}><X size={20} /></button>
+                <h2 className="modal-title">{editingContractId ? 'Edit Employment Contract' : 'New Employment Contract'}</h2>
+                <button className="modal-close" onClick={() => { setShowForm(false); setEditingContractId(null); }}><X size={20} /></button>
               </div>
               <form onSubmit={handleCreate}>
                 <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
