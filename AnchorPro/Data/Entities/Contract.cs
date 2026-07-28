@@ -3,6 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AnchorPro.Data.Entities
 {
+    /// <summary>Defines the nature of the contract relationship.</summary>
+    public enum ContractPartyType
+    {
+        Client              = 0, // Default — invoice-generating client contract
+        BlastingContractor  = 1, // Mining blasting contractor (per-blast billing)
+        OreTransport        = 2, // Ore/material haulage contractor (per-ton/load billing)
+        SupportContractor   = 3, // General support, labour or services contractor
+    }
+
     public class Contract : BaseEntity
     {
         [Required]
@@ -34,6 +43,17 @@ namespace AnchorPro.Data.Entities
 
         [MaxLength(30)]
         public string? UnitOfMeasure { get; set; } // e.g. Tons, BCM
+
+        /// <summary>Distinguishes client contracts from mining contractor agreements.</summary>
+        public ContractPartyType ContractPartyType { get; set; } = ContractPartyType.Client;
+
+        /// <summary>For mining contractors: e.g. "Per Ton", "Per Load", "Per Blast", "Per Day".</summary>
+        [MaxLength(50)]
+        public string? RateType { get; set; }
+
+        /// <summary>For blasting contractors: specific blasting zone or mining area.</summary>
+        [MaxLength(200)]
+        public string? WorkingArea { get; set; }
 
         [MaxLength(1000)]
         public string? Terms { get; set; }

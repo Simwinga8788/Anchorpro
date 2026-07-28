@@ -9,13 +9,16 @@ import { rolesApi, teamApi } from '@/lib/api';
 
 const MODULE_ROUTES = [
   { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
-  { id: '/dashboard/performance', label: 'Performance Metrics', category: 'Operations & Planning' },
   { id: '/dashboard/jobs', label: 'Job Cards', category: 'Operations & Planning' },
   { id: '/dashboard/my-jobs', label: 'My Assignments', category: 'Operations & Planning' },
   { id: '/dashboard/planning', label: 'Planning Board', category: 'Operations & Planning' },
   { id: '/dashboard/time-tracking', label: 'Time Tracking', category: 'Operations & Planning' },
   { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
   { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
+  
+  { id: '/dashboard/shift-logs', label: 'Shift Production Logs', category: 'Mining Operations' },
+  { id: '/dashboard/performance', label: 'Mining Dashboard / Performance', category: 'Mining Operations' },
+  { id: '/dashboard/contractors', label: 'Mining Contractors', category: 'Mining Operations' },
   
   { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
   { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Project Management' },
@@ -47,6 +50,11 @@ interface Role {
 }
 
 const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> = {
+  '/dashboard/shift-logs': [
+    { label: 'Create Shift Logs', token: '/dashboard/shift-logs:create' },
+    { label: 'Approve / Reject Shift Logs', token: '/dashboard/shift-logs:approve' },
+    { label: 'Edit Shift Logs', token: '/dashboard/shift-logs:edit' },
+  ],
   '/dashboard/hr': [
     { label: 'View Employment Contracts', token: '/dashboard/hr:view_contracts' },
     { label: 'View & Run Payroll', token: '/dashboard/hr:view_payroll' },

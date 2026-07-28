@@ -21,4 +21,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0" />
   </ItemGroup>
 
+  <!-- Exclude scratch/test scripts from compilation -->
+  <ItemGroup>
+    <Compile Remove="scratch/**/*.cs" />
+  </ItemGroup>
+
 </Project>

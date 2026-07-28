@@ -24,9 +24,11 @@ export default function NewShiftLogPage() {
     sourceLocation: '',
     destinationLocation: '',
     activityType: '',
+    miningActivity: '0',
     loadCount: '',
     payloadFactor: '',
     quantityProduced: '',
+    targetQuantity: '',
     unitOfMeasure: 'Tons',
     operatingHours: '',
     fuelConsumedLitres: '',
@@ -89,6 +91,8 @@ export default function NewShiftLogPage() {
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
         activityType: formData.activityType,
+        miningActivity: formData.miningActivity ? Number(formData.miningActivity) : null,
+        targetQuantity: formData.targetQuantity ? Number(formData.targetQuantity) : null,
         loadCount: formData.loadCount ? Number(formData.loadCount) : null,
         payloadFactor: formData.payloadFactor ? Number(formData.payloadFactor) : null,
         quantityProduced: formData.quantityProduced ? Number(formData.quantityProduced) : 0,
@@ -181,8 +185,16 @@ export default function NewShiftLogPage() {
             </div>
             <div className="form-group">
               <label>Activity Type</label>
-              <input type="text" className="input" placeholder="e.g. Hauling, Blasting" required
-                value={formData.activityType} onChange={e => setFormData({...formData, activityType: e.target.value})} />
+              <select className="input" value={formData.miningActivity} onChange={e => setFormData({...formData, miningActivity: e.target.value})}>
+                <option value="0">General Mining</option>
+                <option value="1">Blasting</option>
+                <option value="2">Loading</option>
+                <option value="3">Hauling / Ore Transport</option>
+                <option value="4">Development</option>
+                <option value="5">Stripping</option>
+                <option value="6">Dewatering</option>
+                <option value="7">Ground Support</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Source (Drawn from)</label>
@@ -234,6 +246,12 @@ export default function NewShiftLogPage() {
                 <option value="m³">m³</option>
                 <option value="Units">Units</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label>Shift Target <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+              <input type="number" step="0.01" className="input" placeholder="e.g. 500 (tons)"
+                value={formData.targetQuantity} onChange={e => setFormData({...formData, targetQuantity: e.target.value})} />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Set by shift supervisor. Used for Target vs Actual reporting.</div>
             </div>
           </div>
         </div>

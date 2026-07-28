@@ -12,6 +12,19 @@ namespace AnchorPro.Data.Entities
         Rejected  = 3,
     }
 
+    /// <summary>Categorises the type of mining activity performed during the shift.</summary>
+    public enum MiningActivityType
+    {
+        GeneralMining   = 0,
+        Blasting        = 1,
+        Loading         = 2,
+        Hauling         = 3,  // Ore transportation
+        Development     = 4,  // Tunnel/road development
+        Stripping       = 5,  // Overburden stripping
+        Dewatering      = 6,
+        Support         = 7,  // Ground support, shotcrete
+    }
+
     /// <summary>
     /// Primary work document for Mining & Extraction operations.
     /// Records production output, machine hours, fuel consumption, and crew for a single shift.
@@ -103,5 +116,13 @@ namespace AnchorPro.Data.Entities
 
         public int? ProjectId { get; set; }
         public Project? Project { get; set; }
+
+        // ── Mining Contractor Link ─────────────────────────────────────────────
+        /// <summary>For ore transport/haulage shifts: links to the contractor record.</summary>
+        public int? ContractorContractId { get; set; }
+        public Contract? ContractorContract { get; set; }
+
+        /// <summary>Structured activity category (replaces free-text ActivityType for mining).</summary>
+        public MiningActivityType? MiningActivity { get; set; }
     }
 }

@@ -5,12 +5,39 @@ import { useRouter } from 'next/navigation';
 import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import ResponsiveTable from '@/components/ResponsiveTable';
-import { Plus, Check, X, FileText } from 'lucide-react';
+import { Plus, Check, X, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import Link from 'next/link';
+
+function TargetActualBar({ actual, target }: { actual: number; target: number | null }) {
+  if (!target || target === 0) {
+    return <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>No target</span>;
+  }
+  const pct = Math.min(Math.round((actual / target) * 100), 150);
+  const over = pct >= 100;
+  const barPct = Math.min(pct, 100);
+  const barColor = pct >= 100 ? 'var(--accent-emerald)' : pct >= 75 ? 'var(--accent-amber)' : 'var(--accent-rose)';
+  const Icon = pct >= 100 ? TrendingUp : pct >= 50 ? Minus : TrendingDown;
+  return (
+    <div style={{ minWidth: 140 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: barColor }}>{actual.toLocaleString()}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>/ {target.toLocaleString()}</span>
+        <Icon size={12} color={barColor} />
+      </div>
+      <div style={{ height: 6, background: 'var(--bg-card)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${barPct}%`, background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
+      </div>
+      <div style={{ fontSize: 10, color: over ? 'var(--accent-emerald)' : 'var(--text-muted)', marginTop: 2, fontWeight: over ? 700 : 400 }}>
+        {pct}% {over ? '✓ Target met' : 'of target'}
+      </div>
+    </div>
+  );
+}
 
 export default function ShiftLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const router = useRouter();
   const { isPlanner, isPlatformOwner, user } = useAuth();
 
@@ -18,8 +45,7 @@ export default function ShiftLogsPage() {
     setLoading(true);
     try {
       const data = await shiftLogsApi.getAll();
-      // Sort by date descending
-      data.sort((a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime());
+      data.sort((a: any, b: any) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime());
       setLogs(data);
     } catch (err) {
       console.error(err);
@@ -28,30 +54,32 @@ export default function ShiftLogsPage() {
     }
   };
 
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  useEffect(() => { loadLogs(); }, []);
 
   const handleApprove = async (id: number) => {
     if (!confirm('Approve this shift log?')) return;
-    try {
-      await shiftLogsApi.approve(id);
-      loadLogs();
-    } catch (e: any) {
-      alert(e.message || 'Failed to approve');
-    }
+    try { await shiftLogsApi.approve(id); loadLogs(); } catch (e: any) { alert(e.message || 'Failed to approve'); }
   };
 
   const handleReject = async (id: number) => {
     const reason = prompt('Reason for rejection:');
     if (reason === null) return;
-    try {
-      await shiftLogsApi.reject(id, reason || 'Rejected by supervisor');
-      loadLogs();
-    } catch (e: any) {
-      alert(e.message || 'Failed to reject');
-    }
+    try { await shiftLogsApi.reject(id, reason || 'Rejected by supervisor'); loadLogs(); } catch (e: any) { alert(e.message || 'Failed to reject'); }
   };
+
+  const filteredLogs = filterStatus === 'all' ? logs : logs.filter(l => {
+    if (filterStatus === 'draft') return l.status === 0;
+    if (filterStatus === 'submitted') return l.status === 1;
+    if (filterStatus === 'approved') return l.status === 2;
+    if (filterStatus === 'rejected') return l.status === 3;
+    return true;
+  });
+
+  // Summary stats
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLogs = logs.filter(l => l.shiftDate?.startsWith(todayStr));
+  const todayActual = todayLogs.reduce((s: number, l: any) => s + (l.quantityProduced || 0), 0);
+  const todayTarget = todayLogs.reduce((s: number, l: any) => s + (l.targetQuantity || 0), 0);
 
   return (
     <div className="animate-in">
@@ -61,11 +89,46 @@ export default function ShiftLogsPage() {
             <FileText size={22} className="text-accent-blue" />
             Shift Production Logs
           </h1>
-          <p className="page-subtitle">Manage daily shift production and resource tracking.</p>
+          <p className="page-subtitle">Track daily shift production, fuel, and target vs actual output.</p>
         </div>
         <Link href="/dashboard/shift-logs/new" className="btn btn-primary">
           <Plus size={18} /> New Shift Log
         </Link>
+      </div>
+
+      {/* Today's summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Today's Production</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>{todayActual.toLocaleString()} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>tons</span></div>
+          <TargetActualBar actual={todayActual} target={todayTarget > 0 ? todayTarget : null} />
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Today's Shifts</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-blue)' }}>{todayLogs.length}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{todayLogs.filter((l: any) => l.status === 2).length} approved</div>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Pending Review</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent-amber)' }}>{logs.filter((l: any) => l.status === 1).length}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>submitted logs</div>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Total Logs</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>{logs.length}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>all time</div>
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {['all', 'draft', 'submitted', 'approved', 'rejected'].map(s => (
+          <button key={s} onClick={() => setFilterStatus(s)}
+            className={filterStatus === s ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ fontSize: 12, padding: '6px 14px', textTransform: 'capitalize' }}>
+            {s === 'all' ? 'All Logs' : s}
+          </button>
+        ))}
       </div>
 
       <div className="card">
@@ -75,10 +138,10 @@ export default function ShiftLogsPage() {
               <tr>
                 <th>Log No.</th>
                 <th>Date / Shift</th>
+                <th>Activity</th>
                 <th>Equipment</th>
                 <th>Source ➔ Destination</th>
-                <th>Loads</th>
-                <th>Est. Tonnage</th>
+                <th>Target vs Actual</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -86,10 +149,10 @@ export default function ShiftLogsPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: 20 }}>Loading logs...</td></tr>
-              ) : logs.length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>No shift logs found.</td></tr>
               ) : (
-                logs.map(log => {
+                filteredLogs.map(log => {
                   const shiftName = log.shift === 0 ? 'Day' : log.shift === 1 ? 'Night' : 'Afternoon';
                   let statusBadge = 'badge-muted';
                   let statusText = 'Draft';
@@ -99,6 +162,10 @@ export default function ShiftLogsPage() {
 
                   const isReviewer = isPlanner || isPlatformOwner;
 
+                  const activityLabel = log.miningActivity !== null && log.miningActivity !== undefined
+                    ? ['General', 'Blasting', 'Loading', 'Hauling', 'Development', 'Stripping', 'Dewatering', 'Support'][log.miningActivity] || log.activityType
+                    : log.activityType;
+
                   return (
                     <tr key={log.id}>
                       <td style={{ fontWeight: 600 }}>{log.logNumber}</td>
@@ -107,8 +174,11 @@ export default function ShiftLogsPage() {
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{shiftName} Shift</div>
                       </td>
                       <td>
-                        {log.equipment ? log.equipment.name : <span style={{color: 'var(--text-muted)'}}>None</span>}
+                        {activityLabel ? (
+                          <span className="badge badge-gray" style={{ fontSize: 11 }}>{activityLabel}</span>
+                        ) : '-'}
                       </td>
+                      <td>{log.equipment ? log.equipment.name : <span style={{color: 'var(--text-muted)'}}>None</span>}</td>
                       <td>
                         {log.sourceLocation ? (
                           <div style={{ fontSize: 13 }}>
@@ -118,15 +188,11 @@ export default function ShiftLogsPage() {
                           </div>
                         ) : '-'}
                       </td>
-                      <td>{log.loadCount || '-'}</td>
-                      <td style={{ fontWeight: 600 }}>
-                        {log.quantityProduced} <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{log.unitOfMeasure}</span>
-                      </td>
                       <td>
-                        <span className={`badge ${statusBadge}`}>{statusText}</span>
+                        <TargetActualBar actual={log.quantityProduced || 0} target={log.targetQuantity} />
                       </td>
+                      <td><span className={`badge ${statusBadge}`}>{statusText}</span></td>
                       <td style={{ textAlign: 'right' }}>
-                        {/* If it's submitted and user is reviewer, allow Approve/Reject */}
                         {log.status === 1 && isReviewer ? (
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                             <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => handleApprove(log.id)} title="Approve">
@@ -137,9 +203,7 @@ export default function ShiftLogsPage() {
                             </button>
                           </div>
                         ) : (
-                          <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/shift-logs/${log.id}`)}>
-                            View
-                          </button>
+                          <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/shift-logs/${log.id}`)}>View</button>
                         )}
                       </td>
                     </tr>

@@ -29,6 +29,17 @@ namespace AnchorPro.Data.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal Budget { get; set; }
 
+        /// <summary>Rolled-up actual cost (sum of linked job cards, shift logs and direct expenses).</summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ActualCost { get; set; }
+
+        /// <summary>0-100 overall completion %. Can be manually set or auto-computed from tasks.</summary>
+        public int CompletionPercentage { get; set; }
+
+        /// <summary>Hex colour for Kanban/portfolio colour coding, e.g. "#6366f1".</summary>
+        [MaxLength(10)]
+        public string? Colour { get; set; }
+
         public int? CustomerId { get; set; }
         public Customer? Customer { get; set; }
 
