@@ -57,6 +57,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     // Operations — Parallel Work Document Types (Phase 2/3)
     public DbSet<Entities.WorkDocumentCostEntry> WorkDocumentCostEntries { get; set; }
     public DbSet<Entities.ShiftProductionLog> ShiftProductionLogs { get; set; }
+    public DbSet<Entities.ShiftResource> ShiftResources { get; set; }
 
 
     // Data Protection Keys

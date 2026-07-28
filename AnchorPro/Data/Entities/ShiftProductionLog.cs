@@ -40,7 +40,7 @@ namespace AnchorPro.Data.Entities
 
         public ShiftType Shift { get; set; } = ShiftType.Day;
 
-        // ── Equipment Link ──────────────────────────────────────────────────────
+        // ── Equipment Link (Legacy - use ShiftResource for multi-equipment) ──
         public int? EquipmentId { get; set; }
         public Equipment? Equipment { get; set; }
 
@@ -71,7 +71,7 @@ namespace AnchorPro.Data.Entities
         /// <summary>Any machine downtime recorded during the shift (hours).</summary>
         public decimal DowntimeHours { get; set; }
 
-        // ── Personnel ───────────────────────────────────────────────────────────
+        // ── Personnel (Legacy - use ShiftResource for operators) ───────────────
         [MaxLength(150)]
         public string? OperatorName { get; set; }
 
@@ -90,6 +90,9 @@ namespace AnchorPro.Data.Entities
 
         [MaxLength(200)]
         public string? DestinationLocation { get; set; } // e.g. "Crusher", "Waste Dump 2"
+
+        [MaxLength(100)]
+        public string? Material { get; set; } // e.g. "Copper Ore", "Waste", "Overburden"
 
         [MaxLength(100)]
         public string? ActivityType { get; set; }  // e.g. "Blasting", "Loading", "Hauling"
@@ -118,11 +121,17 @@ namespace AnchorPro.Data.Entities
         public Project? Project { get; set; }
 
         // ── Mining Contractor Link ─────────────────────────────────────────────
-        /// <summary>For ore transport/haulage shifts: links to the contractor record.</summary>
+        /// <summary>For ore transport/haulage shifts: links to the sub-contractor record.</summary>
         public int? ContractorContractId { get; set; }
         public Contract? ContractorContract { get; set; }
 
+        /// <summary>If the tenant is a mining contractor, links this shift to their Client's Contract.</summary>
+        public int? ClientContractId { get; set; }
+        public Contract? ClientContract { get; set; }
+
         /// <summary>Structured activity category (replaces free-text ActivityType for mining).</summary>
         public MiningActivityType? MiningActivity { get; set; }
+
+        public ICollection<ShiftResource> Resources { get; set; } = new List<ShiftResource>();
     }
 }

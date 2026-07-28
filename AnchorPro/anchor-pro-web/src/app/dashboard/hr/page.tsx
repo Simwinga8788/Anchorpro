@@ -912,7 +912,7 @@ function ContractsTab() {
                 <button className="modal-close" onClick={() => { setShowForm(false); setEditingContractId(null); }}><X size={20} /></button>
               </div>
               <form onSubmit={handleCreate}>
-                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '65vh' }}>
                   <div className="form-group">
                     <label className="form-label">Employee *</label>
                     <select className="form-select" value={form.userId || ''} onChange={e => setForm({ ...form, userId: e.target.value })} required>
@@ -978,8 +978,8 @@ function ContractsTab() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Create Contract'}</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditingContractId(null); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : (editingContractId ? 'Save Changes' : 'Create Contract')}</button>
                 </div>
               </form>
             </div>
