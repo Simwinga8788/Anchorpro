@@ -91,6 +91,7 @@ const OPS_SECTIONS: Record<number, { label: string; items: { href: string; label
       { href: '/dashboard/shift-logs',    label: 'Shift Production Logs',icon: ClipboardList },
       { href: '/dashboard/my-jobs',       label: 'My Shifts',            icon: Hash },
       { href: '/dashboard/planning',      label: 'Shift Scheduling',     icon: Activity },
+      { href: '/dashboard/contractors',   label: 'Contractors',          icon: Wrench },
       { href: '/dashboard/downtime',      label: 'Equipment Downtime',   icon: Pause },
       { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
       { href: '/dashboard/time-tracking', label: 'Time Tracking',        icon: Timer },
