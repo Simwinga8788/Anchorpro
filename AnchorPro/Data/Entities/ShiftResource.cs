@@ -31,5 +31,18 @@ namespace AnchorPro.Data.Entities
         /// Specific operating hours for this machine during the shift (if different from overall shift hours).
         /// </summary>
         public decimal? OperatingHours { get; set; }
+
+        public decimal? DowntimeHours { get; set; }
+
+        [MaxLength(200)]
+        public string? DowntimeReason { get; set; }
+
+        /// <summary>
+        /// Specific production amount achieved by this resource (e.g. 50 meters, 12 trips).
+        /// </summary>
+        public decimal? ActualQuantity { get; set; }
+
+        [MaxLength(50)]
+        public string? QuantityUnit { get; set; }
     }
 }

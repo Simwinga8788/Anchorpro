@@ -658,6 +658,15 @@ export const shiftLogsApi = {
   delete:          (id: number)               => apiDelete(`/api/shift-logs/${id}`),
 };
 
+export const shiftPlansApi = {
+  getAll:          ()                          => apiFetch<any[]>('/api/shiftplans'),
+  getById:         (id: number)               => apiFetch<any>(`/api/shiftplans/${id}`),
+  create:          (data: any)                => apiPost<any>('/api/shiftplans', data),
+  update:          (id: number, data: any)    => apiPut<any>(`/api/shiftplans/${id}`, data),
+  delete:          (id: number)               => apiDelete(`/api/shiftplans/${id}`),
+  generateActuals: (id: number)               => apiPost<any>(`/api/shiftplans/${id}/generate-actuals`, {}),
+};
+
 // ─── Tenants API ── /api/tenants ───────────────────────────────────────────────
 export const tenantsApi = {
   getAll:      ()                        => apiFetch<any[]>('/api/tenants'),

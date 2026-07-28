@@ -15,6 +15,8 @@ namespace AnchorPro.Services
             return await ctx.ShiftProductionLogs
                 .Include(s => s.Equipment)
                 .Include(s => s.CostEntries)
+                .Include(s => s.Resources).ThenInclude(r => r.Operator)
+                .Include(s => s.Resources).ThenInclude(r => r.Equipment)
                 .AsNoTracking()
                 .OrderByDescending(s => s.ShiftDate)
                 .ThenBy(s => s.Shift)
@@ -27,6 +29,8 @@ namespace AnchorPro.Services
             return await ctx.ShiftProductionLogs
                 .Include(s => s.Equipment)
                 .Include(s => s.CostEntries)
+                .Include(s => s.Resources).ThenInclude(r => r.Operator)
+                .Include(s => s.Resources).ThenInclude(r => r.Equipment)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
@@ -50,7 +54,9 @@ namespace AnchorPro.Services
         public async Task UpdateAsync(ShiftProductionLog log, string userId)
         {
             using var ctx = _factory.CreateDbContext();
-            var existing = await ctx.ShiftProductionLogs.FindAsync(log.Id)
+            var existing = await ctx.ShiftProductionLogs
+                .Include(s => s.Resources)
+                .FirstOrDefaultAsync(s => s.Id == log.Id)
                 ?? throw new KeyNotFoundException($"ShiftProductionLog {log.Id} not found.");
 
             if (existing.Status != ShiftLogStatus.Draft)
@@ -70,9 +76,26 @@ namespace AnchorPro.Services
             existing.CrewCount           = log.CrewCount;
             existing.Location            = log.Location;
             existing.ActivityType        = log.ActivityType;
+            existing.MiningActivity      = log.MiningActivity;
+            existing.Material            = log.Material;
+            existing.SourceLocation      = log.SourceLocation;
+            existing.DestinationLocation = log.DestinationLocation;
+            existing.ClientContractId    = log.ClientContractId;
+            existing.ContractorContractId = log.ContractorContractId;
             existing.Remarks             = log.Remarks;
             existing.UpdatedAt           = DateTime.UtcNow;
             existing.UpdatedBy           = userId;
+
+            // Sync Resources
+            ctx.ShiftResources.RemoveRange(existing.Resources);
+            if (log.Resources != null)
+            {
+                foreach (var r in log.Resources)
+                {
+                    r.Id = 0; // ensure EF treats it as new
+                    existing.Resources.Add(r);
+                }
+            }
 
             await ctx.SaveChangesAsync();
         }

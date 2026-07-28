@@ -116,6 +116,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDashboardService, Anch
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IInventoryService, AnchorPro.Services.InventoryService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFileService, AnchorPro.Services.LocalFileService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IShiftPlanService, AnchorPro.Services.ShiftPlanService>();
 var smtpHost = builder.Configuration["Smtp_Host"] ?? "";
 if (string.IsNullOrWhiteSpace(smtpHost))
     builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.DevEmailService>();

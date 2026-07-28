@@ -2,9 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { shiftLogsApi, adminAccessApi } from '@/lib/api';
+import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { Save, ArrowLeft, Loader2, Calculator } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Calculator, Plus, Trash2 } from 'lucide-react';
+
+interface ShiftResource {
+  id: number; // local ID for mapping
+  equipmentId: string;
+  operatorId: string;
+  role: string;
+  operatingHours: string;
+  downtimeHours?: string;
+  downtimeReason?: string;
+  actualQuantity?: string;
+  quantityUnit?: string;
+}
 
 export default function NewShiftLogPage() {
   const router = useRouter();
@@ -14,48 +26,55 @@ export default function NewShiftLogPage() {
   // Data for dropdowns
   const [equipmentList, setEquipmentList] = useState<any[]>([]);
   const [projectList, setProjectList] = useState<any[]>([]);
+  const [contractList, setContractList] = useState<any[]>([]);
+  const [userList, setUserList] = useState<any[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
     shiftDate: new Date().toISOString().split('T')[0],
     shift: 0,
-    equipmentId: '',
     projectId: '',
+    clientContractId: '',
+    material: '',
     sourceLocation: '',
     destinationLocation: '',
-    activityType: '',
     miningActivity: '0',
     loadCount: '',
     payloadFactor: '',
-    quantityProduced: '',
+    quantityProduced: '0',
     targetQuantity: '',
     unitOfMeasure: 'Tons',
     operatingHours: '',
     fuelConsumedLitres: '',
     downtimeHours: '0',
-    operatorName: user?.firstName ? `${user.firstName} ${user.lastName}` : '',
     crewCount: '1',
-    remarks: ''
+    remarks: '',
+    resources: [{ id: Date.now(), equipmentId: '', operatorId: '', role: '', operatingHours: '' }] as ShiftResource[]
   });
 
   useEffect(() => {
-    // Fetch equipment
-    // Using apiFetch directly since we need equipment for the dropdown
-    const fetchEq = async () => {
+    const fetchData = async () => {
       try {
         const tokenStr = localStorage.getItem('anchor_auth_token');
         const headers: any = {};
         if (tokenStr) headers['Authorization'] = `Bearer ${tokenStr}`;
-        const resEq = await fetch('/api/equipment', { headers });
-        if (resEq.ok) setEquipmentList(await resEq.json());
         
-        const resProj = await fetch('/api/projects', { headers });
+        const [resEq, resProj, resUsers, resContracts] = await Promise.all([
+          fetch('/api/equipment', { headers }),
+          fetch('/api/projects', { headers }),
+          fetch('/api/users', { headers }),
+          fetch('/api/contracts', { headers })
+        ]);
+        
+        if (resEq.ok) setEquipmentList(await resEq.json());
         if (resProj.ok) setProjectList(await resProj.json());
+        if (resUsers.ok) setUserList(await resUsers.json());
+        if (resContracts.ok) setContractList(await resContracts.json());
       } catch (e) {
         console.error(e);
       }
     };
-    fetchEq();
+    fetchData();
   }, []);
 
   // Auto-calculate logic
@@ -67,15 +86,37 @@ export default function NewShiftLogPage() {
     }
   }, [formData.loadCount, formData.payloadFactor]);
 
-  const handleEquipmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const eqId = e.target.value;
-    const selected = equipmentList.find(eq => eq.id.toString() === eqId);
-    
+  const handleAddResource = () => {
     setFormData(prev => ({
       ...prev,
-      equipmentId: eqId,
-      // Auto-pull payload capacity if it exists on the equipment
-      payloadFactor: selected?.payloadCapacity ? selected.payloadCapacity.toString() : prev.payloadFactor
+      resources: [...prev.resources, { id: Date.now(), equipmentId: '', operatorId: '', role: '', operatingHours: '', downtimeHours: '', downtimeReason: '', actualQuantity: '', quantityUnit: '' }]
+    }));
+  };
+
+  const handleRemoveResource = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      resources: prev.resources.filter(r => r.id !== id)
+    }));
+  };
+
+  const handleResourceChange = (id: number, field: keyof ShiftResource, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      resources: prev.resources.map(r => {
+        if (r.id === id) {
+          const updated = { ...r, [field]: value };
+          // Auto-pull payload factor if we change equipment and don't have one set
+          if (field === 'equipmentId' && !prev.payloadFactor) {
+            const eq = equipmentList.find(e => e.id.toString() === value);
+            if (eq?.payloadCapacity) {
+              setFormData(p => ({ ...p, payloadFactor: eq.payloadCapacity.toString() }));
+            }
+          }
+          return updated;
+        }
+        return r;
+      })
     }));
   };
 
@@ -86,11 +127,11 @@ export default function NewShiftLogPage() {
       const payload = {
         shiftDate: formData.shiftDate,
         shift: Number(formData.shift),
-        equipmentId: formData.equipmentId ? Number(formData.equipmentId) : null,
         projectId: formData.projectId ? Number(formData.projectId) : null,
+        clientContractId: formData.clientContractId ? Number(formData.clientContractId) : null,
+        material: formData.material,
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
-        activityType: formData.activityType,
         miningActivity: formData.miningActivity ? Number(formData.miningActivity) : null,
         targetQuantity: formData.targetQuantity ? Number(formData.targetQuantity) : null,
         loadCount: formData.loadCount ? Number(formData.loadCount) : null,
@@ -100,9 +141,18 @@ export default function NewShiftLogPage() {
         operatingHours: formData.operatingHours ? Number(formData.operatingHours) : 0,
         fuelConsumedLitres: formData.fuelConsumedLitres ? Number(formData.fuelConsumedLitres) : 0,
         downtimeHours: formData.downtimeHours ? Number(formData.downtimeHours) : 0,
-        operatorName: formData.operatorName,
         crewCount: formData.crewCount ? Number(formData.crewCount) : null,
-        remarks: formData.remarks
+        remarks: formData.remarks,
+        resources: formData.resources.map(r => ({
+          equipmentId: r.equipmentId ? Number(r.equipmentId) : null,
+          operatorId: r.operatorId || null,
+          role: r.role,
+          operatingHours: r.operatingHours ? Number(r.operatingHours) : null,
+          downtimeHours: r.downtimeHours ? Number(r.downtimeHours) : null,
+          downtimeReason: r.downtimeReason || null,
+          actualQuantity: r.actualQuantity ? Number(r.actualQuantity) : null,
+          quantityUnit: r.quantityUnit || null
+        }))
       };
 
       await shiftLogsApi.create(payload);
@@ -114,23 +164,23 @@ export default function NewShiftLogPage() {
   };
 
   return (
-    <div className="animate-in" style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="animate-in" style={{ maxWidth: 1000, margin: '0 auto' }}>
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <button className="btn btn-secondary" onClick={() => router.back()} style={{ padding: '8px' }}>
           <ArrowLeft size={18} />
         </button>
         <div>
           <h1 className="page-title">New Shift Production Log</h1>
-          <p className="page-subtitle">Record daily production, fuel, and hours.</p>
+          <p className="page-subtitle">Record daily production, fleet usage, and personnel.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <form onSubmit={handleSubmit} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 32 }}>
         
         {/* Section 1: General Info */}
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
-            General & Personnel
+            General Details
           </h3>
           <div className="form-grid">
             <div className="form-group">
@@ -147,14 +197,18 @@ export default function NewShiftLogPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Operator Name</label>
-              <input type="text" className="input" required
-                value={formData.operatorName} onChange={e => setFormData({...formData, operatorName: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Crew Count</label>
+              <label>Total Crew Count</label>
               <input type="number" className="input" min="1"
                 value={formData.crewCount} onChange={e => setFormData({...formData, crewCount: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label>Client Contract <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+              <select className="input" value={formData.clientContractId} onChange={e => setFormData({...formData, clientContractId: e.target.value})}>
+                <option value="">-- No Contract --</option>
+                {contractList.map(c => (
+                  <option key={c.id} value={c.id}>{c.referenceNumber} - {c.title}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Link to Project <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
@@ -168,21 +222,90 @@ export default function NewShiftLogPage() {
           </div>
         </div>
 
-        {/* Section 2: Equipment & Location */}
+        {/* Section 2: Fleet & Operators */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Fleet & Operators</h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddResource}>
+              <Plus size={14} /> Add Resource
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {formData.resources.map((res, index) => (
+              <div key={res.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 40px', gap: 12, alignItems: 'end', background: 'var(--bg-default)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Machine / Equipment</label>
+                  <select className="input" value={res.equipmentId} onChange={e => handleResourceChange(res.id, 'equipmentId', e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {equipmentList.map(eq => (
+                      <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Operator</label>
+                  <select className="input" value={res.operatorId} onChange={e => handleResourceChange(res.id, 'operatorId', e.target.value)}>
+                    <option value="">-- Select User --</option>
+                    {userList.map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Role / Assignment</label>
+                  <input type="text" className="input" placeholder="e.g. Loader, Driver"
+                    value={res.role} onChange={e => handleResourceChange(res.id, 'role', e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Hrs</label>
+                  <input type="number" step="0.5" className="input" placeholder="Opt."
+                    value={res.operatingHours} onChange={e => handleResourceChange(res.id, 'operatingHours', e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Downtime (Hrs)</label>
+                  <input type="number" step="0.1" className="input" placeholder="0"
+                    value={res.downtimeHours} onChange={e => handleResourceChange(res.id, 'downtimeHours', e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Downtime Reason</label>
+                  <input type="text" className="input" placeholder="e.g. Blown tire"
+                    value={res.downtimeReason || ''} onChange={e => handleResourceChange(res.id, 'downtimeReason', e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Output / Done</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input type="number" step="0.1" className="input" placeholder="0" style={{ width: '60%' }}
+                      value={res.actualQuantity || ''} onChange={e => handleResourceChange(res.id, 'actualQuantity', e.target.value)} />
+                    <select className="input" style={{ width: '40%', padding: '0 4px' }} 
+                      value={res.quantityUnit || ''} onChange={e => handleResourceChange(res.id, 'quantityUnit', e.target.value)}>
+                      <option value="">--</option>
+                      <option value="Meters">Meters</option>
+                      <option value="Trips">Trips</option>
+                      <option value="Buckets">Buckets</option>
+                      <option value="Tons">Tons</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="button" className="btn btn-ghost" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {formData.resources.length === 0 && (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                No fleet resources assigned. Click "Add Resource" to assign machines and operators.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Section 3: Operations & Logistics */}
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
             Operations & Logistics
           </h3>
           <div className="form-grid">
-            <div className="form-group">
-              <label>Equipment</label>
-              <select className="input" required value={formData.equipmentId} onChange={handleEquipmentChange}>
-                <option value="">-- Select Machine --</option>
-                {equipmentList.map(eq => (
-                  <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
-                ))}
-              </select>
-            </div>
             <div className="form-group">
               <label>Activity Type</label>
               <select className="input" value={formData.miningActivity} onChange={e => setFormData({...formData, miningActivity: e.target.value})}>
@@ -197,8 +320,13 @@ export default function NewShiftLogPage() {
               </select>
             </div>
             <div className="form-group">
+              <label>Material</label>
+              <input type="text" className="input" placeholder="e.g. Copper Ore, Waste"
+                value={formData.material} onChange={e => setFormData({...formData, material: e.target.value})} />
+            </div>
+            <div className="form-group">
               <label>Source (Drawn from)</label>
-              <input type="text" className="input" placeholder="e.g. Pit 3 Face, Level 12 Stope" required
+              <input type="text" className="input" placeholder="e.g. Pit 3 Face, Level 12 Stope"
                 value={formData.sourceLocation} onChange={e => setFormData({...formData, sourceLocation: e.target.value})} />
             </div>
             <div className="form-group">
@@ -209,7 +337,7 @@ export default function NewShiftLogPage() {
           </div>
         </div>
 
-        {/* Section 3: Production Metrics */}
+        {/* Section 4: Production Metrics */}
         <div style={{ background: 'var(--bg-secondary)', padding: '16px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, paddingBottom: 8, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Calculator size={18} className="text-accent-blue" /> Production Metrics
@@ -218,7 +346,7 @@ export default function NewShiftLogPage() {
             <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: 12 }}>
               <label>Number of Loads/Trips</label>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <input type="number" step="1" className="input" required style={{ flex: 1, fontSize: 24, padding: '16px', height: 'auto', fontWeight: 700 }}
+                <input type="number" step="1" className="input" style={{ flex: 1, fontSize: 24, padding: '16px', height: 'auto', fontWeight: 700 }}
                   value={formData.loadCount} onChange={e => setFormData({...formData, loadCount: e.target.value})} />
                 <button type="button" className="btn btn-primary" style={{ padding: '16px 32px', fontSize: 18, height: 'auto', fontWeight: 800 }} 
                   onClick={() => setFormData(prev => ({ ...prev, loadCount: (parseInt(prev.loadCount || '0') + 1).toString() }))}>
@@ -228,13 +356,12 @@ export default function NewShiftLogPage() {
             </div>
             <div className="form-group">
               <label>Payload Factor (Per Trip)</label>
-              <input type="number" step="0.01" className="input" required
+              <input type="number" step="0.01" className="input"
                 value={formData.payloadFactor} onChange={e => setFormData({...formData, payloadFactor: e.target.value})} />
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Auto-pulled from Equipment if available</div>
             </div>
             <div className="form-group">
               <label>Est. Quantity Produced</label>
-              <input type="number" step="0.01" className="input" required readOnly
+              <input type="number" step="0.01" className="input" readOnly
                 style={{ background: 'var(--bg-default)', fontWeight: 600 }}
                 value={formData.quantityProduced} />
             </div>
@@ -249,38 +376,37 @@ export default function NewShiftLogPage() {
             </div>
             <div className="form-group">
               <label>Shift Target <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-              <input type="number" step="0.01" className="input" placeholder="e.g. 500 (tons)"
+              <input type="number" step="0.01" className="input" placeholder="e.g. 500"
                 value={formData.targetQuantity} onChange={e => setFormData({...formData, targetQuantity: e.target.value})} />
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Set by shift supervisor. Used for Target vs Actual reporting.</div>
             </div>
           </div>
         </div>
 
-        {/* Section 4: Resource Burn */}
+        {/* Section 5: Resource Burn */}
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
-            Resource Burn
+            Overall Shift Resource Burn
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>Operating Hours (SMU)</label>
+              <label>Total Operating Hours</label>
               <input type="number" step="0.1" className="input" required
                 value={formData.operatingHours} onChange={e => setFormData({...formData, operatingHours: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Fuel Consumed (Litres)</label>
+              <label>Total Fuel Consumed (Litres)</label>
               <input type="number" step="0.1" className="input" required
                 value={formData.fuelConsumedLitres} onChange={e => setFormData({...formData, fuelConsumedLitres: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Downtime Hours</label>
+              <label>Total Downtime Hours</label>
               <input type="number" step="0.1" className="input"
                 value={formData.downtimeHours} onChange={e => setFormData({...formData, downtimeHours: e.target.value})} />
             </div>
           </div>
         </div>
 
-        {/* Section 5: Remarks */}
+        {/* Section 6: Remarks */}
         <div className="form-group">
           <label>Remarks / Notes</label>
           <textarea className="input" rows={3} placeholder="Any issues during the shift?"

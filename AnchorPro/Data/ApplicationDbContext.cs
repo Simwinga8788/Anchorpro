@@ -58,6 +58,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.WorkDocumentCostEntry> WorkDocumentCostEntries { get; set; }
     public DbSet<Entities.ShiftProductionLog> ShiftProductionLogs { get; set; }
     public DbSet<Entities.ShiftResource> ShiftResources { get; set; }
+    public DbSet<Entities.ShiftPlan> ShiftPlans { get; set; }
+    public DbSet<Entities.ShiftPlanTask> ShiftPlanTasks { get; set; }
 
 
     // Data Protection Keys
