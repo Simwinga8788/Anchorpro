@@ -302,18 +302,53 @@ export default function ProjectDetailsPage() {
                 const showToday = today >= minDate.getTime() && today <= maxDate.getTime();
                 const todayPercent = showToday ? ((today - minDate.getTime()) / totalDuration) * 100 : 0;
 
-                // Generate Month Markers
-                const monthMarkers = [];
-                let currMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
-                while (currMonth.getTime() <= maxDate.getTime()) {
-                  const leftPct = ((currMonth.getTime() - minDate.getTime()) / totalDuration) * 100;
-                  if (leftPct >= 0 && leftPct <= 100) {
-                    monthMarkers.push({
-                      label: currMonth.toLocaleString('default', { month: 'short', year: '2-digit' }),
-                      left: leftPct
-                    });
+                // Generate Time Markers (Adaptive)
+                const timeMarkers = [];
+                const daysDuration = totalDuration / (1000 * 60 * 60 * 24);
+                
+                if (daysDuration <= 31) {
+                  // Daily or every other day
+                  const step = daysDuration > 14 ? 2 : 1;
+                  let curr = new Date(minDate);
+                  curr.setHours(0,0,0,0);
+                  while (curr.getTime() <= maxDate.getTime()) {
+                    const leftPct = ((curr.getTime() - minDate.getTime()) / totalDuration) * 100;
+                    if (leftPct >= 0 && leftPct <= 100) {
+                      timeMarkers.push({
+                        label: curr.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        left: leftPct
+                      });
+                    }
+                    curr.setDate(curr.getDate() + step);
                   }
-                  currMonth = new Date(currMonth.getFullYear(), currMonth.getMonth() + 1, 1);
+                } else if (daysDuration <= 90) {
+                  // Weekly (Mondays)
+                  let curr = new Date(minDate);
+                  curr.setHours(0,0,0,0);
+                  while (curr.getDay() !== 1) curr.setDate(curr.getDate() + 1);
+                  while (curr.getTime() <= maxDate.getTime()) {
+                    const leftPct = ((curr.getTime() - minDate.getTime()) / totalDuration) * 100;
+                    if (leftPct >= 0 && leftPct <= 100) {
+                      timeMarkers.push({
+                        label: curr.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        left: leftPct
+                      });
+                    }
+                    curr.setDate(curr.getDate() + 7);
+                  }
+                } else {
+                  // Monthly
+                  let curr = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+                  while (curr.getTime() <= maxDate.getTime()) {
+                    const leftPct = ((curr.getTime() - minDate.getTime()) / totalDuration) * 100;
+                    if (leftPct >= 0 && leftPct <= 100) {
+                      timeMarkers.push({
+                        label: curr.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+                        left: leftPct
+                      });
+                    }
+                    curr = new Date(curr.getFullYear(), curr.getMonth() + 1, 1);
+                  }
                 }
 
                 return (
@@ -322,8 +357,8 @@ export default function ProjectDetailsPage() {
                     <div style={{ display: 'flex', borderBottom: '2px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
                       <div style={{ width: 280, flexShrink: 0, fontWeight: 600, color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Task Name & Assignee</div>
                       <div style={{ flex: 1, position: 'relative', height: 20 }}>
-                        {monthMarkers.map((m, i) => (
-                          <div key={i} style={{ position: 'absolute', left: `${m.left}%`, transform: 'translateX(-50%)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>
+                        {timeMarkers.map((m, i) => (
+                          <div key={i} style={{ position: 'absolute', left: `${m.left}%`, transform: 'translateX(-50%)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
                             {m.label}
                           </div>
                         ))}
@@ -335,7 +370,7 @@ export default function ProjectDetailsPage() {
                       
                       {/* Background Grid Lines */}
                       <div style={{ position: 'absolute', top: 0, left: 280, right: 0, bottom: 0, pointerEvents: 'none' }}>
-                        {monthMarkers.map((m, i) => (
+                        {timeMarkers.map((m, i) => (
                           <div key={i} style={{ position: 'absolute', left: `${m.left}%`, top: 0, bottom: 0, borderLeft: '1px dashed var(--border-subtle)', opacity: 0.5 }} />
                         ))}
                         {/* Today Line */}
