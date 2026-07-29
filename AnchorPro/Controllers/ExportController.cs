@@ -15,12 +15,28 @@ namespace AnchorPro.Controllers
         private readonly IExportService _exportService;
         private readonly IJobCardService _jobCardService;
         private readonly IDashboardService _dashboardService;
+        private readonly ISettingsService _settingsService;
 
-        public ExportController(IExportService exportService, IJobCardService jobCardService, IDashboardService dashboardService)
+        public ExportController(IExportService exportService, IJobCardService jobCardService, IDashboardService dashboardService, ISettingsService settingsService)
         {
             _exportService = exportService;
             _jobCardService = jobCardService;
             _dashboardService = dashboardService;
+            _settingsService = settingsService;
+        }
+        
+        private async Task<Dictionary<string, string>> GetDictionaryAsync()
+        {
+            var settings = await _settingsService.GetAllSettingsAsync();
+            var dict = new Dictionary<string, string>();
+            foreach (var s in settings)
+            {
+                if (s.Key.StartsWith("Dict."))
+                {
+                    dict[s.Key.Substring(5)] = s.Value;
+                }
+            }
+            return dict;
         }
 
         /// <summary>
@@ -29,8 +45,9 @@ namespace AnchorPro.Controllers
         [HttpGet("jobs/csv")]
         public async Task<IActionResult> ExportJobsCsv()
         {
+            var dict = await GetDictionaryAsync();
             var jobs = await _jobCardService.GetAllJobCardsAsync();
-            var csvBytes = _exportService.GenerateJobHistoryCsv(jobs);
+            var csvBytes = _exportService.GenerateJobHistoryCsv(jobs, dict);
             return File(csvBytes, "text/csv", $"job-export-{DateTime.UtcNow:yyyyMMdd}.csv");
         }
 
@@ -40,8 +57,9 @@ namespace AnchorPro.Controllers
         [HttpGet("jobs/excel")]
         public async Task<IActionResult> ExportJobsExcel()
         {
+            var dict = await GetDictionaryAsync();
             var jobs = await _jobCardService.GetAllJobCardsAsync();
-            var excelBytes = _exportService.GenerateJobHistoryExcel(jobs);
+            var excelBytes = _exportService.GenerateJobHistoryExcel(jobs, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"job-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
@@ -54,8 +72,9 @@ namespace AnchorPro.Controllers
         [HttpGet("performance/excel")]
         public async Task<IActionResult> ExportPerformanceExcel([FromQuery] int days = 30)
         {
+            var dict = await GetDictionaryAsync();
             var metrics = await _dashboardService.GetPerformanceMetricsAsync(days);
-            var excelBytes = _exportService.GeneratePerformanceExcel(metrics);
+            var excelBytes = _exportService.GeneratePerformanceExcel(metrics, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"performance-{DateTime.UtcNow:yyyyMMdd}.xlsx");
@@ -65,9 +84,10 @@ namespace AnchorPro.Controllers
         /// GET /api/export/jobs/template — Download the professional Excel import template.
         /// </summary>
         [HttpGet("jobs/template")]
-        public IActionResult GetImportTemplate()
+        public async Task<IActionResult> GetImportTemplate()
         {
-            var excelBytes = _exportService.GenerateJobImportTemplate();
+            var dict = await GetDictionaryAsync();
+            var excelBytes = _exportService.GenerateJobImportTemplate(dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "job-import-template.xlsx");
@@ -79,8 +99,9 @@ namespace AnchorPro.Controllers
         [HttpGet("equipment/excel")]
         public async Task<IActionResult> ExportEquipmentExcel([FromServices] IEquipmentService equipmentService)
         {
+            var dict = await GetDictionaryAsync();
             var equip = await equipmentService.GetAllEquipmentAsync();
-            var excelBytes = _exportService.GenerateEquipmentExcel(equip);
+            var excelBytes = _exportService.GenerateEquipmentExcel(equip, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"equipment-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
@@ -92,9 +113,10 @@ namespace AnchorPro.Controllers
         [HttpGet("equipment/template")]
         public async Task<IActionResult> GetEquipmentTemplate([FromServices] IOrgService orgService)
         {
+            var dict = await GetDictionaryAsync();
             var depts = await orgService.GetAllDepartmentsAsync();
             var deptNames = depts.Select(d => d.Name).ToList();
-            var excelBytes = _exportService.GenerateEquipmentImportTemplate(deptNames);
+            var excelBytes = _exportService.GenerateEquipmentImportTemplate(deptNames, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "equipment-import-template.xlsx");
@@ -106,8 +128,9 @@ namespace AnchorPro.Controllers
         [HttpGet("inventory/excel")]
         public async Task<IActionResult> ExportInventoryExcel([FromServices] IInventoryService inventoryService)
         {
+            var dict = await GetDictionaryAsync();
             var items = await inventoryService.GetAllItemsAsync();
-            var excelBytes = _exportService.GenerateInventoryExcel(items);
+            var excelBytes = _exportService.GenerateInventoryExcel(items, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"inventory-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
@@ -117,9 +140,10 @@ namespace AnchorPro.Controllers
         /// GET /api/export/inventory/template — Download the inventory import template.
         /// </summary>
         [HttpGet("inventory/template")]
-        public IActionResult GetInventoryTemplate()
+        public async Task<IActionResult> GetInventoryTemplate()
         {
-            var excelBytes = _exportService.GenerateInventoryImportTemplate();
+            var dict = await GetDictionaryAsync();
+            var excelBytes = _exportService.GenerateInventoryImportTemplate(dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "inventory-import-template.xlsx");
@@ -131,8 +155,9 @@ namespace AnchorPro.Controllers
         [HttpGet("tools/excel")]
         public async Task<IActionResult> ExportToolsExcel([FromServices] IToolService toolService)
         {
+            var dict = await GetDictionaryAsync();
             var tools = await toolService.GetAllToolsAsync();
-            var excelBytes = _exportService.GenerateToolsExcel(tools);
+            var excelBytes = _exportService.GenerateToolsExcel(tools, dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"tools-export-{DateTime.UtcNow:yyyyMMdd}.xlsx");
@@ -142,9 +167,10 @@ namespace AnchorPro.Controllers
         /// GET /api/export/tools/template — Download the tools import template.
         /// </summary>
         [HttpGet("tools/template")]
-        public IActionResult GetToolsTemplate()
+        public async Task<IActionResult> GetToolsTemplate()
         {
-            var excelBytes = _exportService.GenerateToolsImportTemplate();
+            var dict = await GetDictionaryAsync();
+            var excelBytes = _exportService.GenerateToolsImportTemplate(dict);
             return File(excelBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "tools-import-template.xlsx");

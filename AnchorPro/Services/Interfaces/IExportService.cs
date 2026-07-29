@@ -5,18 +5,18 @@ namespace AnchorPro.Services.Interfaces
 {
     public interface IExportService
     {
-        byte[] GenerateJobHistoryCsv(List<JobCard> jobs);
-        byte[] GeneratePerformanceExcel(PerformanceMetrics metrics);
-        byte[] GenerateJobImportTemplate();
-        byte[] GenerateJobHistoryExcel(List<JobCard> jobs);
+        byte[] GenerateJobHistoryCsv(List<JobCard> jobs, Dictionary<string, string>? dict = null);
+        byte[] GeneratePerformanceExcel(PerformanceMetrics metrics, Dictionary<string, string>? dict = null);
+        byte[] GenerateJobImportTemplate(Dictionary<string, string>? dict = null);
+        byte[] GenerateJobHistoryExcel(List<JobCard> jobs, Dictionary<string, string>? dict = null);
 
-        byte[] GenerateEquipmentImportTemplate(List<string> departments);
-        byte[] GenerateEquipmentExcel(List<Equipment> equipment);
+        byte[] GenerateEquipmentImportTemplate(List<string> departments, Dictionary<string, string>? dict = null);
+        byte[] GenerateEquipmentExcel(List<Equipment> equipment, Dictionary<string, string>? dict = null);
 
-        byte[] GenerateInventoryImportTemplate();
-        byte[] GenerateInventoryExcel(List<InventoryItem> items);
+        byte[] GenerateInventoryImportTemplate(Dictionary<string, string>? dict = null);
+        byte[] GenerateInventoryExcel(List<InventoryItem> items, Dictionary<string, string>? dict = null);
 
-        byte[] GenerateToolsImportTemplate();
-        byte[] GenerateToolsExcel(List<Tool> tools);
+        byte[] GenerateToolsImportTemplate(Dictionary<string, string>? dict = null);
+        byte[] GenerateToolsExcel(List<Tool> tools, Dictionary<string, string>? dict = null);
     }
 }

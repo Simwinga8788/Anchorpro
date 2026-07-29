@@ -8,7 +8,14 @@ namespace AnchorPro.Services
 {
     public class CsvExportService : IExportService
     {
-        public byte[] GenerateJobHistoryCsv(List<JobCard> jobs)
+        private string T(string key, string fallback, Dictionary<string, string>? dict)
+        {
+            if (dict != null && dict.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val))
+                return val;
+            return fallback;
+        }
+
+        public byte[] GenerateJobHistoryCsv(List<JobCard> jobs, Dictionary<string, string>? dict = null)
         {
             var sb = new StringBuilder();
             
@@ -37,7 +44,7 @@ namespace AnchorPro.Services
 
             return Encoding.UTF8.GetBytes(sb.ToString());
         }
-        public byte[] GeneratePerformanceExcel(PerformanceMetrics metrics)
+        public byte[] GeneratePerformanceExcel(PerformanceMetrics metrics, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
             
@@ -59,17 +66,17 @@ namespace AnchorPro.Services
             summarySheet.Cell(5, 1).Value = "Avg Lead Time (Hours)";
             summarySheet.Cell(5, 2).Value = metrics.AvgLeadTimeHours;
 
-            summarySheet.Cell(6, 1).Value = "Total Jobs Completed (Last 30 Days)";
+            summarySheet.Cell(6, 1).Value = $"Total {T("Jobs", "Jobs", dict)} Completed (Last 30 Days)";
             summarySheet.Cell(6, 2).Value = metrics.CompletedJobsInPeriod;
 
             summarySheet.Columns().AdjustToContents();
 
             // Sheet 2: Equipment Performance
-            var equipSheet = workbook.Worksheets.Add("Equipment Data");
-            equipSheet.Cell(1, 1).Value = "Equipment Performance and MTTR Analysis";
+            var equipSheet = workbook.Worksheets.Add(T("Equipment", "Equipment", dict) + " Data");
+            equipSheet.Cell(1, 1).Value = T("Equipment", "Equipment", dict) + " Performance and MTTR Analysis";
             equipSheet.Cell(1, 1).Style.Font.Bold = true;
 
-            var headers = new[] { "Asset Name", "Jobs", "Maint. Hours", "Down Time Events", "MTTR (Hrs)", "MTBF (Hrs)", "Utilization %" };
+            var headers = new[] { "Asset Name", T("Jobs", "Jobs", dict), "Maint. Hours", "Down Time Events", "MTTR (Hrs)", "MTBF (Hrs)", "Utilization %" };
             for (int i = 0; i < headers.Length; i++)
             {
                 equipSheet.Cell(3, i + 1).Value = headers[i];
@@ -93,8 +100,8 @@ namespace AnchorPro.Services
             equipSheet.Columns().AdjustToContents();
 
             // Sheet 3: Technician Stats
-            var techSheet = workbook.Worksheets.Add("Technician Utilization");
-            var techHeaders = new[] { "Technician", "Jobs", "Hours Worked", "Avg Job Time", "Utilization %" };
+            var techSheet = workbook.Worksheets.Add(T("Technician", "Technician", dict) + " Utilization");
+            var techHeaders = new[] { T("Technician", "Technician", dict), T("Jobs", "Jobs", dict), "Hours Worked", "Avg Job Time", "Utilization %" };
             for (int i = 0; i < techHeaders.Length; i++) techSheet.Cell(1, i + 1).Value = techHeaders[i];
             techSheet.Row(1).Style.Font.Bold = true;
 
@@ -116,20 +123,20 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateJobImportTemplate()
+        public byte[] GenerateJobImportTemplate(Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
-            var ws = workbook.Worksheets.Add("Job Import Template");
+            var ws = workbook.Worksheets.Add(T("JobCard", "Job", dict) + " Import Template");
 
             // Headers
             ws.Cell(1, 1).Value = "#";
-            ws.Cell(1, 2).Value = "Job Number";
+            ws.Cell(1, 2).Value = T("JobNumber", "Job Number", dict);
             ws.Cell(1, 3).Value = "Type";
             ws.Cell(1, 4).Value = "Description";
             ws.Cell(1, 5).Value = "Priority";
             ws.Cell(1, 6).Value = "Status";
-            ws.Cell(1, 7).Value = "Equipment";
-            ws.Cell(1, 8).Value = "Technician";
+            ws.Cell(1, 7).Value = T("Equipment", "Equipment", dict);
+            ws.Cell(1, 8).Value = T("Technician", "Technician", dict);
             ws.Cell(1, 9).Value = "Scheduled Start";
             ws.Cell(1, 10).Value = "Scheduled End";
 
@@ -193,20 +200,20 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateJobHistoryExcel(List<JobCard> jobs)
+        public byte[] GenerateJobHistoryExcel(List<JobCard> jobs, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
-            var ws = workbook.Worksheets.Add("Jobs Export");
+            var ws = workbook.Worksheets.Add(T("Jobs", "Jobs", dict) + " Export");
 
             // Headers
             ws.Cell(1, 1).Value = "#";
-            ws.Cell(1, 2).Value = "Job Number";
+            ws.Cell(1, 2).Value = T("JobNumber", "Job Number", dict);
             ws.Cell(1, 3).Value = "Type";
             ws.Cell(1, 4).Value = "Description";
             ws.Cell(1, 5).Value = "Priority";
             ws.Cell(1, 6).Value = "Status";
-            ws.Cell(1, 7).Value = "Equipment";
-            ws.Cell(1, 8).Value = "Technician";
+            ws.Cell(1, 7).Value = T("Equipment", "Equipment", dict);
+            ws.Cell(1, 8).Value = T("Technician", "Technician", dict);
             ws.Cell(1, 9).Value = "Scheduled Start";
             ws.Cell(1, 10).Value = "Scheduled End";
             ws.Cell(1, 11).Value = "Created Date";
@@ -280,10 +287,10 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateEquipmentImportTemplate(List<string> departments)
+        public byte[] GenerateEquipmentImportTemplate(List<string> departments, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
-            var ws = workbook.Worksheets.Add("Equipment Import Template");
+            var ws = workbook.Worksheets.Add(T("Equipment", "Equipment", dict) + " Import Template");
 
             // Headers
             ws.Cell(1, 1).Value = "#";
@@ -352,10 +359,10 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateEquipmentExcel(List<Equipment> equipment)
+        public byte[] GenerateEquipmentExcel(List<Equipment> equipment, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
-            var ws = workbook.Worksheets.Add("Equipment Export");
+            var ws = workbook.Worksheets.Add(T("Equipment", "Equipment", dict) + " Export");
 
             // Headers
             ws.Cell(1, 1).Value = "#";
@@ -407,7 +414,7 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateInventoryImportTemplate()
+        public byte[] GenerateInventoryImportTemplate(Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
             var ws = workbook.Worksheets.Add("Inventory Import Template");
@@ -466,7 +473,7 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateInventoryExcel(List<InventoryItem> items)
+        public byte[] GenerateInventoryExcel(List<InventoryItem> items, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
             var ws = workbook.Worksheets.Add("Inventory Export");
@@ -521,7 +528,7 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateToolsImportTemplate()
+        public byte[] GenerateToolsImportTemplate(Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
             var ws = workbook.Worksheets.Add("Tools Import Template");
@@ -592,7 +599,7 @@ namespace AnchorPro.Services
             return ms.ToArray();
         }
 
-        public byte[] GenerateToolsExcel(List<Tool> tools)
+        public byte[] GenerateToolsExcel(List<Tool> tools, Dictionary<string, string>? dict = null)
         {
             using var workbook = new ClosedXML.Excel.XLWorkbook();
             var ws = workbook.Worksheets.Add("Tools Export");
