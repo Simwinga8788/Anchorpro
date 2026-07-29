@@ -315,7 +315,12 @@ namespace AnchorPro.Controllers
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Source", Value = "Location / Origin", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.SourcePlaceholder", Value = "e.g. Plot 3, Block B", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Destination", Value = "Placement Area", Group = "Dictionary" },
-                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.DestinationPlaceholder", Value = "e.g. Foundation, Laydown Yard", Group = "Dictionary" }
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.DestinationPlaceholder", Value = "e.g. Foundation, Laydown Yard", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ContractorsTitle", Value = "Site Subcontractors", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ContractorsSubtitle", Value = "Manage specialized trades, earthworks, and support contractor agreements.", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ContractorType1", Value = "Earthworks Contractor", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ContractorType2", Value = "Specialist Trade", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ContractorType3", Value = "Labor Hire / Support", Group = "Dictionary" }
                 };
                 _db.SystemSettings.AddRange(dictSettings);
             }

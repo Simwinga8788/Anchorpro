@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import SlideOver from '@/components/SlideOver';
 import { Plus, Hammer, Truck, Users, Save, Loader2, Filter } from 'lucide-react';
+import { useDictionary } from '@/components/DictionaryContext';
 
-const CONTRACTOR_TYPES = [
-  { value: 0, label: 'Client Contract', icon: Users, color: '#6366f1' },
-  { value: 1, label: 'Blasting Contractor', icon: Hammer, color: '#f59e0b' },
-  { value: 2, label: 'Ore Transport', icon: Truck, color: '#10b981' },
-  { value: 3, label: 'Support Contractor', icon: Users, color: '#8b5cf6' },
+const getContractorTypes = (t: (k: string, d: string) => string) => [
+  { value: 0, label: t('ClientContract', 'Client Contract'), icon: Users, color: '#6366f1' },
+  { value: 1, label: t('ContractorType1', 'Blasting Contractor'), icon: Hammer, color: '#f59e0b' },
+  { value: 2, label: t('ContractorType2', 'Ore Transport'), icon: Truck, color: '#10b981' },
+  { value: 3, label: t('ContractorType3', 'Support Contractor'), icon: Users, color: '#8b5cf6' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,6 +28,8 @@ function getToken() {
 
 export default function ContractorsPage() {
   const router = useRouter();
+  const { t } = useDictionary();
+  const contractorTypes = getContractorTypes(t);
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<number | 'all'>('all');
@@ -104,7 +107,7 @@ export default function ContractorsPage() {
     ? contracts.filter(c => c.contractPartyType > 0) // Only contractors, not client contracts
     : contracts.filter(c => c.contractPartyType === filterType);
 
-  const getTypeInfo = (type: number) => CONTRACTOR_TYPES.find(t => t.value === type) || CONTRACTOR_TYPES[0];
+  const getTypeInfo = (type: number) => contractorTypes.find(t => t.value === type) || contractorTypes[0];
 
   return (
     <div className="animate-in">
@@ -112,9 +115,9 @@ export default function ContractorsPage() {
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Hammer size={22} className="text-accent-blue" />
-            Mining Contractors
+            {t('ContractorsTitle', 'Mining Contractors')}
           </h1>
-          <p className="page-subtitle">Manage blasting, haulage, and support contractor agreements.</p>
+          <p className="page-subtitle">{t('ContractorsSubtitle', 'Manage blasting, haulage, and support contractor agreements.')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
           <Plus size={18} /> New Contractor Agreement
@@ -123,7 +126,7 @@ export default function ContractorsPage() {
 
       {/* Type summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
-        {CONTRACTOR_TYPES.slice(1).map(type => {
+        {contractorTypes.slice(1).map(type => {
           const Icon = type.icon;
           const count = contracts.filter(c => c.contractPartyType === type.value).length;
           const active = contracts.filter(c => c.contractPartyType === type.value && c.status === 'Active').length;
@@ -225,9 +228,9 @@ export default function ContractorsPage() {
           <div className="form-group">
             <label>Contractor Type</label>
             <select className="input" required value={form.contractPartyType} onChange={e => setForm({...form, contractPartyType: Number(e.target.value)})}>
-              <option value={1}>Blasting Contractor</option>
-              <option value={2}>Ore Transport Contractor</option>
-              <option value={3}>Support Contractor</option>
+              {contractorTypes.slice(1).map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
