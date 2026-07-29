@@ -622,10 +622,11 @@ export const departmentsApi = {
 
 // ─── Roles API ── /api/roles ───────────────────────────────────────────────────
 export const rolesApi = {
-  getAll:   ()                        => apiFetch<any[]>('/api/roles'),
-  create:   (data: any)               => apiPost<any>('/api/roles', data),
-  update:   (name: string, data: any) => apiPut<any>(`/api/roles/${name}`, data),
-  delete:   (name: string)            => apiDelete(`/api/roles/${name}`),
+  getAll:        ()                        => apiFetch<any[]>('/api/roles'),
+  create:        (data: any)               => apiPost<any>('/api/roles', data),
+  update:        (name: string, data: any) => apiPut<any>(`/api/roles/${name}`, data),
+  delete:        (name: string)            => apiDelete(`/api/roles/${name}`),
+  syncDefaults:  ()                        => apiPost<any>('/api/roles/sync-defaults', {}),
 };
 
 // ─── Reference Data API ── /api/referencedata ──────────────────────────────────

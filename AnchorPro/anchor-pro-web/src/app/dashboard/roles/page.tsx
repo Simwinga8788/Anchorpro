@@ -18,6 +18,7 @@ const getModuleRoutes = (t: (k: string, d: string) => string) => [
   { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
   
   { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Shift Production Logs'), category: t('MiningOperations', 'Mining Operations') },
+  { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Shift Planner'), category: t('MiningOperations', 'Mining Operations') },
   { id: '/dashboard/performance', label: t('MiningDashboard', 'Mining Dashboard / Performance'), category: t('MiningOperations', 'Mining Operations') },
   { id: '/dashboard/contractors', label: t('ContractorsTitle', 'Mining Contractors'), category: t('MiningOperations', 'Mining Operations') },
   
@@ -109,6 +110,9 @@ export default function RolesPage() {
   async function loadData() {
     setLoading(true);
     try {
+      // Patch any missing routes into existing DB permission records before reading
+      await rolesApi.syncDefaults().catch(() => {}); // best-effort, don't block on failure
+
       const [rData, tData] = await Promise.all([
         rolesApi.getAll(),
         teamApi.getAll()

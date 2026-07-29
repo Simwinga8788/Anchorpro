@@ -157,6 +157,43 @@ namespace AnchorPro.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// POST /api/roles/sync-defaults
+        /// Patches any existing TenantRolePermission records so that routes
+        /// present in the current hard-coded defaults but missing from the
+        /// stored JSON are automatically added.  Safe to call repeatedly.
+        /// </summary>
+        [HttpPost("sync-defaults")]
+        public async Task<ActionResult> SyncRoleDefaults()
+        {
+            var tenantId = _tenantService.TenantId;
+
+            var perms = await _db.TenantRolePermissions
+                .Where(p => p.TenantId == tenantId)
+                .ToListAsync();
+
+            bool anyChanged = false;
+
+            foreach (var perm in perms)
+            {
+                var current = JsonSerializer.Deserialize<List<string>>(perm.AllowedRoutesJson) ?? new();
+                var defaults = GetDefaultRoutesForRole(perm.RoleName);
+
+                var missing = defaults.Where(d => !current.Contains(d)).ToList();
+                if (missing.Count > 0)
+                {
+                    current.AddRange(missing);
+                    perm.AllowedRoutesJson = JsonSerializer.Serialize(current);
+                    anyChanged = true;
+                }
+            }
+
+            if (anyChanged)
+                await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Role permissions synced with current defaults.", anyChanged });
+        }
+
         [HttpDelete("{roleName}")]
         public async Task<ActionResult> DeleteRole(string roleName)
         {
@@ -192,6 +229,8 @@ namespace AnchorPro.Controllers
                     "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", 
                     "/dashboard/roles", "/dashboard/settings", "/dashboard/customers", "/dashboard/tools", 
                     "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs",
+                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
+                    "/dashboard/projects", "/dashboard/projects/my-tasks",
                     // HR Granular
                     "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
                     "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
@@ -221,6 +260,8 @@ namespace AnchorPro.Controllers
                     "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
                     "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
                     "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
+                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
+                    "/dashboard/projects", "/dashboard/projects/my-tasks",
                     // Jobs Granular
                     "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
                     "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
@@ -231,6 +272,8 @@ namespace AnchorPro.Controllers
                     "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
                     "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
                     "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
+                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
+                    "/dashboard/projects", "/dashboard/projects/my-tasks",
                     // Jobs Granular
                     "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
                     "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
