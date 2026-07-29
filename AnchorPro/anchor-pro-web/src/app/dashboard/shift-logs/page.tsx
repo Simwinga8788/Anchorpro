@@ -140,10 +140,10 @@ export default function ShiftLogsPage() {
               <tr>
                 <th>Log No.</th>
                 <th>Date / Shift</th>
-                <th>Activity</th>
-                <th>Equipment</th>
-                <th>Source ➔ Destination</th>
-                <th>Target vs Actual</th>
+                <th>{t('Activity', 'Activity')}</th>
+                <th>{t('Equipment', 'Equipment')}</th>
+                <th>{t('SourceDestination', 'Source ➔ Destination')}</th>
+                <th>{t('TargetVsActual', 'Target vs Actual')}</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -165,7 +165,16 @@ export default function ShiftLogsPage() {
                   const isReviewer = isPlanner || isPlatformOwner;
 
                   const activityLabel = log.miningActivity !== null && log.miningActivity !== undefined
-                    ? ['General', 'Blasting', 'Loading', 'Hauling', 'Development', 'Stripping', 'Dewatering', 'Support'][log.miningActivity] || log.activityType
+                    ? [
+                        t('Activity0', 'General Mining'),
+                        t('Activity1', 'Blasting'),
+                        t('Activity2', 'Loading'),
+                        t('Activity3', 'Hauling'),
+                        t('Activity4', 'Development'),
+                        t('Activity5', 'Stripping'),
+                        t('Activity6', 'Dewatering'),
+                        t('Activity7', 'Support')
+                      ][log.miningActivity] || log.activityType
                     : log.activityType;
 
                   return (

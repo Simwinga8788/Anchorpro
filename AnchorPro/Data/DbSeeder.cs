@@ -335,7 +335,15 @@ namespace AnchorPro.Data
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogsTitle", Value = "Site Daily Logs", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogsSubtitle", Value = "Track daily site progress, labor, and target vs actual output.", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogItem", Value = "Daily Log", Group = "Dictionary" },
-                    new SystemSetting { TenantId = t.Id, Key = "Dict.TodayProduction", Value = "Today's Progress", Group = "Dictionary" }
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.TodayProduction", Value = "Today's Progress", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity0", Value = "General Construction", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity1", Value = "Excavation & Earthworks", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity2", Value = "Loading", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity3", Value = "Haulage & Transport", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity4", Value = "Foundation & Substructure", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity5", Value = "Site Clearance", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity6", Value = "Dewatering", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Activity7", Value = "Shoring & Formwork", Group = "Dictionary" }
                 };
                 
                 foreach (var s in dictSettings)

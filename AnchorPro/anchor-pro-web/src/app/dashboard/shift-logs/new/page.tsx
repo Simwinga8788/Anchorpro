@@ -309,14 +309,14 @@ export default function NewShiftLogPage() {
             <div className="form-group">
               <label>Activity Type</label>
               <select className="input" value={formData.operationActivity} onChange={e => setFormData({...formData, operationActivity: e.target.value})}>
-                <option value="0">General Mining</option>
-                <option value="1">Blasting</option>
-                <option value="2">Loading</option>
-                <option value="3">Hauling / Ore Transport</option>
-                <option value="4">Development</option>
-                <option value="5">Stripping</option>
-                <option value="6">Dewatering</option>
-                <option value="7">Ground Support</option>
+                <option value="0">{t('Activity0', 'General Mining')}</option>
+                <option value="1">{t('Activity1', 'Blasting')}</option>
+                <option value="2">{t('Activity2', 'Loading')}</option>
+                <option value="3">{t('Activity3', 'Hauling')}</option>
+                <option value="4">{t('Activity4', 'Development')}</option>
+                <option value="5">{t('Activity5', 'Stripping')}</option>
+                <option value="6">{t('Activity6', 'Dewatering')}</option>
+                <option value="7">{t('Activity7', 'Support')}</option>
               </select>
             </div>
             <div className="form-group">
