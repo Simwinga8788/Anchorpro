@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronUp, Lock
 } from 'lucide-react';
 import { rolesApi, teamApi } from '@/lib/api';
-import { useDictionary } from '@/components/DictionaryContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const getModuleRoutes = (t: (k: string, d: string) => string) => [
   { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
