@@ -120,6 +120,11 @@ namespace AnchorPro.Data.Entities
         public int? ProjectId { get; set; }
         public Project? Project { get; set; }
 
+        // ── Source Plan Link ────────────────────────────────────────────────────
+        /// <summary>When this log was generated from a Shift/Site Plan, this links back to the originating plan.</summary>
+        public int? ShiftPlanId { get; set; }
+        public ShiftPlan? ShiftPlan { get; set; }
+
         // ── Mining Contractor Link ─────────────────────────────────────────────
         /// <summary>For ore transport/haulage shifts: links to the sub-contractor record.</summary>
         public int? ContractorContractId { get; set; }

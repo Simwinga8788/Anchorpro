@@ -3,21 +3,38 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { shiftPlansApi } from '@/lib/api';
+import { shiftPlansApi, shiftLogsApi } from '@/lib/api';
 import { useDictionary } from '@/lib/DictionaryContext';
-import { Plus, Search, Calendar, PlayCircle } from 'lucide-react';
+import { Plus, Search, Calendar, PlayCircle, FileText, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
+
 export default function ShiftPlanningPage() {
   const router = useRouter();
   const { t } = useDictionary();
   const [plans, setPlans] = useState<any[]>([]);
+  const [logsMap, setLogsMap] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const fetchPlans = async () => {
     try {
-      const data = await shiftPlansApi.getAll();
-      setPlans(data || []);
+      const [plansData, logsData] = await Promise.all([
+        shiftPlansApi.getAll().catch(() => []),
+        shiftLogsApi.getAll().catch(() => [])
+      ]);
+      
+      setPlans(plansData || []);
+      
+      // Map shiftPlanId -> log
+      const map: Record<number, any> = {};
+      if (Array.isArray(logsData)) {
+        logsData.forEach(l => {
+          if (l.shiftPlanId) {
+            map[l.shiftPlanId] = l;
+          }
+        });
+      }
+      setLogsMap(map);
     } catch (e) {
       console.error(e);
     } finally {
@@ -30,10 +47,10 @@ export default function ShiftPlanningPage() {
   }, []);
 
   const handleGenerateActuals = async (id: number) => {
-    if (!confirm('Generate actuals for this Shift Plan? This will create a Draft Shift Production Log.')) return;
+    if (!confirm('Generate actuals for this Shift Plan? This will create a Draft Shift Production Log / Site Daily Log.')) return;
     try {
       const res = await shiftPlansApi.generateActuals(id);
-      router.push(`/dashboard/shift-logs/${res.id}/edit`);
+      router.push(`/dashboard/shift-logs/${res.id}`);
     } catch (e: any) {
       alert(e.message || 'Failed to generate actuals');
     }
@@ -98,36 +115,45 @@ export default function ShiftPlanningPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p => (
-                <tr key={p.id}>
-                  <td style={{ fontWeight: 600 }}>#{p.id}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Calendar size={14} className="text-muted" />
-                      {format(new Date(p.planDate), 'MMM dd, yyyy')}
-                    </div>
-                  </td>
-                  <td>{getShiftName(p.shift)}</td>
-                  <td>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.mineCaptain?.firstName} {p.mineCaptain?.lastName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.shiftBoss?.firstName} {p.shiftBoss?.lastName}</div>
-                  </td>
-                  <td>{p.tasks?.length || 0} tasks</td>
-                  <td>{getStatusBadge(p.status)}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => router.push(`/dashboard/shift-planning/${p.id}`)}>
-                        View
-                      </button>
-                      {p.status === 0 && (
-                        <button className="btn btn-primary btn-sm" onClick={() => handleGenerateActuals(p.id)} title="Execute Shift (Generate Actuals)">
-                          <PlayCircle size={14} /> Execute
+              {filtered.map(p => {
+                const linkedLog = logsMap[p.id];
+                return (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 600 }}>#{p.id}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Calendar size={14} className="text-muted" />
+                        {p.planDate ? format(new Date(p.planDate), 'MMM dd, yyyy') : '-'}
+                      </div>
+                    </td>
+                    <td>{getShiftName(p.shift)}</td>
+                    <td>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{p.mineCaptain?.firstName} {p.mineCaptain?.lastName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.shiftBoss?.firstName} {p.shiftBoss?.lastName}</div>
+                    </td>
+                    <td>{p.tasks?.length || 0} tasks</td>
+                    <td>{getStatusBadge(p.status)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => router.push(`/dashboard/shift-planning/${p.id}`)}>
+                          View
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {p.status === 0 ? (
+                          <button className="btn btn-primary btn-sm" onClick={() => handleGenerateActuals(p.id)} title="Execute Shift (Generate Actuals)">
+                            <PlayCircle size={14} /> Execute
+                          </button>
+                        ) : linkedLog ? (
+                          <Link href={`/dashboard/shift-logs/${linkedLog.id}`} className="btn btn-sm" style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)', gap: 4 }}>
+                            <FileText size={14} /> Actuals Log #{linkedLog.id} <ArrowRight size={12} />
+                          </Link>
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Executed</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -135,3 +161,4 @@ export default function ShiftPlanningPage() {
     </div>
   );
 }
+

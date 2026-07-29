@@ -300,7 +300,7 @@ export default function Sidebar() {
       <div style={{ flex: 1, padding: '6px 6px', overflowY: 'auto' }}>
         {getNavSections(user?.operationMode ?? 0).map((section) => {
           const visibleItems = section.items.filter(item =>
-            canAccess(item.href, user?.allowedRoutes || [], isPlatformOwner)
+            canAccess(item.href, user?.allowedRoutes || [], isPlatformOwner, user?.operationMode ?? 0)
           );
           if (visibleItems.length === 0) return null;
 

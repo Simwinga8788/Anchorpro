@@ -15,6 +15,7 @@ interface ShiftResource {
   operatingHours: string;
   downtimeHours?: string;
   downtimeReason?: string;
+  plannedQuantity?: string;
   actualQuantity?: string;
   quantityUnit?: string;
 }
@@ -32,7 +33,6 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
   const [projectList, setProjectList] = useState<any[]>([]);
   const [contractList, setContractList] = useState<any[]>([]);
   const [userList, setUserList] = useState<any[]>([]);
-
 
   // Form state
   const [formData, setFormData] = useState({
@@ -55,7 +55,8 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
     crewCount: '1',
     remarks: '',
     status: 0,
-    resources: [{ id: Date.now(), equipmentId: '', operatorId: '', role: '', operatingHours: '' }] as ShiftResource[]
+    shiftPlanId: null as number | null,
+    resources: [{ id: Date.now(), equipmentId: '', operatorId: '', role: '', operatingHours: '', plannedQuantity: '', actualQuantity: '' }] as ShiftResource[]
   });
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
             crewCount: log.crewCount?.toString() || '',
             remarks: log.remarks || '',
             status: log.status || 0,
+            shiftPlanId: log.shiftPlanId || null,
             resources: log.resources ? log.resources.map((r: any) => ({
               id: r.id || Date.now() + Math.random(),
               equipmentId: r.equipmentId?.toString() || '',
@@ -107,6 +109,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
               operatingHours: r.operatingHours?.toString() || '',
               downtimeHours: r.downtimeHours?.toString() || '',
               downtimeReason: r.downtimeReason || '',
+              plannedQuantity: r.plannedQuantity?.toString() || '',
               actualQuantity: r.actualQuantity?.toString() || '',
               quantityUnit: r.quantityUnit || ''
             })) : []
@@ -120,6 +123,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
     };
     fetchData();
   }, []);
+
 
   // Auto-calculate logic
   useEffect(() => {
@@ -194,6 +198,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
           operatingHours: r.operatingHours ? Number(r.operatingHours) : null,
           downtimeHours: r.downtimeHours ? Number(r.downtimeHours) : null,
           downtimeReason: r.downtimeReason || null,
+          plannedQuantity: r.plannedQuantity ? Number(r.plannedQuantity) : null,
           actualQuantity: r.actualQuantity ? Number(r.actualQuantity) : null,
           quantityUnit: r.quantityUnit || null
         }))
@@ -227,6 +232,32 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
           <p className="page-subtitle">Fill in actual production numbers for this {t('Shift', 'shift')}.</p>
         </div>
       </div>
+
+      {formData.shiftPlanId && (
+        <div style={{
+          background: 'rgba(99, 102, 241, 0.08)',
+          border: '1px solid rgba(99, 102, 241, 0.25)',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 16px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-blue)', fontWeight: 600 }}>
+            <HardHat size={20} />
+            <span>Generated from Shift / Site Plan #{formData.shiftPlanId} — Targets pre-populated</span>
+          </div>
+          <button 
+            type="button" 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => router.push(`/dashboard/shift-planning/${formData.shiftPlanId}`)}
+            style={{ fontSize: 12 }}
+          >
+            View Origin Plan #{formData.shiftPlanId} →
+          </button>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 32, opacity: isEditable ? 1 : 0.7 }}>
         
@@ -278,73 +309,91 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
         {/* Section 2: Fleet & Operators */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Fleet & Operators</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Fleet & Resource Performance (Planned vs Actual)</h3>
             <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddResource}>
               <Plus size={14} /> Add Resource
             </button>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {formData.resources.map((res, index) => (
-              <div key={res.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 40px', gap: 12, alignItems: 'end', background: 'var(--bg-default)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Machine / Equipment</label>
-                  <select className="input" value={res.equipmentId} onChange={e => handleResourceChange(res.id, 'equipmentId', e.target.value)}>
-                    <option value="">-- Select --</option>
-                    {equipmentList.map(eq => (
-                      <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Operator</label>
-                  <select className="input" value={res.operatorId} onChange={e => handleResourceChange(res.id, 'operatorId', e.target.value)}>
-                    <option value="">-- Select User --</option>
-                    {userList.map(u => (
-                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Role / Assignment</label>
-                  <input type="text" className="input" placeholder="e.g. Loader, Driver"
-                    value={res.role} onChange={e => handleResourceChange(res.id, 'role', e.target.value)} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Hrs</label>
-                  <input type="number" step="0.5" className="input" placeholder="Opt."
-                    value={res.operatingHours} onChange={e => handleResourceChange(res.id, 'operatingHours', e.target.value)} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Downtime (Hrs)</label>
-                  <input type="number" step="0.1" className="input" placeholder="0"
-                    value={res.downtimeHours} onChange={e => handleResourceChange(res.id, 'downtimeHours', e.target.value)} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Downtime Reason</label>
-                  <input type="text" className="input" placeholder="e.g. Blown tire"
-                    value={res.downtimeReason || ''} onChange={e => handleResourceChange(res.id, 'downtimeReason', e.target.value)} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Output / Done</label>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <input type="number" step="0.1" className="input" placeholder="0" style={{ width: '60%' }}
-                      value={res.actualQuantity || ''} onChange={e => handleResourceChange(res.id, 'actualQuantity', e.target.value)} />
-                    <select className="input" style={{ width: '40%', padding: '0 4px' }} 
-                      value={res.quantityUnit || ''} onChange={e => handleResourceChange(res.id, 'quantityUnit', e.target.value)}>
-                      <option value="">--</option>
-                      <option value="Meters">Meters</option>
-                      <option value="Trips">Trips</option>
-                      <option value="Buckets">Buckets</option>
-                      <option value="Tons">Tons</option>
+            {formData.resources.map((res, index) => {
+              const plannedNum = parseFloat(res.plannedQuantity || '0');
+              const actualNum = parseFloat(res.actualQuantity || '0');
+              const pct = plannedNum > 0 ? Math.round((actualNum / plannedNum) * 100) : null;
+
+              return (
+                <div key={res.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 90px 90px 140px 140px 36px', gap: 10, alignItems: 'end', background: 'var(--bg-default)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11 }}>Machine / Equipment</label>
+                    <select className="input" value={res.equipmentId} onChange={e => handleResourceChange(res.id, 'equipmentId', e.target.value)}>
+                      <option value="">-- Select --</option>
+                      {equipmentList.map(eq => (
+                        <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
+                      ))}
                     </select>
                   </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11 }}>Operator</label>
+                    <select className="input" value={res.operatorId} onChange={e => handleResourceChange(res.id, 'operatorId', e.target.value)}>
+                      <option value="">-- Select User --</option>
+                      {userList.map(u => (
+                        <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11 }}>Role / Activity</label>
+                    <input type="text" className="input" placeholder="e.g. Drilling, Hauling"
+                      value={res.role} onChange={e => handleResourceChange(res.id, 'role', e.target.value)} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11 }}>Op Hrs</label>
+                    <input type="number" step="0.5" className="input" placeholder="Opt."
+                      value={res.operatingHours} onChange={e => handleResourceChange(res.id, 'operatingHours', e.target.value)} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11 }}>Down Hrs</label>
+                    <input type="number" step="0.1" className="input" placeholder="0"
+                      value={res.downtimeHours} onChange={e => handleResourceChange(res.id, 'downtimeHours', e.target.value)} />
+                  </div>
+
+                  {/* Planned Target */}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: 11, color: 'var(--accent-blue)', fontWeight: 600 }}>Planned Target</label>
+                    <input type="number" step="0.1" className="input" placeholder="Plan"
+                      value={res.plannedQuantity || ''} onChange={e => handleResourceChange(res.id, 'plannedQuantity', e.target.value)} />
+                  </div>
+
+                  {/* Actual Output */}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ fontSize: 11, color: 'var(--accent-emerald)', fontWeight: 600 }}>Actual Output</label>
+                      {pct !== null && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: pct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>
+                          {pct}%
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <input type="number" step="0.1" className="input" placeholder="Actual" style={{ width: '60%' }}
+                        value={res.actualQuantity || ''} onChange={e => handleResourceChange(res.id, 'actualQuantity', e.target.value)} />
+                      <select className="input" style={{ width: '40%', padding: '0 2px', fontSize: 11 }} 
+                        value={res.quantityUnit || ''} onChange={e => handleResourceChange(res.id, 'quantityUnit', e.target.value)}>
+                        <option value="">--</option>
+                        <option value="m">m</option>
+                        <option value="Trips">Trips</option>
+                        <option value="Buckets">Buckets</option>
+                        <option value="Tons">Tons</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button type="button" className="btn btn-ghost" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button type="button" className="btn btn-ghost" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
             {formData.resources.length === 0 && (
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
                 No fleet resources assigned. Click "Add Resource" to assign machines and operators.
@@ -352,6 +401,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
             )}
           </div>
         </div>
+
 
         {/* Section 3: Operations & Logistics */}
         <div>

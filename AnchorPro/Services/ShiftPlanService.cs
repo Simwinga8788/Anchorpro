@@ -110,36 +110,39 @@ namespace AnchorPro.Services
             var count = await ctx.ShiftProductionLogs.CountAsync();
             var log = new ShiftProductionLog
             {
-                LogNumber = $"SPL-{DateTime.UtcNow:yyyyMM}-{count + 1:D4}",
-                ShiftDate = plan.PlanDate,
-                Shift = plan.Shift,
-                Status = ShiftLogStatus.Draft,
-                SupervisorName = $"Captain: {plan.MineCaptain?.FirstName} {plan.MineCaptain?.LastName} | Boss: {plan.ShiftBoss?.FirstName} {plan.ShiftBoss?.LastName}",
-                TargetQuantity = plan.OverallTargetSecondary,
-                UnitOfMeasure = "Tons",
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId,
-                Remarks = "Generated from Shift Plan #" + plan.Id,
-                Resources = new List<ShiftResource>()
+                LogNumber        = $"SPL-{DateTime.UtcNow:yyyyMM}-{count + 1:D4}",
+                ShiftDate        = plan.PlanDate,
+                Shift            = plan.Shift,
+                Status           = ShiftLogStatus.Draft,
+                SupervisorName   = $"Captain: {plan.MineCaptain?.FirstName} {plan.MineCaptain?.LastName} | Boss: {plan.ShiftBoss?.FirstName} {plan.ShiftBoss?.LastName}",
+                TargetQuantity   = plan.OverallTargetSecondary,
+                UnitOfMeasure    = "Tons",
+                CreatedAt        = DateTime.UtcNow,
+                CreatedBy        = userId,
+                Remarks          = $"Generated from Shift Plan #{plan.Id}",
+                ShiftPlanId      = plan.Id,   // ← link back to originating plan
+                Resources        = new List<ShiftResource>()
             };
 
             foreach (var task in plan.Tasks)
             {
                 log.Resources.Add(new ShiftResource
                 {
-                    EquipmentId = task.EquipmentId,
-                    OperatorId = task.OperatorId,
-                    Role = task.ActivityCategory,
-                    QuantityUnit = task.TargetPrimaryUnit
+                    EquipmentId     = task.EquipmentId,
+                    OperatorId      = task.OperatorId,
+                    Role            = task.ActivityCategory,
+                    PlannedQuantity = task.TargetPrimary,      // ← planned target per resource
+                    QuantityUnit    = task.TargetPrimaryUnit,
                 });
             }
 
             plan.Status = 1; // Active/Executed
-            
+
             ctx.ShiftProductionLogs.Add(log);
             await ctx.SaveChangesAsync();
 
             return log;
         }
+
     }
 }

@@ -184,7 +184,7 @@ export default function RolesPage() {
     if (!acc[route.category]) acc[route.category] = [];
     acc[route.category].push(route);
     return acc;
-  }, {} as Record<string, typeof moduleRoutes[0]>);
+  }, {} as Record<string, typeof moduleRoutes[0][]>);
 
   return (
     <div>

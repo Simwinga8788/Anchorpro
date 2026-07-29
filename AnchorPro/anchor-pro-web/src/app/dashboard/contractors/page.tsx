@@ -154,7 +154,7 @@ export default function ContractorsPage() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <Filter size={14} style={{ color: 'var(--text-muted)' }} />
         <button onClick={() => setFilterType('all')} className={filterType === 'all' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 14px' }}>All Contractors</button>
-        {CONTRACTOR_TYPES.slice(1).map(t => (
+        {contractorTypes.slice(1).map(t => (
           <button key={t.value} onClick={() => setFilterType(t.value)} className={filterType === t.value ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 14px' }}>{t.label}</button>
         ))}
       </div>

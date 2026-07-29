@@ -29,16 +29,45 @@ export const ROLES = {
 } as const;
 
 /**
+ * Routes that are always accessible for a given operationMode, regardless of allowedRoutes in the JWT.
+ * These bypass the token-cached routes check so users never lose access to their mode's core pages
+ * even if sync-defaults ran after their last login.
+ *
+ * Key: operationMode number (matches backend OperationMode enum)
+ * Value: set of routes that mode always needs
+ */
+const MODE_CORE_ROUTES: Record<number, Set<string>> = {
+  1: new Set(['/dashboard/shift-planning', '/dashboard/shift-logs', '/dashboard/contractors']),  // Mining
+  3: new Set(['/dashboard/shift-planning', '/dashboard/shift-logs']),                             // Construction (Site Planner + Site Daily Logs)
+};
+
+/**
  * Check if a user with the given allowed routes can access a route.
  * PlatformOwners (isPlatformOwner = true) bypass all checks.
+ * operationMode is optional — when provided, mode-specific core routes bypass the JWT allowedRoutes check.
  */
 export function canAccess(
   route: string,
   allowedRoutes: string[],
-  isPlatformOwner: boolean
+  isPlatformOwner: boolean,
+  operationMode?: number
 ): boolean {
   if (isPlatformOwner) return true; // Platform owners see everything
-  
+
+  // ── Mode-aware bypass: never hide the core ops routes for a user's mode ──
+  if (operationMode !== undefined) {
+    const coreRoutes = MODE_CORE_ROUTES[operationMode];
+    if (coreRoutes) {
+      // Check if the route starts with any of this mode's core routes
+      for (const coreRoute of coreRoutes) {
+        if (route === coreRoute || route.startsWith(coreRoute + '/')) {
+          // Only bypass if user has *any* dashboard access (i.e. is logged in tenant user)
+          if (allowedRoutes.some(r => r.startsWith('/dashboard'))) return true;
+        }
+      }
+    }
+  }
+
   // Normalize dynamic numeric sub-routes (e.g. /dashboard/jobs/15 -> /dashboard/jobs)
   let normalizedRoute = route;
   
@@ -72,6 +101,21 @@ export function canAccess(
     }
   }
 
+  // Normalize shift-log detail routes
+  const shiftLogsPrefix = '/dashboard/shift-logs/';
+  if (route.startsWith(shiftLogsPrefix)) {
+    const segment = route.substring(shiftLogsPrefix.length);
+    if (/^\d+$/.test(segment) || segment.match(/^\d+\//)) {
+      normalizedRoute = '/dashboard/shift-logs';
+    }
+  }
+
+  // Normalize shift-planning detail routes
+  const shiftPlanPrefix = '/dashboard/shift-planning/';
+  if (route.startsWith(shiftPlanPrefix)) {
+    normalizedRoute = '/dashboard/shift-planning';
+  }
+
   // Allow access to base dashboard for anyone with any dashboard access
   if (normalizedRoute === '/dashboard' && allowedRoutes.some(r => r.startsWith('/dashboard'))) {
     return true;
@@ -79,6 +123,7 @@ export function canAccess(
 
   return allowedRoutes.includes(normalizedRoute);
 }
+
 
 /**
  * Check if a user has a specific granular permission token.

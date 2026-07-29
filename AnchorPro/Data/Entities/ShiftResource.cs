@@ -42,6 +42,11 @@ namespace AnchorPro.Data.Entities
         /// </summary>
         public decimal? ActualQuantity { get; set; }
 
+        /// <summary>
+        /// Planned/target production amount for this resource (pre-filled from ShiftPlan task).
+        /// </summary>
+        public decimal? PlannedQuantity { get; set; }
+
         [MaxLength(50)]
         public string? QuantityUnit { get; set; }
     }

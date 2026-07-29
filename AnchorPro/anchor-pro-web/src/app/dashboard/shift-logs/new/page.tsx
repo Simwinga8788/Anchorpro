@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { Save, ArrowLeft, Loader2, Calculator, Plus, Trash2 } from 'lucide-react';
 
 interface ShiftResource {
@@ -21,6 +22,7 @@ interface ShiftResource {
 export default function NewShiftLogPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useDictionary();
   const [loading, setLoading] = useState(false);
   
   // Data for dropdowns
