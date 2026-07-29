@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import SlideOver from '@/components/SlideOver';
 import { Plus, Hammer, Truck, Users, Save, Loader2, Filter } from 'lucide-react';
-import { useDictionary } from '@/components/DictionaryContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const getContractorTypes = (t: (k: string, d: string) => string) => [
   { value: 0, label: t('ClientContract', 'Client Contract'), icon: Users, color: '#6366f1' },
