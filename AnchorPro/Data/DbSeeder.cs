@@ -330,7 +330,12 @@ namespace AnchorPro.Data
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Stope", Value = "Section / Area", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Pit", Value = "Site", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Tonnage", Value = "Target Volume", Group = "Dictionary" },
-                    new SystemSetting { TenantId = t.Id, Key = "Dict.DrillRingAndHole", Value = "Section & Plot", Group = "Dictionary" }
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.DrillRingAndHole", Value = "Section & Plot", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Unit", Value = "units", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogsTitle", Value = "Site Daily Logs", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogsSubtitle", Value = "Track daily site progress, labor, and target vs actual output.", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftLogItem", Value = "Daily Log", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.TodayProduction", Value = "Today's Progress", Group = "Dictionary" }
                 };
                 
                 foreach (var s in dictSettings)

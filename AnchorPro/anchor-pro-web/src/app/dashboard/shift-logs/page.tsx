@@ -89,20 +89,20 @@ export default function ShiftLogsPage() {
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <FileText size={22} className="text-accent-blue" />
-            {t('ShiftLogs', 'Shift Production Logs')}
+            {t('ShiftLogsTitle', 'Shift Production Logs')}
           </h1>
-          <p className="page-subtitle">Track daily {t('Shift', 'shift')} production, fuel, and target vs actual output.</p>
+          <p className="page-subtitle">{t('ShiftLogsSubtitle', 'Track daily shift production, fuel, and target vs actual output.')}</p>
         </div>
         <Link href="/dashboard/shift-logs/new" className="btn btn-primary">
-          <Plus size={18} /> New {t('ShiftLogs', 'Shift Log')}
+          <Plus size={18} /> New {t('ShiftLogItem', 'Shift Log')}
         </Link>
       </div>
 
       {/* Today's summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ padding: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Today's Production</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>{todayActual.toLocaleString()} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>tons</span></div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>{t('TodayProduction', "Today's Production")}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>{todayActual.toLocaleString()} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>{t('Unit', 'tons')}</span></div>
           <TargetActualBar actual={todayActual} target={todayTarget > 0 ? todayTarget : null} />
         </div>
         <div className="card" style={{ padding: 18 }}>
