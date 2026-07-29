@@ -19,7 +19,7 @@ namespace AnchorPro.Services
         {
             var identity = await base.GenerateClaimsAsync(user);
 
-            if (user.TenantId.HasValue && !string.Equals(user.Email, "simwinga8788@gmail.com", StringComparison.OrdinalIgnoreCase))
+            if (user.TenantId.HasValue)
             {
                 identity.AddClaim(new Claim("TenantId", user.TenantId.Value.ToString()));
             }
