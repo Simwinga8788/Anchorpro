@@ -355,7 +355,9 @@ namespace AnchorPro.Data
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ContractorsSubtitle", Value = "Manage specialized trades, earthworks, and support contractor agreements.", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ContractorType1", Value = "Earthworks Contractor", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.ContractorType2", Value = "Specialist Trade", Group = "Dictionary" },
-                    new SystemSetting { TenantId = t.Id, Key = "Dict.ContractorType3", Value = "Labor Hire / Support", Group = "Dictionary" }
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.ContractorType3", Value = "Labor Hire / Support", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.MiningOperations", Value = "Site Operations", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.MiningDashboard", Value = "Site Performance", Group = "Dictionary" }
                 };
                 
                 foreach (var s in dictSettings)

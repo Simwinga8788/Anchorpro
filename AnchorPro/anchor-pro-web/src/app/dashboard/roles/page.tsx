@@ -6,8 +6,9 @@ import {
   ChevronDown, ChevronUp, Lock
 } from 'lucide-react';
 import { rolesApi, teamApi } from '@/lib/api';
+import { useDictionary } from '@/components/DictionaryContext';
 
-const MODULE_ROUTES = [
+const getModuleRoutes = (t: (k: string, d: string) => string) => [
   { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
   { id: '/dashboard/jobs', label: 'Job Cards', category: 'Operations & Planning' },
   { id: '/dashboard/my-jobs', label: 'My Assignments', category: 'Operations & Planning' },
@@ -16,9 +17,9 @@ const MODULE_ROUTES = [
   { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
   { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
   
-  { id: '/dashboard/shift-logs', label: 'Shift Production Logs', category: 'Mining Operations' },
-  { id: '/dashboard/performance', label: 'Mining Dashboard / Performance', category: 'Mining Operations' },
-  { id: '/dashboard/contractors', label: 'Mining Contractors', category: 'Mining Operations' },
+  { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Shift Production Logs'), category: t('MiningOperations', 'Mining Operations') },
+  { id: '/dashboard/performance', label: t('MiningDashboard', 'Mining Dashboard / Performance'), category: t('MiningOperations', 'Mining Operations') },
+  { id: '/dashboard/contractors', label: t('ContractorsTitle', 'Mining Contractors'), category: t('MiningOperations', 'Mining Operations') },
   
   { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
   { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Project Management' },
@@ -86,6 +87,8 @@ const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> =
 };
 
 export default function RolesPage() {
+  const { t } = useDictionary();
+  const moduleRoutes = getModuleRoutes(t);
   const [roles, setRoles] = useState<Role[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,11 +176,11 @@ export default function RolesPage() {
   };
 
   // Group routes by category for display
-  const groupedRoutes = MODULE_ROUTES.reduce((acc, route) => {
+  const groupedRoutes = moduleRoutes.reduce((acc, route) => {
     if (!acc[route.category]) acc[route.category] = [];
     acc[route.category].push(route);
     return acc;
-  }, {} as Record<string, typeof MODULE_ROUTES>);
+  }, {} as Record<string, typeof moduleRoutes[0]>);
 
   return (
     <div>
