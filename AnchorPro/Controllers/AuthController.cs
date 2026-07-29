@@ -308,7 +308,14 @@ namespace AnchorPro.Controllers
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity4", Value = "Foundation & Substructure", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity5", Value = "Site Clearance", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity6", Value = "Dewatering", Group = "Dictionary" },
-                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity7", Value = "Shoring & Formwork", Group = "Dictionary" }
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity7", Value = "Shoring & Formwork", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.SourceDestination", Value = "Location ➔ Placement", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Material", Value = "Material / Task Type", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.MaterialPlaceholder", Value = "e.g. Concrete, Steel, Soil", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Source", Value = "Location / Origin", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.SourcePlaceholder", Value = "e.g. Plot 3, Block B", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Destination", Value = "Placement Area", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.DestinationPlaceholder", Value = "e.g. Foundation, Laydown Yard", Group = "Dictionary" }
                 };
                 _db.SystemSettings.AddRange(dictSettings);
             }

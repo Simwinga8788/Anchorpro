@@ -320,18 +320,18 @@ export default function NewShiftLogPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Material</label>
-              <input type="text" className="input" placeholder="e.g. Copper Ore, Waste"
+              <label>{t('Material', 'Material')}</label>
+              <input type="text" className="input" placeholder={t('MaterialPlaceholder', 'e.g. Copper Ore, Waste')}
                 value={formData.material} onChange={e => setFormData({...formData, material: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Source (Drawn from)</label>
-              <input type="text" className="input" placeholder="e.g. Pit 3 Face, Level 12 Stope"
+              <label>{t('Source', 'Source (Drawn from)')}</label>
+              <input type="text" className="input" placeholder={t('SourcePlaceholder', 'e.g. Pit 3 Face, Level 12 Stope')}
                 value={formData.sourceLocation} onChange={e => setFormData({...formData, sourceLocation: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Destination (Tipped to)</label>
-              <input type="text" className="input" placeholder="e.g. Crusher, ROM Pad"
+              <label>{t('Destination', 'Destination (Dumped to)')}</label>
+              <input type="text" className="input" placeholder={t('DestinationPlaceholder', 'e.g. ROM Pad, Waste Dump 2')}
                 value={formData.destinationLocation} onChange={e => setFormData({...formData, destinationLocation: e.target.value})} />
             </div>
           </div>
