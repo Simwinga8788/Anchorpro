@@ -41,10 +41,16 @@ const PERIOD_OPTIONS = [
 
 export default function PerformancePage() {
   const { user } = useAuth();
-  // 1 = Mining (ShiftProductionLog)
-  if (user?.operationMode === 1) {
-    return <MiningProductionDashboard />;
-  }
+  const { t } = useDictionary();
+  const mode = user?.operationMode ?? 0;
+
+  // 1 = Mining → dedicated production dashboard
+  if (mode === 1) return <MiningProductionDashboard />;
+
+  // 3 = Construction / Civil Works → site performance dashboard
+  if (mode === 3) return <ConstructionPerformanceDashboard />;
+
+  // 2 = Logistics, 4 = Facilities, 5 = General, 0 = Workshop → generic maintenance dashboard
   return <MaintenancePerformanceDashboard />;
 }
 
@@ -217,6 +223,234 @@ function MiningProductionDashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Construction / Civil Works Performance Dashboard ────────────────────────
+function ConstructionPerformanceDashboard() {
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [days,    setDays]    = useState(30);
+  const { t } = useDictionary();
+
+  const fetchMetrics = useCallback(async (d: number) => {
+    setLoading(true);
+    try {
+      const data = await dashboardApi.getPerformance(d);
+      setMetrics(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchMetrics(days); }, [days, fetchMetrics]);
+
+  const selectedLabel = PERIOD_OPTIONS.find(o => o.value === days)?.label ?? `Last ${days} days`;
+
+  const workOrderLabel  = t('Job',          'Work Order');
+  const workOrdersLabel = t('Jobs',         'Work Orders');
+  const workerLabel     = t('Technician',   'Worker');
+  const workersLabel    = t('Technicians',  'Workers');
+  const siteLabel       = t('Site',         'Site');
+
+  return (
+    <div className="animate-in">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Activity size={22} style={{ color: '#ef4444' }} /> {siteLabel} Performance
+          </h1>
+          <p className="page-subtitle">
+            {workOrdersLabel} completion, labour hours, and {siteLabel.toLowerCase()} efficiency metrics
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            id="const-perf-period-select"
+            value={days}
+            onChange={e => setDays(Number(e.target.value))}
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              padding: '6px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            {PERIOD_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <button className="btn btn-secondary" onClick={() => fetchMetrics(days)} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      {loading && !metrics ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+      ) : metrics ? (
+        <>
+          {/* ── KPI Cards ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+
+            <div className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: '3px solid #ef4444' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>
+                {metrics.onTimeCompletionPercentage}%
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                On-Time Completion
+              </div>
+            </div>
+
+            <div className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: '3px solid var(--accent-blue)' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-blue)', marginBottom: 8 }}>
+                {metrics.completedJobsInPeriod}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {workOrdersLabel} ({selectedLabel})
+              </div>
+            </div>
+
+            <div className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: '3px solid #10b981' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#10b981', marginBottom: 8 }}>
+                {metrics.technicianStats?.reduce((sum: number, t: any) => sum + (t.totalHoursWorked || 0), 0).toFixed(1)} h
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Total Labour Hours
+              </div>
+            </div>
+
+            <div className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: '3px solid #f59e0b' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-amber)', marginBottom: 8 }}>
+                {metrics.overdueJobsCount}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Overdue {workOrdersLabel}
+              </div>
+            </div>
+
+            <div className="card" style={{ textAlign: 'center', padding: '24px 16px', borderTop: '3px solid #8b5cf6' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#8b5cf6', marginBottom: 8 }}>
+                {metrics.avgLeadTimeHours} h
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Avg. Completion Time
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── Tables ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24 }}>
+
+            {/* Site Crew Performance */}
+            <div className="card">
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{siteLabel} Crew Performance</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                  {workOrdersLabel} completed per {workerLabel.toLowerCase()} · {selectedLabel}
+                </p>
+              </div>
+              <div className="table-scroll">
+                <ResponsiveTable>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{workerLabel}</th>
+                        <th style={{ textAlign: 'center' }}>{workOrdersLabel}</th>
+                        <th style={{ textAlign: 'center' }}>Labour Hrs</th>
+                        <th style={{ textAlign: 'right' }}>Util %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metrics.technicianStats?.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
+                            No completed {workOrdersLabel.toLowerCase()} in this period
+                          </td>
+                        </tr>
+                      ) : (
+                        metrics.technicianStats?.slice(0, 5).map((tech: any, i: number) => (
+                          <tr key={i}>
+                            <td style={{ fontWeight: 600 }}>{tech.technicianName}</td>
+                            <td style={{ textAlign: 'center' }}>{tech.jobsCompleted}</td>
+                            <td style={{ textAlign: 'center' }}>{tech.totalHoursWorked}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <span className={`badge ${tech.utilizationPercentage > 80 ? 'badge-green' : tech.utilizationPercentage > 50 ? 'badge-yellow' : 'badge-muted'}`}>
+                                {tech.utilizationPercentage}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ResponsiveTable>
+              </div>
+            </div>
+
+            {/* Equipment Downtime */}
+            <div className="card">
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Equipment Downtime (Top Issues)</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                  {t('Equipment', 'Equipment')} with most breakdowns on {siteLabel.toLowerCase()}
+                </p>
+              </div>
+              <div className="table-scroll">
+                <ResponsiveTable>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t('Equipment', 'Equipment')}</th>
+                        <th style={{ textAlign: 'center' }}>Breakdowns</th>
+                        <th style={{ textAlign: 'center' }}>MTTR (Hr)</th>
+                        <th style={{ textAlign: 'right' }}>Maint. Hrs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metrics.equipmentStats?.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
+                            No equipment issues recorded
+                          </td>
+                        </tr>
+                      ) : (
+                        metrics.equipmentStats?.slice(0, 5).map((eq: any, i: number) => (
+                          <tr key={i}>
+                            <td style={{ fontWeight: 600 }}>
+                              <div style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {eq.equipmentName}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {eq.breakdownCount > 2 ? (
+                                <span style={{ color: 'var(--status-red)', fontWeight: 700 }}>{eq.breakdownCount}</span>
+                              ) : (
+                                <span>{eq.breakdownCount}</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>{eq.mttr_Hours}</td>
+                            <td style={{ textAlign: 'right' }}>{eq.totalMaintenanceHours}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </ResponsiveTable>
+              </div>
+            </div>
+
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
