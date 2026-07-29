@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { shiftPlansApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { Save, ArrowLeft, Loader2, Plus, Trash2, Calendar, Target, Drill, Truck, HardHat } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -14,15 +15,16 @@ interface ShiftPlanTask {
   operatorId: string;
   targetPrimary: string;
   targetPrimaryUnit: string;
-  targetTonnage: string;
+  targetSecondary: string;
   location: string;
-  drillRingAndHole: string;
+  referenceCode: string;
   assignedTrucks: string;
 }
 
 export default function NewShiftPlanPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useDictionary();
   const [loading, setLoading] = useState(false);
   
   // Data for dropdowns
@@ -35,7 +37,7 @@ export default function NewShiftPlanPage() {
     shift: 0,
     mineCaptainId: '',
     shiftBossId: '',
-    overallTargetTonnage: '',
+    overallTargetSecondary: '',
     notes: '',
     tasks: [] as ShiftPlanTask[]
   });
@@ -71,9 +73,9 @@ export default function NewShiftPlanPage() {
         operatorId: '',
         targetPrimary: '',
         targetPrimaryUnit: category === 'Drilling' ? 'm' : category === 'Loading' ? 'buckets' : 'trips',
-        targetTonnage: '',
+        targetSecondary: '',
         location: '',
-        drillRingAndHole: '',
+        referenceCode: '',
         assignedTrucks: ''
       }]
     }));
@@ -102,7 +104,7 @@ export default function NewShiftPlanPage() {
         shift: Number(formData.shift),
         mineCaptainId: formData.mineCaptainId || null,
         shiftBossId: formData.shiftBossId || null,
-        overallTargetTonnage: formData.overallTargetTonnage ? Number(formData.overallTargetTonnage) : null,
+        overallTargetSecondary: formData.overallTargetSecondary ? Number(formData.overallTargetSecondary) : null,
         notes: formData.notes,
         tasks: formData.tasks.map(t => ({
           activityCategory: t.activityCategory,
@@ -110,9 +112,9 @@ export default function NewShiftPlanPage() {
           operatorId: t.operatorId || null,
           targetPrimary: t.targetPrimary ? Number(t.targetPrimary) : null,
           targetPrimaryUnit: t.targetPrimaryUnit,
-          targetTonnage: t.targetTonnage ? Number(t.targetTonnage) : null,
+          targetSecondary: t.targetSecondary ? Number(t.targetSecondary) : null,
           location: t.location,
-          drillRingAndHole: t.drillRingAndHole,
+          referenceCode: t.referenceCode,
           assignedTrucks: t.assignedTrucks
         }))
       };
@@ -160,7 +162,7 @@ export default function NewShiftPlanPage() {
           </div>
           
           <div className="form-group">
-            <label>Location / Stope</label>
+            <label>{t('Stope', 'Location / Stope')}</label>
             <input type="text" className="input" placeholder="e.g. 1250 stope 5814L ORE"
               value={task.location} onChange={e => handleTaskChange(task.id, 'location', e.target.value)} />
           </div>
@@ -173,9 +175,9 @@ export default function NewShiftPlanPage() {
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Ring and Hole No.</label>
+                <label>{t('DrillRingAndHole', 'Reference Code')}</label>
                 <input type="text" className="input" placeholder="e.g. R9 9H"
-                  value={task.drillRingAndHole} onChange={e => handleTaskChange(task.id, 'drillRingAndHole', e.target.value)} />
+                  value={task.referenceCode} onChange={e => handleTaskChange(task.id, 'referenceCode', e.target.value)} />
               </div>
             </>
           )}
@@ -188,9 +190,9 @@ export default function NewShiftPlanPage() {
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Target Tonnage</label>
+                <label>Target {t('Tonnage', 'Tonnage')}</label>
                 <input type="number" className="input" placeholder="e.g. 487"
-                  value={task.targetTonnage} onChange={e => handleTaskChange(task.id, 'targetTonnage', e.target.value)} />
+                  value={task.targetSecondary} onChange={e => handleTaskChange(task.id, 'targetSecondary', e.target.value)} />
               </div>
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                 <label>Allocated Trucks</label>
@@ -208,9 +210,9 @@ export default function NewShiftPlanPage() {
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Target Tonnage</label>
+                <label>Target {t('Tonnage', 'Tonnage')}</label>
                 <input type="number" className="input" placeholder="e.g. 198"
-                  value={task.targetTonnage} onChange={e => handleTaskChange(task.id, 'targetTonnage', e.target.value)} />
+                  value={task.targetSecondary} onChange={e => handleTaskChange(task.id, 'targetSecondary', e.target.value)} />
               </div>
             </>
           )}
@@ -226,8 +228,8 @@ export default function NewShiftPlanPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="page-title">Shift Planner Builder</h1>
-          <p className="page-subtitle">Build the shift plan by allocating targets to equipment and operators.</p>
+          <h1 className="page-title">New {t('ShiftPlanning', 'Shift Plan')}</h1>
+          <p className="page-subtitle">Allocate fleet and operators for the upcoming {t('Shift', 'shift')}.</p>
         </div>
       </div>
 
@@ -249,27 +251,27 @@ export default function NewShiftPlanPage() {
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>Mine Captain</label>
+            <label>{t('MineCaptain', 'Mine Captain')}</label>
             <select className="input" value={formData.mineCaptainId} onChange={e => setFormData({...formData, mineCaptainId: e.target.value})}>
-              <option value="">-- Select Captain --</option>
+              <option value="">-- Select {t('MineCaptain', 'Mine Captain')} --</option>
               {userList.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
               ))}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>Shift Boss</label>
+            <label>{t('ShiftBoss', 'Shift Boss')}</label>
             <select className="input" value={formData.shiftBossId} onChange={e => setFormData({...formData, shiftBossId: e.target.value})}>
-              <option value="">-- Select Boss --</option>
+              <option value="">-- Select {t('ShiftBoss', 'Shift Boss')} --</option>
               {userList.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
               ))}
             </select>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: 0, marginTop: 16 }}>
-            <label>Overall Shift Target Tonnage <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <label>Overall Shift Target {t('Tonnage', 'Tonnage')} <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
             <input type="number" className="input" placeholder="e.g. 1100" style={{ fontSize: 20, padding: 16 }}
-              value={formData.overallTargetTonnage} onChange={e => setFormData({...formData, overallTargetTonnage: e.target.value})} />
+              value={formData.overallTargetSecondary} onChange={e => setFormData({...formData, overallTargetSecondary: e.target.value})} />
           </div>
         </div>
 

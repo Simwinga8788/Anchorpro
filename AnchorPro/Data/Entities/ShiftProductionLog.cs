@@ -12,8 +12,8 @@ namespace AnchorPro.Data.Entities
         Rejected  = 3,
     }
 
-    /// <summary>Categorises the type of mining activity performed during the shift.</summary>
-    public enum MiningActivityType
+    /// <summary>Categorises the type of operational activity performed during the shift.</summary>
+    public enum OperationActivityType
     {
         GeneralMining   = 0,
         Blasting        = 1,
@@ -129,8 +129,8 @@ namespace AnchorPro.Data.Entities
         public int? ClientContractId { get; set; }
         public Contract? ClientContract { get; set; }
 
-        /// <summary>Structured activity category (replaces free-text ActivityType for mining).</summary>
-        public MiningActivityType? MiningActivity { get; set; }
+        /// <summary>Structured activity category (replaces free-text ActivityType for mining/construction).</summary>
+        public OperationActivityType? OperationActivity { get; set; }
 
         public ICollection<ShiftResource> Resources { get; set; } = new List<ShiftResource>();
     }

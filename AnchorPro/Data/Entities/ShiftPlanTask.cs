@@ -28,14 +28,14 @@ namespace AnchorPro.Data.Entities
         [MaxLength(50)]
         public string? TargetPrimaryUnit { get; set; } // "m", "buckets", "trips"
 
-        public decimal? TargetTonnage { get; set; }
+        public decimal? TargetSecondary { get; set; }
 
         [MaxLength(200)]
         public string? Location { get; set; } // e.g. 1250 stope 5814L ORE
 
-        // Drilling specific
+        // Reference Code (e.g. Drill Ring & Hole for Mining, Blueprint Node for Construction)
         [MaxLength(100)]
-        public string? DrillRingAndHole { get; set; }
+        public string? ReferenceCode { get; set; }
 
         // Loading specific: comma-separated list of Dump Truck IDs or simple text string
         [MaxLength(500)]

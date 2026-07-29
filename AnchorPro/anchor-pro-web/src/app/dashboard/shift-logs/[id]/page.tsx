@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
-import { Save, ArrowLeft, Loader2, Calculator, Trash2, Send, Plus } from 'lucide-react';
+import { useDictionary } from '@/lib/DictionaryContext';
+import { Save, ArrowLeft, Loader2, Calculator, Trash2, Send, Plus, HardHat } from 'lucide-react';
 
 interface ShiftResource {
   id: number; // local ID for mapping
@@ -18,10 +19,11 @@ interface ShiftResource {
   quantityUnit?: string;
 }
 
-export default function EditShiftLogPage() {
+export default function EditShiftLogPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const params = useParams();
   const { user } = useAuth();
+  const { t } = useDictionary();
+  const id = Number(params.id);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -31,7 +33,6 @@ export default function EditShiftLogPage() {
   const [contractList, setContractList] = useState<any[]>([]);
   const [userList, setUserList] = useState<any[]>([]);
 
-  const id = Number(params?.id);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -42,7 +43,7 @@ export default function EditShiftLogPage() {
     material: '',
     sourceLocation: '',
     destinationLocation: '',
-    miningActivity: '0',
+    operationActivity: '0',
     loadCount: '',
     payloadFactor: '',
     quantityProduced: '0',
@@ -86,7 +87,7 @@ export default function EditShiftLogPage() {
             material: log.material || '',
             sourceLocation: log.sourceLocation || '',
             destinationLocation: log.destinationLocation || '',
-            miningActivity: log.miningActivity?.toString() || '0',
+            operationActivity: log.operationActivity?.toString() || '0',
             targetQuantity: log.targetQuantity?.toString() || '',
             loadCount: log.loadCount?.toString() || '',
             payloadFactor: log.payloadFactor?.toString() || '',
@@ -175,7 +176,7 @@ export default function EditShiftLogPage() {
         material: formData.material,
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
-        miningActivity: formData.miningActivity ? Number(formData.miningActivity) : null,
+        operationActivity: formData.operationActivity ? Number(formData.operationActivity) : null,
         targetQuantity: formData.targetQuantity ? Number(formData.targetQuantity) : null,
         loadCount: formData.loadCount ? Number(formData.loadCount) : null,
         payloadFactor: formData.payloadFactor ? Number(formData.payloadFactor) : null,
@@ -222,8 +223,8 @@ export default function EditShiftLogPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="page-title">Edit Shift Log #{id}</h1>
-          <p className="page-subtitle">Fill in actual production numbers for this shift.</p>
+          <h1 className="page-title">Edit {t('ShiftLogs', 'Shift Log')} #{id}</h1>
+          <p className="page-subtitle">Fill in actual production numbers for this {t('Shift', 'shift')}.</p>
         </div>
       </div>
 
@@ -236,12 +237,12 @@ export default function EditShiftLogPage() {
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>Shift Date</label>
+              <label>{t('Shift', 'Shift')} Date</label>
               <input type="date" className="input" required
                 value={formData.shiftDate} onChange={e => setFormData({...formData, shiftDate: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Shift Type</label>
+              <label>{t('Shift', 'Shift')} Type</label>
               <select className="input" value={formData.shift} onChange={e => setFormData({...formData, shift: Number(e.target.value)})}>
                 <option value={0}>Day Shift</option>
                 <option value={1}>Night Shift</option>
@@ -360,7 +361,7 @@ export default function EditShiftLogPage() {
           <div className="form-grid">
             <div className="form-group">
               <label>Activity Type</label>
-              <select className="input" value={formData.miningActivity} onChange={e => setFormData({...formData, miningActivity: e.target.value})}>
+              <select className="input" value={formData.operationActivity} onChange={e => setFormData({...formData, operationActivity: e.target.value})}>
                 <option value="0">General Mining</option>
                 <option value="1">Blasting</option>
                 <option value="2">Loading</option>
@@ -372,17 +373,17 @@ export default function EditShiftLogPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Material</label>
+              <label>{t('Material', 'Material / Ore')}</label>
               <input type="text" className="input" placeholder="e.g. Copper Ore, Waste"
                 value={formData.material} onChange={e => setFormData({...formData, material: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Source (Drawn from)</label>
+              <label>{t('SourceLocation', 'Source (Drawn from)')}</label>
               <input type="text" className="input" placeholder="e.g. Pit 3 Face, Level 12 Stope"
                 value={formData.sourceLocation} onChange={e => setFormData({...formData, sourceLocation: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Destination (Tipped to)</label>
+              <label>{t('DestinationLocation', 'Destination (Tipped to)')}</label>
               <input type="text" className="input" placeholder="e.g. Crusher, ROM Pad"
                 value={formData.destinationLocation} onChange={e => setFormData({...formData, destinationLocation: e.target.value})} />
             </div>
@@ -427,7 +428,7 @@ export default function EditShiftLogPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Shift Target <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+              <label>{t('Shift', 'Shift')} Target <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
               <input type="number" step="0.01" className="input" placeholder="e.g. 500"
                 value={formData.targetQuantity} onChange={e => setFormData({...formData, targetQuantity: e.target.value})} />
             </div>
@@ -437,7 +438,7 @@ export default function EditShiftLogPage() {
         {/* Section 5: Resource Burn */}
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 16 }}>
-            Overall Shift Resource Burn
+            Overall {t('Shift', 'Shift')} Resource Burn
           </h3>
           <div className="form-grid">
             <div className="form-group">

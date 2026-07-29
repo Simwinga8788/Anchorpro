@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import { Plus, Check, X, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import Link from 'next/link';
@@ -40,6 +41,7 @@ export default function ShiftLogsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const router = useRouter();
   const { isPlanner, isPlatformOwner, user } = useAuth();
+  const { t } = useDictionary();
 
   const loadLogs = async () => {
     setLoading(true);
@@ -87,12 +89,12 @@ export default function ShiftLogsPage() {
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <FileText size={22} className="text-accent-blue" />
-            Shift Production Logs
+            {t('ShiftLogs', 'Shift Production Logs')}
           </h1>
-          <p className="page-subtitle">Track daily shift production, fuel, and target vs actual output.</p>
+          <p className="page-subtitle">Track daily {t('Shift', 'shift')} production, fuel, and target vs actual output.</p>
         </div>
         <Link href="/dashboard/shift-logs/new" className="btn btn-primary">
-          <Plus size={18} /> New Shift Log
+          <Plus size={18} /> New {t('ShiftLogs', 'Shift Log')}
         </Link>
       </div>
 

@@ -21,7 +21,7 @@ namespace AnchorPro.Data.Entities
         public string? ShiftBossId { get; set; }
         public ApplicationUser? ShiftBoss { get; set; }
 
-        public decimal? OverallTargetTonnage { get; set; }
+        public decimal? OverallTargetSecondary { get; set; }
 
         [MaxLength(1000)]
         public string? Notes { get; set; }

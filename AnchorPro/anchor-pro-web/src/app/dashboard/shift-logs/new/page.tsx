@@ -38,7 +38,7 @@ export default function NewShiftLogPage() {
     material: '',
     sourceLocation: '',
     destinationLocation: '',
-    miningActivity: '0',
+    operationActivity: '0',
     loadCount: '',
     payloadFactor: '',
     quantityProduced: '0',
@@ -132,7 +132,7 @@ export default function NewShiftLogPage() {
         material: formData.material,
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
-        miningActivity: formData.miningActivity ? Number(formData.miningActivity) : null,
+        operationActivity: formData.operationActivity ? Number(formData.operationActivity) : null,
         targetQuantity: formData.targetQuantity ? Number(formData.targetQuantity) : null,
         loadCount: formData.loadCount ? Number(formData.loadCount) : null,
         payloadFactor: formData.payloadFactor ? Number(formData.payloadFactor) : null,
@@ -308,7 +308,7 @@ export default function NewShiftLogPage() {
           <div className="form-grid">
             <div className="form-group">
               <label>Activity Type</label>
-              <select className="input" value={formData.miningActivity} onChange={e => setFormData({...formData, miningActivity: e.target.value})}>
+              <select className="input" value={formData.operationActivity} onChange={e => setFormData({...formData, operationActivity: e.target.value})}>
                 <option value="0">General Mining</option>
                 <option value="1">Blasting</option>
                 <option value="2">Loading</option>

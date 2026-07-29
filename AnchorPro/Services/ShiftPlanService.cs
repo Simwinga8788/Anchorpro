@@ -64,7 +64,7 @@ namespace AnchorPro.Services
             existing.Shift = plan.Shift;
             existing.MineCaptainId = plan.MineCaptainId;
             existing.ShiftBossId = plan.ShiftBossId;
-            existing.OverallTargetTonnage = plan.OverallTargetTonnage;
+            existing.OverallTargetSecondary = plan.OverallTargetSecondary;
             existing.Notes = plan.Notes;
             existing.Status = plan.Status;
             
@@ -115,7 +115,7 @@ namespace AnchorPro.Services
                 Shift = plan.Shift,
                 Status = ShiftLogStatus.Draft,
                 SupervisorName = $"Captain: {plan.MineCaptain?.FirstName} {plan.MineCaptain?.LastName} | Boss: {plan.ShiftBoss?.FirstName} {plan.ShiftBoss?.LastName}",
-                TargetQuantity = plan.OverallTargetTonnage,
+                TargetQuantity = plan.OverallTargetSecondary,
                 UnitOfMeasure = "Tons",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userId,

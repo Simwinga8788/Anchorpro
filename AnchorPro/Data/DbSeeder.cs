@@ -317,6 +317,37 @@ namespace AnchorPro.Data
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             
+            // Retroactively apply dictionary for Construction Mode tenants
+            var siteDiaryTenants = await context.Set<Tenant>().Where(t => t.OperationMode == OperationMode.SiteDiary).ToListAsync();
+            foreach (var t in siteDiaryTenants)
+            {
+                var dictSettings = new List<SystemSetting>
+                {
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.MineCaptain", Value = "Site Manager", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.ShiftBoss", Value = "Site Supervisor", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Ore", Value = "Earthworks", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Material", Value = "Concrete / Earth", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Stope", Value = "Section / Area", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Pit", Value = "Site", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.Tonnage", Value = "Target Volume", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.DrillRingAndHole", Value = "Section & Plot", Group = "Dictionary" }
+                };
+                
+                foreach (var s in dictSettings)
+                {
+                    if (!await context.SystemSettings.AnyAsync(existing => existing.TenantId == s.TenantId && existing.Key == s.Key))
+                    {
+                        context.SystemSettings.Add(s);
+                    }
+                    else
+                    {
+                        var existing = await context.SystemSettings.FirstAsync(existing => existing.TenantId == s.TenantId && existing.Key == s.Key);
+                        existing.Value = s.Value;
+                    }
+                }
+            }
+            await context.SaveChangesAsync();
+            
             // Seed Subscription Plans (System Global, TenantId is null)
             if (!await context.SubscriptionPlans.AnyAsync())
             {

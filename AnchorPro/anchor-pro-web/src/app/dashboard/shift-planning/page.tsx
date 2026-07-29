@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { shiftPlansApi } from '@/lib/api';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { Plus, Search, Calendar, PlayCircle } from 'lucide-react';
 import { format } from 'date-fns';
-
 export default function ShiftPlanningPage() {
   const router = useRouter();
+  const { t } = useDictionary();
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,8 +59,8 @@ export default function ShiftPlanningPage() {
     <div className="animate-in" style={{ padding: '0 0' }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Shift Planning</h1>
-          <p className="page-subtitle">Schedule fleet, operators, and targets for upcoming shifts.</p>
+          <h1 className="page-title">{t('ShiftPlanning', 'Shift Planning')}</h1>
+          <p className="page-subtitle">Schedule fleet, operators, and targets for upcoming {t('Shift', 'shifts')}.</p>
         </div>
         <div className="page-actions">
           <div className="search-bar">
@@ -73,7 +74,7 @@ export default function ShiftPlanningPage() {
             />
           </div>
           <Link href="/dashboard/shift-planning/new" className="btn btn-primary">
-            <Plus size={18} /> New Shift Plan
+            <Plus size={18} /> New {t('ShiftPlanning', 'Shift Plan')}
           </Link>
         </div>
       </div>
@@ -89,7 +90,7 @@ export default function ShiftPlanningPage() {
               <tr>
                 <th>ID</th>
                 <th>Date</th>
-                <th>Shift</th>
+                <th>{t('Shift', 'Shift')}</th>
                 <th>Captain & Boss</th>
                 <th>Tasks</th>
                 <th>Status</th>

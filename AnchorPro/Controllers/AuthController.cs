@@ -282,6 +282,24 @@ namespace AnchorPro.Controllers
 
             // Update tenant owner
             tenant.OwnerId = user.Id;
+
+            // Seed Dictionary for Construction Mode
+            if (tenant.OperationMode == OperationMode.SiteDiary)
+            {
+                var dictSettings = new List<SystemSetting>
+                {
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.MineCaptain", Value = "Site Engineer", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.ShiftBoss", Value = "Site Supervisor", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Ore", Value = "Earthworks", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Material", Value = "Concrete / Earth", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Stope", Value = "Section / Area", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Pit", Value = "Site", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Tonnage", Value = "Target Volume", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.DrillRingAndHole", Value = "Section & Plot", Group = "Dictionary" }
+                };
+                _db.SystemSettings.AddRange(dictSettings);
+            }
+
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Account created successfully.", tenantId = tenant.Id });

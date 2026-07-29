@@ -76,7 +76,7 @@ namespace AnchorPro.Services
             existing.CrewCount           = log.CrewCount;
             existing.Location            = log.Location;
             existing.ActivityType        = log.ActivityType;
-            existing.MiningActivity      = log.MiningActivity;
+            existing.OperationActivity   = log.OperationActivity;
             existing.Material            = log.Material;
             existing.SourceLocation      = log.SourceLocation;
             existing.DestinationLocation = log.DestinationLocation;
