@@ -554,91 +554,137 @@ function ConstructionOverviewDashboard() {
       </div>
 
       {/* KPI Row */}
-      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
-        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/projects')} style={{ cursor: 'pointer' }}>
-          <div className="kpi-title">ACTIVE SITES</div>
-          <div className="kpi-value">{projects.loading ? <Skeleton w={40} /> : activeProjects.length}</div>
-          <div className="kpi-trend">
-            <span style={{ color: 'var(--text-muted)' }}>{projects.data?.length || 0} total projects</span>
-          </div>
-          <div className="kpi-icon" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
-            <Building2 size={24} />
-          </div>
-        </div>
-
-        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/shift-logs')} style={{ cursor: 'pointer' }}>
-          <div className="kpi-title">DAILY LOGS TODAY</div>
-          <div className="kpi-value">{shiftLogs.loading ? <Skeleton w={40} /> : logsToday.length}</div>
-          <div className="kpi-trend">
-            <span style={{ color: 'var(--text-muted)' }}>Submitted from sites today</span>
-          </div>
-          <div className="kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-            <FileText size={24} />
+      <div className="stats-grid-3 animate-in stagger-1" style={{ marginBottom: 24 }}>
+        
+        {/* ACTIVE SITES */}
+        <div className="stat-card" onClick={() => router.push('/dashboard/projects')} style={{ cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="stat-label">ACTIVE SITES</div>
+              {projects.loading ? <Skeleton h={36} w={40} /> :
+                <div className="stat-value">{activeProjects.length}</div>
+              }
+              <div className="stat-change">
+                <span style={{ color: 'var(--text-muted)' }}>{projects.data?.length || 0} total projects</span>
+              </div>
+            </div>
+            <div className="stat-icon" style={{ background: 'var(--accent-blue-dim)', width: 48, height: 48, borderRadius: 12 }}>
+              <Building2 size={24} style={{ color: 'var(--accent-blue)' }} />
+            </div>
           </div>
         </div>
 
-        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/safety')} style={{ cursor: 'pointer' }}>
-          <div className="kpi-title">SAFETY STATUS</div>
-          <div className="kpi-value">{safetyStats.loading ? <Skeleton w={40} /> : (safetyStats.data?.openIncidents || 0)}</div>
-          <div className="kpi-trend">
-            {safetyStats.data?.openIncidents > 0 
-              ? <span style={{ color: '#ef4444', fontWeight: 600 }}>Open safety incidents</span>
-              : <span style={{ color: '#10b981', fontWeight: 600 }}>All clear, zero incidents</span>}
-          </div>
-          <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
-            <AlertTriangle size={24} />
+        {/* DAILY LOGS TODAY */}
+        <div className="stat-card" onClick={() => router.push('/dashboard/shift-logs')} style={{ cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="stat-label">DAILY LOGS TODAY</div>
+              {shiftLogs.loading ? <Skeleton h={36} w={40} /> :
+                <div className="stat-value" style={{ color: 'var(--accent-emerald)' }}>
+                  {logsToday.length}
+                </div>
+              }
+              <div className="stat-change">
+                <span style={{ color: 'var(--text-muted)' }}>Submitted from sites today</span>
+              </div>
+            </div>
+            <div className="stat-icon" style={{ background: 'var(--accent-emerald-dim)', width: 48, height: 48, borderRadius: 12 }}>
+              <FileText size={24} style={{ color: 'var(--accent-emerald)' }} />
+            </div>
           </div>
         </div>
+
+        {/* SAFETY STATUS */}
+        <div className="stat-card" onClick={() => router.push('/dashboard/safety')} style={{ cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="stat-label">SAFETY STATUS</div>
+              {safetyStats.loading ? <Skeleton h={36} w={40} /> :
+                <div className="stat-value" style={{
+                  color: (safetyStats.data?.openIncidents || 0) > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)'
+                }}>
+                  {safetyStats.data?.openIncidents || 0}
+                </div>
+              }
+              <div className="stat-change" style={{
+                  color: (safetyStats.data?.openIncidents || 0) > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)'
+                }}>
+                {(safetyStats.data?.openIncidents || 0) > 0 
+                  ? <><AlertTriangle size={14} /> Open safety incidents</>
+                  : <><CheckCircle2 size={14} /> All clear, zero incidents</>
+                }
+              </div>
+            </div>
+            <div className="stat-icon" style={{ background: 'var(--accent-amber-dim)', width: 48, height: 48, borderRadius: 12 }}>
+              <AlertTriangle size={24} style={{ color: 'var(--accent-amber)' }} />
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Active Projects</h3>
-            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => router.push('/dashboard/projects')}>View All</button>
-          </div>
-          {projects.loading ? <Skeleton h={150} /> : activeProjects.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No active projects found.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {activeProjects.slice(0, 5).map((p: any) => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.client?.name || 'Internal Project'}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>{p.completionPercentage}%</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Complete</div>
-                  </div>
-                </div>
-              ))}
+      {/* ── Charts Row ── */}
+      <div className="stats-grid-2 animate-in stagger-2" style={{ marginBottom: 20 }}>
+        
+        {/* Active Projects */}
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <div className="section-title">Active Projects</div>
+              <div className="section-sub">Currently running construction sites</div>
             </div>
-          )}
+            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard/projects')}>View All</button>
+          </div>
+          <div style={{ padding: '16px 0 10px' }}>
+            {projects.loading ? <Skeleton h={150} /> : activeProjects.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No active projects found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px' }}>
+                {activeProjects.slice(0, 5).map((p: any) => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.client?.name || 'Internal Project'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-emerald)' }}>{p.completionPercentage || 0}%</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Complete</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Recent Daily Logs</h3>
-            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => router.push('/dashboard/shift-logs')}>View All</button>
-          </div>
-          {shiftLogs.loading ? <Skeleton h={150} /> : logsToday.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No daily logs submitted today.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {logsToday.slice(0, 5).map((l: any) => (
-                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{l.project?.name || `Log #${l.id}`}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Supervisor: {l.supervisor?.firstName || 'Unknown'}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className="badge badge-green">Submitted</span>
-                  </div>
-                </div>
-              ))}
+        {/* Recent Daily Logs */}
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <div className="section-title">Recent Daily Logs</div>
+              <div className="section-sub">Logs submitted from sites today</div>
             </div>
-          )}
+            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard/shift-logs')}>View All</button>
+          </div>
+          <div style={{ padding: '16px 0 10px' }}>
+            {shiftLogs.loading ? <Skeleton h={150} /> : logsToday.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No daily logs submitted today.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px' }}>
+                {logsToday.slice(0, 5).map((l: any) => (
+                  <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{l.project?.name || `Log #${l.id}`}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Supervisor: {l.supervisor?.firstName || 'Unknown'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span className="badge badge-emerald">Submitted</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
