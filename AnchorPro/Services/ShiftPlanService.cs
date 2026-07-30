@@ -132,6 +132,7 @@ namespace AnchorPro.Services
                     OperatorId      = task.OperatorId,
                     Role            = task.ActivityCategory,
                     PlannedQuantity = task.TargetPrimary,      // ← planned target per resource
+                    ActualQuantity  = task.ActualQuantity ?? 0, // ← actual checked quantity
                     QuantityUnit    = task.TargetPrimaryUnit,
                 });
             }
@@ -142,6 +143,46 @@ namespace AnchorPro.Services
             await ctx.SaveChangesAsync();
 
             return log;
+        }
+
+        public async Task<ShiftPlanTask> ToggleTaskCompletionAsync(
+            int planId, int taskId, bool isCompleted, decimal? actualQuantity, string? photoUrl, string? completionNotes, string userId, string userName)
+        {
+            using var ctx = _factory.CreateDbContext();
+            var task = await ctx.ShiftPlanTasks.FirstOrDefaultAsync(t => t.Id == taskId && t.ShiftPlanId == planId)
+                ?? throw new KeyNotFoundException($"ShiftPlanTask {taskId} for Plan {planId} not found.");
+
+            task.IsCompleted = isCompleted;
+            if (isCompleted)
+            {
+                task.CompletedByUserId = userId;
+                task.CompletedByName = userName;
+                task.CompletedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                task.CompletedByUserId = null;
+                task.CompletedByName = null;
+                task.CompletedAt = null;
+            }
+
+            if (actualQuantity.HasValue)
+            {
+                task.ActualQuantity = actualQuantity.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(photoUrl))
+            {
+                task.PhotoUrl = photoUrl;
+            }
+
+            if (!string.IsNullOrWhiteSpace(completionNotes))
+            {
+                task.CompletionNotes = completionNotes;
+            }
+
+            await ctx.SaveChangesAsync();
+            return task;
         }
 
     }

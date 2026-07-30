@@ -1002,6 +1002,7 @@ function PayrollTab() {
   const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [viewingPayslip, setViewingPayslip] = useState<any | null>(null);
 
   const load = async () => {
     try {
@@ -1042,7 +1043,7 @@ function PayrollTab() {
   };
 
   const handleMarkPaid = async (id: number) => {
-    if (!confirm('Mark this payroll run as Paid?')) return;
+    if (!confirm('Mark this payroll run as Paid? This will automatically post payroll expenses into the Finance Module (Cashbook/General Ledger).')) return;
     await hrApi.markPayrollRunPaid(id);
     load();
     if (selectedRun?.id === id) setSelectedRun((r: any) => ({ ...r, status: 2 }));
@@ -1062,8 +1063,20 @@ function PayrollTab() {
             <button className="btn btn-primary btn-sm" onClick={() => handleFinalise(selectedRun.id)}>Finalise Run</button>
           )}
           {selectedRun.status === 1 && (
-            <button className="btn btn-primary btn-sm" onClick={() => handleMarkPaid(selectedRun.id)}>Mark as Paid</button>
+            <button className="btn btn-primary btn-sm" onClick={() => handleMarkPaid(selectedRun.id)}>Mark as Paid & Post to Finance</button>
           )}
+        </div>
+
+        {/* Finance Integration & PAYE Notice Banner */}
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 20, background: 'rgba(37, 99, 235, 0.06)', borderLeft: '4px solid var(--accent-blue)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ fontSize: 18 }}>💡</div>
+          <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-primary)' }}>
+            <strong>Finance & PAYE Info:</strong>
+            <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+              <li><strong>Finance Posting:</strong> Marking a payroll run as <strong>Paid</strong> automatically creates a General Ledger / Cashbook entry in the <strong>Finance Module</strong> for total payroll outlay.</li>
+              <li><strong>PAYE Tax Calculation:</strong> Uses Zambia statutory bands (First ZMW 4,800/mo is 0% tax-exempt). Employees without an active contract or earning ≤ ZMW 4,800/mo display ZMW 0.00 PAYE.</li>
+            </ul>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -1099,16 +1112,17 @@ function PayrollTab() {
                     <th>NHIMA</th>
                     <th style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>Net Pay</th>
                     <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payslips.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No payslips generated.</td></tr>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No payslips generated.</td></tr>
                   ) : payslips.map(p => (
                     <tr key={p.id}>
                       <td>
                         <div style={{ fontWeight: 600 }}>{p.user?.firstName} {p.user?.lastName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.user?.employeeNumber}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.user?.employeeNumber || 'Emp'}</div>
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{fmt(p.basicSalary)}</td>
                       <td style={{ fontFamily: 'monospace' }}>
@@ -1122,6 +1136,11 @@ function PayrollTab() {
                       <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({fmt(p.nhimaContribution)})</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-emerald)' }}>{fmt(p.netPay)}</td>
                       <td><span className="badge badge-muted">{p.status === 2 ? 'Paid' : p.status === 1 ? 'Approved' : 'Pending'}</span></td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="btn btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setViewingPayslip(p)}>
+                          📄 View Payslip
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -5,9 +5,9 @@ import { useDictionary } from '@/lib/DictionaryContext';
 import {
   TrendingUp, TrendingDown, Wrench, AlertTriangle,
   CheckCircle2, Clock, Users, Zap, BarChart3,
-  Activity, RefreshCw, WifiOff
+  Activity, RefreshCw, WifiOff, Building2, FileText
 } from 'lucide-react';
-import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats } from '@/lib/api';
+import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats, projectsApi, shiftLogsApi, safetyApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
@@ -96,6 +96,10 @@ export default function DashboardPage() {
       router.replace('/dashboard/performance');
     }
   }, [user, router]);
+
+  if (user && user.operationMode === 3) {
+    return <ConstructionOverviewDashboard />;
+  }
 
   const jobsLabel = t('Job Cards', 'Job Cards');
   const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
@@ -500,6 +504,150 @@ export default function DashboardPage() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Construction Overview Dashboard ───────────────────────────────────────────
+
+function ConstructionOverviewDashboard() {
+  const { t } = useDictionary();
+  const router = useRouter();
+
+  const projects = useApiData(() => projectsApi.getAll());
+  const shiftLogs = useApiData(() => shiftLogsApi.getAll());
+  const safetyStats = useApiData(() => safetyApi.getStats());
+
+  const activeProjects = (projects.data || []).filter((p: any) => p.status === 'Active');
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  const logsToday = (shiftLogs.data || []).filter((l: any) => l.shiftDate?.startsWith(todayStr));
+
+  return (
+    <div className="animate-in">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 className="page-title">Operations Overview</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+            <p className="page-subtitle">Live construction site intelligence</p>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '1px 8px', borderRadius: 4,
+              fontSize: 11, fontWeight: 500,
+              background: 'var(--accent-emerald-dim)',
+              color: 'var(--accent-emerald)',
+            }}>
+              <span className="status-dot green pulse" style={{ width: 6, height: 6 }} /> Live
+            </span>
+          </div>
+        </div>
+        <button className="btn btn-secondary" onClick={() => { projects.refresh(); shiftLogs.refresh(); safetyStats.refresh(); }}>
+          <RefreshCw size={16} /> Refresh
+        </button>
+      </div>
+
+      {/* KPI Row */}
+      <div className="dashboard-grid" style={{ marginBottom: 24 }}>
+        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/projects')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-title">ACTIVE SITES</div>
+          <div className="kpi-value">{projects.loading ? <Skeleton w={40} /> : activeProjects.length}</div>
+          <div className="kpi-trend">
+            <span style={{ color: 'var(--text-muted)' }}>{projects.data?.length || 0} total projects</span>
+          </div>
+          <div className="kpi-icon" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+            <Building2 size={24} />
+          </div>
+        </div>
+
+        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/shift-logs')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-title">DAILY LOGS TODAY</div>
+          <div className="kpi-value">{shiftLogs.loading ? <Skeleton w={40} /> : logsToday.length}</div>
+          <div className="kpi-trend">
+            <span style={{ color: 'var(--text-muted)' }}>Submitted from sites today</span>
+          </div>
+          <div className="kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+            <FileText size={24} />
+          </div>
+        </div>
+
+        <div className="kpi-card hover-lift" onClick={() => router.push('/dashboard/safety')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-title">SAFETY STATUS</div>
+          <div className="kpi-value">{safetyStats.loading ? <Skeleton w={40} /> : (safetyStats.data?.openIncidents || 0)}</div>
+          <div className="kpi-trend">
+            {safetyStats.data?.openIncidents > 0 
+              ? <span style={{ color: '#ef4444', fontWeight: 600 }}>Open safety incidents</span>
+              : <span style={{ color: '#10b981', fontWeight: 600 }}>All clear, zero incidents</span>}
+          </div>
+          <div className="kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+            <AlertTriangle size={24} />
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Active Projects</h3>
+            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => router.push('/dashboard/projects')}>View All</button>
+          </div>
+          {projects.loading ? <Skeleton h={150} /> : activeProjects.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No active projects found.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {activeProjects.slice(0, 5).map((p: any) => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.client?.name || 'Internal Project'}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>{p.completionPercentage}%</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Complete</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Recent Daily Logs</h3>
+            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => router.push('/dashboard/shift-logs')}>View All</button>
+          </div>
+          {shiftLogs.loading ? <Skeleton h={150} /> : logsToday.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No daily logs submitted today.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {logsToday.slice(0, 5).map((l: any) => (
+                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{l.project?.name || `Log #${l.id}`}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Supervisor: {l.supervisor?.firstName || 'Unknown'}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="badge badge-green">Submitted</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        .hover-lift {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hover-lift:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
       `}</style>
     </div>

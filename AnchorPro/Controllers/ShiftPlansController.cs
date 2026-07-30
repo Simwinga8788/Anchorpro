@@ -73,5 +73,30 @@ namespace AnchorPro.Controllers
                 return NotFound();
             }
         }
+
+        [HttpPost("{planId}/tasks/{taskId}/complete")]
+        public async Task<IActionResult> CompleteTask(int planId, int taskId, [FromBody] TaskCompletionDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var userName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Supervisor";
+            try
+            {
+                var task = await _service.ToggleTaskCompletionAsync(
+                    planId, taskId, dto.IsCompleted, dto.ActualQuantity, dto.PhotoUrl, dto.CompletionNotes, userId, userName);
+                return Ok(task);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+    }
+
+    public class TaskCompletionDto
+    {
+        public bool IsCompleted { get; set; }
+        public decimal? ActualQuantity { get; set; }
+        public string? PhotoUrl { get; set; }
+        public string? CompletionNotes { get; set; }
     }
 }

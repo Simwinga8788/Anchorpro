@@ -43,5 +43,24 @@ namespace AnchorPro.Data.Entities
 
         [MaxLength(500)]
         public string? Remarks { get; set; }
+
+        // Live Execution & Checklist Proof Tracking
+        public bool IsCompleted { get; set; }
+
+        [MaxLength(450)]
+        public string? CompletedByUserId { get; set; }
+
+        [MaxLength(200)]
+        public string? CompletedByName { get; set; }
+
+        public DateTime? CompletedAt { get; set; }
+
+        public decimal? ActualQuantity { get; set; }
+
+        [MaxLength(1000)]
+        public string? PhotoUrl { get; set; }
+
+        [MaxLength(1000)]
+        public string? CompletionNotes { get; set; }
     }
 }

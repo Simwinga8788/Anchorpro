@@ -582,6 +582,12 @@ export const reportingApi = {
     `${API_BASE}/api/reporting/preview/excel?type=${type}${deptId ? `&departmentId=${deptId}` : ''}`,
 };
 
+// ─── Projects API ── /api/projects ─────────────────────────────────────────────
+export const projectsApi = {
+  getAll: () => apiFetch<any[]>('/api/projects'),
+  getById: (id: number) => apiFetch<any>(`/api/projects/${id}`),
+};
+
 // ─── Settings API ── /api/settings ─────────────────────────────────────────────
 export const settingsApi = {
   getAll:      ()                                      => apiFetch<any[]>('/api/settings'),

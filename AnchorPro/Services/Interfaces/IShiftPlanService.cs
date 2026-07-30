@@ -12,5 +12,6 @@ namespace AnchorPro.Services.Interfaces
         Task UpdateAsync(ShiftPlan plan, string userId);
         Task DeleteAsync(int id);
         Task<ShiftProductionLog> GenerateActualsAsync(int shiftPlanId, string userId);
+        Task<ShiftPlanTask> ToggleTaskCompletionAsync(int planId, int taskId, bool isCompleted, decimal? actualQuantity, string? photoUrl, string? completionNotes, string userId, string userName);
     }
 }
