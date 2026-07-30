@@ -44,6 +44,21 @@ namespace AnchorPro.Services
                 return ("Gemini API key is not configured. Please set the Gemini API key in Platform Control Panel -> Integrations.", "", "");
             }
 
+            if (message?.Trim().ToLowerInvariant() == "list models")
+            {
+                try
+                {
+                    var modelsUrl = $"https://generativelanguage.googleapis.com/v1beta/models?key={apiKey}";
+                    var modelsResp = await _httpClient.GetAsync(modelsUrl);
+                    var modelsJson = await modelsResp.Content.ReadAsStringAsync();
+                    return ($"Available models:\n```json\n{modelsJson}\n```", "", "");
+                }
+                catch (Exception ex)
+                {
+                    return ($"Failed to list models: {ex.Message}", "", "");
+                }
+            }
+
             var tenant = await _db.Tenants.FindAsync(tenantId);
             var modeName = tenant?.OperationMode.ToString() ?? "GeneralWorkOrder";
 
@@ -102,7 +117,7 @@ namespace AnchorPro.Services
                 tools = functionDeclarations.Length > 0 ? new[] { new { function_declarations = functionDeclarations } } : null
             };
 
-            var url = $"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={apiKey}";
+            var url = $"https://generativelanguage.googleapis.com/v1/models/gemini-flash-latest:generateContent?key={apiKey}";
             var jsonContent = new StringContent(JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync(url, jsonContent);
