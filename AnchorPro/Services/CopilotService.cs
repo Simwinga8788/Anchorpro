@@ -26,7 +26,7 @@ namespace AnchorPro.Services
             _db = db;
         }
 
-        public async Task<(string Reply, string Action, string Route)> ProcessMessageAsync(string message, string? audioData, string? audioMimeType, string userId, int tenantId, IList<string> userRoles)
+        public async Task<(string Reply, string Action, string Route)> ProcessMessageAsync(string message, string? audioData, string? audioMimeType, string userId, string userName, int tenantId, IList<string> userRoles)
         {
             var apiKey = _config["GeminiApiKey"];
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
@@ -103,7 +103,7 @@ namespace AnchorPro.Services
                 {
                     parts = new[]
                     {
-                        new { text = $"You are an expert AI Copilot embedded inside the Anchor Pro Enterprise system. The current user is an authenticated employee. Their Roles are: {string.Join(", ", userRoles)}. Your company operates in the {modeName} industry mode (adjust your terminology accordingly, e.g., if Mining talk about shifts, if Workshop talk about job cards). ONLY call functions that you have access to. Do not guess what functions exist. Answer strictly based on the functions provided. If they ask a general question about how to use the system, briefly explain it." }
+                        new { text = $"You are an expert AI Copilot embedded inside the Anchor Pro Enterprise system. The current user is an authenticated employee named {userName}. Their Roles are: {(tenantId == 0 && userRoles.Contains("Admin") ? "Platform Owner, " : "")}{string.Join(", ", userRoles)}. Your company operates in the {modeName} industry mode (adjust your terminology accordingly, e.g., if Mining talk about shifts, if Workshop talk about job cards). ONLY call functions that you have access to. Do not guess what functions exist. Answer strictly based on the functions provided. If they ask a general question about how to use the system, briefly explain it." }
                     }
                 },
                 contents = new[]

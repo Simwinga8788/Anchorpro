@@ -39,6 +39,8 @@ namespace AnchorPro.Controllers
             }
 
             var userId = _userManager.GetUserId(User);
+            var userName = User.Identity?.Name ?? User.Claims.FirstOrDefault(c => c.Type == "name" || c.Type == "FullName")?.Value ?? "Authenticated User";
+            
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized("User ID not found.");
@@ -53,7 +55,7 @@ namespace AnchorPro.Controllers
 
             var userRoles = User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
 
-            var result = await _copilotService.ProcessMessageAsync(request.Message, request.AudioData, request.AudioMimeType, userId, tenantId, userRoles);
+            var result = await _copilotService.ProcessMessageAsync(request.Message, request.AudioData, request.AudioMimeType, userId, userName, tenantId, userRoles);
 
             return Ok(new
             {
