@@ -1,6 +1,6 @@
 'use client';
 
-import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Bot } from 'lucide-react';
+import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Bot, Eye, EyeOff, X } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { settingsApi } from '@/lib/api';
 
@@ -9,6 +9,7 @@ export default function PlatformSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
 
   const [settings, setSettings] = useState({
     platformName:          'Anchor Pro',
@@ -246,9 +247,38 @@ export default function PlatformSettingsPage() {
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-cyan, #06b6d4)', textTransform: 'uppercase', letterSpacing: 0.5 }}>AI Copilot & Intelligence</span>
           </div>
           <Field label="Google Gemini API Key" sub="Powers multimodal voice processing and dynamic tool execution across all tenants">
-            <input style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11 }} type="password" placeholder="AIzaSy..." value={settings.geminiApiKey}
-              onChange={e => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11, width: 240 }}
+                type={showGeminiKey ? 'text' : 'password'}
+                placeholder="Paste new key here..."
+                value={settings.geminiApiKey}
+                onChange={e => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
+                autoComplete="off"
+              />
+              <button
+                onClick={() => setShowGeminiKey(v => !v)}
+                title={showGeminiKey ? 'Hide key' : 'Show key'}
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+              >
+                {showGeminiKey ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
+              {settings.geminiApiKey && (
+                <button
+                  onClick={() => setSettings(s => ({ ...s, geminiApiKey: '' }))}
+                  title="Clear key"
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </Field>
+          {settings.geminiApiKey && (
+            <div style={{ fontSize: 11, color: 'var(--accent-emerald, #10b981)', paddingBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircle2 size={12} /> API key is set — click 🗑 to clear and replace it
+            </div>
+          )}
         </div>
         <div className="card" style={{ padding: '4px 24px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
