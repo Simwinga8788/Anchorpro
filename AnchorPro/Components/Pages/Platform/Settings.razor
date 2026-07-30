@@ -529,6 +529,13 @@ else
             await SeedSystemSettings();
             allSettings = await SettingsService.GetGlobalSettingsAsync();
         }
+
+        // Ensure Gemini API key setting exists in the system settings
+        if (!allSettings.Any(s => s.Key == "Integration.Gemini.ApiKey"))
+        {
+            await SettingsService.SetGlobalSettingAsync("Integration.Gemini.ApiKey", "", "Google Gemini AI API Key for Copilot Voice & Intelligence", "Integration");
+            allSettings = await SettingsService.GetGlobalSettingsAsync();
+        }
         
         isLoading = false;
     }
@@ -556,6 +563,7 @@ else
             new() { Key = "Security.EmergencyLock", Value = "false", Group = "Security", Description = "Emergency system lockdown" },
 
             // INTEGRATIONS
+            new() { Key = "Integration.Gemini.ApiKey", Value = "", Group = "Integration", Description = "Google Gemini AI API Key for Copilot Voice & Intelligence" },
             new() { Key = "Integration.Stripe.ApiKey", Value = "", Group = "Integration", Description = "Stripe secret API key" },
             new() { Key = "Integration.Flutterwave.PublicKey", Value = "", Group = "Integration", Description = "Flutterwave public key" },
             new() { Key = "Integration.Storage.Provider", Value = "Local", Group = "Integration", Description = "File storage provider (Local/Azure/S3)" },
@@ -605,7 +613,11 @@ else
         if (key.Contains("."))
         {
             var parts = key.Split('.');
-            return parts.Length > 2 ? parts[2].Replace("_", " ") : parts[1].Replace("_", " ");
+            if (parts.Length == 3)
+            {
+                return $"{parts[1]} {parts[2]}".Replace("_", " ");
+            }
+            return parts[1].Replace("_", " ");
         }
         return key.Replace("_", " ");
     }

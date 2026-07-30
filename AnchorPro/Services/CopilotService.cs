@@ -29,9 +29,19 @@ namespace AnchorPro.Services
         public async Task<(string Reply, string Action, string Route)> ProcessMessageAsync(string message, string? audioData, string? audioMimeType, string userId, int tenantId, IList<string> userRoles)
         {
             var apiKey = _config["GeminiApiKey"];
-            if (string.IsNullOrEmpty(apiKey))
+            if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
             {
-                return ("Gemini API key is not configured.", "", "");
+                var geminiSetting = await _db.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == "Integration.Gemini.ApiKey" && s.TenantId == null);
+                if (geminiSetting != null && !string.IsNullOrWhiteSpace(geminiSetting.Value))
+                {
+                    apiKey = geminiSetting.Value;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_GEMINI_API_KEY_HERE")
+            {
+                return ("Gemini API key is not configured. Please set the Gemini API key in Platform Control Panel -> Integrations.", "", "");
             }
 
             var tenant = await _db.Tenants.FindAsync(tenantId);
