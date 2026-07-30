@@ -141,7 +141,7 @@ namespace AnchorPro.Controllers
         [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> UpsertGlobal(string key, [FromBody] UpsertSettingRequest req)
         {
-            await _settingsService.SetGlobalSettingAsync(key, req.Value);
+            await _settingsService.SetGlobalSettingAsync(key, req.Value ?? string.Empty, req.Description ?? string.Empty, req.Group ?? "General");
             return NoContent();
         }
     }
@@ -150,9 +150,9 @@ namespace AnchorPro.Controllers
 
     public class UpsertSettingRequest
     {
-        public string Value { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Group { get; set; } = "General";
+        public string? Value { get; set; }
+        public string? Description { get; set; } = string.Empty;
+        public string? Group { get; set; } = "General";
     }
 
     public class UpdateMyTenantRequest
