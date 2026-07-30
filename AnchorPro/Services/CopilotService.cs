@@ -102,7 +102,7 @@ namespace AnchorPro.Services
                 tools = functionDeclarations.Length > 0 ? new[] { new { function_declarations = functionDeclarations } } : null
             };
 
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={apiKey}";
+            var url = $"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={apiKey}";
             var jsonContent = new StringContent(JsonSerializer.Serialize(requestPayload, new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync(url, jsonContent);
