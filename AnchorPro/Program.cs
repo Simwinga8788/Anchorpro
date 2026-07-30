@@ -105,6 +105,14 @@ builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AnchorU
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 // Domain Services
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetEquipmentStatusTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.SearchTenantDataTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetFinancialSummaryTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetLowInventoryTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetTechnicianWorkloadTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.CreateShiftProductionLogTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.SendEmailTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GenerateReportTool>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEquipmentService, AnchorPro.Services.EquipmentService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobCardService, AnchorPro.Services.JobCardService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobTaskService, AnchorPro.Services.JobTaskService>();
@@ -140,6 +148,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPr
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IToolService, AnchorPro.Services.ToolService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IHRService, AnchorPro.Services.HRService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IShiftProductionLogService, AnchorPro.Services.ShiftProductionLogService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotService, AnchorPro.Services.CopilotService>();
 
 // API & Swagger
 builder.Services.AddControllers()

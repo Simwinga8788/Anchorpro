@@ -321,6 +321,11 @@ export default function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => {
+                      if (window.innerWidth <= 768) {
+                        closeSidebar();
+                      }
+                    }}
                     className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={15} />

@@ -844,3 +844,7 @@ export const financeApi = {
   getProfitAndLoss:       (month: number, year: number) => apiFetch<any>(`/api/finance/profit-and-loss?month=${month}&year=${year}`),
 };
 
+// ─── Copilot API ── /api/copilot ───────────────────────────────────────────────
+export const copilotApi = {
+  chat: (message: string) => apiPost<any>('/api/copilot/chat', { message })
+};

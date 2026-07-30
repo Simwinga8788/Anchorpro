@@ -6,6 +6,7 @@ import RouteGuard from "@/components/RouteGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SidebarProvider, useSidebar } from "@/lib/SidebarContext";
 import { usePathname } from "next/navigation";
+import CopilotWidget from "@/components/CopilotWidget";
 
 const pageTitles: Record<string, { title: string; breadcrumb: string }> = {
   '/dashboard':              { title: 'Dashboard',           breadcrumb: 'Anchor Pro' },
@@ -64,6 +65,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               {children}
             </ErrorBoundary>
           </div>
+          <CopilotWidget />
         </div>
       </div>
     </RouteGuard>
