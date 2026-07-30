@@ -45,7 +45,7 @@ namespace AnchorPro.Controllers
             }
 
             var tenantId = _currentTenantService.TenantId ?? 0;
-            var isPlatformOwner = User.IsInRole("PlatformOwner");
+            var isPlatformOwner = User.IsInRole("Admin") && !User.HasClaim(c => c.Type == "TenantId");
             if (tenantId == 0 && !isPlatformOwner)
             {
                 return BadRequest("No active tenant found.");
