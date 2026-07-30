@@ -101,7 +101,15 @@ export default function PlatformSettingsPage() {
   const handleSave = async () => {
     setSaving(true); setErr(null);
     try {
-      const entries = Object.entries(settings) as [string, any][];
+      const finalSettings = { ...settings };
+      // Auto-commit any pending Gemini key edit so they don't have to explicitly click "Set Key"
+      if (editingGeminiKey && newGeminiKey) {
+        finalSettings.geminiApiKey = newGeminiKey;
+        setSettings(finalSettings);
+        setEditingGeminiKey(false);
+      }
+
+      const entries = Object.entries(finalSettings) as [string, any][];
       for (const [localKey, value] of entries) {
         const apiKey = KEY_MAP[localKey];
         if (apiKey) {

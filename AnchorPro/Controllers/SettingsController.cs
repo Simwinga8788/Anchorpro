@@ -125,7 +125,7 @@ namespace AnchorPro.Controllers
         /// <summary>
         /// GET /api/settings/global/{key}
         /// </summary>
-        [HttpGet("global/{key}")]
+        [HttpGet("global/{**key}")]
         [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult<string>> GetGlobalByKey(string key)
         {
@@ -137,7 +137,7 @@ namespace AnchorPro.Controllers
         /// PUT /api/settings/global/{key} — Create or update a platform-level setting (PlatformOwner only).
         /// Body: { "value": "...", "description": "...", "group": "Platform" }
         /// </summary>
-        [HttpPut("global/{key}")]
+        [HttpPut("global/{**key}")]
         [Authorize(Policy = "PlatformOwner")]
         public async Task<ActionResult> UpsertGlobal(string key, [FromBody] UpsertSettingRequest req)
         {
