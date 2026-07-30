@@ -9,7 +9,8 @@ export default function PlatformSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [editingGeminiKey, setEditingGeminiKey] = useState(false);
+  const [newGeminiKey, setNewGeminiKey] = useState('');
 
   const [settings, setSettings] = useState({
     platformName:          'Anchor Pro',
@@ -247,38 +248,60 @@ export default function PlatformSettingsPage() {
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-cyan, #06b6d4)', textTransform: 'uppercase', letterSpacing: 0.5 }}>AI Copilot & Intelligence</span>
           </div>
           <Field label="Google Gemini API Key" sub="Powers multimodal voice processing and dynamic tool execution across all tenants">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11, width: 240 }}
-                type={showGeminiKey ? 'text' : 'password'}
-                placeholder="Paste new key here..."
-                value={settings.geminiApiKey}
-                onChange={e => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
-                autoComplete="off"
-              />
-              <button
-                onClick={() => setShowGeminiKey(v => !v)}
-                title={showGeminiKey ? 'Hide key' : 'Show key'}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
-              >
-                {showGeminiKey ? <EyeOff size={13} /> : <Eye size={13} />}
-              </button>
-              {settings.geminiApiKey && (
-                <button
-                  onClick={() => setSettings(s => ({ ...s, geminiApiKey: '' }))}
-                  title="Clear key"
-                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={13} />
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+              {settings.geminiApiKey && !editingGeminiKey ? (
+                /* Key is set — show masked indicator + Replace button (Stripe/GitHub pattern) */
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ ...inputStyle, width: 240, fontFamily: 'monospace', fontSize: 13, letterSpacing: 3, color: 'var(--text-muted)', pointerEvents: 'none', userSelect: 'none' }}>
+                    {'•'.repeat(24)}
+                  </div>
+                  <button
+                    onClick={() => { setNewGeminiKey(''); setEditingGeminiKey(true); }}
+                    style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    Replace Key
+                  </button>
+                </div>
+              ) : (
+                /* No key set, or user clicked Replace — show fresh empty input */
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11, width: 240 }}
+                    type="text"
+                    placeholder="Paste your Gemini API key here…"
+                    value={newGeminiKey}
+                    onChange={e => setNewGeminiKey(e.target.value)}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setSettings(s => ({ ...s, geminiApiKey: newGeminiKey }));
+                      setEditingGeminiKey(false);
+                    }}
+                    disabled={!newGeminiKey}
+                    style={{ background: newGeminiKey ? 'rgba(15,157,103,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${newGeminiKey ? 'rgba(15,157,103,0.4)' : 'var(--border-subtle)'}`, borderRadius: 6, padding: '6px 14px', cursor: newGeminiKey ? 'pointer' : 'default', color: newGeminiKey ? 'var(--accent-emerald, #10b981)' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    Set Key
+                  </button>
+                  {settings.geminiApiKey && (
+                    <button
+                      onClick={() => setEditingGeminiKey(false)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 6 }}
+                      title="Cancel"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+              {settings.geminiApiKey && !editingGeminiKey && (
+                <div style={{ fontSize: 11, color: 'var(--accent-emerald, #10b981)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <CheckCircle2 size={11} /> Gemini API key is configured
+                </div>
               )}
             </div>
           </Field>
-          {settings.geminiApiKey && (
-            <div style={{ fontSize: 11, color: 'var(--accent-emerald, #10b981)', paddingBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={12} /> API key is set — click 🗑 to clear and replace it
-            </div>
-          )}
         </div>
         <div className="card" style={{ padding: '4px 24px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
