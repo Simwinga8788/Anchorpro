@@ -167,11 +167,6 @@ export default function PlatformSettingsPage() {
         </button>
       </div>
 
-      {saved && (
-        <div style={{ padding: '10px 16px', borderRadius: 8, background: 'rgba(15,157,103,0.1)', border: '1px solid rgba(15,157,103,0.25)', color: 'var(--accent-emerald)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <CheckCircle2 size={15} /> Platform settings saved successfully
-        </div>
-      )}
       {err && (
         <div style={{ padding: '10px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <AlertTriangle size={15} /> {err}
@@ -369,7 +364,12 @@ export default function PlatformSettingsPage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'center' }}>
+          {saved && (
+            <div style={{ color: 'var(--accent-emerald, #10b981)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, marginRight: 10, animation: 'fadeIn 0.2s ease-out' }}>
+              <CheckCircle2 size={15} /> Saved successfully!
+            </div>
+          )}
           <button className="btn btn-secondary" onClick={load} disabled={loading}>Discard Changes</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><Save size={13} /> Save Changes</>}
@@ -377,7 +377,10 @@ export default function PlatformSettingsPage() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }
