@@ -87,7 +87,6 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 // ─── Main Dashboard ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { t } = useDictionary();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -97,10 +96,16 @@ export default function DashboardPage() {
     }
   }, [user, router]);
 
-  if (user && user.operationMode === 3) {
+  if (!user) return null;
+  if (user.operationMode === 3) {
     return <ConstructionOverviewDashboard />;
   }
 
+  return <WorkshopOverviewDashboard />;
+}
+
+function WorkshopOverviewDashboard() {
+  const { t } = useDictionary();
   const jobsLabel = t('Job Cards', 'Job Cards');
   const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
 
