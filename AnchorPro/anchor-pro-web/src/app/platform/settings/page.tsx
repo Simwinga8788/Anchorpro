@@ -1,6 +1,6 @@
 'use client';
 
-import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Bot } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { settingsApi } from '@/lib/api';
 
@@ -30,6 +30,7 @@ export default function PlatformSettingsPage() {
     smtpFromName:          'Anchor Pro',
     stripePublicKey:       '',
     stripeWebhookSecret:   '',
+    geminiApiKey:          '',
   });
 
   const KEY_MAP: Record<string, string> = {
@@ -52,6 +53,7 @@ export default function PlatformSettingsPage() {
     smtpFromName:          'Email.FromName',
     stripePublicKey:       'Stripe.PublicKey',
     stripeWebhookSecret:   'Stripe.WebhookSecret',
+    geminiApiKey:          'Integration.Gemini.ApiKey',
   };
 
   const load = useCallback(async () => {
@@ -82,6 +84,7 @@ export default function PlatformSettingsPage() {
           smtpFromName:          get('Email.FromName',                prev.smtpFromName),
           stripePublicKey:       get('Stripe.PublicKey',              prev.stripePublicKey),
           stripeWebhookSecret:   get('Stripe.WebhookSecret',         prev.stripeWebhookSecret),
+          geminiApiKey:          get('Integration.Gemini.ApiKey',    get('Gemini.ApiKey', prev.geminiApiKey)),
         }));
       }
     } catch {
@@ -236,7 +239,17 @@ export default function PlatformSettingsPage() {
           </Field>
         </div>
 
-        {/* Stripe */}
+        {/* AI & Copilot */}
+        <div className="card" style={{ padding: '4px 24px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
+            <Bot size={15} style={{ color: 'var(--accent-cyan, #06b6d4)' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-cyan, #06b6d4)', textTransform: 'uppercase', letterSpacing: 0.5 }}>AI Copilot & Intelligence</span>
+          </div>
+          <Field label="Google Gemini API Key" sub="Powers multimodal voice processing and dynamic tool execution across all tenants">
+            <input style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11 }} type="password" placeholder="AIzaSy..." value={settings.geminiApiKey}
+              onChange={e => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))} />
+          </Field>
+        </div>
         <div className="card" style={{ padding: '4px 24px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
             <span style={{ fontSize: 12 }}>💳</span>
