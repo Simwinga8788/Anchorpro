@@ -72,7 +72,7 @@ export default function NewShiftPlanPage() {
         equipmentId: '',
         operatorId: '',
         targetPrimary: '',
-        targetPrimaryUnit: category === 'Drilling' ? 'm' : category === 'Loading' ? 'buckets' : 'trips',
+        targetPrimaryUnit: category === 'Drilling' ? 'm' : category === 'Loading' ? 'buckets' : category === 'Hauling' ? 'trips' : 'units',
         targetSecondary: '',
         location: '',
         referenceCode: '',
@@ -163,7 +163,7 @@ export default function NewShiftPlanPage() {
           
           <div className="form-field">
             <label>{t('Stope', 'Location / Stope')}</label>
-            <input type="text" className="form-input" placeholder="e.g. 1250 stope 5814L ORE"
+            <input type="text" className="form-input" placeholder={user?.operationMode === 1 ? "e.g. 1250 stope 5814L ORE" : "e.g. Section B, Floor 2"}
               value={task.location} onChange={e => handleTaskChange(task.id, 'location', e.target.value)} />
           </div>
 
@@ -213,6 +213,16 @@ export default function NewShiftPlanPage() {
                 <label>Target {t('Tonnage', 'Tonnage')}</label>
                 <input type="number" className="form-input" placeholder="e.g. 198"
                   value={task.targetSecondary} onChange={e => handleTaskChange(task.id, 'targetSecondary', e.target.value)} />
+              </div>
+            </>
+          )}
+
+          {task.activityCategory === 'GeneralTask' && (
+            <>
+              <div className="form-field">
+                <label>Target Quantity</label>
+                <input type="number" className="form-input" placeholder="e.g. 100"
+                  value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
             </>
           )}
@@ -280,15 +290,23 @@ export default function NewShiftPlanPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h3 style={{ fontSize: 18, fontWeight: 700 }}>Task Assignments</h3>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Drilling')} style={{ background: 'var(--bg-default)' }}>
-                <Drill size={14} className="text-accent-blue" /> Add Drill
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Loading')} style={{ background: 'var(--bg-default)' }}>
-                <Target size={14} className="text-accent-blue" /> Add Loader
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Hauling')} style={{ background: 'var(--bg-default)' }}>
-                <Truck size={14} className="text-accent-blue" /> Add Truck
-              </button>
+              {user?.operationMode === 1 ? (
+                <>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Drilling')} style={{ background: 'var(--bg-default)' }}>
+                    <Drill size={14} className="text-accent-blue" /> Add Drill
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Loading')} style={{ background: 'var(--bg-default)' }}>
+                    <Target size={14} className="text-accent-blue" /> Add Loader
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('Hauling')} style={{ background: 'var(--bg-default)' }}>
+                    <Truck size={14} className="text-accent-blue" /> Add Truck
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleAddTask('GeneralTask')} style={{ background: 'var(--bg-default)' }}>
+                  <HardHat size={14} className="text-accent-blue" /> Add Task
+                </button>
+              )}
             </div>
           </div>
 
