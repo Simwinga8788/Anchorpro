@@ -712,6 +712,16 @@ export default function ProjectDetailsPage() {
             <label className="form-label">Task Title</label>
             <input className="form-input" required value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} />
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-field">
+              <label className="form-label">Start Date</label>
+              <input type="date" className="form-input" required value={taskForm.startDate} onChange={e => setTaskForm({...taskForm, startDate: e.target.value})} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">End Date</label>
+              <input type="date" className="form-input" required value={taskForm.dueDate} onChange={e => setTaskForm({...taskForm, dueDate: e.target.value})} />
+            </div>
+          </div>
           <div className="form-field">
             <label className="form-label">Estimated Hours</label>
             <input className="form-input" type="number" step="0.5" value={taskForm.estimatedHours} onChange={e => setTaskForm({...taskForm, estimatedHours: e.target.value})} />
