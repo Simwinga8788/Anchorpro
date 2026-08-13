@@ -8,21 +8,33 @@ import {
 import { rolesApi, teamApi } from '@/lib/api';
 import { useDictionary } from '@/lib/DictionaryContext';
 
-const getModuleRoutes = (t: (k: string, d: string) => string) => [
-  { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
-  { id: '/dashboard/jobs', label: 'Job Cards', category: 'Operations & Planning' },
-  { id: '/dashboard/my-jobs', label: 'My Assignments', category: 'Operations & Planning' },
-  { id: '/dashboard/planning', label: 'Planning Board', category: 'Operations & Planning' },
-  { id: '/dashboard/time-tracking', label: 'Time Tracking', category: 'Operations & Planning' },
-  { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
-  { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
-  
-  { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Shift Production Logs'), category: t('MiningOperations', 'Mining Operations') },
-  { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Shift Planner'), category: t('MiningOperations', 'Mining Operations') },
-  { id: '/dashboard/performance', label: t('MiningDashboard', 'Mining Dashboard / Performance'), category: t('MiningOperations', 'Mining Operations') },
-  { id: '/dashboard/contractors', label: t('ContractorsTitle', 'Mining Contractors'), category: t('MiningOperations', 'Mining Operations') },
-  
-  { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
+import { useAuth } from '@/lib/AuthContext';
+
+const getModuleRoutes = (t: (k: string, d: string) => string, mode: number) => {
+  const routes = [
+    { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
+    { id: '/dashboard/jobs', label: 'Job Cards', category: 'Operations & Planning' },
+    { id: '/dashboard/my-jobs', label: 'My Assignments', category: 'Operations & Planning' },
+    { id: '/dashboard/planning', label: 'Planning Board', category: 'Operations & Planning' },
+    { id: '/dashboard/time-tracking', label: 'Time Tracking', category: 'Operations & Planning' },
+    { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
+    { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
+    
+    // Mining Operations (Mode 1)
+    ...(mode === 1 ? [
+      { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Shift Production Logs'), category: t('MiningOperations', 'Mining Operations') },
+      { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Shift Planner'), category: t('MiningOperations', 'Mining Operations') },
+      { id: '/dashboard/performance', label: t('MiningDashboard', 'Mining Dashboard / Performance'), category: t('MiningOperations', 'Mining Operations') },
+      { id: '/dashboard/contractors', label: t('ContractorsTitle', 'Mining Contractors'), category: t('MiningOperations', 'Mining Operations') },
+    ] : []),
+    
+    // Construction (Mode 3)
+    ...(mode === 3 ? [
+      { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Site Daily Logs'), category: t('ConstructionOperations', 'Construction Operations') },
+      { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Site Planner'), category: t('ConstructionOperations', 'Construction Operations') },
+    ] : []),
+    
+    { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
   { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Project Management' },
   
   { id: '/dashboard/hr', label: 'HR & Team', category: 'Human Resources' },
@@ -41,8 +53,10 @@ const getModuleRoutes = (t: (k: string, d: string) => string) => [
   { id: '/dashboard/my-tools', label: 'My Tools', category: 'Enterprise Asset Mgt' },
   { id: '/dashboard/procurement', label: 'Procurement', category: 'Enterprise Asset Mgt' },
   
-  { id: '/dashboard/settings', label: 'System Settings', category: 'Settings' }
-];
+    { id: '/dashboard/settings', label: 'System Settings', category: 'Settings' }
+  ];
+  return routes;
+};
 
 interface Role {
   id: string;
@@ -89,7 +103,8 @@ const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> =
 
 export default function RolesPage() {
   const { t } = useDictionary();
-  const moduleRoutes = getModuleRoutes(t);
+  const { user } = useAuth();
+  const moduleRoutes = getModuleRoutes(t, user?.operationMode ?? 0);
   const [roles, setRoles] = useState<Role[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

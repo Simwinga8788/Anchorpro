@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jobCardsApi, financialApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';

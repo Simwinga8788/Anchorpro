@@ -310,6 +310,29 @@ html, body {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 
+/* Resource array for shift logs */
+.resource-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  background: var(--bg-default);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+}
+.resource-row > .form-group {
+  flex: 1 1 180px;
+}
+.resource-row > .form-group.small {
+  flex: 1 1 80px;
+}
+.resource-row > button.delete-btn {
+  flex: 0 0 40px;
+  margin-bottom: 4px;
+}
+
 /* Page title aliases */
 .page-title { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 24px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
 .page-subtitle { font-size: 14.5px; color: var(--text-secondary); margin-top: 3px; }

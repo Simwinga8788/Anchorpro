@@ -235,7 +235,7 @@ export default function NewShiftLogPage() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {formData.resources.map((res, index) => (
-              <div key={res.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 40px', gap: 12, alignItems: 'end', background: 'var(--bg-default)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div key={res.id} className="resource-row">
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Machine / Equipment</label>
                   <select className="input" value={res.equipmentId} onChange={e => handleResourceChange(res.id, 'equipmentId', e.target.value)}>
@@ -259,12 +259,12 @@ export default function NewShiftLogPage() {
                   <input type="text" className="input" placeholder="e.g. Loader, Driver"
                     value={res.role} onChange={e => handleResourceChange(res.id, 'role', e.target.value)} />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group small" style={{ marginBottom: 0 }}>
                   <label>Hrs</label>
                   <input type="number" step="0.5" className="input" placeholder="Opt."
                     value={res.operatingHours} onChange={e => handleResourceChange(res.id, 'operatingHours', e.target.value)} />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group small" style={{ marginBottom: 0 }}>
                   <label>Downtime (Hrs)</label>
                   <input type="number" step="0.1" className="input" placeholder="0"
                     value={res.downtimeHours} onChange={e => handleResourceChange(res.id, 'downtimeHours', e.target.value)} />
@@ -289,7 +289,7 @@ export default function NewShiftLogPage() {
                     </select>
                   </div>
                 </div>
-                <button type="button" className="btn btn-ghost" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
+                <button type="button" className="btn btn-ghost delete-btn" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
                   <Trash2 size={16} />
                 </button>
               </div>

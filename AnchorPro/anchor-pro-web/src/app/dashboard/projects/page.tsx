@@ -190,7 +190,7 @@ export default function ProjectsPage() {
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 20, maxWidth: 360 }}>
         <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-        <input className="input" style={{ paddingLeft: 36 }} placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="form-input" style={{ paddingLeft: 36 }} placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
@@ -211,30 +211,30 @@ export default function ProjectsPage() {
 
       <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="New Project">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="form-group">
-            <label>Project Name</label>
-            <input className="input" required value={form.name} placeholder="e.g. Pit 3 Development Phase 2" onChange={e => setForm({...form, name: e.target.value})} />
+          <div className="form-field">
+            <label className="form-label">Project Name</label>
+            <input className="form-input" required value={form.name} placeholder="e.g. Pit 3 Development Phase 2" onChange={e => setForm({...form, name: e.target.value})} />
           </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea className="input" rows={3} value={form.description} placeholder="Brief scope description..." onChange={e => setForm({...form, description: e.target.value})} />
+          <div className="form-field">
+            <label className="form-label">Description</label>
+            <textarea className="form-input" rows={3} value={form.description} placeholder="Brief scope description..." onChange={e => setForm({...form, description: e.target.value})} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="form-group">
-              <label>Start Date</label>
-              <input type="date" className="input" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
+            <div className="form-field">
+              <label className="form-label">Start Date</label>
+              <input type="date" className="form-input" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
             </div>
-            <div className="form-group">
-              <label>End Date</label>
-              <input type="date" className="input" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} />
+            <div className="form-field">
+              <label className="form-label">End Date</label>
+              <input type="date" className="form-input" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} />
             </div>
           </div>
-          <div className="form-group">
-            <label>Budget (ZMW)</label>
-            <input type="number" step="0.01" className="input" placeholder="0.00" value={form.budget} onChange={e => setForm({...form, budget: e.target.value})} />
+          <div className="form-field">
+            <label className="form-label">Budget (ZMW)</label>
+            <input type="number" step="0.01" className="form-input" placeholder="0.00" value={form.budget} onChange={e => setForm({...form, budget: e.target.value})} />
           </div>
-          <div className="form-group">
-            <label>Project Colour</label>
+          <div className="form-field">
+            <label className="form-label">Project Colour</label>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
               {PROJECT_COLOURS.map(c => (
                 <button key={c} type="button" onClick={() => setSelectedColour(c)}

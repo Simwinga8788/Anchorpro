@@ -24,7 +24,7 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
   const [showTask, setShowTask] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '', assignedToId: '' });
 
   const [users, setUsers] = useState<any[]>([]);
   const [showTeam, setShowTeam] = useState(false);
@@ -68,11 +68,12 @@ export default function ProjectDetailsPage() {
           estimatedHours: parseFloat(taskForm.estimatedHours) || 0,
           startDate: taskForm.startDate,
           dueDate: taskForm.dueDate,
+          assignedToId: taskForm.assignedToId || undefined
         })
       });
       if (res.ok) {
         setShowTask(false);
-        setTaskForm({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '' });
+        setTaskForm({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '', assignedToId: '' });
         loadProject();
       } else {
         alert('Error creating task');
@@ -712,6 +713,15 @@ export default function ProjectDetailsPage() {
           <div className="form-field">
             <label className="form-label">Estimated Hours</label>
             <input className="form-input" type="number" step="0.5" value={taskForm.estimatedHours} onChange={e => setTaskForm({...taskForm, estimatedHours: e.target.value})} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Assign To</label>
+            <select className="form-input" value={taskForm.assignedToId} onChange={e => setTaskForm({...taskForm, assignedToId: e.target.value})}>
+              <option value="">Unassigned</option>
+              {project?.members?.map((m: any) => (
+                <option key={m.userId} value={m.userId}>{m.userName}</option>
+              ))}
+            </select>
           </div>
           <div style={{ marginTop: 20 }}>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Create Task</button>

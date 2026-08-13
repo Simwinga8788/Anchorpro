@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
@@ -20,11 +20,12 @@ interface ShiftResource {
   quantityUnit?: string;
 }
 
-export default function EditShiftLogPage({ params }: { params: { id: string } }) {
+export default function EditShiftLogPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useDictionary();
-  const id = Number(params.id);
+  const resolvedParams = use(params);
+  const id = Number(resolvedParams.id);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -322,7 +323,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
               const pct = plannedNum > 0 ? Math.round((actualNum / plannedNum) * 100) : null;
 
               return (
-                <div key={res.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 90px 90px 140px 140px 36px', gap: 10, alignItems: 'end', background: 'var(--bg-default)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div key={res.id} className="resource-row">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: 11 }}>Machine / Equipment</label>
                     <select className="input" value={res.equipmentId} onChange={e => handleResourceChange(res.id, 'equipmentId', e.target.value)}>
@@ -346,19 +347,19 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
                     <input type="text" className="input" placeholder="e.g. Drilling, Hauling"
                       value={res.role} onChange={e => handleResourceChange(res.id, 'role', e.target.value)} />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group small" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: 11 }}>Op Hrs</label>
                     <input type="number" step="0.5" className="input" placeholder="Opt."
                       value={res.operatingHours} onChange={e => handleResourceChange(res.id, 'operatingHours', e.target.value)} />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group small" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: 11 }}>Down Hrs</label>
                     <input type="number" step="0.1" className="input" placeholder="0"
                       value={res.downtimeHours} onChange={e => handleResourceChange(res.id, 'downtimeHours', e.target.value)} />
                   </div>
 
                   {/* Planned Target */}
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group small" style={{ marginBottom: 0 }}>
                     <label style={{ fontSize: 11, color: 'var(--accent-blue)', fontWeight: 600 }}>Planned Target</label>
                     <input type="number" step="0.1" className="input" placeholder="Plan"
                       value={res.plannedQuantity || ''} onChange={e => handleResourceChange(res.id, 'plannedQuantity', e.target.value)} />
@@ -388,7 +389,7 @@ export default function EditShiftLogPage({ params }: { params: { id: string } })
                     </div>
                   </div>
 
-                  <button type="button" className="btn btn-ghost" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
+                  <button type="button" className="btn btn-ghost delete-btn" style={{ padding: 8, color: 'var(--text-muted)' }} onClick={() => handleRemoveResource(res.id)}>
                     <Trash2 size={16} />
                   </button>
                 </div>
