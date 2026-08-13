@@ -353,18 +353,19 @@ export default function ProjectDetailsPage() {
                 }
 
                 return (
-                  <div>
-                    {/* Header Row */}
-                    <div style={{ display: 'flex', borderBottom: '2px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
-                      <div style={{ width: 280, flexShrink: 0, fontWeight: 600, color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Task Name & Assignee</div>
-                      <div style={{ flex: 1, position: 'relative', height: 20 }}>
-                        {timeMarkers.map((m, i) => (
-                          <div key={i} style={{ position: 'absolute', left: `${m.left}%`, transform: 'translateX(-50%)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
-                            {m.label}
-                          </div>
-                        ))}
+                  <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
+                    <div style={{ minWidth: Math.max(800, 280 + (daysDuration * 20)) }}>
+                      {/* Header Row */}
+                      <div style={{ display: 'flex', borderBottom: '2px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
+                        <div style={{ width: 280, flexShrink: 0, fontWeight: 600, color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Task Name & Assignee</div>
+                        <div style={{ flex: 1, position: 'relative', height: 20 }}>
+                          {timeMarkers.map((m, i) => (
+                            <div key={i} style={{ position: 'absolute', left: `${m.left}%`, transform: 'translateX(-50%)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+                              {m.label}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
                     {/* Gantt Body */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative' }}>
@@ -467,6 +468,7 @@ export default function ProjectDetailsPage() {
                       })}
                     </div>
                   </div>
+                </div>
                 );
               })()}
             </div>
