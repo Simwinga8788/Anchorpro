@@ -142,18 +142,18 @@ export default function NewShiftPlanPage() {
         </div>
 
         <div className="form-grid">
-          <div className="form-group">
+          <div className="form-field">
             <label>Machine / Equipment</label>
-            <select className="input" value={task.equipmentId} onChange={e => handleTaskChange(task.id, 'equipmentId', e.target.value)} required>
+            <select className="form-input" value={task.equipmentId} onChange={e => handleTaskChange(task.id, 'equipmentId', e.target.value)} required>
               <option value="">-- Select Machine --</option>
               {equipmentList.map(eq => (
                 <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
               ))}
             </select>
           </div>
-          <div className="form-group">
+          <div className="form-field">
             <label>Operator Name</label>
-            <select className="input" value={task.operatorId} onChange={e => handleTaskChange(task.id, 'operatorId', e.target.value)} required>
+            <select className="form-input" value={task.operatorId} onChange={e => handleTaskChange(task.id, 'operatorId', e.target.value)} required>
               <option value="">-- Select Operator --</option>
               {userList.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
@@ -161,22 +161,22 @@ export default function NewShiftPlanPage() {
             </select>
           </div>
           
-          <div className="form-group">
+          <div className="form-field">
             <label>{t('Stope', 'Location / Stope')}</label>
-            <input type="text" className="input" placeholder="e.g. 1250 stope 5814L ORE"
+            <input type="text" className="form-input" placeholder="e.g. 1250 stope 5814L ORE"
               value={task.location} onChange={e => handleTaskChange(task.id, 'location', e.target.value)} />
           </div>
 
           {task.activityCategory === 'Drilling' && (
             <>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Target Meters</label>
-                <input type="number" className="input" placeholder="e.g. 50"
+                <input type="number" className="form-input" placeholder="e.g. 50"
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <label>{t('DrillRingAndHole', 'Reference Code')}</label>
-                <input type="text" className="input" placeholder="e.g. R9 9H"
+                <input type="text" className="form-input" placeholder="e.g. R9 9H"
                   value={task.referenceCode} onChange={e => handleTaskChange(task.id, 'referenceCode', e.target.value)} />
               </div>
             </>
@@ -184,19 +184,19 @@ export default function NewShiftPlanPage() {
 
           {task.activityCategory === 'Loading' && (
             <>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Target Buckets</label>
-                <input type="number" className="input" placeholder="e.g. 75"
+                <input type="number" className="form-input" placeholder="e.g. 75"
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Target {t('Tonnage', 'Tonnage')}</label>
-                <input type="number" className="input" placeholder="e.g. 487"
+                <input type="number" className="form-input" placeholder="e.g. 487"
                   value={task.targetSecondary} onChange={e => handleTaskChange(task.id, 'targetSecondary', e.target.value)} />
               </div>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <div className="form-field" style={{ gridColumn: '1 / -1' }}>
                 <label>Allocated Trucks</label>
-                <input type="text" className="input" placeholder="e.g. AD30-21, AD30-25"
+                <input type="text" className="form-input" placeholder="e.g. AD30-21, AD30-25"
                   value={task.assignedTrucks} onChange={e => handleTaskChange(task.id, 'assignedTrucks', e.target.value)} />
               </div>
             </>
@@ -204,14 +204,14 @@ export default function NewShiftPlanPage() {
 
           {task.activityCategory === 'Hauling' && (
             <>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Target Trips</label>
-                <input type="number" className="input" placeholder="e.g. 11"
+                <input type="number" className="form-input" placeholder="e.g. 11"
                   value={task.targetPrimary} onChange={e => handleTaskChange(task.id, 'targetPrimary', e.target.value)} />
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Target {t('Tonnage', 'Tonnage')}</label>
-                <input type="number" className="input" placeholder="e.g. 198"
+                <input type="number" className="form-input" placeholder="e.g. 198"
                   value={task.targetSecondary} onChange={e => handleTaskChange(task.id, 'targetSecondary', e.target.value)} />
               </div>
             </>
@@ -237,40 +237,40 @@ export default function NewShiftPlanPage() {
         
         {/* Header Section */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, background: 'var(--bg-default)', padding: 24, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
             <label>Date</label>
-            <input type="date" className="input" required style={{ fontWeight: 600 }}
+            <input type="date" className="form-input" required style={{ fontWeight: 600 }}
               value={formData.planDate} onChange={e => setFormData({...formData, planDate: e.target.value})} />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
             <label>Shift</label>
-            <select className="input" value={formData.shift} onChange={e => setFormData({...formData, shift: Number(e.target.value)})} style={{ fontWeight: 600 }}>
+            <select className="form-input" value={formData.shift} onChange={e => setFormData({...formData, shift: Number(e.target.value)})} style={{ fontWeight: 600 }}>
               <option value={0}>Day Shift</option>
               <option value={1}>Night Shift</option>
               <option value={2}>Afternoon Shift</option>
             </select>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
             <label>{t('MineCaptain', 'Mine Captain')}</label>
-            <select className="input" value={formData.mineCaptainId} onChange={e => setFormData({...formData, mineCaptainId: e.target.value})}>
+            <select className="form-input" value={formData.mineCaptainId} onChange={e => setFormData({...formData, mineCaptainId: e.target.value})}>
               <option value="">-- Select {t('MineCaptain', 'Mine Captain')} --</option>
               {userList.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
               ))}
             </select>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
             <label>{t('ShiftBoss', 'Shift Boss')}</label>
-            <select className="input" value={formData.shiftBossId} onChange={e => setFormData({...formData, shiftBossId: e.target.value})}>
+            <select className="form-input" value={formData.shiftBossId} onChange={e => setFormData({...formData, shiftBossId: e.target.value})}>
               <option value="">-- Select {t('ShiftBoss', 'Shift Boss')} --</option>
               {userList.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
               ))}
             </select>
           </div>
-          <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: 0, marginTop: 16 }}>
+          <div className="form-field" style={{ gridColumn: '1 / -1', marginBottom: 0, marginTop: 16 }}>
             <label>Overall Shift Target {t('Tonnage', 'Tonnage')} <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <input type="number" className="input" placeholder="e.g. 1100" style={{ fontSize: 20, padding: 16 }}
+            <input type="number" className="form-input" placeholder="e.g. 1100" style={{ fontSize: 20, padding: 16 }}
               value={formData.overallTargetSecondary} onChange={e => setFormData({...formData, overallTargetSecondary: e.target.value})} />
           </div>
         </div>
