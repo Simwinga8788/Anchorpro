@@ -138,9 +138,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     private void SetTenantFilter<T>(ModelBuilder builder) where T : BaseEntity
     {
-        // When a tenant is active: show ONLY that tenant's records (never null-TenantId records).
-        // When no tenant is set (Platform Owner): show everything.
-        builder.Entity<T>().HasQueryFilter(e => IgnoreTenantFilter || CurrentTenantId == null || e.TenantId == CurrentTenantId);
+        // When a tenant is active: show ONLY that tenant's records.
+        // When no tenant is set (Platform Owner): show ONLY global records (TenantId == null).
+        builder.Entity<T>().HasQueryFilter(e => IgnoreTenantFilter || e.TenantId == CurrentTenantId);
     }
 
     public override int SaveChanges()
