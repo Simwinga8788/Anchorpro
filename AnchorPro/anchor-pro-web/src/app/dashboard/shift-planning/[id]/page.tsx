@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { shiftPlansApi, shiftLogsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
-import { ArrowLeft, Loader2, Calendar, Target, Drill, Truck, Clock, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, Target, Drill, Truck, Clock, PlayCircle, HardHat } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function ShiftPlanDetailPage() {
@@ -145,7 +145,8 @@ export default function ShiftPlanDetailPage() {
                         {task.activityCategory === 'Drilling' && <Drill size={16} className="text-accent-blue" />}
                         {task.activityCategory === 'Loading' && <Target size={16} className="text-accent-blue" />}
                         {task.activityCategory === 'Hauling' && <Truck size={16} className="text-accent-blue" />}
-                        {task.activityCategory}
+                        {task.activityCategory === 'GeneralTask' && <HardHat size={16} className="text-accent-blue" />}
+                        {task.activityCategory === 'GeneralTask' ? 'General Task' : task.activityCategory}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-app)', padding: '2px 8px', borderRadius: 4 }}>
                         {task.location || 'No Location'}
@@ -186,11 +187,11 @@ export default function ShiftPlanDetailPage() {
             <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>Management</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Mine Captain</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('MineCaptain', 'Mine Captain')}</div>
                 <div style={{ fontWeight: 500 }}>{plan.mineCaptain ? `${plan.mineCaptain.firstName} ${plan.mineCaptain.lastName}` : 'Unassigned'}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Shift Boss</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('ShiftBoss', 'Shift Boss')}</div>
                 <div style={{ fontWeight: 500 }}>{plan.shiftBoss ? `${plan.shiftBoss.firstName} ${plan.shiftBoss.lastName}` : 'Unassigned'}</div>
               </div>
             </div>
