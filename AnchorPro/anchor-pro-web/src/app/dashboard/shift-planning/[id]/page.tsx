@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { ArrowLeft, Loader2, Calendar, Target, Drill, Truck, Clock, PlayCircle, HardHat } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export default function ShiftPlanDetailPage() {
   const router = useRouter();
@@ -49,9 +50,10 @@ export default function ShiftPlanDetailPage() {
     setGenerating(true);
     try {
       const res = await shiftPlansApi.generateActuals(Number(id));
+      toast.success('Generated successfully');
       router.push(`/dashboard/shift-logs/${res.id}`);
     } catch (e: any) {
-      alert(e.message || 'Failed to generate actuals');
+      toast.error(e.message || 'Failed to generate actuals');
       setGenerating(false);
     }
   };

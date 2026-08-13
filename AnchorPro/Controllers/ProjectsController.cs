@@ -253,6 +253,44 @@ namespace AnchorPro.Controllers
             return Ok();
         }
 
+        [HttpPost("{id}/documents")]
+        public async Task<IActionResult> UploadDocument(int id, IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest("No file provided");
+
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) return NotFound();
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var doc = new ProjectDocument
+            {
+                ProjectId = id,
+                FileName = file.FileName,
+                FileUrl = $"/uploads/{fileName}",
+                UploadedById = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            };
+
+            _context.ProjectDocuments.Add(doc);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                doc.Id,
+                doc.FileName,
+                doc.FileUrl,
+                doc.UploadedAt
+            });
+        }
+
         [HttpPost("{id}/members")]
         public async Task<IActionResult> AddMember(int id, ProjectMemberDto dto)
         {

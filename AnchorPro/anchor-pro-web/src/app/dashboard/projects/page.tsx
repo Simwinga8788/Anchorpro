@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Plus, Calendar, DollarSign, Users, CheckCircle, Clock, Loader2, Save, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
 
 function getToken() {
@@ -143,12 +144,13 @@ export default function ProjectsPage() {
         body: JSON.stringify({ name: form.name, description: form.description, budget: parseFloat(form.budget) || 0, startDate: form.startDate || null, endDate: form.endDate || null, status: 'Active', colour: selectedColour })
       });
       if (res.ok) {
+        toast.success('Project created successfully');
         setShowCreate(false);
         setForm({ name: '', description: '', budget: '', startDate: '', endDate: '' });
         setSelectedColour(PROJECT_COLOURS[0]);
         loadProjects();
-      } else { alert('Error creating project'); }
-    } catch (err) { alert('Error'); }
+      } else { toast.error('Error creating project'); }
+    } catch (err) { toast.error('Error creating project'); }
     finally { setSaving(false); }
   };
 

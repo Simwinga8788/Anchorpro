@@ -21,6 +21,34 @@ namespace AnchorPro.Controllers
             _context = context;
         }
 
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyTasks()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var myTasks = await _context.ProjectTasks
+                .Include(t => t.Project)
+                .Where(t => t.AssignedToId == userId)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Title,
+                    t.Description,
+                    Status = t.Status.ToString(),
+                    Priority = t.Priority.ToString(),
+                    t.StartDate,
+                    t.DueDate,
+                    t.EstimatedHours,
+                    t.ActualHours,
+                    ProjectName = t.Project != null ? t.Project.Name : "Unknown Project"
+                })
+                .OrderBy(t => t.DueDate ?? DateTime.MaxValue)
+                .ToListAsync();
+
+            return Ok(myTasks);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTask(ProjectTaskDto dto)
         {
@@ -48,15 +76,17 @@ namespace AnchorPro.Controllers
             var task = await _context.ProjectTasks.FindAsync(id);
             if (task == null) return NotFound();
 
-            task.Title = dto.Title;
-            task.Description = dto.Description;
+            if (!string.IsNullOrEmpty(dto.Title)) task.Title = dto.Title;
+            if (dto.Description != null && dto.Description != "") task.Description = dto.Description;
             if (!string.IsNullOrEmpty(dto.Status)) task.Status = Enum.Parse<ProjectTaskStatus>(dto.Status);
             if (!string.IsNullOrEmpty(dto.Priority)) task.Priority = Enum.Parse<ProjectTaskPriority>(dto.Priority);
-            task.StartDate = dto.StartDate;
-            task.DueDate = dto.DueDate;
-            task.EstimatedHours = dto.EstimatedHours;
-            task.ActualHours = dto.ActualHours;
-            task.AssignedToId = dto.AssignedToId;
+            
+            // Only update dates if provided (this prevents status updates from clearing dates)
+            if (dto.StartDate.HasValue) task.StartDate = dto.StartDate;
+            if (dto.DueDate.HasValue) task.DueDate = dto.DueDate;
+            if (dto.EstimatedHours > 0) task.EstimatedHours = dto.EstimatedHours;
+            if (dto.ActualHours > 0) task.ActualHours = dto.ActualHours;
+            if (!string.IsNullOrEmpty(dto.AssignedToId)) task.AssignedToId = dto.AssignedToId;
 
             await _context.SaveChangesAsync();
             return Ok(task);

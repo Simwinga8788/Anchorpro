@@ -21,6 +21,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { DictionaryProvider } from "@/lib/DictionaryContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { NotificationsProvider } from "@/lib/NotificationsContext";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -85,6 +86,11 @@ export default function RootLayout({
             <DictionaryProvider>
               <NotificationsProvider>
                 {children}
+                <Toaster position="top-right" toastOptions={{
+                  style: { background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: '8px' },
+                  success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                  error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } }
+                }} />
               </NotificationsProvider>
             </DictionaryProvider>
           </AuthProvider>

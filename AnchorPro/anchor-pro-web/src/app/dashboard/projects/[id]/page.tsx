@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Building2, ArrowLeft, Plus, Clock, Users, Wrench, CheckCircle, Hash, Trash2 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
 
 function HealthBar({ current, total }: { current: number, total: number }) {
@@ -32,6 +33,9 @@ export default function ProjectDetailsPage() {
 
   const [showExpense, setShowExpense] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: 'Other', expenseDate: '' });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -72,14 +76,15 @@ export default function ProjectDetailsPage() {
         })
       });
       if (res.ok) {
+        toast.success('Task created successfully');
         setShowTask(false);
         setTaskForm({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '', assignedToId: '' });
         loadProject();
       } else {
-        alert('Error creating task');
+        toast.error('Error creating task');
       }
     } catch (err) {
-      alert('Error creating task');
+      toast.error('Error creating task');
     }
   };
 
@@ -93,12 +98,13 @@ export default function ProjectDetailsPage() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
+        toast.success('Task status updated');
         loadProject();
       } else {
-        alert('Failed to update task');
+        toast.error('Failed to update task');
       }
     } catch (e) {
-      alert('Error updating task');
+      toast.error('Error updating task');
     }
   };
 
@@ -118,11 +124,12 @@ export default function ProjectDetailsPage() {
         body: JSON.stringify(teamForm)
       });
       if (res.ok) {
+        toast.success('Team member assigned');
         setShowTeam(false);
         setTeamForm({ userId: '', projectRole: 'Contributor' });
         loadProject();
-      } else { alert('Error adding member'); }
-    } catch(err) { console.error(err); }
+      } else { toast.error('Error adding member'); }
+    } catch(err) { toast.error('Error adding member'); }
   };
 
   const handleRemoveMember = async (userId: string) => {
@@ -132,8 +139,11 @@ export default function ProjectDetailsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      if (res.ok) loadProject();
-    } catch(err) { console.error(err); }
+      if (res.ok) {
+        toast.success('Member removed');
+        loadProject();
+      } else { toast.error('Failed to remove member'); }
+    } catch(err) { toast.error('Failed to remove member'); }
   };
 
   const handleCreateExpense = async (e: any) => {
@@ -148,11 +158,40 @@ export default function ProjectDetailsPage() {
         })
       });
       if (res.ok) {
+        toast.success('Expense recorded');
         setShowExpense(false);
         setExpenseForm({ description: '', amount: '', category: 'Other', expenseDate: '' });
         loadProject();
-      } else { alert('Error adding expense'); }
-    } catch(err) { console.error(err); }
+      } else { toast.error('Error adding expense'); }
+    } catch(err) { toast.error('Error adding expense'); }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDoc(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch(`/api/projects/${id}/documents`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('anchor_auth_token')}` },
+        body: formData
+      });
+      if (res.ok) {
+        toast.success('Document uploaded successfully');
+        loadProject();
+      } else {
+        toast.error('Failed to upload document');
+      }
+    } catch (err) {
+      toast.error('Error uploading document');
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   useEffect(() => {
@@ -561,7 +600,10 @@ export default function ProjectDetailsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Documents</h3>
-            <button className="btn btn-secondary"><Plus size={16} style={{ marginRight: 6 }}/> Upload File</button>
+            <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingDoc}>
+              <Plus size={16} style={{ marginRight: 6 }}/> {uploadingDoc ? 'Uploading...' : 'Upload File'}
+            </button>
           </div>
           
           <div className="card-elevated" style={{ padding: 0 }}>

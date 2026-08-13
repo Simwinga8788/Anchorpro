@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { Save, ArrowLeft, Loader2, Plus, Trash2, Calendar, Target, Drill, Truck, HardHat } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 interface ShiftPlanTask {
   id: number;
@@ -120,9 +121,10 @@ export default function NewShiftPlanPage() {
       };
 
       await shiftPlansApi.create(payload);
+      toast.success('Shift plan created successfully');
       router.push('/dashboard/shift-planning');
     } catch (err: any) {
-      alert(err.message || 'Failed to create shift plan');
+      toast.error(err.message || 'Failed to create shift plan');
       setLoading(false);
     }
   };
