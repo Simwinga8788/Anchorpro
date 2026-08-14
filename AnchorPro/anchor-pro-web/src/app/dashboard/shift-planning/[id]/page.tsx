@@ -138,41 +138,61 @@ export default function ShiftPlanDetailPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {plan.tasks?.map((task: any, idx: number) => (
-                  <div key={task.id} style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        <div style={{ background: 'var(--bg-app)', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>
+                  <div key={task.id} className="card-elevated" style={{ padding: 20, position: 'relative', overflow: 'hidden' }}>
+                    {/* Left Accent Bar */}
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--accent-blue)', opacity: 0.8 }} />
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
+                        <div style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
                           {idx + 1}
                         </div>
-                        {task.activityCategory === 'Drilling' && <Drill size={16} className="text-accent-blue" />}
-                        {task.activityCategory === 'Loading' && <Target size={16} className="text-accent-blue" />}
-                        {task.activityCategory === 'Hauling' && <Truck size={16} className="text-accent-blue" />}
-                        {task.activityCategory === 'GeneralTask' && <HardHat size={16} className="text-accent-blue" />}
-                        {task.activityCategory === 'GeneralTask' ? 'General Task' : task.activityCategory}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {task.activityCategory === 'Drilling' && <Drill size={18} className="text-accent-blue" />}
+                          {task.activityCategory === 'Loading' && <Target size={18} className="text-accent-blue" />}
+                          {task.activityCategory === 'Hauling' && <Truck size={18} className="text-accent-blue" />}
+                          {task.activityCategory === 'GeneralTask' && <HardHat size={18} className="text-accent-blue" />}
+                          {task.activityCategory === 'GeneralTask' ? 'General Task' : task.activityCategory}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-app)', padding: '2px 8px', borderRadius: 4 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '4px 10px', borderRadius: 12, letterSpacing: '0.02em' }}>
                         {task.location || 'No Location'}
                       </div>
                     </div>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, fontSize: 13 }}>
+                      {/* Equipment */}
                       <div>
-                        <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Equipment</div>
-                        <div style={{ fontWeight: 500 }}>{task.equipment?.name || 'Unassigned'} {task.equipment?.serialNumber ? `(${task.equipment.serialNumber})` : ''}</div>
+                        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 6 }}>Equipment</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <Truck size={14} color="var(--text-secondary)" />
+                          {task.equipment?.name || 'Unassigned'} 
+                        </div>
+                        {task.equipment?.serialNumber && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{task.equipment.serialNumber}</div>}
                       </div>
+                      
+                      {/* Operator */}
                       <div>
-                        <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Operator</div>
-                        <div style={{ fontWeight: 500 }}>{task.operator ? `${task.operator.firstName} ${task.operator.lastName}` : 'Unassigned'}</div>
+                        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 6 }}>Operator</div>
+                        <div className="user-chip" style={{ padding: 0, gap: 6 }}>
+                          <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-card-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {task.operator ? task.operator.firstName[0] : '?'}
+                          </div>
+                          <span style={{ fontWeight: 600 }}>{task.operator ? `${task.operator.firstName} ${task.operator.lastName}` : 'Unassigned'}</span>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Target Primary</div>
-                        <div style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
+                      
+                      {/* Metrics */}
+                      <div style={{ background: 'var(--bg-app)', padding: '10px 14px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 4 }}>Target Primary</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--accent-blue)' }}>
                           {task.targetPrimary ? `${task.targetPrimary} ${task.targetPrimaryUnit}` : '-'}
                         </div>
                       </div>
-                      <div>
-                        <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Planned Quantity</div>
-                        <div style={{ fontWeight: 600 }}>
+                      
+                      <div style={{ background: 'var(--bg-app)', padding: '10px 14px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 4 }}>Planned Quantity</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
                           {task.plannedQuantity ? `${task.plannedQuantity} ${task.targetPrimaryUnit}` : '-'}
                         </div>
                       </div>
