@@ -102,63 +102,64 @@ export default function ShiftPlanningPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>No shift plans found.</div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Date</th>
-                <th>{t('Shift', 'Shift')}</th>
-                <th>Captain & Boss</th>
-                <th>Tasks</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => {
-                const linkedLog = logsMap[p.id];
-                return (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 600 }}>#{p.id}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Calendar size={14} className="text-muted" />
-                        {p.planDate ? format(new Date(p.planDate), 'MMM dd, yyyy') : '-'}
-                      </div>
-                    </td>
-                    <td>{getShiftName(p.shift)}</td>
-                    <td>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{p.mineCaptain?.firstName} {p.mineCaptain?.lastName}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.shiftBoss?.firstName} {p.shiftBoss?.lastName}</div>
-                    </td>
-                    <td>{p.tasks?.length || 0} tasks</td>
-                    <td>{getStatusBadge(p.status)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button className="btn btn-secondary btn-sm" onClick={() => router.push(`/dashboard/shift-planning/${p.id}`)}>
-                          View
-                        </button>
-                        {p.status === 0 ? (
-                          <button className="btn btn-primary btn-sm" onClick={() => handleGenerateActuals(p.id)} title="Execute Shift (Generate Actuals)">
-                            <PlayCircle size={14} /> Execute
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>{t('Shift', 'Shift')}</th>
+                  <th>Captain & Boss</th>
+                  <th>Tasks</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => {
+                  const linkedLog = logsMap[p.id];
+                  return (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 600 }}>#{p.id}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Calendar size={14} className="text-muted" />
+                          {p.planDate ? format(new Date(p.planDate), 'MMM dd, yyyy') : '-'}
+                        </div>
+                      </td>
+                      <td>{getShiftName(p.shift)}</td>
+                      <td>
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>{p.mineCaptain?.firstName} {p.mineCaptain?.lastName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.shiftBoss?.firstName} {p.shiftBoss?.lastName}</div>
+                      </td>
+                      <td>{p.tasks?.length || 0} tasks</td>
+                      <td>{getStatusBadge(p.status)}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => router.push(`/dashboard/shift-planning/${p.id}`)}>
+                            View
                           </button>
-                        ) : linkedLog ? (
-                          <Link href={`/dashboard/shift-logs/${linkedLog.id}`} className="btn btn-sm" style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)', gap: 4 }}>
-                            <FileText size={14} /> Actuals Log #{linkedLog.id} <ArrowRight size={12} />
-                          </Link>
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Executed</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          {p.status === 0 ? (
+                            <button className="btn btn-primary btn-sm" onClick={() => handleGenerateActuals(p.id)} title="Execute Shift (Generate Actuals)">
+                              <PlayCircle size={14} /> Execute
+                            </button>
+                          ) : linkedLog ? (
+                            <Link href={`/dashboard/shift-logs/${linkedLog.id}`} className="btn btn-sm" style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)', gap: 4 }}>
+                              <FileText size={14} /> Actuals Log #{linkedLog.id} <ArrowRight size={12} />
+                            </Link>
+                          ) : (
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Executed</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
   );
 }
-
