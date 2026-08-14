@@ -71,16 +71,9 @@ export default function MyJobsPage() {
 
   // No longer auto-selecting the first job on mount to ensure working board only opens once a job is clicked.
 
-  const handleStartWork = async (jobId: number) => {
-    setSaving(true);
-    try {
-      await dashboardApi.updateJobStatus(jobId, 2); // Status 2 = In Progress
-      fetchJobs();
-    } catch (err: any) {
-      alert(err.message || "Failed to start job.");
-    } finally {
-      setSaving(false);
-    }
+  const handleStartWork = (jobId: number) => {
+    setActiveJobId(jobId);
+    setShowPermit(true);
   };
 
   const submitPermit = async (e: React.FormEvent) => {
