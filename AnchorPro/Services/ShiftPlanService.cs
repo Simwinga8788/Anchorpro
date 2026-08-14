@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Data.Enums;
 using AnchorPro.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
