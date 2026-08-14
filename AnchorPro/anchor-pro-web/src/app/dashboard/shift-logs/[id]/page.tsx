@@ -126,14 +126,7 @@ export default function EditShiftLogPage({ params }: { params: Promise<{ id: str
   }, []);
 
 
-  // Auto-calculate logic
-  useEffect(() => {
-    const loads = parseFloat(formData.loadCount);
-    const factor = parseFloat(formData.payloadFactor);
-    if (!isNaN(loads) && !isNaN(factor)) {
-      setFormData(prev => ({ ...prev, quantityProduced: (loads * factor).toFixed(2) }));
-    }
-  }, [formData.loadCount, formData.payloadFactor]);
+  // Removed trip/load calculation for construction
 
   const handleAddResource = () => {
     setFormData(prev => ({
@@ -441,33 +434,16 @@ export default function EditShiftLogPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Section 4: Production Metrics */}
+        {/* Section 4: Daily Progress Metrics */}
         <div style={{ background: 'var(--bg-secondary)', padding: '16px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, paddingBottom: 8, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calculator size={18} className="text-accent-blue" /> Production Metrics
+            <Calculator size={18} className="text-accent-blue" /> Daily Progress Metrics
           </h3>
           <div className="form-grid">
-            <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: 12 }}>
-              <label>Number of Loads/Trips</label>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <input type="number" step="1" className="input" style={{ flex: 1, fontSize: 24, padding: '16px', height: 'auto', fontWeight: 700 }}
-                  value={formData.loadCount} onChange={e => setFormData({...formData, loadCount: e.target.value})} />
-                <button type="button" className="btn btn-primary" style={{ padding: '16px 32px', fontSize: 18, height: 'auto', fontWeight: 800 }} 
-                  onClick={() => setFormData(prev => ({ ...prev, loadCount: (parseInt(prev.loadCount || '0') + 1).toString() }))}>
-                  +1 Trip
-                </button>
-              </div>
-            </div>
             <div className="form-group">
-              <label>Payload Factor (Per Trip)</label>
-              <input type="number" step="0.01" className="input"
-                value={formData.payloadFactor} onChange={e => setFormData({...formData, payloadFactor: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Est. Quantity Produced</label>
-              <input type="number" step="0.01" className="input" readOnly
-                style={{ background: 'var(--bg-default)', fontWeight: 600 }}
-                value={formData.quantityProduced} />
+              <label>Actual Quantity Completed / Installed</label>
+              <input type="number" step="0.01" className="input" style={{ fontSize: 18, fontWeight: 700 }}
+                value={formData.quantityProduced} onChange={e => setFormData({...formData, quantityProduced: e.target.value})} />
             </div>
             <div className="form-group">
               <label>Unit of Measure</label>
