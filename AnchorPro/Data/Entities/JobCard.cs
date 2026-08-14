@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using AnchorPro.Data.Enums;
 
 namespace AnchorPro.Data.Entities
@@ -31,6 +32,8 @@ namespace AnchorPro.Data.Entities
         public Project? Project { get; set; }
 
         public int? ShiftPlanTaskId { get; set; }
+        
+        [JsonIgnore]
         public ShiftPlanTask? ShiftPlanTask { get; set; }
 
         // Scheduling

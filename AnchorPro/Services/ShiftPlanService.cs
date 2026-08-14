@@ -150,6 +150,7 @@ namespace AnchorPro.Services
                         JobTypeId = jobType?.Id ?? 1,
                         ProjectId = plan.ProjectId,
                         ShiftPlanTaskId = task.Id,
+                        TenantId = plan.TenantId,
                         Status = JobStatus.Scheduled,
                         Priority = JobPriority.High,
                         ScheduledStartDate = plan.PlanDate,
