@@ -413,29 +413,29 @@ export default function EditShiftLogPage({ params }: { params: Promise<{ id: str
             <div className="form-group">
               <label>Activity Type</label>
               <select className="input" value={formData.operationActivity} onChange={e => setFormData({...formData, operationActivity: e.target.value})}>
-                <option value="0">{t('Activity0', 'General Mining')}</option>
-                <option value="1">{t('Activity1', 'Blasting')}</option>
-                <option value="2">{t('Activity2', 'Loading')}</option>
-                <option value="3">{t('Activity3', 'Hauling')}</option>
-                <option value="4">{t('Activity4', 'Development')}</option>
-                <option value="5">{t('Activity5', 'Stripping')}</option>
-                <option value="6">{t('Activity6', 'Dewatering')}</option>
-                <option value="7">{t('Activity7', 'Support')}</option>
+                <option value="0">{t('Activity0', 'General Work')}</option>
+                <option value="1">{t('Activity1', 'Earthworks')}</option>
+                <option value="2">{t('Activity2', 'Concrete / Pouring')}</option>
+                <option value="3">{t('Activity3', 'Steel / Rebar')}</option>
+                <option value="4">{t('Activity4', 'Formwork')}</option>
+                <option value="5">{t('Activity5', 'Site Prep')}</option>
+                <option value="6">{t('Activity6', 'Demolition')}</option>
+                <option value="7">{t('Activity7', 'MEP (Services)')}</option>
               </select>
             </div>
             <div className="form-group">
-              <label>{t('Material', 'Material')}</label>
-              <input type="text" className="input" placeholder={t('MaterialPlaceholder', 'e.g. Copper Ore, Waste')}
+              <label>{t('Material', 'Material / Component')}</label>
+              <input type="text" className="input" placeholder={t('MaterialPlaceholder', 'e.g. Concrete, Rebar, Soil')}
                 value={formData.material} onChange={e => setFormData({...formData, material: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>{t('Source', 'Source (Drawn from)')}</label>
-              <input type="text" className="input" placeholder={t('SourcePlaceholder', 'e.g. Pit 3 Face, Level 12 Stope')}
+              <label>{t('Source', 'Location (Start / Zone)')}</label>
+              <input type="text" className="input" placeholder={t('SourcePlaceholder', 'e.g. Block A, Foundation, Floor 2')}
                 value={formData.sourceLocation} onChange={e => setFormData({...formData, sourceLocation: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>{t('Destination', 'Destination (Dumped to)')}</label>
-              <input type="text" className="input" placeholder={t('DestinationPlaceholder', 'e.g. ROM Pad, Waste Dump 2')}
+              <label>{t('Destination', 'Location (End / Grid)')}</label>
+              <input type="text" className="input" placeholder={t('DestinationPlaceholder', 'e.g. Grid 1-5, Slab 2')}
                 value={formData.destinationLocation} onChange={e => setFormData({...formData, destinationLocation: e.target.value})} />
             </div>
           </div>
@@ -473,8 +473,9 @@ export default function EditShiftLogPage({ params }: { params: Promise<{ id: str
               <label>Unit of Measure</label>
               <select className="input" value={formData.unitOfMeasure} onChange={e => setFormData({...formData, unitOfMeasure: e.target.value})}>
                 <option value="Tons">Tons</option>
-                <option value="BCM">BCM</option>
-                <option value="m³">m³</option>
+                <option value="m3">m3 (Volume)</option>
+                <option value="m2">m2 (Area)</option>
+                <option value="m">m (Length)</option>
                 <option value="Units">Units</option>
               </select>
             </div>
