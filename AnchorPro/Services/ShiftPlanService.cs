@@ -135,6 +135,29 @@ namespace AnchorPro.Services
                     ActualQuantity  = task.ActualQuantity ?? 0, // ← actual checked quantity
                     QuantityUnit    = task.TargetPrimaryUnit,
                 });
+
+                if (task.EquipmentId.HasValue && !string.IsNullOrEmpty(task.OperatorId))
+                {
+                    var jobType = await ctx.JobTypes.FirstOrDefaultAsync(t => t.Name == "Project Work") 
+                        ?? await ctx.JobTypes.FirstOrDefaultAsync();
+
+                    var job = new JobCard
+                    {
+                        JobNumber = $"SP-{plan.Id}-{task.Id}",
+                        Description = $"{task.ActivityCategory} - {task.Location ?? "Site"}",
+                        EquipmentId = task.EquipmentId.Value,
+                        JobTypeId = jobType?.Id ?? 1,
+                        ProjectId = plan.ProjectId,
+                        ShiftPlanTaskId = task.Id,
+                        Status = JobStatus.Scheduled,
+                        Priority = JobPriority.High,
+                        ScheduledStartDate = plan.PlanDate,
+                        AssignedTechnicianId = task.OperatorId,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    };
+                    ctx.JobCards.Add(job);
+                }
             }
 
             plan.Status = 1; // Active/Executed

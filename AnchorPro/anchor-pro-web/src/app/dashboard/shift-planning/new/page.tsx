@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 interface ShiftPlanTask {
   id: number;
   activityCategory: string;
+  projectTaskId?: string;
   equipmentId: string;
   operatorId: string;
   targetPrimary: string;
@@ -31,9 +32,12 @@ export default function NewShiftPlanPage() {
   // Data for dropdowns
   const [equipmentList, setEquipmentList] = useState<any[]>([]);
   const [userList, setUserList] = useState<any[]>([]);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [projectTasksList, setProjectTasksList] = useState<any[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
+    projectId: '',
     planDate: new Date().toISOString().split('T')[0],
     shift: 0,
     mineCaptainId: '',
@@ -50,19 +54,43 @@ export default function NewShiftPlanPage() {
         const headers: any = {};
         if (tokenStr) headers['Authorization'] = `Bearer ${tokenStr}`;
         
-        const [resEq, resUsers] = await Promise.all([
+        const [resEq, resUsers, resProjects] = await Promise.all([
           fetch('/api/equipment', { headers }),
-          fetch('/api/users', { headers })
+          fetch('/api/users', { headers }),
+          fetch('/api/projects', { headers })
         ]);
         
         if (resEq.ok) setEquipmentList(await resEq.json());
         if (resUsers.ok) setUserList(await resUsers.json());
-      } catch (e) {
-        console.error(e);
+        if (resProjects.ok) setProjectsList(await resProjects.json());
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!formData.projectId) {
+        setProjectTasksList([]);
+        return;
+      }
+      try {
+        const tokenStr = localStorage.getItem('anchor_auth_token');
+        const headers: any = {};
+        if (tokenStr) headers['Authorization'] = `Bearer ${tokenStr}`;
+        const res = await fetch(`/api/projects/${formData.projectId}`, { headers });
+        if (res.ok) {
+          const projectData = await res.json();
+          setProjectTasksList(projectData.tasks || []);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchTasks();
+  }, [formData.projectId]);
 
   const handleAddTask = (category: string) => {
     setFormData(prev => ({
@@ -70,6 +98,7 @@ export default function NewShiftPlanPage() {
       tasks: [...prev.tasks, {
         id: Date.now(),
         activityCategory: category,
+        projectTaskId: '',
         equipmentId: '',
         operatorId: '',
         targetPrimary: '',
@@ -98,8 +127,8 @@ export default function NewShiftPlanPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
+      setLoading(true);
       const payload = {
         planDate: formData.planDate,
         shift: Number(formData.shift),
@@ -107,8 +136,10 @@ export default function NewShiftPlanPage() {
         shiftBossId: formData.shiftBossId || null,
         overallTargetSecondary: formData.overallTargetSecondary ? Number(formData.overallTargetSecondary) : null,
         notes: formData.notes,
+        projectId: formData.projectId ? Number(formData.projectId) : null,
         tasks: formData.tasks.map(t => ({
           activityCategory: t.activityCategory,
+          projectTaskId: t.projectTaskId ? Number(t.projectTaskId) : null,
           equipmentId: t.equipmentId ? Number(t.equipmentId) : null,
           operatorId: t.operatorId || null,
           targetPrimary: t.targetPrimary ? Number(t.targetPrimary) : null,
@@ -137,14 +168,30 @@ export default function NewShiftPlanPage() {
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, color: 'var(--text-default)', fontWeight: 600 }}>
-          {task.activityCategory === 'Drilling' && <Drill size={18} className="text-accent-blue" />}
-          {task.activityCategory === 'Loading' && <Target size={18} className="text-accent-blue" />}
-          {task.activityCategory === 'Hauling' && <Truck size={18} className="text-accent-blue" />}
-          Task {index + 1}: {task.activityCategory}
+          <HardHat size={18} className="text-accent-amber" />
+          <span>Task {index + 1}: {task.activityCategory}</span>
         </div>
 
-        <div className="form-grid">
-          <div className="form-field">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
+            <label>Project Task</label>
+            <select className="form-input" value={task.projectTaskId || ''} onChange={e => {
+              const selectedTaskId = e.target.value;
+              const selectedTask = projectTasksList.find(pt => pt.id.toString() === selectedTaskId);
+              const updatedTasks = [...formData.tasks];
+              updatedTasks[index].projectTaskId = selectedTaskId;
+              if (selectedTask) {
+                updatedTasks[index].activityCategory = selectedTask.title;
+              }
+              setFormData({...formData, tasks: updatedTasks});
+            }}>
+              <option value="">-- Select Project Task --</option>
+              {projectTasksList.map(pt => (
+                <option key={pt.id} value={pt.id}>{pt.title}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ marginBottom: 0 }}>
             <label>Machine / Equipment</label>
             <select className="form-input" value={task.equipmentId} onChange={e => handleTaskChange(task.id, 'equipmentId', e.target.value)} required>
               <option value="">-- Select Machine --</option>
@@ -235,8 +282,8 @@ export default function NewShiftPlanPage() {
 
   return (
     <div className="animate-in" style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button className="btn btn-secondary" onClick={() => router.back()} style={{ padding: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+        <button type="button" className="btn btn-secondary" onClick={() => router.back()} style={{ padding: '8px' }}>
           <ArrowLeft size={18} />
         </button>
         <div>
@@ -249,6 +296,15 @@ export default function NewShiftPlanPage() {
         
         {/* Header Section */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, background: 'var(--bg-default)', padding: 24, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+          <div className="form-field" style={{ marginBottom: 0 }}>
+            <label>Project</label>
+            <select className="form-input" value={formData.projectId} onChange={e => setFormData({...formData, projectId: e.target.value})} style={{ fontWeight: 600 }} required>
+              <option value="">-- Select Project --</option>
+              {projectsList.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="form-field" style={{ marginBottom: 0 }}>
             <label>Date</label>
             <input type="date" className="form-input" required style={{ fontWeight: 600 }}

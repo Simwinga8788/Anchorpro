@@ -21,6 +21,9 @@ namespace AnchorPro.Data.Entities
         public string? ShiftBossId { get; set; }
         public ApplicationUser? ShiftBoss { get; set; }
 
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
+
         public decimal? OverallTargetSecondary { get; set; }
 
         [MaxLength(1000)]

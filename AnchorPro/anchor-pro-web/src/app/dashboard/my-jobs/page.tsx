@@ -19,10 +19,6 @@ import MiningMyShifts from './MiningMyShifts';
 
 export default function MyJobsPage() {
   const { user } = useAuth();
-  
-  if (user?.operationMode === 1) {
-    return <MiningMyShifts />;
-  }
 
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

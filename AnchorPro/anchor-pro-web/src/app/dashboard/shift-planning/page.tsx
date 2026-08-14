@@ -74,13 +74,13 @@ export default function ShiftPlanningPage() {
 
   return (
     <div className="animate-in" style={{ padding: '0 0' }}>
-      <div className="page-header">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 className="page-title">{t('ShiftPlanning', 'Shift Planning')}</h1>
           <p className="page-subtitle">Schedule fleet, operators, and targets for upcoming {t('Shift', 'shifts')}.</p>
         </div>
-        <div className="page-actions">
-          <div className="search-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="search-bar" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-default)', border: '1px solid var(--border-default)', padding: '6px 12px', borderRadius: 'var(--radius-md)' }}>
             <Search size={18} className="search-icon" />
             <input 
               type="text" 

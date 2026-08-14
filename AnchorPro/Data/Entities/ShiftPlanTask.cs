@@ -10,6 +10,9 @@ namespace AnchorPro.Data.Entities
         [JsonIgnore]
         public ShiftPlan? ShiftPlan { get; set; }
 
+        public int? ProjectTaskId { get; set; }
+        public ProjectTask? ProjectTask { get; set; }
+
         /// <summary>
         /// E.g. "Drilling", "Loading", "Hauling"
         /// </summary>

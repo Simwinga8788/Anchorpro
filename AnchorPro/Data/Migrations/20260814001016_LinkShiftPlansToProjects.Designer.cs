@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260814001016_LinkShiftPlansToProjects")]
+    partial class LinkShiftPlansToProjects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1131,9 +1134,6 @@ namespace AnchorPro.Migrations
                     b.Property<DateTime?>("ScheduledStartDate")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ShiftPlanTaskId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1166,8 +1166,6 @@ namespace AnchorPro.Migrations
                     b.HasIndex("JobTypeId");
 
                     b.HasIndex("ProjectId");
-
-                    b.HasIndex("ShiftPlanTaskId");
 
                     b.ToTable("JobCards");
                 });
@@ -3887,10 +3885,6 @@ namespace AnchorPro.Migrations
                         .WithMany("JobCards")
                         .HasForeignKey("ProjectId");
 
-                    b.HasOne("AnchorPro.Data.Entities.ShiftPlanTask", "ShiftPlanTask")
-                        .WithMany()
-                        .HasForeignKey("ShiftPlanTaskId");
-
                     b.Navigation("AssignedTechnician");
 
                     b.Navigation("Contract");
@@ -3902,8 +3896,6 @@ namespace AnchorPro.Migrations
                     b.Navigation("JobType");
 
                     b.Navigation("Project");
-
-                    b.Navigation("ShiftPlanTask");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.JobCardPart", b =>
