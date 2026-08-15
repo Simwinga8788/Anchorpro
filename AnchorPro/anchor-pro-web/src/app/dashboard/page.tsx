@@ -525,10 +525,14 @@ function ConstructionOverviewDashboard() {
   const shiftLogs = useApiData(() => shiftLogsApi.getAll());
   const safetyStats = useApiData(() => safetyApi.getStats());
 
-  const activeProjects = (projects.data || []).filter((p: any) => p.status === 'Active');
-  
+  const activeProjects = Array.isArray(projects.data) 
+    ? projects.data.filter((p: any) => p.status === 'Active') 
+    : [];
+    
   const todayStr = new Date().toISOString().split('T')[0];
-  const logsToday = (shiftLogs.data || []).filter((l: any) => l.shiftDate?.startsWith(todayStr));
+  const logsToday = Array.isArray(shiftLogs.data)
+    ? shiftLogs.data.filter((l: any) => l.shiftDate?.startsWith(todayStr))
+    : [];
 
   return (
     <div className="animate-in">
