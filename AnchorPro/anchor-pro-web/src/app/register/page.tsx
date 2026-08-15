@@ -9,7 +9,7 @@ interface OrgData   { companyName: string; industry: string; size: string; timez
 interface AdminData { firstName: string; lastName: string; email: string; password: string; confirm: string }
 
 const INDUSTRIES = [
-  'Construction', 'Mining & Extraction', 'Other',
+  'Construction', 'Mining & Extraction', 'Workshop & Maintenance', 'Other',
 ];
 const SIZES = ['1–10 employees', '11–50 employees', '51–200 employees', '201–500 employees', '500+ employees'];
 const TIMEZONES = [

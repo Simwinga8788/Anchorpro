@@ -12,7 +12,7 @@ interface NewTenantForm {
 const BLANK: NewTenantForm = { companyName: '', industry: '', adminEmail: '', adminFirstName: '', adminLastName: '', adminPassword: '' };
 
 const INDUSTRIES = [
-  'Construction', 'Mining & Extraction', 'Other',
+  'Construction', 'Mining & Extraction', 'Workshop & Maintenance', 'Other',
 ];
 
 export default function TenantsPage() {
