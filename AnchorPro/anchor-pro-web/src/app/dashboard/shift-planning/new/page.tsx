@@ -337,8 +337,8 @@ export default function NewShiftPlanPage() {
             </select>
           </div>
           <div className="form-field" style={{ gridColumn: '1 / -1', marginBottom: 0, marginTop: 16 }}>
-            <label>Overall Shift Target {t('Tonnage', 'Tonnage')} <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
-            <input type="number" className="form-input" placeholder="e.g. 1100" style={{ fontSize: 20, padding: 16 }}
+            <label>Overall Shift Target <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(optional)</span></label>
+            <input type="number" className="form-input" placeholder="e.g. 500" style={{ fontSize: 20, padding: 16 }}
               value={formData.overallTargetSecondary} onChange={e => setFormData({...formData, overallTargetSecondary: e.target.value})} />
           </div>
         </div>
