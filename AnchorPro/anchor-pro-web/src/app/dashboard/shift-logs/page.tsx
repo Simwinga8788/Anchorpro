@@ -69,6 +69,17 @@ export default function ShiftLogsPage() {
     try { await shiftLogsApi.reject(id, reason || 'Rejected by supervisor'); loadLogs(); } catch (e: any) { alert(e.message || 'Failed to reject'); }
   };
 
+  const handleGenerateDaily = async () => {
+    if (!confirm('Generate a Daily Log from all completed tasks for today?')) return;
+    try { 
+      await shiftLogsApi.generateDaily(new Date().toISOString()); 
+      alert('Daily log generated successfully!');
+      loadLogs(); 
+    } catch (e: any) { 
+      alert(e.message || 'Failed to generate daily log'); 
+    }
+  };
+
   const filteredLogs = filterStatus === 'all' ? logs : logs.filter(l => {
     if (filterStatus === 'draft') return l.status === 0;
     if (filterStatus === 'submitted') return l.status === 1;
@@ -93,9 +104,14 @@ export default function ShiftLogsPage() {
           </h1>
           <p className="page-subtitle">{t('ShiftLogsSubtitle', 'Track daily shift production, fuel, and target vs actual output.')}</p>
         </div>
-        <Link href="/dashboard/shift-logs/new" className="btn btn-primary">
-          <Plus size={18} /> New {t('ShiftLogItem', 'Shift Log')}
-        </Link>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleGenerateDaily} className="btn btn-secondary">
+            <FileText size={18} /> Generate Daily Log
+          </button>
+          <Link href="/dashboard/shift-logs/new" className="btn btn-primary">
+            <Plus size={18} /> New {t('ShiftLogItem', 'Shift Log')}
+          </Link>
+        </div>
       </div>
 
       {/* Today's summary */}

@@ -97,7 +97,7 @@ namespace AnchorPro.Services
             }
         }
 
-        public async Task<ShiftProductionLog> GenerateActualsAsync(int shiftPlanId, string userId)
+        public async Task<bool> GenerateActualsAsync(int shiftPlanId, string userId)
         {
             using var ctx = _factory.CreateDbContext();
             var plan = await ctx.ShiftPlans
@@ -107,37 +107,9 @@ namespace AnchorPro.Services
                 .FirstOrDefaultAsync(p => p.Id == shiftPlanId)
                 ?? throw new KeyNotFoundException($"ShiftPlan {shiftPlanId} not found.");
 
-            // Create a matching ShiftProductionLog
-            var count = await ctx.ShiftProductionLogs.CountAsync();
-            var log = new ShiftProductionLog
-            {
-                LogNumber        = $"SPL-{DateTime.UtcNow:yyyyMM}-{count + 1:D4}",
-                ShiftDate        = plan.PlanDate,
-                Shift            = plan.Shift,
-                Status           = ShiftLogStatus.Draft,
-                SupervisorName   = $"Captain: {plan.MineCaptain?.FirstName} {plan.MineCaptain?.LastName} | Boss: {plan.ShiftBoss?.FirstName} {plan.ShiftBoss?.LastName}",
-                TargetQuantity   = plan.OverallTargetSecondary,
-                UnitOfMeasure    = "Tons",
-                CreatedAt        = DateTime.UtcNow,
-                CreatedBy        = userId,
-                Remarks          = $"Generated from Shift Plan #{plan.Id}",
-                ShiftPlanId      = plan.Id,   // ← link back to originating plan
-                Resources        = new List<ShiftResource>()
-            };
-
             foreach (var task in plan.Tasks)
             {
-                log.Resources.Add(new ShiftResource
-                {
-                    EquipmentId     = task.EquipmentId,
-                    OperatorId      = task.OperatorId,
-                    Role            = task.ActivityCategory,
-                    PlannedQuantity = task.TargetPrimary,      // ← planned target per resource
-                    ActualQuantity  = task.ActualQuantity ?? 0, // ← actual checked quantity
-                    QuantityUnit    = task.TargetPrimaryUnit,
-                });
-
-                if (task.EquipmentId.HasValue && !string.IsNullOrEmpty(task.OperatorId))
+                if (!string.IsNullOrEmpty(task.OperatorId))
                 {
                     var jobType = await ctx.JobTypes.FirstOrDefaultAsync(t => t.Name == "Project Work") 
                         ?? await ctx.JobTypes.FirstOrDefaultAsync();
@@ -146,7 +118,7 @@ namespace AnchorPro.Services
                     {
                         JobNumber = $"SP-{plan.Id}-{task.Id}",
                         Description = $"{task.ActivityCategory} - {task.Location ?? "Site"}",
-                        EquipmentId = task.EquipmentId.Value,
+                        EquipmentId = task.EquipmentId,
                         JobTypeId = jobType?.Id ?? 1,
                         ProjectId = plan.ProjectId,
                         ShiftPlanTaskId = task.Id,
@@ -164,10 +136,8 @@ namespace AnchorPro.Services
 
             plan.Status = 1; // Active/Executed
 
-            ctx.ShiftProductionLogs.Add(log);
             await ctx.SaveChangesAsync();
-
-            return log;
+            return true;
         }
 
         public async Task<ShiftPlanTask> ToggleTaskCompletionAsync(

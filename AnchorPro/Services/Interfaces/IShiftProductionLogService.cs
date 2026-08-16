@@ -12,6 +12,7 @@ namespace AnchorPro.Services.Interfaces
         Task ApproveAsync(int id, string approvedByUserId);
         Task RejectAsync(int id, string reason, string userId);
         Task DeleteAsync(int id);
+        Task<ShiftProductionLog> GenerateDailyLogAsync(DateTime date, string userId);
         Task<List<ShiftProductionLog>> GetByEquipmentAsync(int equipmentId);
         Task<ShiftProductionSummary> GetSummaryAsync(DateTime from, DateTime to);
         Task<List<ShiftProductionLog>> GetUnbilledAsync();

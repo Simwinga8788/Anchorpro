@@ -65,8 +65,8 @@ namespace AnchorPro.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             try
             {
-                var log = await _service.GenerateActualsAsync(id, userId);
-                return Ok(log);
+                var success = await _service.GenerateActualsAsync(id, userId);
+                return Ok(new { success });
             }
             catch (KeyNotFoundException)
             {

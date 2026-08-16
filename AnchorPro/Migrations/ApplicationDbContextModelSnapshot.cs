@@ -1091,7 +1091,7 @@ namespace AnchorPro.Migrations
                     b.Property<decimal>("DirectPurchaseCost")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("EquipmentId")
+                    b.Property<int?>("EquipmentId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("EstimatedLaborHours")
@@ -3873,9 +3873,7 @@ namespace AnchorPro.Migrations
 
                     b.HasOne("AnchorPro.Data.Entities.Equipment", "Equipment")
                         .WithMany("JobCards")
-                        .HasForeignKey("EquipmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("EquipmentId");
 
                     b.HasOne("AnchorPro.Data.Entities.JobType", "JobType")
                         .WithMany()

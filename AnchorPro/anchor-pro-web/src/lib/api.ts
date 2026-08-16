@@ -663,6 +663,7 @@ export const shiftLogsApi = {
   approve:         (id: number)               => apiPost<void>(`/api/shift-logs/${id}/approve`, {}),
   reject:          (id: number, reason: string) => apiPost<void>(`/api/shift-logs/${id}/reject`, { reason }),
   delete:          (id: number)               => apiDelete(`/api/shift-logs/${id}`),
+  generateDaily:   (date: string)             => apiPost<any>('/api/shift-logs/generate-daily', { date }),
 };
 
 export const shiftPlansApi = {

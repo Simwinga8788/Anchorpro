@@ -142,7 +142,7 @@ namespace AnchorPro.Services
                 .GroupBy(j => new { j.EquipmentId, j.EquipmentName })
                 .Select(g => new AssetPerformanceReport
                 {
-                    EquipmentId = g.Key.EquipmentId,
+                    EquipmentId = g.Key.EquipmentId ?? 0,
                     EquipmentName = g.Key.EquipmentName,
                     TotalMaintenanceCost = g.Sum(j => j.TotalCost),
                     FailureCount = g.Count(j => j.TypeName.Contains("Corrective") || j.TypeName.Contains("Emergency")),

@@ -115,6 +115,20 @@ namespace AnchorPro.Controllers
             catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         }
 
+        /// <summary>POST /api/shift-logs/generate-daily</summary>
+        [HttpPost("generate-daily")]
+        [Authorize(Roles = "Admin,Supervisor")]
+        public async Task<IActionResult> GenerateDaily([FromBody] GenerateDailyRequest req)
+        {
+            try
+            {
+                var log = await _service.GenerateDailyLogAsync(req.Date, UserId);
+                return Ok(log);
+            }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
         public record RejectRequest(string Reason);
+        public record GenerateDailyRequest(DateTime Date);
     }
 }

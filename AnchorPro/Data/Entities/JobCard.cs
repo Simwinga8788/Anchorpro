@@ -16,7 +16,7 @@ namespace AnchorPro.Data.Entities
         public string Description { get; set; } = string.Empty;
 
         // Foreign Keys
-        public int EquipmentId { get; set; }
+        public int? EquipmentId { get; set; }
         public Equipment? Equipment { get; set; }
 
         public int JobTypeId { get; set; }

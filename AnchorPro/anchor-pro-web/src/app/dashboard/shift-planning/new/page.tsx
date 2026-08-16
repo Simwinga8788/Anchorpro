@@ -192,8 +192,8 @@ export default function NewShiftPlanPage() {
             </select>
           </div>
           <div className="form-field" style={{ marginBottom: 0 }}>
-            <label>Machine / Equipment</label>
-            <select className="form-input" value={task.equipmentId} onChange={e => handleTaskChange(task.id, 'equipmentId', e.target.value)} required>
+            <label>Machine / Equipment (Optional)</label>
+            <select className="form-input" value={task.equipmentId} onChange={e => handleTaskChange(task.id, 'equipmentId', e.target.value)}>
               <option value="">-- Select Machine --</option>
               {equipmentList.map(eq => (
                 <option key={eq.id} value={eq.id}>{eq.name} ({eq.serialNumber})</option>
