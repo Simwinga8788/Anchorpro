@@ -133,7 +133,7 @@ export default function CertificatesPage() {
               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, outline: 'none' }}
             >
               {projects.map(p => (
-                <option key={p.id} value={p.id} style={{ background: '#1e293b' }}>{p.name}</option>
+                <option key={p.id} value={p.id} style={{ background: 'var(--bg-card)' }}>{p.name}</option>
               ))}
             </select>
           </div>
@@ -322,7 +322,7 @@ export default function CertificatesPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Period Start Date</label>
               <input 
-                type="date" className="input-field" required 
+                type="date" className="form-input" required 
                 value={certForm.periodStartDate} 
                 onChange={e => setCertForm({ ...certForm, periodStartDate: e.target.value })} 
               />
@@ -330,7 +330,7 @@ export default function CertificatesPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Period End Date</label>
               <input 
-                type="date" className="input-field" required 
+                type="date" className="form-input" required 
                 value={certForm.periodEndDate} 
                 onChange={e => setCertForm({ ...certForm, periodEndDate: e.target.value })} 
               />
@@ -340,7 +340,7 @@ export default function CertificatesPage() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Retention Percentage (%)</label>
             <input 
-              type="number" step="0.5" className="input-field" required 
+              type="number" step="0.5" className="form-input" required 
               value={certForm.retentionPercentage} 
               onChange={e => setCertForm({ ...certForm, retentionPercentage: parseFloat(e.target.value) || 5 })} 
             />

@@ -42,8 +42,8 @@ export default function WeeklyReportPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {projects.length > 0 && (
             <select
-              className="input-field"
-              style={{ width: 260, background: '#1e293b' }}
+              className="form-input"
+              style={{ width: 260, background: 'var(--bg-card)' }}
               value={selectedProjectId || ''}
               onChange={e => setSelectedProjectId(Number(e.target.value))}
             >
@@ -59,46 +59,46 @@ export default function WeeklyReportPage() {
       </div>
 
       {/* Report Document Sheet */}
-      <div className="card" style={{ padding: '36px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
+      <div className="card" style={{ padding: '36px', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
         
         {/* Document Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid rgba(255,255,255,0.1)', paddingBottom: 20, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid var(--border-subtle)', paddingBottom: 20, marginBottom: 24 }}>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>WEEKLY PROGRESS REPORT #34</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>WEEKLY PROGRESS REPORT #34</div>
             <div style={{ fontSize: 14, color: '#3b82f6', fontWeight: 600, marginTop: 4 }}>
               {projects.find(p => p.id === selectedProjectId)?.name || 'Commercial Office Complex'}
             </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>Reporting Period: 18 Aug 2026 – 24 Aug 2026 (Week 34)</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>Reporting Period: 18 Aug 2026 – 24 Aug 2026 (Week 34)</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>Main Contractor</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Anchor Civil & Building Ltd</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Main Contractor</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Anchor Civil & Building Ltd</div>
             <div style={{ fontSize: 12, color: '#10b981', marginTop: 4 }}>Status: Approved by Site Agent</div>
           </div>
         </div>
 
         {/* Executive Summary Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-          <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', textTransform: 'uppercase' }}>Total Man-Hours Worked</div>
+          <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Man-Hours Worked</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6', marginTop: 4 }}>1,120 hrs</div>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>24 avg daily workforce</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>24 avg daily workforce</div>
           </div>
 
-          <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', textTransform: 'uppercase' }}>Plant Machine Hours</div>
+          <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Plant Machine Hours</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#10b981', marginTop: 4 }}>87.5 hrs</div>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>Excavators & Tippers</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>Excavators & Tippers</div>
           </div>
 
-          <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', textTransform: 'uppercase' }}>Weather Downtime</div>
+          <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Weather Downtime</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#f59e0b', marginTop: 4 }}>0 Days</div>
             <div style={{ fontSize: 11.5, color: '#10b981', marginTop: 2 }}>Zero Weather Delays</div>
           </div>
 
-          <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', textTransform: 'uppercase' }}>HSE Safety Incidents</div>
+          <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>HSE Safety Incidents</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#10b981', marginTop: 4 }}>0 Incidents</div>
             <div style={{ fontSize: 11.5, color: '#10b981', marginTop: 2 }}>100% Zero Harm</div>
           </div>
@@ -106,10 +106,10 @@ export default function WeeklyReportPage() {
 
         {/* Work Done This Week */}
         <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8, marginBottom: 12 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
             1. Key Works Executed During Week
           </h3>
-          <ul style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.8, paddingLeft: 20 }}>
+          <ul style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, paddingLeft: 20 }}>
             <li>Completed bulk excavation for strip footings Grid A1 through A8 to invert level -1.80m.</li>
             <li>Placed 85m³ of blinding concrete layer (15MPa) across foundation trenches.</li>
             <li>Prefabricated and tied 8.5 tons of High Tensile Y16 foundation steel reinforcement mats.</li>
@@ -119,10 +119,10 @@ export default function WeeklyReportPage() {
 
         {/* 2-Week Lookahead */}
         <div>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8, marginBottom: 12 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
             2. Two-Week Lookahead Program
           </h3>
-          <ul style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.8, paddingLeft: 20 }}>
+          <ul style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, paddingLeft: 20 }}>
             <li>Cast foundation footings with 25MPa ReadyMix Concrete (Volume: 120m³).</li>
             <li>Erect formwork and cast starter stub columns up to ground beam level.</li>
             <li>Import and compact 250m³ of G5 gravel backfill under ground floor slab.</li>

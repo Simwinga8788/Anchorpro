@@ -126,9 +126,9 @@ export default function SiteDiaryPage() {
       case 'heavy rain':
         return <CloudRain size={16} style={{ color: '#60a5fa' }} />;
       case 'overcast':
-        return <Cloud size={16} style={{ color: '#94a3b8' }} />;
+        return <Cloud size={16} style={{ color: 'var(--text-secondary)' }} />;
       case 'wind':
-        return <Wind size={16} style={{ color: '#cbd5e1' }} />;
+        return <Wind size={16} style={{ color: 'var(--text-secondary)' }} />;
       default:
         return <Sun size={16} style={{ color: '#f59e0b' }} />;
     }
@@ -160,7 +160,7 @@ export default function SiteDiaryPage() {
               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, outline: 'none' }}
             >
               {projects.map(p => (
-                <option key={p.id} value={p.id} style={{ background: '#1e293b' }}>{p.name}</option>
+                <option key={p.id} value={p.id} style={{ background: 'var(--bg-card)' }}>{p.name}</option>
               ))}
             </select>
           </div>
@@ -257,7 +257,7 @@ export default function SiteDiaryPage() {
                       Labour Headcount by Trade
                     </div>
                     {(entry.labourHeadcounts || entry.LabourHeadcounts || []).map((l: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span style={{ color: 'var(--text-primary)' }}>{l.tradeOrCrewName}</span>
                         <span style={{ fontWeight: 700, color: '#3b82f6' }}>{l.headcount} men ({l.hoursWorked}h)</span>
                       </div>
@@ -269,7 +269,7 @@ export default function SiteDiaryPage() {
                       Plant & Machinery Usage
                     </div>
                     {(entry.plantUsages || entry.PlantUsages || []).map((p: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span style={{ color: 'var(--text-primary)' }}>{p.equipmentName}</span>
                         <span style={{ fontWeight: 700, color: '#10b981' }}>{p.operatingHours}h Run / {p.idleHours}h Idle</span>
                       </div>
@@ -303,7 +303,7 @@ export default function SiteDiaryPage() {
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Date</label>
               <input 
                 type="date" 
-                className="input-field" 
+                className="form-input" 
                 value={form.diaryDate} 
                 onChange={e => setForm({ ...form, diaryDate: e.target.value })} 
                 required 
@@ -312,7 +312,7 @@ export default function SiteDiaryPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Weather</label>
               <select 
-                className="input-field" 
+                className="form-input" 
                 value={form.weatherCondition} 
                 onChange={e => setForm({ ...form, weatherCondition: e.target.value })}
               >
@@ -327,7 +327,7 @@ export default function SiteDiaryPage() {
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Temp (°C)</label>
               <input 
                 type="number" 
-                className="input-field" 
+                className="form-input" 
                 value={form.temperatureCelsius} 
                 onChange={e => setForm({ ...form, temperatureCelsius: parseFloat(e.target.value) || 0 })} 
               />
@@ -337,7 +337,7 @@ export default function SiteDiaryPage() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Work Performed Summary</label>
             <textarea 
-              className="input-field" 
+              className="form-input" 
               rows={3}
               value={form.workPerformedSummary} 
               onChange={e => setForm({ ...form, workPerformedSummary: e.target.value })} 
@@ -350,7 +350,7 @@ export default function SiteDiaryPage() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Delays / Constraints / Standing Time</label>
             <input 
               type="text" 
-              className="input-field" 
+              className="form-input" 
               value={form.delaysOrConstraints} 
               onChange={e => setForm({ ...form, delaysOrConstraints: e.target.value })} 
               placeholder="e.g. 2 hours standing time due to morning rainstorm." 
@@ -366,7 +366,7 @@ export default function SiteDiaryPage() {
             {form.labour.map((l, idx) => (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 6 }}>
                 <input 
-                  type="text" className="input-field" placeholder="Trade (e.g. Bricklayers)" 
+                  type="text" className="form-input" placeholder="Trade (e.g. Bricklayers)" 
                   value={l.tradeOrCrewName} 
                   onChange={e => {
                     const next = [...form.labour];
@@ -376,7 +376,7 @@ export default function SiteDiaryPage() {
                   required 
                 />
                 <input 
-                  type="number" className="input-field" placeholder="Headcount" 
+                  type="number" className="form-input" placeholder="Headcount" 
                   value={l.headcount} 
                   onChange={e => {
                     const next = [...form.labour];
@@ -386,7 +386,7 @@ export default function SiteDiaryPage() {
                   required 
                 />
                 <input 
-                  type="number" className="input-field" placeholder="Hours" 
+                  type="number" className="form-input" placeholder="Hours" 
                   value={l.hoursWorked} 
                   onChange={e => {
                     const next = [...form.labour];
