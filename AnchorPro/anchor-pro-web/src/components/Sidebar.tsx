@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield, UserCog
+  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield, UserCog,
+  Calendar, Camera, FileCheck, Truck, HardHat, FileSpreadsheet, Layers
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -15,158 +16,61 @@ import { useSidebar } from '@/lib/SidebarContext';
 import { useState, useEffect } from 'react';
 import { adminAccessApi } from '@/lib/api';
 
-// ── Enum constants matching the backend OperationMode enum ────────────────────
-const OP = {
-  JobCard:            0,
-  ShiftProductionLog: 1,
-  TripSheet:          2,
-  SiteDiary:          3,
-  MaintenanceRecord:  4,
-  GeneralWorkOrder:   5,
-} as const;
-
-// ── Static sections shared by ALL operation modes ─────────────────────────────
-const SHARED_SECTIONS = [
+// ── Construction Management Suite Navigation ─────────────────────────────────
+const CONSTRUCTION_NAV_SECTIONS = [
   {
-    label: 'Project Management',
+    label: 'Site & Field Operations',
+    items: [
+      { href: '/dashboard',               label: 'Site Overview',         icon: LayoutDashboard },
+      { href: '/dashboard/site-diary',    label: 'Daily Site Diary',      icon: ClipboardList },
+      { href: '/dashboard/shift-logs',    label: 'Daily Shift Logs',      icon: FileCheck },
+      { href: '/dashboard/schedule',      label: 'Program & Schedule',    icon: Calendar },
+      { href: '/dashboard/time-tracking', label: 'Site Labour Hours',     icon: Timer },
+      { href: '/dashboard/downtime',      label: 'Delays & Constraints',  icon: Pause },
+      { href: '/dashboard/safety',        label: 'Safety & Incidents',    icon: ShieldCheck },
+    ],
+  },
+  {
+    label: 'Commercial & Quantity Surveying',
+    items: [
+      { href: '/dashboard/boq',           label: 'Bill of Quantities (BOQ)', icon: FileSpreadsheet },
+      { href: '/dashboard/certificates',  label: 'Payment Certificates', icon: FileText },
+      { href: '/dashboard/variations',    label: 'Variations & Claims',  icon: Layers },
+      { href: '/dashboard/contracts',     label: 'Contracts & Terms',    icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Project Management & Reporting',
     items: [
       { href: '/dashboard/projects',          label: 'Projects Portfolio',   icon: Building2 },
-      { href: '/dashboard/projects/my-tasks', label: 'My Project Tasks',     icon: Hash },
+      { href: '/dashboard/reports/weekly',    label: 'Weekly Progress Report', icon: BarChart3 },
+      { href: '/dashboard/reports/monthly',   label: 'Monthly Client Report', icon: FileText },
+      { href: '/dashboard/intelligence',      label: 'Project Intelligence', icon: TrendingUp },
     ],
   },
   {
-    label: 'Human Resources',
+    label: 'Plant, Materials & Procurement',
     items: [
-      { href: '/dashboard/hr',           label: 'HR & Team',            icon: UserCog },
+      { href: '/dashboard/assets',       label: 'Plant & Equipment',    icon: Truck },
+      { href: '/dashboard/procurement',  label: 'Material Procurement', icon: Zap },
+      { href: '/dashboard/inventory',    label: 'Site Materials Store', icon: Package },
+      { href: '/dashboard/tools',        label: 'Small Tools Registry', icon: Wrench },
+    ],
+  },
+  {
+    label: 'Finance & Administration',
+    items: [
+      { href: '/dashboard/finance',      label: 'Project Cost & Ledger', icon: DollarSign },
+      { href: '/dashboard/invoices',     label: 'Billing & Claims',     icon: DollarSign },
+      { href: '/dashboard/customers',    label: 'Clients & Consultants',icon: Users },
+      { href: '/dashboard/hr',           label: 'Site Team & HR',       icon: UserCog },
       { href: '/dashboard/roles',        label: 'Roles & Permissions',  icon: Shield },
-    ],
-  },
-  {
-    label: 'Finance',
-    items: [
-      { href: '/dashboard/finance',      label: 'Cashbook & Payables',  icon: DollarSign },
-      { href: '/dashboard/invoices',     label: 'Invoices & Billing',   icon: DollarSign },
-      { href: '/dashboard/intelligence', label: 'Intelligence',         icon: TrendingUp },
-    ],
-  },
-  {
-    label: 'Sales & Customer',
-    items: [
-      { href: '/dashboard/customers',    label: 'CRM & Customers',      icon: Users },
-      { href: '/dashboard/contracts',    label: 'Client Contracts',     icon: FileText },
-    ],
-  },
-  {
-    label: 'Enterprise Asset Mgt',
-    items: [
-      { href: '/dashboard/assets',       label: 'Asset Registry',       icon: Building2 },
-      { href: '/dashboard/inventory',    label: 'Inventory & Parts',    icon: Package },
-      { href: '/dashboard/tools',        label: 'Tools Registry',       icon: Wrench },
-      { href: '/dashboard/procurement',  label: 'Procurement',          icon: Zap },
     ],
   },
 ];
 
-// ── Per-mode operations & planning sections ───────────────────────────────────
-const OPS_SECTIONS: Record<number, { label: string; items: { href: string; label: string; icon: any }[] }> = {
-  // 0 — Workshop / Engineering / Field Service (default)
-  [OP.JobCard]: {
-    label: 'Operations & Planning',
-    items: [
-      { href: '/dashboard',               label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/performance',   label: 'Performance Metrics',  icon: Activity },
-      { href: '/dashboard/my-jobs',       label: 'My Assignments',       icon: ClipboardList },
-      { href: '/dashboard/jobs',          label: 'Job Cards',            icon: ClipboardList },
-      { href: '/dashboard/planning',      label: 'Planning Board',       icon: Activity },
-      { href: '/dashboard/time-tracking', label: 'Time Tracking',        icon: Timer },
-      { href: '/dashboard/downtime',      label: 'Downtime Log',         icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-    ],
-  },
-  // 1 — Mining & Extraction
-  [OP.ShiftProductionLog]: {
-    label: 'Mining Operations',
-    items: [
-      { href: '/dashboard/performance',   label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/shift-logs',    label: 'Shift Production Logs',icon: ClipboardList },
-      { href: '/dashboard/my-jobs',       label: 'My Shifts',            icon: Hash },
-      { href: '/dashboard/shift-planning',label: 'Shift Planner',        icon: Activity },
-      { href: '/dashboard/contractors',   label: 'Contractors',          icon: Wrench },
-      { href: '/dashboard/downtime',      label: 'Equipment Downtime',   icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-      { href: '/dashboard/time-tracking', label: 'Time Tracking',        icon: Timer },
-    ],
-  },
-  // 2 — Transport & Logistics
-  [OP.TripSheet]: {
-    label: 'Fleet Operations',
-    items: [
-      { href: '/dashboard',               label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/performance',   label: 'Fleet Performance',    icon: Activity },
-      { href: '/dashboard/my-jobs',       label: 'My Trips',             icon: ClipboardList },
-      { href: '/dashboard/planning',      label: 'Route Planning',       icon: Activity },
-      { href: '/dashboard/downtime',      label: 'Vehicle Downtime',     icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-      { href: '/dashboard/time-tracking', label: 'Driver Hours',         icon: Timer },
-    ],
-  },
-  // 3 — Construction & Civil Works
-  [OP.SiteDiary]: {
-    label: 'Site Operations',
-    items: [
-      { href: '/dashboard',               label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/performance',   label: 'Site Performance',     icon: Activity },
-      { href: '/dashboard/my-jobs',       label: 'My Tasks',             icon: ClipboardList },
-      { href: '/dashboard/jobs',          label: 'Work Orders',          icon: ClipboardList },
-      { href: '/dashboard/shift-planning',label: 'Site Planner',         icon: Activity },
-      { href: '/dashboard/shift-logs',    label: 'Site Daily Logs',      icon: ClipboardList },
-      { href: '/dashboard/downtime',      label: 'Equipment Downtime',   icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-      { href: '/dashboard/time-tracking', label: 'Labour Hours',         icon: Timer },
-    ],
-  },
-  // 4 — Facilities Management
-  [OP.MaintenanceRecord]: {
-    label: 'Facilities Operations',
-    items: [
-      { href: '/dashboard',               label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/performance',   label: 'Performance Metrics',  icon: Activity },
-      { href: '/dashboard/my-jobs',       label: 'My Work Orders',       icon: ClipboardList },
-      { href: '/dashboard/jobs',          label: 'Maintenance Records',  icon: ClipboardList },
-      { href: '/dashboard/planning',      label: 'PM Schedule',          icon: Activity },
-      { href: '/dashboard/downtime',      label: 'Asset Downtime',       icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-      { href: '/dashboard/time-tracking', label: 'Technician Hours',     icon: Timer },
-    ],
-  },
-  // 5 — General / fallback
-  [OP.GeneralWorkOrder]: {
-    label: 'Operations',
-    items: [
-      { href: '/dashboard',               label: 'Dashboard',            icon: LayoutDashboard },
-      { href: '/dashboard/performance',   label: 'Performance Metrics',  icon: Activity },
-      { href: '/dashboard/my-jobs',       label: 'My Assignments',       icon: ClipboardList },
-      { href: '/dashboard/jobs',          label: 'Work Orders',          icon: ClipboardList },
-      { href: '/dashboard/planning',      label: 'Planning Board',       icon: Activity },
-      { href: '/dashboard/downtime',      label: 'Downtime Log',         icon: Pause },
-      { href: '/dashboard/safety',        label: 'Safety & Compliance',  icon: ShieldCheck },
-      { href: '/dashboard/time-tracking', label: 'Time Tracking',        icon: Timer },
-    ],
-  },
-};
-
-const MODE_LABEL: Record<number, { text: string; color: string }> = {
-  [OP.JobCard]:            { text: 'Workshop',       color: '#6366f1' },
-  [OP.ShiftProductionLog]: { text: 'Mining',         color: '#f59e0b' },
-  [OP.TripSheet]:          { text: 'Logistics',      color: '#10b981' },
-  [OP.SiteDiary]:          { text: 'Construction',   color: '#ef4444' },
-  [OP.MaintenanceRecord]:  { text: 'Facilities',     color: '#8b5cf6' },
-  [OP.GeneralWorkOrder]:   { text: 'General',        color: '#6b7280' },
-};
-
-function getNavSections(operationMode: number) {
-  const opsSection = OPS_SECTIONS[operationMode] ?? OPS_SECTIONS[OP.JobCard];
-  return [opsSection, ...SHARED_SECTIONS];
+function getNavSections() {
+  return CONSTRUCTION_NAV_SECTIONS;
 }
 
 
@@ -232,24 +136,21 @@ export default function Sidebar() {
           <img src="/AnchorPro_logo.png" alt="Anchor Pro Logo" style={{ height: '90px', width: 'auto', objectFit: 'contain' }} />
         </div>
 
-        {/* Operation Mode badge — shows industry context */}
-        {user && !isPlatformOwner && (() => {
-          const mode = MODE_LABEL[user.operationMode ?? 0] ?? MODE_LABEL[0];
-          return (
-            <div style={{
-              display: 'flex', justifyContent: 'center', marginBottom: 4,
+        {/* Construction ERP Suite badge */}
+        {user && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', marginBottom: 4,
+          }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.8px',
+              textTransform: 'uppercase', padding: '2px 10px', borderRadius: 20,
+              background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
             }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.8px',
-                textTransform: 'uppercase', padding: '2px 10px', borderRadius: 20,
-                background: `${mode.color}22`, color: mode.color,
-                border: `1px solid ${mode.color}44`,
-              }}>
-                {mode.text}
-              </span>
-            </div>
-          );
-        })()}
+              Construction Management
+            </span>
+          </div>
+        )}
 
         {/* Platform Console link */}
         {isPlatformOwner && (
@@ -298,7 +199,7 @@ export default function Sidebar() {
 
       {/* ── Navigation ── */}
       <div style={{ flex: 1, padding: '6px 6px', overflowY: 'auto' }}>
-        {getNavSections(user?.operationMode ?? 0).map((section) => {
+        {getNavSections().map((section) => {
           const visibleItems = section.items.filter(item =>
             canAccess(item.href, user?.allowedRoutes || [], isPlatformOwner, user?.operationMode ?? 0)
           );

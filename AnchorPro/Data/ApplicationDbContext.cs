@@ -12,7 +12,8 @@ namespace AnchorPro.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentTenantService tenantService) : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
     public int? CurrentTenantId { get; } = tenantService.TenantId;
-    public bool IgnoreTenantFilter { get; set; }
+    // Single-tenancy: IgnoreTenantFilter is always true so all data is accessible to the company without tenant partitioning
+    public bool IgnoreTenantFilter { get; set; } = true;
 
     public DbSet<Entities.Equipment> Equipment { get; set; }
     public DbSet<Entities.JobType> JobTypes { get; set; }
@@ -78,6 +79,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.ProjectMember> ProjectMembers { get; set; }
     public DbSet<Entities.ProjectMilestone> ProjectMilestones { get; set; }
     public DbSet<Entities.ProjectDocument> ProjectDocuments { get; set; }
+
+    // Construction Management Suite Entities
+    public DbSet<Entities.BillOfQuantities> BillsOfQuantities { get; set; }
+    public DbSet<Entities.BoqSection> BoqSections { get; set; }
+    public DbSet<Entities.BoqItem> BoqItems { get; set; }
+    public DbSet<Entities.SiteDiaryEntry> SiteDiaryEntries { get; set; }
+    public DbSet<Entities.SiteDiaryLabour> SiteDiaryLabours { get; set; }
+    public DbSet<Entities.SiteDiaryPlant> SiteDiaryPlants { get; set; }
+    public DbSet<Entities.SiteDiaryDelivery> SiteDiaryDeliveries { get; set; }
+    public DbSet<Entities.SiteDiaryPhoto> SiteDiaryPhotos { get; set; }
+    public DbSet<Entities.SiteDiarySafety> SiteDiarySafeties { get; set; }
+    public DbSet<Entities.PaymentCertificate> PaymentCertificates { get; set; }
+    public DbSet<Entities.PaymentCertificateItem> PaymentCertificateItems { get; set; }
+    public DbSet<Entities.Variation> Variations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

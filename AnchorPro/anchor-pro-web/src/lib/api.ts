@@ -585,6 +585,7 @@ export const reportingApi = {
 // ─── Projects API ── /api/projects ─────────────────────────────────────────────
 export const projectsApi = {
   getAll: () => apiFetch<any[]>('/api/projects'),
+  getProjects: () => apiFetch<any[]>('/api/projects'),
   getById: (id: number) => apiFetch<any>(`/api/projects/${id}`),
 };
 
@@ -848,4 +849,46 @@ export const financeApi = {
 // ─── Copilot API ── /api/copilot ───────────────────────────────────────────────
 export const copilotApi = {
   chat: (message: string) => apiPost<any>('/api/copilot/chat', { message })
+};
+
+// ─── Bill of Quantities (BOQ) API ── /api/boq ──────────────────────────────────
+export const boqApi = {
+  getByProject: (projectId: number) => apiFetch<any>(`/api/boq/project/${projectId}`),
+  addSection: (boqId: number, data: { sectionCode: string; sectionName: string }) => 
+    apiPost<any>(`/api/boq/${boqId}/sections`, data),
+  addItem: (sectionId: number, data: { itemNumber: string; description: string; unitOfMeasure: string; quantity: number; rate: number }) => 
+    apiPost<any>(`/api/boq/sections/${sectionId}/items`, data),
+  updateItem: (itemId: number, data: { itemNumber: string; description: string; unitOfMeasure: string; quantity: number; rate: number }) => 
+    apiPut<any>(`/api/boq/items/${itemId}`, data),
+  deleteItem: (itemId: number) => apiDelete(`/api/boq/items/${itemId}`),
+  importCsv: (boqId: number, csvContent: string) => apiPost<any>(`/api/boq/${boqId}/import-csv`, { csvContent }),
+};
+
+// ─── Daily Site Diary API ── /api/sitediary ─────────────────────────────────────
+export const siteDiaryApi = {
+  getByProject: (projectId: number, fromDate?: string, toDate?: string) => {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    const qs = params.toString();
+    return apiFetch<any[]>(`/api/sitediary/project/${projectId}${qs ? `?${qs}` : ''}`);
+  },
+  getById: (id: number) => apiFetch<any>(`/api/sitediary/${id}`),
+  create: (data: any) => apiPost<any>('/api/sitediary', data),
+  addPhoto: (id: number, data: { photoUrl: string; caption?: string }) => 
+    apiPost<any>(`/api/sitediary/${id}/photos`, data),
+  submit: (id: number) => apiPost<any>(`/api/sitediary/${id}/submit`, {}),
+  approve: (id: number) => apiPost<any>(`/api/sitediary/${id}/approve`, {}),
+};
+
+// ─── Interim Payment Certificates API ── /api/certificates ─────────────────────
+export const certificatesApi = {
+  getByProject: (projectId: number) => apiFetch<any[]>(`/api/certificates/project/${projectId}`),
+  getById: (id: number) => apiFetch<any>(`/api/certificates/${id}`),
+  create: (data: { projectId: number; periodStartDate: string; periodEndDate: string; retentionPercentage?: number }) => 
+    apiPost<any>('/api/certificates', data),
+  updateMeasurements: (id: number, measurements: { certificateItemId: number; currentQuantity: number; notes?: string }[]) => 
+    apiPut<any>(`/api/certificates/${id}/items`, measurements),
+  submitToConsultant: (id: number) => apiPost<any>(`/api/certificates/${id}/submit`, {}),
+  approve: (id: number) => apiPost<any>(`/api/certificates/${id}/approve`, {}),
 };

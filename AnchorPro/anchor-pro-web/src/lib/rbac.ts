@@ -38,7 +38,17 @@ export const ROLES = {
  */
 const MODE_CORE_ROUTES: Record<number, Set<string>> = {
   1: new Set(['/dashboard/shift-planning', '/dashboard/shift-logs', '/dashboard/contractors']),  // Mining
-  3: new Set(['/dashboard/shift-planning', '/dashboard/shift-logs']),                             // Construction (Site Planner + Site Daily Logs)
+  3: new Set([
+    '/dashboard',
+    '/dashboard/boq',
+    '/dashboard/site-diary',
+    '/dashboard/certificates',
+    '/dashboard/variations',
+    '/dashboard/shift-logs',
+    '/dashboard/schedule',
+    '/dashboard/projects',
+    '/dashboard/reports'
+  ]), // Construction Management Suite Core
 };
 
 /**
