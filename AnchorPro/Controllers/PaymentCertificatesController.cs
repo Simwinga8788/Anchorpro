@@ -54,6 +54,8 @@ namespace AnchorPro.Controllers
                 .Include(c => c.Items)
                     .ThenInclude(i => i.BoqItem!)
                         .ThenInclude(b => b.BoqSection)
+                .Include(c => c.Variations)
+                    .ThenInclude(v => v.Variation)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cert == null) return NotFound();
@@ -82,7 +84,7 @@ namespace AnchorPro.Controllers
                 .ToListAsync();
 
             decimal previousPaid = previousCerts.Sum(c => c.NetAmountDue);
-            int nextCertNumber = previousCerts.Count + 1;
+            int nextCertNumber = await db.PaymentCertificates.CountAsync(c => c.ProjectId == dto.ProjectId) + 1;
 
             var cert = new PaymentCertificate
             {
@@ -97,6 +99,7 @@ namespace AnchorPro.Controllers
             };
 
             // Pre-populate with all BOQ items
+            decimal itemsValue = 0;
             foreach (var section in boq.Sections)
             {
                 foreach (var item in section.Items)
@@ -108,6 +111,8 @@ namespace AnchorPro.Controllers
                         .FirstOrDefaultAsync();
 
                     decimal prevQty = prevItem?.CumulativeQuantityCompleted ?? 0;
+                    decimal cumulativeValue = Math.Round(prevQty * item.Rate, 2);
+                    itemsValue += cumulativeValue;
 
                     cert.Items.Add(new PaymentCertificateItem
                     {
@@ -115,11 +120,40 @@ namespace AnchorPro.Controllers
                         PreviousQuantity = prevQty,
                         CurrentQuantityCompleted = 0,
                         CumulativeQuantityCompleted = prevQty,
-                        CumulativeValueCompleted = Math.Round(prevQty * item.Rate, 2),
+                        CumulativeValueCompleted = cumulativeValue,
                         PercentageComplete = item.Quantity > 0 ? Math.Round((prevQty / item.Quantity) * 100, 2) : 0
                     });
                 }
             }
+
+            // Pull in Approved variations for this project that haven't been certified yet —
+            // per FR-8.2, an approved variation automatically becomes available on the next certificate.
+            var alreadyCertifiedVariationIds = await db.PaymentCertificateVariations
+                .Where(cv => cv.PaymentCertificate!.ProjectId == dto.ProjectId)
+                .Select(cv => cv.VariationId)
+                .ToListAsync();
+
+            var pendingVariations = await db.Variations
+                .Where(v => v.ProjectId == dto.ProjectId
+                    && v.Status == VariationStatus.Approved
+                    && !alreadyCertifiedVariationIds.Contains(v.Id))
+                .ToListAsync();
+
+            decimal variationsValue = 0;
+            foreach (var variation in pendingVariations)
+            {
+                variationsValue += variation.Amount;
+                cert.Variations.Add(new PaymentCertificateVariation
+                {
+                    VariationId = variation.Id,
+                    ValuedAmount = variation.Amount
+                });
+            }
+
+            cert.GrossValuationToDate = itemsValue + variationsValue;
+            cert.RetentionDeductionToDate = Math.Round(cert.GrossValuationToDate * (cert.RetentionPercentage / 100m), 2);
+            cert.NetAmountDue = (cert.GrossValuationToDate - cert.RetentionDeductionToDate) - cert.PreviousCertificatesPaid;
+            if (cert.NetAmountDue < 0) cert.NetAmountDue = 0;
 
             db.PaymentCertificates.Add(cert);
             await db.SaveChangesAsync();
@@ -138,6 +172,7 @@ namespace AnchorPro.Controllers
             var cert = await db.PaymentCertificates
                 .Include(c => c.Items)
                     .ThenInclude(i => i.BoqItem)
+                .Include(c => c.Variations)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cert == null) return NotFound();
@@ -154,13 +189,21 @@ namespace AnchorPro.Controllers
                     item.CurrentQuantityCompleted = m.CurrentQuantity;
                     item.CumulativeQuantityCompleted = item.PreviousQuantity + m.CurrentQuantity;
                     item.CumulativeValueCompleted = Math.Round(item.CumulativeQuantityCompleted * item.BoqItem.Rate, 2);
-                    item.PercentageComplete = item.BoqItem.Quantity > 0 ? 
+                    item.PercentageComplete = item.BoqItem.Quantity > 0 ?
                         Math.Round((item.CumulativeQuantityCompleted / item.BoqItem.Quantity) * 100, 2) : 0;
                     item.Notes = m.Notes;
 
                     totalGrossValuation += item.CumulativeValueCompleted;
                 }
             }
+
+            // Items not present in this update batch keep their existing cumulative value
+            foreach (var item in cert.Items.Where(i => !measurements.Any(m => m.CertificateItemId == i.Id)))
+            {
+                totalGrossValuation += item.CumulativeValueCompleted;
+            }
+
+            totalGrossValuation += cert.Variations.Sum(v => v.ValuedAmount);
 
             cert.GrossValuationToDate = totalGrossValuation;
             cert.RetentionDeductionToDate = Math.Round(totalGrossValuation * (cert.RetentionPercentage / 100m), 2);

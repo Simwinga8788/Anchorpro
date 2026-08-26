@@ -64,6 +64,20 @@ namespace AnchorPro.Data.Entities
         public ApplicationUser? ApprovedBy { get; set; }
 
         public ICollection<PaymentCertificateItem> Items { get; set; } = new List<PaymentCertificateItem>();
+        public ICollection<PaymentCertificateVariation> Variations { get; set; } = new List<PaymentCertificateVariation>();
+    }
+
+    /// <summary>Links an approved Variation into the certificate it was first certified on, with the value carried at inclusion time.</summary>
+    public class PaymentCertificateVariation : BaseEntity
+    {
+        public int PaymentCertificateId { get; set; }
+        public PaymentCertificate? PaymentCertificate { get; set; }
+
+        public int VariationId { get; set; }
+        public Variation? Variation { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ValuedAmount { get; set; }
     }
 
     public class PaymentCertificateItem : BaseEntity
@@ -129,5 +143,19 @@ namespace AnchorPro.Data.Entities
         [MaxLength(85)]
         public string? ApprovedById { get; set; }
         public ApplicationUser? ApprovedBy { get; set; }
+
+        public ICollection<VariationStatusHistory> StatusHistory { get; set; } = new List<VariationStatusHistory>();
+        public ICollection<PaymentCertificateVariation> CertificateVariations { get; set; } = new List<PaymentCertificateVariation>();
+    }
+
+    /// <summary>Audit trail entry for a Variation status change. CreatedBy/CreatedAt (from BaseEntity) record who made the change and when.</summary>
+    public class VariationStatusHistory : BaseEntity
+    {
+        public int VariationId { get; set; }
+        public Variation? Variation { get; set; }
+
+        public VariationStatus Status { get; set; }
+
+        public string? Notes { get; set; }
     }
 }

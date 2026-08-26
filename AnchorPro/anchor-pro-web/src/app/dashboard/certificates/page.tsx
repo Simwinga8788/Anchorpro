@@ -444,6 +444,40 @@ export default function CertificatesPage() {
                 </table>
               </div>
             </div>
+
+            {/* Approved Variations Included */}
+            {(selectedCert.variations || selectedCert.Variations || []).length > 0 && (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Approved Variations Included</h3>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '10px 14px', width: '90px' }}>VO #</th>
+                        <th style={{ padding: '10px 14px' }}>Title</th>
+                        <th style={{ padding: '10px 14px', width: '140px', textAlign: 'right' }}>Valued Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedCert.variations || selectedCert.Variations || []).map((cv: any) => {
+                        const variation = cv.variation || cv.Variation;
+                        return (
+                          <tr key={cv.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#3b82f6' }}>{variation?.variationNumber}</td>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>{variation?.title}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              ${Number(cv.valuedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="card" style={{ padding: 40, textAlign: 'center' }}>

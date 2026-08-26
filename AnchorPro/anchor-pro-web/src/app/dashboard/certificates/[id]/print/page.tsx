@@ -174,6 +174,34 @@ export default function PrintCertificatePage() {
           </table>
         </div>
 
+        {/* Approved variations included */}
+        {(cert.variations || cert.Variations || []).length > 0 && (
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Approved Variations Included</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+              <thead>
+                <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #d1d5db', textAlign: 'left' }}>
+                  <th style={{ padding: '6px 8px' }}>VO #</th>
+                  <th style={{ padding: '6px 8px' }}>Title</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Valued Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(cert.variations || cert.Variations || []).map((cv: any) => {
+                  const variation = cv.variation || cv.Variation;
+                  return (
+                    <tr key={cv.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '6px 8px', fontWeight: 600, color: '#2563eb' }}>{variation?.variationNumber}</td>
+                      <td style={{ padding: '6px 8px' }}>{variation?.title}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{money(cv.valuedAmount)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Summary sheet */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
           <div style={{ width: '300px', fontSize: '13px' }}>

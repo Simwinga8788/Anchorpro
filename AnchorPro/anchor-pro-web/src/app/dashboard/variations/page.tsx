@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Layers, Plus, FileText, CheckCircle2, Clock, 
-  AlertCircle, DollarSign, ArrowUpRight, Search, Loader2
+import {
+  Layers, Plus, FileText, CheckCircle2, Clock,
+  AlertCircle, DollarSign, ArrowUpRight, Search, Loader2, X, Link2
 } from 'lucide-react';
-import { projectsApi, variationsApi } from '@/lib/api';
+import { projectsApi, variationsApi, boqApi } from '@/lib/api';
 import Modal from '@/components/Modal';
 
 interface VariationItem {
@@ -16,8 +16,11 @@ interface VariationItem {
   description: string;
   amount: number;
   timeExtensionDays: number;
+  boqItemId?: number | null;
+  boqItemNumber?: string | null;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Under Review';
   requestedDate: string;
+  includedInCertificateId?: number | null;
 }
 
 export default function VariationsPage() {
@@ -33,8 +36,10 @@ export default function VariationsPage() {
     description: '',
     amount: 0,
     timeExtensionDays: 0,
-    status: 'Pending'
+    boqItemId: null
   });
+  const [boqItems, setBoqItems] = useState<any[]>([]);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     projectsApi.getProjects()
@@ -63,6 +68,12 @@ export default function VariationsPage() {
   useEffect(() => {
     if (selectedProjectId) {
       loadVariations(selectedProjectId);
+      boqApi.getByProject(selectedProjectId)
+        .then((boq: any) => {
+          const items = (boq?.sections || []).flatMap((s: any) => s.items || []);
+          setBoqItems(items);
+        })
+        .catch(() => setBoqItems([]));
     }
   }, [selectedProjectId]);
 
@@ -85,15 +96,41 @@ export default function VariationsPage() {
         description: newVo.description || '',
         amount: Number(newVo.amount),
         timeExtensionDays: Number(newVo.timeExtensionDays) || 0,
-        status: newVo.status || 'Pending'
+        boqItemId: newVo.boqItemId || null
       });
       setShowAddModal(false);
-      setNewVo({ siteInstructionRef: '', title: '', description: '', amount: 0, timeExtensionDays: 0, status: 'Pending' });
+      setNewVo({ siteInstructionRef: '', title: '', description: '', amount: 0, timeExtensionDays: 0, boqItemId: null });
       await loadVariations(selectedProjectId);
     } catch (e: any) {
       alert('Failed to save variation: ' + (e.message || 'Error'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    if (!confirm('Approve this variation? It will automatically be included in the next Payment Certificate raised for this project.')) return;
+    setActionLoading(true);
+    try {
+      await variationsApi.approve(id);
+      if (selectedProjectId) await loadVariations(selectedProjectId);
+    } catch (e: any) {
+      alert('Failed to approve: ' + (e.message || 'Error'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    const reason = prompt('Reason for rejecting this variation (optional):') || undefined;
+    setActionLoading(true);
+    try {
+      await variationsApi.reject(id, reason);
+      if (selectedProjectId) await loadVariations(selectedProjectId);
+    } catch (e: any) {
+      alert('Failed to reject: ' + (e.message || 'Error'));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -191,6 +228,7 @@ export default function VariationsPage() {
                   <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>Claimed Value</th>
                   <th style={{ padding: '10px 16px', fontWeight: 600 }}>EOT (Days)</th>
                   <th style={{ padding: '10px 16px', fontWeight: 600 }}>Status</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,6 +239,11 @@ export default function VariationsPage() {
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.title}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{v.description}</div>
+                      {v.boqItemNumber && (
+                        <div style={{ fontSize: 11.5, color: 'var(--accent-blue)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Link2 size={11} /> Linked to BOQ item {v.boqItemNumber}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
                       ${Number(v.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -210,6 +253,33 @@ export default function VariationsPage() {
                       <span className={v.status === 'Approved' ? 'badge badge-green' : v.status === 'Under Review' ? 'badge badge-amber' : 'badge badge-rose'}>
                         {v.status}
                       </span>
+                      {v.status === 'Approved' && (
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>
+                          {v.includedInCertificateId ? 'On a certificate' : 'Awaiting next certificate'}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {v.status === 'Under Review' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            disabled={actionLoading}
+                            onClick={() => handleApprove(v.id)}
+                            style={{ fontSize: 11.5, padding: '4px 8px' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            disabled={actionLoading}
+                            onClick={() => handleReject(v.id)}
+                            style={{ fontSize: 11.5, padding: '4px 8px' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -235,6 +305,21 @@ export default function VariationsPage() {
           <div>
             <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Variation Title *</label>
             <input className="form-input" placeholder="e.g. Additional Earthworks" value={newVo.title} onChange={e => setNewVo({ ...newVo, title: e.target.value })} />
+          </div>
+          <div>
+            <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Link to BOQ Item (optional)</label>
+            <select
+              className="form-select"
+              value={newVo.boqItemId || ''}
+              onChange={e => setNewVo({ ...newVo, boqItemId: e.target.value ? Number(e.target.value) : null })}
+            >
+              <option value="">Not linked — new priced item</option>
+              {boqItems.map((item: any) => (
+                <option key={item.id} value={item.id}>
+                  {item.itemNumber} — {item.description} (rate ${Number(item.rate).toFixed(2)}/{item.unitOfMeasure})
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description & Scope Change</label>

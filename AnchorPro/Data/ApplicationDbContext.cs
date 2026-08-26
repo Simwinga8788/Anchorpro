@@ -92,7 +92,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.SiteDiarySafety> SiteDiarySafeties { get; set; }
     public DbSet<Entities.PaymentCertificate> PaymentCertificates { get; set; }
     public DbSet<Entities.PaymentCertificateItem> PaymentCertificateItems { get; set; }
+    public DbSet<Entities.PaymentCertificateVariation> PaymentCertificateVariations { get; set; }
     public DbSet<Entities.Variation> Variations { get; set; }
+    public DbSet<Entities.VariationStatusHistory> VariationStatusHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

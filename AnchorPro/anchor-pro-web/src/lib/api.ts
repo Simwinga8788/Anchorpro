@@ -902,7 +902,9 @@ export const certificatesApi = {
 // ─── Variations & Claims API ── /api/variations ─────────────────────────────────
 export const variationsApi = {
   getByProject: (projectId: number) => apiFetch<any[]>(`/api/variations/project/${projectId}`),
-  create: (data: { projectId: number; variationNumber?: string; siteInstructionRef?: string; title: string; description?: string; amount: number; timeExtensionDays?: number; status?: string }) => 
+  create: (data: { projectId: number; variationNumber?: string; siteInstructionRef?: string; title: string; description?: string; amount: number; timeExtensionDays?: number; boqItemId?: number | null }) =>
     apiPost<any>('/api/variations', data),
   approve: (id: number) => apiPut<any>(`/api/variations/${id}/approve`, {}),
+  reject: (id: number, reason?: string) => apiPut<any>(`/api/variations/${id}/reject`, { reason }),
+  getHistory: (id: number) => apiFetch<any[]>(`/api/variations/${id}/history`),
 };
