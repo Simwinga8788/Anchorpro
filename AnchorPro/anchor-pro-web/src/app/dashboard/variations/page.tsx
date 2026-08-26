@@ -79,26 +79,26 @@ export default function VariationsPage() {
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Layers size={26} style={{ color: '#3b82f6' }} />
-            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: 'var(--text-primary, #fff)' }}>
+            <Layers size={24} style={{ color: 'var(--accent-blue)' }} />
+            <h1 className="topbar-title" style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
               Variations, Claims & Site Instructions
             </h1>
           </div>
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-muted, #94a3b8)' }}>
+          <p style={{ margin: '4px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
             Log site instructions (SI), variation orders (VO), and track cost & time claims under JBCC / FIDIC.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {projects.length > 0 && (
             <select
-              className="input-field"
-              style={{ width: 260, background: '#1e293b' }}
+              className="form-select"
+              style={{ width: 240 }}
               value={selectedProjectId || ''}
               onChange={e => setSelectedProjectId(Number(e.target.value))}
             >
@@ -107,69 +107,78 @@ export default function VariationsPage() {
               ))}
             </select>
           )}
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Plus size={16} /> Log Variation Order (VO)
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} style={{ gap: 6 }}>
+            <Plus size={15} /> Log Variation Order (VO)
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div className="card" style={{ padding: 18, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Approved Variations</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#10b981', marginTop: 4 }}>${totalApproved.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-          <div style={{ fontSize: 12, color: '#10b981', marginTop: 4 }}>Added to Contract Sum</div>
+      {/* KPI Cards (Stat Cards) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+            Approved Variations
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
+            ${totalApproved.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--accent-emerald)', marginTop: 2 }}>Added to Contract Sum</div>
         </div>
 
-        <div className="card" style={{ padding: 18, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Pending Claims</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#f59e0b', marginTop: 4 }}>${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-          <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 4 }}>Awaiting Engineer Determination</div>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+            Pending Claims
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-amber)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
+            ${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--accent-amber)', marginTop: 2 }}>Awaiting Engineer Determination</div>
         </div>
 
-        <div className="card" style={{ padding: 18, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Approved Time Extensions (EOT)</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#3b82f6', marginTop: 4 }}>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+            Approved Time Extensions (EOT)
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-blue)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
             {variations.reduce((acc, v) => acc + (v.status === 'Approved' ? v.timeExtensionDays : 0), 0)} Days
           </div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Revised Practical Completion Date</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Revised Practical Completion Date</div>
         </div>
       </div>
 
       {/* Variations Table */}
-      <div className="card" style={{ padding: 20, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px', color: '#fff' }}>Variation Orders Register</h3>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>Variation Orders Register</h3>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{variations.length} records</span>
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', textAlign: 'left' }}>
-                <th style={{ padding: '10px 14px' }}>VO #</th>
-                <th style={{ padding: '10px 14px' }}>SI Ref</th>
-                <th style={{ padding: '10px 14px' }}>Title & Description</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right' }}>Claimed Value</th>
-                <th style={{ padding: '10px 14px' }}>EOT (Days)</th>
-                <th style={{ padding: '10px 14px' }}>Status</th>
+              <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                <th style={{ padding: '10px 16px', fontWeight: 600 }}>VO #</th>
+                <th style={{ padding: '10px 16px', fontWeight: 600 }}>SI Ref</th>
+                <th style={{ padding: '10px 16px', fontWeight: 600 }}>Title & Description</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>Claimed Value</th>
+                <th style={{ padding: '10px 16px', fontWeight: 600 }}>EOT (Days)</th>
+                <th style={{ padding: '10px 16px', fontWeight: 600 }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {variations.map((v) => (
-                <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 600, color: '#3b82f6' }}>{v.variationNumber}</td>
-                  <td style={{ padding: '12px 14px', color: '#f59e0b', fontWeight: 600 }}>{v.siteInstructionRef}</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ fontWeight: 600, color: '#fff' }}>{v.title}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{v.description}</div>
+                <tr key={v.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }} className="table-row-hover">
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--accent-blue)' }}>{v.variationNumber}</td>
+                  <td style={{ padding: '12px 16px', color: 'var(--accent-amber)', fontWeight: 600 }}>{v.siteInstructionRef}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{v.description}</div>
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600, color: '#fff' }}>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
                     ${v.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
-                  <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>+{v.timeExtensionDays} days</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{
-                      padding: '3px 8px', borderRadius: 4, fontSize: 11.5, fontWeight: 600,
-                      background: v.status === 'Approved' ? 'rgba(16,185,129,0.15)' : v.status === 'Under Review' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
-                      color: v.status === 'Approved' ? '#10b981' : v.status === 'Under Review' ? '#f59e0b' : '#ef4444'
-                    }}>
+                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>+{v.timeExtensionDays} days</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span className={v.status === 'Approved' ? 'badge badge-green' : v.status === 'Under Review' ? 'badge badge-amber' : 'badge badge-rose'}>
                       {v.status}
                     </span>
                   </td>
@@ -186,24 +195,24 @@ export default function VariationsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Site Instruction #</label>
-              <input className="input-field" placeholder="e.g. SI-12" value={newVo.siteInstructionRef} onChange={e => setNewVo({ ...newVo, siteInstructionRef: e.target.value })} />
+              <input className="form-input" placeholder="e.g. SI-12" value={newVo.siteInstructionRef} onChange={e => setNewVo({ ...newVo, siteInstructionRef: e.target.value })} />
             </div>
             <div>
               <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Claimed Amount ($) *</label>
-              <input className="input-field" type="number" placeholder="5000.00" value={newVo.amount || ''} onChange={e => setNewVo({ ...newVo, amount: parseFloat(e.target.value) || 0 })} />
+              <input className="form-input" type="number" placeholder="5000.00" value={newVo.amount || ''} onChange={e => setNewVo({ ...newVo, amount: parseFloat(e.target.value) || 0 })} />
             </div>
           </div>
           <div>
             <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Variation Title *</label>
-            <input className="input-field" placeholder="e.g. Additional Earthworks" value={newVo.title} onChange={e => setNewVo({ ...newVo, title: e.target.value })} />
+            <input className="form-input" placeholder="e.g. Additional Earthworks" value={newVo.title} onChange={e => setNewVo({ ...newVo, title: e.target.value })} />
           </div>
           <div>
             <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description & Scope Change</label>
-            <textarea className="input-field" rows={3} placeholder="Detailed justification and measured impact..." value={newVo.description} onChange={e => setNewVo({ ...newVo, description: e.target.value })} />
+            <textarea className="form-input" rows={3} placeholder="Detailed justification and measured impact..." value={newVo.description} onChange={e => setNewVo({ ...newVo, description: e.target.value })} />
           </div>
           <div>
             <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Extension of Time (EOT Days)</label>
-            <input className="input-field" type="number" placeholder="0" value={newVo.timeExtensionDays || ''} onChange={e => setNewVo({ ...newVo, timeExtensionDays: parseInt(e.target.value) || 0 })} />
+            <input className="form-input" type="number" placeholder="0" value={newVo.timeExtensionDays || ''} onChange={e => setNewVo({ ...newVo, timeExtensionDays: parseInt(e.target.value) || 0 })} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
             <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
