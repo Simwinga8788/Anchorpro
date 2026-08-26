@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { certificatesApi, projectsApi, boqApi } from '@/lib/api';
-import { 
-  FileText, Building2, Plus, CheckCircle2, AlertCircle, 
-  DollarSign, Calculator, ChevronRight, FileCheck, Layers
+import {
+  FileText, Building2, Plus, CheckCircle2, AlertCircle,
+  DollarSign, Calculator, ChevronRight, FileCheck, Layers, Printer
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 
@@ -308,6 +308,15 @@ export default function CertificatesPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <a
+                    href={`/dashboard/certificates/${selectedCert.id}/print`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-sm btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                  >
+                    <Printer size={14} /> Print / Export PDF
+                  </a>
                   {selectedCert.status === 0 && (
                     <button
                       className="btn btn-sm btn-primary"
