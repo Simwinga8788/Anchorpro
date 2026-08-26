@@ -1,6 +1,8 @@
+import os
 import psycopg2
 
-conn_str = "host=aws-0-eu-west-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.hccwermcixoptvgrqypc password=386599/33/1 sslmode=require"
+# Set ANCHORPRO_DB_DSN (libpq "key=value" DSN format) before running — never hardcode credentials here.
+conn_str = os.environ["ANCHORPRO_DB_DSN"]
 
 def run():
     conn = psycopg2.connect(conn_str)

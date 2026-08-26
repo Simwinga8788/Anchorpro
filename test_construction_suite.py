@@ -12,12 +12,14 @@ Tests the entire construction workflow end-to-end against Supabase PostgreSQL:
 ================================================================================
 """
 
+import os
 import sys
 import datetime
 import psycopg2
 import psycopg2.extras
 
-DB_URI = "postgresql://postgres.hccwermcixoptvgrqypc:386599%2F33%2F1@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
+# Set ANCHORPRO_DB_URI (postgresql:// URI format) before running — never hardcode credentials here.
+DB_URI = os.environ["ANCHORPRO_DB_URI"]
 
 def print_header(title):
     print("\n" + "=" * 80)

@@ -1,9 +1,0 @@
-
------------------------------------------------------------
-To: ops@anchorpro.com
-Subject: Backlog Alert: 10 Overdue Jobs
-Date: 15/05/2026 8:31:59 pm
-Attachments: None
------------------------------------------------------------
-There are currently 10 jobs past their scheduled completion date.
------------------------------------------------------------

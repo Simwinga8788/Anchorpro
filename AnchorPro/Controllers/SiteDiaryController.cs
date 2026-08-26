@@ -114,6 +114,7 @@ namespace AnchorPro.Controllers
                 {
                     entry.PlantUsages.Add(new SiteDiaryPlant
                     {
+                        EquipmentId = p.EquipmentId,
                         EquipmentName = p.EquipmentName,
                         OperatingHours = p.OperatingHours,
                         IdleHours = p.IdleHours,
@@ -249,6 +250,7 @@ namespace AnchorPro.Controllers
 
     public class DiaryPlantDto
     {
+        public int? EquipmentId { get; set; }
         public string EquipmentName { get; set; } = string.Empty;
         public decimal OperatingHours { get; set; }
         public decimal IdleHours { get; set; }

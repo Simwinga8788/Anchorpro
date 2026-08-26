@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Services.Interfaces;
 
 namespace AnchorPro.Controllers
 {
@@ -15,17 +16,23 @@ namespace AnchorPro.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _db;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
         public AuthController(
-            UserManager<ApplicationUser> userManager, 
-            SignInManager<ApplicationUser> signInManager, 
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
-            ApplicationDbContext db)
+            ApplicationDbContext db,
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _db = db;
+            _emailService = emailService;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -173,27 +180,31 @@ namespace AnchorPro.Controllers
 
         /// <summary>
         /// POST /api/auth/forgot-password
-        /// Generates a password reset token and returns it in the response.
-        /// In production wire this to send an email via IEmailService instead.
+        /// Generates a password reset token and emails it to the account owner.
+        /// The token is never returned in the API response — only the account's own
+        /// inbox receives it, otherwise anyone who knows an email address could reset
+        /// that account's password themselves.
         /// Body: { "email": "user@example.com" }
         /// </summary>
         [HttpPost("forgot-password")]
         public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
         {
-            // Always return OK to avoid user enumeration attacks
+            // Always return the same response to avoid user enumeration attacks
+            var okResponse = Ok(new { message = "If that email exists, a reset link has been sent." });
+
             var user = await _userManager.FindByEmailAsync(req.Email);
-            if (user == null) return Ok(new { message = "If that email exists, a reset link has been sent." });
+            if (user == null) return okResponse;
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var frontendUrl = (_configuration["FRONTEND_URL"] ?? Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3000").TrimEnd('/');
+            var resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
 
-            // TODO: Replace with IEmailService.SendPasswordResetAsync(user.Email, token)
-            // For now, return token directly (development only)
-            return Ok(new
-            {
-                message = "Password reset token generated. Use POST /api/auth/reset-password with this token.",
-                email = user.Email,
-                resetToken = token   // REMOVE in production — send via email instead
-            });
+            await _emailService.SendEmailAsync(
+                user.Email!,
+                "Reset your AnchorPro password",
+                $"We received a request to reset your AnchorPro password.\n\nUse this link to choose a new password:\n{resetLink}\n\nIf you didn't request this, you can safely ignore this email.");
+
+            return okResponse;
         }
 
         /// <summary>

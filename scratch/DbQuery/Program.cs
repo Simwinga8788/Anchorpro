@@ -8,7 +8,9 @@ namespace DbQuery
     {
         static async Task Main(string[] args)
         {
-            string connString = "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.hccwermcixoptvgrqypc;Password=386599/33/1;SSL Mode=Require;Trust Server Certificate=true;";
+            // Set ANCHORPRO_DB_CONNECTION (Npgsql connection string format) before running — never hardcode credentials here.
+            string connString = Environment.GetEnvironmentVariable("ANCHORPRO_DB_CONNECTION")
+                ?? throw new InvalidOperationException("ANCHORPRO_DB_CONNECTION environment variable is not set.");
 
             using var conn = new NpgsqlConnection(connString);
             await conn.OpenAsync();

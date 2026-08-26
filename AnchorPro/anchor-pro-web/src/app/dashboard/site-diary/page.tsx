@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { siteDiaryApi, projectsApi, equipmentApi } from '@/lib/api';
-import { 
-  ClipboardList, Building2, Plus, Sun, CloudRain, Cloud, Wind, 
-  Users, Truck, ShieldAlert, Camera, CheckCircle2, ChevronDown, ChevronRight, Calendar, AlertCircle
+import { useState, useEffect, useRef } from 'react';
+import { siteDiaryApi, projectsApi, equipmentApi, uploadApi } from '@/lib/api';
+import {
+  ClipboardList, Building2, Plus, Sun, CloudRain, Cloud, Wind,
+  Users, Truck, ShieldAlert, Camera, CheckCircle2, Calendar, PackageCheck, Loader2
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 
@@ -12,8 +12,12 @@ export default function SiteDiaryPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const photoTargetRef = useRef<number | null>(null);
 
   // New Diary Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,7 +35,7 @@ export default function SiteDiaryPage() {
     ],
     // Plant sub-list
     plant: [
-      { equipmentName: 'CAT 320 Excavator (20-Ton)', operatingHours: 6.5, idleHours: 1.5, breakdownHours: 0, fuelConsumedLitres: 45, notes: '' }
+      { equipmentId: null as number | null, equipmentName: 'CAT 320 Excavator (20-Ton)', operatingHours: 6.5, idleHours: 1.5, breakdownHours: 0, fuelConsumedLitres: 45, notes: '' }
     ],
     // Deliveries
     deliveries: [
@@ -55,6 +59,10 @@ export default function SiteDiaryPage() {
         if (list.length > 0) setSelectedProjectId(list[0].id);
       })
       .catch(() => setError('Failed to load projects.'));
+
+    equipmentApi.getAll()
+      .then((res: any) => setEquipment(Array.isArray(res) ? res : []))
+      .catch(() => setEquipment([]));
   }, []);
 
   useEffect(() => {
@@ -109,7 +117,7 @@ export default function SiteDiaryPage() {
   const addPlantRow = () => {
     setForm({
       ...form,
-      plant: [...form.plant, { equipmentName: '', operatingHours: 8, idleHours: 0, breakdownHours: 0, fuelConsumedLitres: 0, notes: '' }]
+      plant: [...form.plant, { equipmentId: null, equipmentName: '', operatingHours: 8, idleHours: 0, breakdownHours: 0, fuelConsumedLitres: 0, notes: '' }]
     });
   };
 
@@ -118,6 +126,42 @@ export default function SiteDiaryPage() {
       ...form,
       deliveries: [...form.deliveries, { supplierName: '', materialDescription: '', quantityReceived: 1, unitOfMeasure: 'ton', deliveryNoteNumber: '', verifiedBy: '' }]
     });
+  };
+
+  const handlePlantEquipmentChange = (idx: number, equipmentIdRaw: string) => {
+    const next = [...form.plant];
+    if (!equipmentIdRaw) {
+      next[idx].equipmentId = null;
+    } else {
+      const eqId = Number(equipmentIdRaw);
+      const eq = equipment.find(e => e.id === eqId);
+      next[idx].equipmentId = eqId;
+      if (eq) next[idx].equipmentName = eq.name;
+    }
+    setForm({ ...form, plant: next });
+  };
+
+  const triggerPhotoUpload = (entryId: number) => {
+    photoTargetRef.current = entryId;
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const entryId = photoTargetRef.current;
+    e.target.value = ''; // allow re-selecting the same file next time
+    if (!file || !entryId) return;
+
+    setUploadingPhotoFor(entryId);
+    try {
+      const uploaded: any = await uploadApi.upload(file);
+      await siteDiaryApi.addPhoto(entryId, { photoUrl: uploaded.url, caption: file.name });
+      if (selectedProjectId) await loadEntries(selectedProjectId);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to upload photo.');
+    } finally {
+      setUploadingPhotoFor(null);
+    }
   };
 
   const getWeatherIcon = (cond: string) => {
@@ -136,6 +180,15 @@ export default function SiteDiaryPage() {
 
   return (
     <div className="page-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Hidden file input shared by every entry's "Add Photo" button */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handlePhotoFileSelected}
+      />
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
@@ -165,7 +218,7 @@ export default function SiteDiaryPage() {
             </select>
           </div>
 
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => setShowCreateModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
@@ -191,9 +244,16 @@ export default function SiteDiaryPage() {
       {entries.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {entries.map((entry) => {
-            const totalHeadcount = (entry.labourHeadcounts || entry.LabourHeadcounts || []).reduce((sum: number, l: any) => sum + (l.headcount || 0), 0);
-            const totalPlantHours = (entry.plantUsages || entry.PlantUsages || []).reduce((sum: number, p: any) => sum + (p.operatingHours || 0), 0);
-            const deliveryCount = (entry.deliveries || entry.Deliveries || []).length;
+            const labour = entry.labourHeadcounts || entry.LabourHeadcounts || [];
+            const plant = entry.plantUsages || entry.PlantUsages || [];
+            const deliveries = entry.deliveries || entry.Deliveries || [];
+            const photos = entry.photos || entry.Photos || [];
+            const safetyLogs = entry.safetyLogs || entry.SafetyLogs || [];
+            const safety = safetyLogs[0];
+
+            const totalHeadcount = labour.reduce((sum: number, l: any) => sum + (l.headcount || 0), 0);
+            const totalPlantHours = plant.reduce((sum: number, p: any) => sum + (p.operatingHours || 0), 0);
+            const deliveryCount = deliveries.length;
 
             return (
               <div key={entry.id} className="card" style={{ padding: 20, borderLeft: '4px solid #ef4444' }}>
@@ -219,7 +279,7 @@ export default function SiteDiaryPage() {
                   </div>
 
                   {/* Summary Badges */}
-                  <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Users size={14} style={{ color: '#3b82f6' }} /> {totalHeadcount} Workers on Site
                     </span>
@@ -227,8 +287,13 @@ export default function SiteDiaryPage() {
                       <Truck size={14} style={{ color: '#10b981' }} /> {totalPlantHours}h Plant Operating
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <CheckCircle2 size={14} style={{ color: '#f59e0b' }} /> {deliveryCount} Deliveries Received
+                      <PackageCheck size={14} style={{ color: '#f59e0b' }} /> {deliveryCount} Deliveries Received
                     </span>
+                    {safety && (safety.incidentsReported > 0 || safety.nearMissesCount > 0) && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#ef4444' }}>
+                        <ShieldAlert size={14} /> {safety.incidentsReported} Incidents / {safety.nearMissesCount} Near-Misses
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -250,13 +315,13 @@ export default function SiteDiaryPage() {
                   </div>
                 )}
 
-                {/* Headcount Breakdown Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, background: 'rgba(0,0,0,0.12)', padding: 12, borderRadius: 8 }}>
+                {/* Headcount / Plant / Deliveries / Safety Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, background: 'rgba(0,0,0,0.12)', padding: 12, borderRadius: 8, marginBottom: 14 }}>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
                       Labour Headcount by Trade
                     </div>
-                    {(entry.labourHeadcounts || entry.LabourHeadcounts || []).map((l: any, idx: number) => (
+                    {labour.map((l: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span style={{ color: 'var(--text-primary)' }}>{l.tradeOrCrewName}</span>
                         <span style={{ fontWeight: 700, color: '#3b82f6' }}>{l.headcount} men ({l.hoursWorked}h)</span>
@@ -268,13 +333,76 @@ export default function SiteDiaryPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
                       Plant & Machinery Usage
                     </div>
-                    {(entry.plantUsages || entry.PlantUsages || []).map((p: any, idx: number) => (
+                    {plant.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No plant recorded</div>}
+                    {plant.map((p: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span style={{ color: 'var(--text-primary)' }}>{p.equipmentName}</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{p.equipmentName}{p.equipmentId ? '' : ' (unregistered)'}</span>
                         <span style={{ fontWeight: 700, color: '#10b981' }}>{p.operatingHours}h Run / {p.idleHours}h Idle</span>
                       </div>
                     ))}
                   </div>
+
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
+                      Deliveries Received
+                    </div>
+                    {deliveries.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No deliveries recorded</div>}
+                    {deliveries.map((d: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{d.materialDescription} — {d.supplierName}</span>
+                        <span style={{ fontWeight: 700, color: '#f59e0b' }}>{d.quantityReceived} {d.unitOfMeasure}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
+                      Safety
+                    </div>
+                    {!safety && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No safety log recorded</div>}
+                    {safety && (
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {safety.toolboxTalkTopic && <div>Toolbox talk: {safety.toolboxTalkTopic}</div>}
+                        <div>{safety.incidentsReported} incidents, {safety.nearMissesCount} near-misses</div>
+                        {safety.hazardsIdentified && <div style={{ color: '#ef4444' }}>Hazards: {safety.hazardsIdentified}</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Photos */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Site Photos ({photos.length})
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => triggerPhotoUpload(entry.id)}
+                      disabled={uploadingPhotoFor === entry.id}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      {uploadingPhotoFor === entry.id
+                        ? <Loader2 size={13} className="spin" />
+                        : <Camera size={13} />}
+                      Add Photo
+                    </button>
+                  </div>
+                  {photos.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {photos.map((p: any) => (
+                        <a key={p.id} href={p.photoUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={p.photoUrl}
+                            alt={p.caption || 'Site photo'}
+                            title={p.caption}
+                            style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-subtle)' }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -301,19 +429,19 @@ export default function SiteDiaryPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Date</label>
-              <input 
-                type="date" 
-                className="form-input" 
-                value={form.diaryDate} 
-                onChange={e => setForm({ ...form, diaryDate: e.target.value })} 
-                required 
+              <input
+                type="date"
+                className="form-input"
+                value={form.diaryDate}
+                onChange={e => setForm({ ...form, diaryDate: e.target.value })}
+                required
               />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Weather</label>
-              <select 
-                className="form-input" 
-                value={form.weatherCondition} 
+              <select
+                className="form-input"
+                value={form.weatherCondition}
                 onChange={e => setForm({ ...form, weatherCondition: e.target.value })}
               >
                 <option value="Sunny">Sunny / Clear</option>
@@ -325,35 +453,35 @@ export default function SiteDiaryPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Temp (°C)</label>
-              <input 
-                type="number" 
-                className="form-input" 
-                value={form.temperatureCelsius} 
-                onChange={e => setForm({ ...form, temperatureCelsius: parseFloat(e.target.value) || 0 })} 
+              <input
+                type="number"
+                className="form-input"
+                value={form.temperatureCelsius}
+                onChange={e => setForm({ ...form, temperatureCelsius: parseFloat(e.target.value) || 0 })}
               />
             </div>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Work Performed Summary</label>
-            <textarea 
-              className="form-input" 
+            <textarea
+              className="form-input"
               rows={3}
-              value={form.workPerformedSummary} 
-              onChange={e => setForm({ ...form, workPerformedSummary: e.target.value })} 
-              placeholder="e.g. Completed blinding concrete in Grid 3-6. Excavated 120m3 foundation trench..." 
-              required 
+              value={form.workPerformedSummary}
+              onChange={e => setForm({ ...form, workPerformedSummary: e.target.value })}
+              placeholder="e.g. Completed blinding concrete in Grid 3-6. Excavated 120m3 foundation trench..."
+              required
             />
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Delays / Constraints / Standing Time</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              value={form.delaysOrConstraints} 
-              onChange={e => setForm({ ...form, delaysOrConstraints: e.target.value })} 
-              placeholder="e.g. 2 hours standing time due to morning rainstorm." 
+            <input
+              type="text"
+              className="form-input"
+              value={form.delaysOrConstraints}
+              onChange={e => setForm({ ...form, delaysOrConstraints: e.target.value })}
+              placeholder="e.g. 2 hours standing time due to morning rainstorm."
             />
           </div>
 
@@ -365,38 +493,228 @@ export default function SiteDiaryPage() {
             </div>
             {form.labour.map((l, idx) => (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 6 }}>
-                <input 
-                  type="text" className="form-input" placeholder="Trade (e.g. Bricklayers)" 
-                  value={l.tradeOrCrewName} 
+                <input
+                  type="text" className="form-input" placeholder="Trade (e.g. Bricklayers)"
+                  value={l.tradeOrCrewName}
                   onChange={e => {
                     const next = [...form.labour];
                     next[idx].tradeOrCrewName = e.target.value;
                     setForm({ ...form, labour: next });
-                  }} 
-                  required 
+                  }}
+                  required
                 />
-                <input 
-                  type="number" className="form-input" placeholder="Headcount" 
-                  value={l.headcount} 
+                <input
+                  type="number" className="form-input" placeholder="Headcount"
+                  value={l.headcount}
                   onChange={e => {
                     const next = [...form.labour];
                     next[idx].headcount = parseInt(e.target.value) || 0;
                     setForm({ ...form, labour: next });
-                  }} 
-                  required 
+                  }}
+                  required
                 />
-                <input 
-                  type="number" className="form-input" placeholder="Hours" 
-                  value={l.hoursWorked} 
+                <input
+                  type="number" className="form-input" placeholder="Hours"
+                  value={l.hoursWorked}
                   onChange={e => {
                     const next = [...form.labour];
                     next[idx].hoursWorked = parseFloat(e.target.value) || 0;
                     setForm({ ...form, labour: next });
-                  }} 
-                  required 
+                  }}
+                  required
                 />
               </div>
             ))}
+          </div>
+
+          {/* Plant & Machinery Section */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Plant &amp; Machinery Usage</span>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={addPlantRow}>+ Add Plant</button>
+            </div>
+            {form.plant.map((p, idx) => (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
+                  <select
+                    className="form-input"
+                    value={p.equipmentId ?? ''}
+                    onChange={e => handlePlantEquipmentChange(idx, e.target.value)}
+                  >
+                    <option value="">Not in register…</option>
+                    {equipment.map(eq => (
+                      <option key={eq.id} value={eq.id}>{eq.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text" className="form-input" placeholder="Plant description (e.g. CAT 320 Excavator)"
+                    value={p.equipmentName}
+                    onChange={e => {
+                      const next = [...form.plant];
+                      next[idx].equipmentName = e.target.value;
+                      setForm({ ...form, plant: next });
+                    }}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  <input
+                    type="number" step="0.5" className="form-input" placeholder="Operating hrs"
+                    value={p.operatingHours}
+                    onChange={e => {
+                      const next = [...form.plant];
+                      next[idx].operatingHours = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, plant: next });
+                    }}
+                  />
+                  <input
+                    type="number" step="0.5" className="form-input" placeholder="Idle hrs"
+                    value={p.idleHours}
+                    onChange={e => {
+                      const next = [...form.plant];
+                      next[idx].idleHours = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, plant: next });
+                    }}
+                  />
+                  <input
+                    type="number" step="0.5" className="form-input" placeholder="Breakdown hrs"
+                    value={p.breakdownHours}
+                    onChange={e => {
+                      const next = [...form.plant];
+                      next[idx].breakdownHours = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, plant: next });
+                    }}
+                  />
+                  <input
+                    type="number" step="1" className="form-input" placeholder="Fuel (L)"
+                    value={p.fuelConsumedLitres}
+                    onChange={e => {
+                      const next = [...form.plant];
+                      next[idx].fuelConsumedLitres = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, plant: next });
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Deliveries Section */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Deliveries Received</span>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={addDeliveryRow}>+ Add Delivery</button>
+            </div>
+            {form.deliveries.map((d, idx) => (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
+                  <input
+                    type="text" className="form-input" placeholder="Supplier"
+                    value={d.supplierName}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].supplierName = e.target.value;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                    required
+                  />
+                  <input
+                    type="text" className="form-input" placeholder="Material description"
+                    value={d.materialDescription}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].materialDescription = e.target.value;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+                  <input
+                    type="number" step="0.1" className="form-input" placeholder="Quantity"
+                    value={d.quantityReceived}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].quantityReceived = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                  />
+                  <select
+                    className="form-input"
+                    value={d.unitOfMeasure}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].unitOfMeasure = e.target.value;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                  >
+                    <option value="ton">ton</option>
+                    <option value="m3">m³</option>
+                    <option value="bag">bag</option>
+                    <option value="unit">unit</option>
+                    <option value="load">load</option>
+                  </select>
+                  <input
+                    type="text" className="form-input" placeholder="Delivery note #"
+                    value={d.deliveryNoteNumber}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].deliveryNoteNumber = e.target.value;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                  />
+                  <input
+                    type="text" className="form-input" placeholder="Verified by"
+                    value={d.verifiedBy}
+                    onChange={e => {
+                      const next = [...form.deliveries];
+                      next[idx].verifiedBy = e.target.value;
+                      setForm({ ...form, deliveries: next });
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Safety Section */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8 }}>Safety</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                type="text" className="form-input" placeholder="Toolbox talk topic"
+                value={form.safety.toolboxTalkTopic}
+                onChange={e => setForm({ ...form, safety: { ...form.safety, toolboxTalkTopic: e.target.value } })}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Incidents reported</label>
+                  <input
+                    type="number" min={0} className="form-input"
+                    value={form.safety.incidentsReported}
+                    onChange={e => setForm({ ...form, safety: { ...form.safety, incidentsReported: parseInt(e.target.value) || 0 } })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Near-misses</label>
+                  <input
+                    type="number" min={0} className="form-input"
+                    value={form.safety.nearMissesCount}
+                    onChange={e => setForm({ ...form, safety: { ...form.safety, nearMissesCount: parseInt(e.target.value) || 0 } })}
+                  />
+                </div>
+              </div>
+              <input
+                type="text" className="form-input" placeholder="Hazards identified"
+                value={form.safety.hazardsIdentified}
+                onChange={e => setForm({ ...form, safety: { ...form.safety, hazardsIdentified: e.target.value } })}
+              />
+              <input
+                type="text" className="form-input" placeholder="Corrective action taken"
+                value={form.safety.correctiveAction}
+                onChange={e => setForm({ ...form, safety: { ...form.safety, correctiveAction: e.target.value } })}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>

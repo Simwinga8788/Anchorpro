@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "anchorpro-backend",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "AnchorPro"],
+      "port": 5165
+    },
+    {
+      "name": "anchorpro-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "AnchorPro/anchor-pro-web"],
+      "port": 3000
+    }
+  ]
+}

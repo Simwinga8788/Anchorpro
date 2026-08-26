@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using AnchorPro.Data.Entities;
 using AnchorPro.Data.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AnchorPro.Data
 {
@@ -12,6 +13,7 @@ namespace AnchorPro.Data
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
             string[] roles = { "Admin", "HR", "Planner", "Supervisor", "Technician", "Purchasing", "Storeman" };
 
@@ -45,11 +47,16 @@ namespace AnchorPro.Data
             // 2. Create PLATFORM OWNER (No TenantId - manages the platform)
             var platformOwnerEmail = "simwinga8788@gmail.com";
             var platformOwner = await userManager.FindByEmailAsync(platformOwnerEmail);
-            var platformOwnerPassword = "386599/33/1";
-            var defaultPassword = "AnchorPro!123";
+            // These are never hardcoded — they must come from environment variables / user-secrets
+            // (Seed__PlatformOwnerPassword / Seed__DefaultPassword) so no real credential lives in source control.
+            var platformOwnerPassword = configuration["Seed:PlatformOwnerPassword"];
+            var defaultPassword = configuration["Seed:DefaultPassword"];
 
             if (platformOwner == null)
             {
+                if (string.IsNullOrWhiteSpace(platformOwnerPassword))
+                    throw new InvalidOperationException("Seed:PlatformOwnerPassword is not configured. Set it via an environment variable or user-secrets before first run.");
+
                 var newPlatformOwner = new ApplicationUser
                 {
                     UserName = platformOwnerEmail,
@@ -78,10 +85,10 @@ namespace AnchorPro.Data
                     platformOwner.EmployeeNumber = "MAN-001";
                     await userManager.UpdateAsync(platformOwner);
                 }
-                
-                // Reset password
-                await userManager.RemovePasswordAsync(platformOwner);
-                await userManager.AddPasswordAsync(platformOwner, platformOwnerPassword);
+
+                // Do NOT force-reset the password here — this ran on every deploy and silently
+                // overwrote any password the account owner had rotated. Password resets go through
+                // the normal reset-password flow / RolesController.
             }
 
             // 3. Create ANCHOR CORP ADMIN (With TenantId - manages Anchor Corp tenant)
@@ -90,29 +97,32 @@ namespace AnchorPro.Data
 
             if (adminUser == null)
             {
-                var newAdmin = new ApplicationUser
+                if (!string.IsNullOrWhiteSpace(defaultPassword))
                 {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    EmailConfirmed = true,
-                    FirstName = "Anchor Corp",
-                    LastName = "Admin",
-                    TenantId = tenantId, // Link to Anchor Corp Tenant
-                    EmployeeNumber = "MAN-101",
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = "System"
-                };
+                    var newAdmin = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true,
+                        FirstName = "Anchor Corp",
+                        LastName = "Admin",
+                        TenantId = tenantId, // Link to Anchor Corp Tenant
+                        EmployeeNumber = "MAN-101",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "System"
+                    };
 
-                var result = await userManager.CreateAsync(newAdmin, defaultPassword);
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(newAdmin, "Admin");
-                    await userManager.AddToRoleAsync(newAdmin, "Supervisor");
-                    
-                    // Set owner
-                    defaultTenant.OwnerId = newAdmin.Id;
-                    context.Tenants.Update(defaultTenant);
-                    await context.SaveChangesAsync();
+                    var result = await userManager.CreateAsync(newAdmin, defaultPassword);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(newAdmin, "Admin");
+                        await userManager.AddToRoleAsync(newAdmin, "Supervisor");
+
+                        // Set owner
+                        defaultTenant.OwnerId = newAdmin.Id;
+                        context.Tenants.Update(defaultTenant);
+                        await context.SaveChangesAsync();
+                    }
                 }
             }
             else
@@ -129,16 +139,15 @@ namespace AnchorPro.Data
                 {
                     await userManager.AddToRoleAsync(adminUser, "Supervisor");
                 }
-                
-                // Force Reset Password & Unlock
-                if (await userManager.IsLockedOutAsync(adminUser)) 
+
+                if (await userManager.IsLockedOutAsync(adminUser))
                 {
                      await userManager.SetLockoutEndDateAsync(adminUser, null);
                      await userManager.ResetAccessFailedCountAsync(adminUser);
                 }
-                
-                await userManager.RemovePasswordAsync(adminUser);
-                await userManager.AddPasswordAsync(adminUser, defaultPassword);
+
+                // No forced password reset here — this used to silently overwrite any
+                // password the account owner had rotated, on every app restart.
             }
 
             // Seed a Supervisor
@@ -146,33 +155,35 @@ namespace AnchorPro.Data
             var supervisorUser = await userManager.FindByEmailAsync(supervisorEmail);
             if (supervisorUser == null)
             {
-                var newSupervisor = new ApplicationUser
+                if (!string.IsNullOrWhiteSpace(defaultPassword))
                 {
-                    UserName = supervisorEmail,
-                    Email = supervisorEmail,
-                    EmailConfirmed = true,
-                    FirstName = "Workshop",
-                    LastName = "Supervisor",
-                    TenantId = tenantId,
-                    EmployeeNumber = "MAN-102",
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = "System"
-                };
+                    var newSupervisor = new ApplicationUser
+                    {
+                        UserName = supervisorEmail,
+                        Email = supervisorEmail,
+                        EmailConfirmed = true,
+                        FirstName = "Workshop",
+                        LastName = "Supervisor",
+                        TenantId = tenantId,
+                        EmployeeNumber = "MAN-102",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "System"
+                    };
 
-                var result = await userManager.CreateAsync(newSupervisor, defaultPassword);
-                if (result.Succeeded) await userManager.AddToRoleAsync(newSupervisor, "Supervisor");
+                    var result = await userManager.CreateAsync(newSupervisor, defaultPassword);
+                    if (result.Succeeded) await userManager.AddToRoleAsync(newSupervisor, "Supervisor");
+                }
             }
             else
             {
-                 if (await userManager.IsLockedOutAsync(supervisorUser) || supervisorUser.EmployeeNumber != "MAN-102") 
+                 if (await userManager.IsLockedOutAsync(supervisorUser) || supervisorUser.EmployeeNumber != "MAN-102")
                  {
                      supervisorUser.EmployeeNumber = "MAN-102";
                      await userManager.UpdateAsync(supervisorUser);
                      await userManager.SetLockoutEndDateAsync(supervisorUser, null);
                      await userManager.ResetAccessFailedCountAsync(supervisorUser);
                  }
-                 await userManager.RemovePasswordAsync(supervisorUser);
-                 await userManager.AddPasswordAsync(supervisorUser, defaultPassword);
+                 // No forced password reset here — see note above.
             }
 
             // Seed a Technician
@@ -180,35 +191,36 @@ namespace AnchorPro.Data
             var techUser = await userManager.FindByEmailAsync(techEmail);
             if (techUser == null)
             {
-                var newTech = new ApplicationUser
+                if (!string.IsNullOrWhiteSpace(defaultPassword))
                 {
-                    UserName = techEmail,
-                    Email = techEmail,
-                    EmailConfirmed = true,
-                    FirstName = "Field",
-                    LastName = "Technician",
-                    TenantId = tenantId,
-                    HourlyRate = 350.00m,
-                    EmployeeNumber = "MAN-103",
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = "System"
-                };
+                    var newTech = new ApplicationUser
+                    {
+                        UserName = techEmail,
+                        Email = techEmail,
+                        EmailConfirmed = true,
+                        FirstName = "Field",
+                        LastName = "Technician",
+                        TenantId = tenantId,
+                        HourlyRate = 350.00m,
+                        EmployeeNumber = "MAN-103",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "System"
+                    };
 
-                var result = await userManager.CreateAsync(newTech, defaultPassword);
-                if (result.Succeeded) await userManager.AddToRoleAsync(newTech, "Technician");
+                    var result = await userManager.CreateAsync(newTech, defaultPassword);
+                    if (result.Succeeded) await userManager.AddToRoleAsync(newTech, "Technician");
+                }
             }
-
             else
             {
-                 if (await userManager.IsLockedOutAsync(techUser) || techUser.EmployeeNumber != "MAN-103") 
+                 if (await userManager.IsLockedOutAsync(techUser) || techUser.EmployeeNumber != "MAN-103")
                  {
                      techUser.EmployeeNumber = "MAN-103";
                      await userManager.UpdateAsync(techUser);
                      await userManager.SetLockoutEndDateAsync(techUser, null);
                      await userManager.ResetAccessFailedCountAsync(techUser);
                  }
-                 await userManager.RemovePasswordAsync(techUser);
-                 await userManager.AddPasswordAsync(techUser, defaultPassword);
+                 // No forced password reset here — see note above.
             }
 
             // Seed 3 Additional Technicians
@@ -222,7 +234,7 @@ namespace AnchorPro.Data
             foreach (var t in moreTechs)
             {
                 var existing = await userManager.FindByEmailAsync(t.Email);
-                if (existing == null)
+                if (existing == null && !string.IsNullOrWhiteSpace(defaultPassword))
                 {
                     var u = new ApplicationUser
                     {
