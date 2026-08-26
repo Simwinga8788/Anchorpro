@@ -890,7 +890,10 @@ export const certificatesApi = {
   updateMeasurements: (id: number, measurements: { certificateItemId: number; currentQuantity: number; notes?: string }[]) => 
     apiPut<any>(`/api/certificates/${id}/items`, measurements),
   submitToConsultant: (id: number) => apiPost<any>(`/api/certificates/${id}/submit`, {}),
+  query: (id: number, notes: string) => apiPost<any>(`/api/certificates/${id}/query`, { notes }),
   approve: (id: number) => apiPost<any>(`/api/certificates/${id}/approve`, {}),
+  issue: (id: number) => apiPost<any>(`/api/certificates/${id}/issue`, {}),
+  markPaid: (id: number) => apiPost<any>(`/api/certificates/${id}/pay`, {}),
 };
 
 // ─── Variations & Claims API ── /api/variations ─────────────────────────────────

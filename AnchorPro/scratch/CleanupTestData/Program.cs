@@ -14,12 +14,10 @@ await conn.OpenAsync();
 
 var statements = new[]
 {
-    "DELETE FROM \"SiteDiaryPhotos\" WHERE \"Id\" IN (1, 2);",
-    "DELETE FROM \"SiteDiaryLabours\" WHERE \"Id\" IN (9, 10);",
-    "DELETE FROM \"SiteDiaryPlants\" WHERE \"Id\" IN (7);",
-    "DELETE FROM \"SiteDiaryDeliveries\" WHERE \"Id\" IN (5);",
-    "DELETE FROM \"SiteDiarySafeties\" WHERE \"Id\" IN (3);",
-    "DELETE FROM \"SiteDiaryEntries\" WHERE \"Id\" = 3;"
+    // Test certificate IPC-03 (Id=5) created on project 6 while verifying the
+    // certificate workflow-states change (submit/query/approve/issue/pay).
+    "DELETE FROM \"PaymentCertificateItems\" WHERE \"PaymentCertificateId\" = 5;",
+    "DELETE FROM \"PaymentCertificates\" WHERE \"Id\" = 5;"
 };
 
 foreach (var sql in statements)

@@ -141,8 +141,8 @@ namespace AnchorPro.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cert == null) return NotFound();
-            if (cert.Status == CertificateStatus.Approved || cert.Status == CertificateStatus.Paid)
-                return BadRequest("Cannot edit an approved or paid certificate.");
+            if (cert.Status != CertificateStatus.Draft && cert.Status != CertificateStatus.Queried)
+                return BadRequest("Certificate measurements can only be edited while in Draft or Queried status.");
 
             decimal totalGrossValuation = 0;
 
@@ -176,7 +176,8 @@ namespace AnchorPro.Controllers
 
         /// <summary>
         /// POST /api/certificates/{id}/submit
-        /// Submit certificate to Consultant / Quantity Surveyor for review
+        /// Submit certificate to Consultant / Quantity Surveyor for review.
+        /// Valid from Draft (first submission) or Queried (resubmission after addressing a query).
         /// </summary>
         [HttpPost("{id}/submit")]
         public async Task<IActionResult> SubmitToConsultant(int id)
@@ -185,10 +186,37 @@ namespace AnchorPro.Controllers
             var cert = await db.PaymentCertificates.FindAsync(id);
             if (cert == null) return NotFound();
 
+            if (cert.Status != CertificateStatus.Draft && cert.Status != CertificateStatus.Queried)
+                return BadRequest("Only a Draft or Queried certificate can be submitted to the Consultant.");
+
             cert.Status = CertificateStatus.SubmittedToConsultant;
             await db.SaveChangesAsync();
 
             return Ok(new { message = "Payment Certificate submitted to Consultant." });
+        }
+
+        /// <summary>
+        /// POST /api/certificates/{id}/query
+        /// Consultant queries the certificate, sending it back to the contractor with notes.
+        /// </summary>
+        [HttpPost("{id}/query")]
+        public async Task<IActionResult> Query(int id, [FromBody] QueryCertificateDto dto)
+        {
+            using var db = _factory.CreateDbContext();
+            var cert = await db.PaymentCertificates.FindAsync(id);
+            if (cert == null) return NotFound();
+
+            if (cert.Status != CertificateStatus.SubmittedToConsultant)
+                return BadRequest("Only a certificate submitted to the Consultant can be queried.");
+
+            if (string.IsNullOrWhiteSpace(dto.Notes))
+                return BadRequest("A note explaining the query is required.");
+
+            cert.Status = CertificateStatus.Queried;
+            cert.ConsultantNotes = dto.Notes;
+
+            await db.SaveChangesAsync();
+            return Ok(new { message = "Payment Certificate queried." });
         }
 
         /// <summary>
@@ -202,6 +230,9 @@ namespace AnchorPro.Controllers
             var cert = await db.PaymentCertificates.FindAsync(id);
             if (cert == null) return NotFound();
 
+            if (cert.Status != CertificateStatus.SubmittedToConsultant)
+                return BadRequest("Only a certificate submitted to the Consultant can be approved.");
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             cert.Status = CertificateStatus.Approved;
             cert.ApprovedAt = DateTime.UtcNow;
@@ -209,6 +240,46 @@ namespace AnchorPro.Controllers
 
             await db.SaveChangesAsync();
             return Ok(new { message = "Payment Certificate approved." });
+        }
+
+        /// <summary>
+        /// POST /api/certificates/{id}/issue
+        /// Issue the approved certificate to the client/consultant for payment.
+        /// </summary>
+        [HttpPost("{id}/issue")]
+        public async Task<IActionResult> Issue(int id)
+        {
+            using var db = _factory.CreateDbContext();
+            var cert = await db.PaymentCertificates.FindAsync(id);
+            if (cert == null) return NotFound();
+
+            if (cert.Status != CertificateStatus.Approved)
+                return BadRequest("Only an approved certificate can be issued.");
+
+            cert.Status = CertificateStatus.Issued;
+            await db.SaveChangesAsync();
+
+            return Ok(new { message = "Payment Certificate issued." });
+        }
+
+        /// <summary>
+        /// POST /api/certificates/{id}/pay
+        /// Record that the issued certificate has been paid.
+        /// </summary>
+        [HttpPost("{id}/pay")]
+        public async Task<IActionResult> MarkPaid(int id)
+        {
+            using var db = _factory.CreateDbContext();
+            var cert = await db.PaymentCertificates.FindAsync(id);
+            if (cert == null) return NotFound();
+
+            if (cert.Status != CertificateStatus.Issued)
+                return BadRequest("Only an issued certificate can be marked as paid.");
+
+            cert.Status = CertificateStatus.Paid;
+            await db.SaveChangesAsync();
+
+            return Ok(new { message = "Payment Certificate marked as paid." });
         }
     }
 
@@ -225,5 +296,10 @@ namespace AnchorPro.Controllers
         public int CertificateItemId { get; set; }
         public decimal CurrentQuantity { get; set; }
         public string? Notes { get; set; }
+    }
+
+    public class QueryCertificateDto
+    {
+        public string Notes { get; set; } = string.Empty;
     }
 }

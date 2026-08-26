@@ -24,6 +24,11 @@ export default function CertificatesPage() {
     retentionPercentage: 5.0
   });
 
+  // Query Certificate Modal
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [queryNotes, setQueryNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
   useEffect(() => {
     projectsApi.getProjects()
       .then((res: any) => {
@@ -107,6 +112,74 @@ export default function CertificatesPage() {
     }
   };
 
+  const handleSubmitCert = async (id: number) => {
+    setActionLoading(true);
+    try {
+      await certificatesApi.submitToConsultant(id);
+      loadCertDetails(id);
+      if (selectedProjectId) loadCertificates(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleQueryCert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCert) return;
+    setActionLoading(true);
+    try {
+      await certificatesApi.query(selectedCert.id, queryNotes);
+      setShowQueryModal(false);
+      setQueryNotes('');
+      loadCertDetails(selectedCert.id);
+      if (selectedProjectId) loadCertificates(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleIssueCert = async (id: number) => {
+    if (!confirm('Issue this certificate to the client/consultant for payment?')) return;
+    setActionLoading(true);
+    try {
+      await certificatesApi.issue(id);
+      loadCertDetails(id);
+      if (selectedProjectId) loadCertificates(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkPaidCert = async (id: number) => {
+    if (!confirm('Mark this certificate as paid?')) return;
+    setActionLoading(true);
+    try {
+      await certificatesApi.markPaid(id);
+      loadCertDetails(id);
+      if (selectedProjectId) loadCertificates(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const CERT_STATUS: Record<number, { label: string; badge: string }> = {
+    0: { label: 'Draft', badge: 'badge-muted' },
+    1: { label: 'Submitted', badge: 'badge-blue' },
+    2: { label: 'Queried', badge: 'badge-amber' },
+    3: { label: 'Approved', badge: 'badge-green' },
+    4: { label: 'Issued', badge: 'badge-teal' },
+    5: { label: 'Paid', badge: 'badge-violet' },
+  };
+  const statusInfo = (status: number) => CERT_STATUS[status] || CERT_STATUS[0];
+
   return (
     <div className="page-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
@@ -171,12 +244,8 @@ export default function CertificatesPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.certificateNumber}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
-                      background: c.status === 3 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: c.status === 3 ? '#10b981' : '#f59e0b'
-                    }}>
-                      {c.status === 3 ? 'Approved' : 'Draft'}
+                    <span className={`badge ${statusInfo(c.status).badge}`}>
+                      {statusInfo(c.status).label}
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -228,20 +297,86 @@ export default function CertificatesPage() {
 
             {/* Line Items Measurement Sheet */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                  Measured Work Valuation — {selectedCert.certificateNumber}
-                </h3>
-                {selectedCert.status !== 3 && (
-                  <button 
-                    className="btn btn-sm btn-primary"
-                    onClick={() => handleApproveCert(selectedCert.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-                  >
-                    <CheckCircle2 size={14} /> Approve & Sign Certificate
-                  </button>
-                )}
+              <div style={{ padding: '14px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                    Measured Work Valuation — {selectedCert.certificateNumber}
+                  </h3>
+                  <span className={`badge ${statusInfo(selectedCert.status).badge}`} style={{ marginTop: 6 }}>
+                    {statusInfo(selectedCert.status).label}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {selectedCert.status === 0 && (
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={actionLoading}
+                      onClick={() => handleSubmitCert(selectedCert.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <FileCheck size={14} /> Submit to Consultant
+                    </button>
+                  )}
+                  {selectedCert.status === 1 && (
+                    <>
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        disabled={actionLoading}
+                        onClick={() => setShowQueryModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                      >
+                        <AlertCircle size={14} /> Query
+                      </button>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={actionLoading}
+                        onClick={() => handleApproveCert(selectedCert.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                      >
+                        <CheckCircle2 size={14} /> Approve & Sign Certificate
+                      </button>
+                    </>
+                  )}
+                  {selectedCert.status === 2 && (
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={actionLoading}
+                      onClick={() => handleSubmitCert(selectedCert.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <FileCheck size={14} /> Resubmit to Consultant
+                    </button>
+                  )}
+                  {selectedCert.status === 3 && (
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={actionLoading}
+                      onClick={() => handleIssueCert(selectedCert.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <FileCheck size={14} /> Issue Certificate
+                    </button>
+                  )}
+                  {selectedCert.status === 4 && (
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={actionLoading}
+                      onClick={() => handleMarkPaidCert(selectedCert.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <DollarSign size={14} /> Mark as Paid
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {selectedCert.status === 2 && selectedCert.consultantNotes && (
+                <div style={{ padding: '12px 20px', background: 'rgba(245, 158, 11, 0.08)', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>Consultant Query</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 4 }}>{selectedCert.consultantNotes}</div>
+                </div>
+              )}
 
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -269,9 +404,9 @@ export default function CertificatesPage() {
                           <td style={{ padding: '10px 14px', textAlign: 'right' }}>${Number(boqItem?.rate || 0).toFixed(2)}</td>
                           <td style={{ padding: '8px 14px', textAlign: 'right' }}>
                             <input 
-                              type="number" 
+                              type="number"
                               step="any"
-                              disabled={selectedCert.status === 3}
+                              disabled={selectedCert.status !== 0 && selectedCert.status !== 2}
                               defaultValue={item.currentQuantityCompleted}
                               onBlur={(e) => handleUpdateItemMeasurement(item.id, parseFloat(e.target.value) || 0)}
                               style={{ 
@@ -349,6 +484,30 @@ export default function CertificatesPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setShowGenerateModal(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary">Create Certificate</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Query Modal */}
+      <Modal open={showQueryModal} onClose={() => setShowQueryModal(false)} title="Query Certificate">
+        <form onSubmit={handleQueryCert} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+            Send this certificate back to the contractor with a note explaining what needs to be addressed.
+          </p>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Query Notes</label>
+            <textarea
+              className="form-input"
+              required
+              rows={4}
+              value={queryNotes}
+              onChange={e => setQueryNotes(e.target.value)}
+              placeholder="e.g. Quantities for Item 4.2 exceed the site diary record for this period"
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowQueryModal(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>Send Query</button>
           </div>
         </form>
       </Modal>
