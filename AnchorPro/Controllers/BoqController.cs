@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
@@ -24,7 +25,9 @@ namespace AnchorPro.Controllers
 
         /// <summary>
         /// GET /api/boq/project/{projectId}
-        /// Returns the active Bill of Quantities for the given project with all sections and items
+        /// Returns the current (latest-version) Bill of Quantities for the given project with all sections and items.
+        /// Once a BOQ is approved and revised, older versions remain in the database as an immutable history
+        /// (see GET /api/boq/project/{projectId}/history) but are no longer returned here.
         /// </summary>
         [HttpGet("project/{projectId}")]
         public async Task<IActionResult> GetByProject(int projectId)
@@ -33,7 +36,9 @@ namespace AnchorPro.Controllers
             var boq = await db.BillsOfQuantities
                 .Include(b => b.Sections.OrderBy(s => s.DisplayOrder))
                     .ThenInclude(s => s.Items.OrderBy(i => i.DisplayOrder))
-                .FirstOrDefaultAsync(b => b.ProjectId == projectId);
+                .Where(b => b.ProjectId == projectId)
+                .OrderByDescending(b => b.VersionNumber)
+                .FirstOrDefaultAsync();
 
             if (boq == null)
             {
@@ -83,6 +88,110 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// GET /api/boq/project/{projectId}/history
+        /// Returns a summary of every version of the BOQ ever created for this project, newest first.
+        /// </summary>
+        [HttpGet("project/{projectId}/history")]
+        public async Task<IActionResult> GetHistory(int projectId)
+        {
+            using var db = _factory.CreateDbContext();
+            var versions = await db.BillsOfQuantities
+                .Include(b => b.ApprovedBy)
+                .Where(b => b.ProjectId == projectId)
+                .OrderByDescending(b => b.VersionNumber)
+                .Select(b => new
+                {
+                    b.Id,
+                    b.VersionNumber,
+                    b.Status,
+                    b.TotalContractSum,
+                    b.ApprovedAt,
+                    ApprovedByName = b.ApprovedBy != null ? (b.ApprovedBy.FirstName + " " + b.ApprovedBy.LastName) : null
+                })
+                .ToListAsync();
+
+            return Ok(versions);
+        }
+
+        /// <summary>
+        /// POST /api/boq/{boqId}/approve
+        /// Approve the BOQ, locking its line items from further edits. Required before a Payment
+        /// Certificate can be raised against it in the intended workflow.
+        /// </summary>
+        [HttpPost("{boqId}/approve")]
+        public async Task<IActionResult> Approve(int boqId)
+        {
+            using var db = _factory.CreateDbContext();
+            var boq = await db.BillsOfQuantities.FindAsync(boqId);
+            if (boq == null) return NotFound();
+
+            if (boq.Status == BoqStatus.Approved || boq.Status == BoqStatus.Revised)
+                return BadRequest("This Bill of Quantities is already approved.");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            boq.Status = BoqStatus.Approved;
+            boq.ApprovedAt = DateTime.UtcNow;
+            boq.ApprovedById = userId;
+
+            await db.SaveChangesAsync();
+            return Ok(boq);
+        }
+
+        /// <summary>
+        /// POST /api/boq/{boqId}/revise
+        /// Start a new controlled revision of an approved BOQ: snapshots the approved version in place
+        /// (marking it Revised, immutable history) and creates a new editable Draft copy — with the same
+        /// sections/items, one version higher — for the change to be made against.
+        /// </summary>
+        [HttpPost("{boqId}/revise")]
+        public async Task<IActionResult> Revise(int boqId)
+        {
+            using var db = _factory.CreateDbContext();
+            var boq = await db.BillsOfQuantities
+                .Include(b => b.Sections)
+                    .ThenInclude(s => s.Items)
+                .FirstOrDefaultAsync(b => b.Id == boqId);
+            if (boq == null) return NotFound();
+
+            if (boq.Status != BoqStatus.Approved)
+                return BadRequest("Only an approved Bill of Quantities can be revised.");
+
+            var revision = new BillOfQuantities
+            {
+                ProjectId = boq.ProjectId,
+                Title = boq.Title,
+                VersionNumber = boq.VersionNumber + 1,
+                Status = BoqStatus.Draft,
+                TotalContractSum = boq.TotalContractSum,
+                Sections = boq.Sections.Select(s => new BoqSection
+                {
+                    SectionCode = s.SectionCode,
+                    SectionName = s.SectionName,
+                    Subtotal = s.Subtotal,
+                    DisplayOrder = s.DisplayOrder,
+                    Items = s.Items.Select(i => new BoqItem
+                    {
+                        ItemNumber = i.ItemNumber,
+                        Description = i.Description,
+                        UnitOfMeasure = i.UnitOfMeasure,
+                        Quantity = i.Quantity,
+                        Rate = i.Rate,
+                        TotalAmount = i.TotalAmount,
+                        Notes = i.Notes,
+                        DisplayOrder = i.DisplayOrder
+                    }).ToList()
+                }).ToList()
+            };
+
+            boq.Status = BoqStatus.Revised;
+
+            db.BillsOfQuantities.Add(revision);
+            await db.SaveChangesAsync();
+
+            return Ok(revision);
+        }
+
+        /// <summary>
         /// POST /api/boq/{boqId}/sections
         /// Add a new trade / work section to the BOQ
         /// </summary>
@@ -92,6 +201,8 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var boq = await db.BillsOfQuantities.FindAsync(boqId);
             if (boq == null) return NotFound();
+            if (boq.Status == BoqStatus.Approved || boq.Status == BoqStatus.Revised)
+                return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             var maxOrder = await db.BoqSections.Where(s => s.BillOfQuantitiesId == boqId).MaxAsync(s => (int?)s.DisplayOrder) ?? 0;
 
@@ -119,6 +230,8 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var section = await db.BoqSections.Include(s => s.BillOfQuantities).FirstOrDefaultAsync(s => s.Id == sectionId);
             if (section == null) return NotFound();
+            if (section.BillOfQuantities != null && (section.BillOfQuantities.Status == BoqStatus.Approved || section.BillOfQuantities.Status == BoqStatus.Revised))
+                return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             var maxOrder = await db.BoqItems.Where(i => i.BoqSectionId == sectionId).MaxAsync(i => (int?)i.DisplayOrder) ?? 0;
 
@@ -150,8 +263,11 @@ namespace AnchorPro.Controllers
         public async Task<IActionResult> UpdateItem(int itemId, [FromBody] BoqItemDto dto)
         {
             using var db = _factory.CreateDbContext();
-            var item = await db.BoqItems.Include(i => i.BoqSection).FirstOrDefaultAsync(i => i.Id == itemId);
+            var item = await db.BoqItems.Include(i => i.BoqSection).ThenInclude(s => s!.BillOfQuantities).FirstOrDefaultAsync(i => i.Id == itemId);
             if (item == null) return NotFound();
+            var parentBoq = item.BoqSection?.BillOfQuantities;
+            if (parentBoq != null && (parentBoq.Status == BoqStatus.Approved || parentBoq.Status == BoqStatus.Revised))
+                return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             item.ItemNumber = dto.ItemNumber;
             item.Description = dto.Description;
@@ -178,8 +294,11 @@ namespace AnchorPro.Controllers
         public async Task<IActionResult> DeleteItem(int itemId)
         {
             using var db = _factory.CreateDbContext();
-            var item = await db.BoqItems.Include(i => i.BoqSection).FirstOrDefaultAsync(i => i.Id == itemId);
+            var item = await db.BoqItems.Include(i => i.BoqSection).ThenInclude(s => s!.BillOfQuantities).FirstOrDefaultAsync(i => i.Id == itemId);
             if (item == null) return NotFound();
+            var parentBoq = item.BoqSection?.BillOfQuantities;
+            if (parentBoq != null && (parentBoq.Status == BoqStatus.Approved || parentBoq.Status == BoqStatus.Revised))
+                return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             var boqId = item.BoqSection?.BillOfQuantitiesId ?? 0;
             db.BoqItems.Remove(item);
@@ -206,6 +325,8 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var boq = await db.BillsOfQuantities.FindAsync(boqId);
             if (boq == null) return NotFound();
+            if (boq.Status == BoqStatus.Approved || boq.Status == BoqStatus.Revised)
+                return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             var lines = dto.CsvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length <= 1)

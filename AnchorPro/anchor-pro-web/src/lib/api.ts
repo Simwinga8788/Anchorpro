@@ -862,6 +862,9 @@ export const boqApi = {
     apiPut<any>(`/api/boq/items/${itemId}`, data),
   deleteItem: (itemId: number) => apiDelete(`/api/boq/items/${itemId}`),
   importCsv: (boqId: number, csvContent: string) => apiPost<any>(`/api/boq/${boqId}/import-csv`, { csvContent }),
+  approve: (boqId: number) => apiPost<any>(`/api/boq/${boqId}/approve`, {}),
+  revise: (boqId: number) => apiPost<any>(`/api/boq/${boqId}/revise`, {}),
+  getHistory: (projectId: number) => apiFetch<any[]>(`/api/boq/project/${projectId}/history`),
 };
 
 // ─── Daily Site Diary API ── /api/sitediary ─────────────────────────────────────

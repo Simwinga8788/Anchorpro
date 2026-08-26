@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { boqApi, projectsApi } from '@/lib/api';
-import { 
-  Building2, Plus, Upload, Trash2, Edit2, CheckCircle2, 
-  FileSpreadsheet, AlertCircle, Save, X, ChevronRight, Layers, DollarSign, Loader2
+import {
+  Building2, Plus, Upload, Trash2, Edit2, CheckCircle2,
+  FileSpreadsheet, AlertCircle, Save, X, ChevronRight, Layers, DollarSign, Loader2,
+  Lock, GitBranch, History
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 
@@ -63,6 +64,10 @@ export default function BoqPage() {
   const [showImportCsv, setShowImportCsv] = useState(false);
   const [csvContent, setCsvContent] = useState('');
 
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+
   useEffect(() => {
     projectsApi.getProjects()
       .then((res: any) => {
@@ -90,6 +95,54 @@ export default function BoqPage() {
       setError(err?.message || 'Failed to load Bill of Quantities.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const BOQ_STATUS: Record<number, { label: string; badge: string }> = {
+    0: { label: 'Draft', badge: 'badge-muted' },
+    1: { label: 'Under Review', badge: 'badge-blue' },
+    2: { label: 'Approved', badge: 'badge-green' },
+    3: { label: 'Revised', badge: 'badge-violet' },
+  };
+  const statusInfo = (status: number) => BOQ_STATUS[status] || BOQ_STATUS[0];
+  const isLocked = !!boq && (boq.status === 2 || boq.status === 3);
+
+  const handleApproveBoq = async () => {
+    if (!boq) return;
+    if (!confirm('Approve this Bill of Quantities? Once approved, line items can only change through a new revision.')) return;
+    setActionLoading(true);
+    try {
+      await boqApi.approve(boq.id);
+      if (selectedProjectId) loadBoq(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReviseBoq = async () => {
+    if (!boq) return;
+    if (!confirm('Start a new revision? The current approved version will be kept as read-only history, and a new editable draft (version ' + (boq.versionNumber + 1) + ') will be created from it.')) return;
+    setActionLoading(true);
+    try {
+      await boqApi.revise(boq.id);
+      if (selectedProjectId) loadBoq(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openHistory = async () => {
+    if (!selectedProjectId) return;
+    setShowHistory(true);
+    try {
+      const data = await boqApi.getHistory(selectedProjectId);
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -202,21 +255,33 @@ export default function BoqPage() {
             </select>
           )}
 
-          <button 
+          <button
             className="btn btn-secondary"
-            onClick={() => setShowImportCsv(true)}
+            onClick={openHistory}
             style={{ gap: 6 }}
           >
-            <Upload size={14} /> Import Excel / CSV
+            <History size={14} /> Version History
           </button>
 
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowAddSection(true)}
-            style={{ gap: 6 }}
-          >
-            <Plus size={14} /> Add Trade Section
-          </button>
+          {!isLocked && (
+            <>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowImportCsv(true)}
+                style={{ gap: 6 }}
+              >
+                <Upload size={14} /> Import Excel / CSV
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAddSection(true)}
+                style={{ gap: 6 }}
+              >
+                <Plus size={14} /> Add Trade Section
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -238,14 +303,31 @@ export default function BoqPage() {
           </div>
 
           <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-              BOQ Status & Version
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginTop: 6 }}>
-              Version {boq.versionNumber}.0 — <span style={{ color: 'var(--accent-emerald)' }}>Active Contract Baseline</span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              Ready for Monthly Interim Payment Certification
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                  BOQ Status & Version
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>Version {boq.versionNumber}.0</span>
+                  <span className={`badge ${statusInfo(boq.status).badge}`}>{statusInfo(boq.status).label}</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {isLocked
+                    ? 'Locked — line items are immutable. Start a revision to make changes.'
+                    : 'Editable — approve once the contract sum is agreed.'}
+                </div>
+              </div>
+
+              {boq.status === 2 ? (
+                <button className="btn btn-sm btn-secondary" disabled={actionLoading} onClick={handleReviseBoq} style={{ gap: 6, whiteSpace: 'nowrap' }}>
+                  <GitBranch size={13} /> Start Revision
+                </button>
+              ) : boq.status !== 3 ? (
+                <button className="btn btn-sm btn-primary" disabled={actionLoading} onClick={handleApproveBoq} style={{ gap: 6, whiteSpace: 'nowrap' }}>
+                  <CheckCircle2 size={13} /> Approve BOQ
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -295,13 +377,15 @@ export default function BoqPage() {
                       ${Number(sec.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <button 
-                    className="btn btn-sm btn-secondary"
-                    onClick={() => openAddItem(sec.id)}
-                    style={{ gap: 4, fontSize: 12 }}
-                  >
-                    <Plus size={13} /> Add Item
-                  </button>
+                  {!isLocked && (
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => openAddItem(sec.id)}
+                      style={{ gap: 4, fontSize: 12 }}
+                    >
+                      <Plus size={13} /> Add Item
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -331,22 +415,26 @@ export default function BoqPage() {
                           ${Number(item.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
                         <td style={{ padding: '10px 16px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                            <button 
-                              onClick={() => openEditItem(item)}
-                              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4 }}
-                              title="Edit Item"
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteItem(item.id)}
-                              style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: 4 }}
-                              title="Delete Item"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          {isLocked ? (
+                            <Lock size={13} style={{ color: 'var(--text-secondary)' }} />
+                          ) : (
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                              <button
+                                onClick={() => openEditItem(item)}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4 }}
+                                title="Edit Item"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: 4 }}
+                                title="Delete Item"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -510,6 +598,41 @@ export default function BoqPage() {
             <button type="submit" className="btn btn-primary">Import Items</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Version History Modal */}
+      <Modal open={showHistory} onClose={() => setShowHistory(false)} title="BOQ Version History">
+        {history.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {history.map((v) => (
+              <div
+                key={v.id}
+                style={{
+                  padding: '10px 14px', borderRadius: 8,
+                  background: v.id === boq?.id ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-surface)',
+                  border: v.id === boq?.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>
+                    Version {v.versionNumber}.0 <span className={`badge ${statusInfo(v.status).badge}`} style={{ marginLeft: 6 }}>{statusInfo(v.status).label}</span>
+                  </div>
+                  {v.approvedAt && (
+                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      Approved {new Date(v.approvedAt).toLocaleDateString()}{v.approvedByName ? ` by ${v.approvedByName}` : ''}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>
+                  ${Number(v.totalContractSum || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No version history yet.</p>
+        )}
       </Modal>
     </div>
   );
