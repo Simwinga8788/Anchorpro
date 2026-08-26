@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Layers, Plus, FileText, CheckCircle2, Clock, 
-  AlertCircle, DollarSign, ArrowUpRight, Search
+  AlertCircle, DollarSign, ArrowUpRight, Search, Loader2
 } from 'lucide-react';
-import { projectsApi } from '@/lib/api';
+import { projectsApi, variationsApi } from '@/lib/api';
 import Modal from '@/components/Modal';
 
 interface VariationItem {
@@ -20,17 +20,13 @@ interface VariationItem {
   requestedDate: string;
 }
 
-const DEFAULT_VARIATIONS: VariationItem[] = [
-  { id: 1, variationNumber: 'VO-001', siteInstructionRef: 'SI-04', title: 'Additional Subsurface Excavation for Soft Spots', description: 'Excavation of unexpected soft clay strata under Grid B4-B8 and backfilling with selected G5 rockfill.', amount: 4850.00, timeExtensionDays: 3, status: 'Approved', requestedDate: '2026-08-15' },
-  { id: 2, variationNumber: 'VO-002', siteInstructionRef: 'SI-07', title: 'Upgrade Foundation Rebar from Y16 to Y20', description: 'Structural engineer revision to column base reinforcement mat due to revised load calculations.', amount: 3200.00, timeExtensionDays: 0, status: 'Approved', requestedDate: '2026-08-20' },
-  { id: 3, variationNumber: 'VO-003', siteInstructionRef: 'SI-09', title: 'Relocation of Existing Underground Stormwater Line', description: 'Discovery of unchartered 450mm concrete stormwater culvert requiring redirection around parking structure.', amount: 8900.00, timeExtensionDays: 5, status: 'Under Review', requestedDate: '2026-08-24' }
-];
-
 export default function VariationsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [variations, setVariations] = useState<VariationItem[]>(DEFAULT_VARIATIONS);
+  const [variations, setVariations] = useState<VariationItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newVo, setNewVo] = useState<Partial<VariationItem>>({
     siteInstructionRef: '',
     title: '',
@@ -52,30 +48,53 @@ export default function VariationsPage() {
       .catch(() => {});
   }, []);
 
+  const loadVariations = async (projId: number) => {
+    setLoading(true);
+    try {
+      const data = await variationsApi.getByProject(projId);
+      setVariations(data || []);
+    } catch {
+      setVariations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadVariations(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
   const totalApproved = variations
     .filter(v => v.status === 'Approved')
-    .reduce((acc, v) => acc + v.amount, 0);
+    .reduce((acc, v) => acc + (Number(v.amount) || 0), 0);
 
   const totalPending = variations
     .filter(v => v.status !== 'Approved' && v.status !== 'Rejected')
-    .reduce((acc, v) => acc + v.amount, 0);
+    .reduce((acc, v) => acc + (Number(v.amount) || 0), 0);
 
-  const handleAddVo = () => {
-    if (!newVo.title || !newVo.amount) return;
-    const item: VariationItem = {
-      id: variations.length + 1,
-      variationNumber: `VO-00${variations.length + 1}`,
-      siteInstructionRef: newVo.siteInstructionRef || 'SI-Pending',
-      title: newVo.title,
-      description: newVo.description || '',
-      amount: Number(newVo.amount),
-      timeExtensionDays: Number(newVo.timeExtensionDays) || 0,
-      status: (newVo.status as any) || 'Pending',
-      requestedDate: new Date().toISOString().split('T')[0]
-    };
-    setVariations([...variations, item]);
-    setShowAddModal(false);
-    setNewVo({ siteInstructionRef: '', title: '', description: '', amount: 0, timeExtensionDays: 0, status: 'Pending' });
+  const handleAddVo = async () => {
+    if (!newVo.title || !newVo.amount || !selectedProjectId) return;
+    setSubmitting(true);
+    try {
+      await variationsApi.create({
+        projectId: selectedProjectId,
+        siteInstructionRef: newVo.siteInstructionRef || 'SI-Pending',
+        title: newVo.title,
+        description: newVo.description || '',
+        amount: Number(newVo.amount),
+        timeExtensionDays: Number(newVo.timeExtensionDays) || 0,
+        status: newVo.status || 'Pending'
+      });
+      setShowAddModal(false);
+      setNewVo({ siteInstructionRef: '', title: '', description: '', amount: 0, timeExtensionDays: 0, status: 'Pending' });
+      await loadVariations(selectedProjectId);
+    } catch (e: any) {
+      alert('Failed to save variation: ' + (e.message || 'Error'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -140,7 +159,7 @@ export default function VariationsPage() {
             Approved Time Extensions (EOT)
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-blue)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-            {variations.reduce((acc, v) => acc + (v.status === 'Approved' ? v.timeExtensionDays : 0), 0)} Days
+            {variations.reduce((acc, v) => acc + (v.status === 'Approved' ? (Number(v.timeExtensionDays) || 0) : 0), 0)} Days
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Revised Practical Completion Date</div>
         </div>
@@ -153,39 +172,50 @@ export default function VariationsPage() {
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{variations.length} records</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', color: 'var(--text-secondary)', textAlign: 'left' }}>
-                <th style={{ padding: '10px 16px', fontWeight: 600 }}>VO #</th>
-                <th style={{ padding: '10px 16px', fontWeight: 600 }}>SI Ref</th>
-                <th style={{ padding: '10px 16px', fontWeight: 600 }}>Title & Description</th>
-                <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>Claimed Value</th>
-                <th style={{ padding: '10px 16px', fontWeight: 600 }}>EOT (Days)</th>
-                <th style={{ padding: '10px 16px', fontWeight: 600 }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {variations.map((v) => (
-                <tr key={v.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }} className="table-row-hover">
-                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--accent-blue)' }}>{v.variationNumber}</td>
-                  <td style={{ padding: '12px 16px', color: 'var(--accent-amber)', fontWeight: 600 }}>{v.siteInstructionRef}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{v.description}</div>
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-                    ${v.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>+{v.timeExtensionDays} days</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={v.status === 'Approved' ? 'badge badge-green' : v.status === 'Under Review' ? 'badge badge-amber' : 'badge badge-rose'}>
-                      {v.status}
-                    </span>
-                  </td>
+          {loading ? (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+              Loading variations from database…
+            </div>
+          ) : variations.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              No variations or site instructions logged for this project yet. Click &quot;Log Variation Order&quot; above.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-hover)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>VO #</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>SI Ref</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>Title & Description</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>Claimed Value</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>EOT (Days)</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600 }}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {variations.map((v) => (
+                  <tr key={v.id} style={{ borderBottom: '1px solid var(--border-subtle)' }} className="table-row-hover">
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--accent-blue)' }}>{v.variationNumber}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--accent-amber)', fontWeight: 600 }}>{v.siteInstructionRef}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{v.description}</div>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
+                      ${Number(v.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>+{v.timeExtensionDays || 0} days</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span className={v.status === 'Approved' ? 'badge badge-green' : v.status === 'Under Review' ? 'badge badge-amber' : 'badge badge-rose'}>
+                        {v.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -216,7 +246,9 @@ export default function VariationsPage() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
             <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleAddVo}>Submit Claim</button>
+            <button className="btn btn-primary" onClick={handleAddVo} disabled={submitting}>
+              {submitting ? 'Saving to Database…' : 'Submit Claim'}
+            </button>
           </div>
         </div>
       </Modal>

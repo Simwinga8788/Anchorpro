@@ -892,3 +892,11 @@ export const certificatesApi = {
   submitToConsultant: (id: number) => apiPost<any>(`/api/certificates/${id}/submit`, {}),
   approve: (id: number) => apiPost<any>(`/api/certificates/${id}/approve`, {}),
 };
+
+// ─── Variations & Claims API ── /api/variations ─────────────────────────────────
+export const variationsApi = {
+  getByProject: (projectId: number) => apiFetch<any[]>(`/api/variations/project/${projectId}`),
+  create: (data: { projectId: number; variationNumber?: string; siteInstructionRef?: string; title: string; description?: string; amount: number; timeExtensionDays?: number; status?: string }) => 
+    apiPost<any>('/api/variations', data),
+  approve: (id: number) => apiPut<any>(`/api/variations/${id}/approve`, {}),
+};
