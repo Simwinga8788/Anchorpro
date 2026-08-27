@@ -3,17 +3,20 @@ using System;
 using AnchorPro.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AnchorPro.Migrations
+namespace AnchorPro.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260827132752_AddCertificateLedgerLink")]
+    partial class AddCertificateLedgerLink
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2486,9 +2489,6 @@ namespace AnchorPro.Migrations
                     b.Property<int>("PoType")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("ProjectId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("PurchaseRequisitionId")
                         .HasColumnType("integer");
 
@@ -2524,8 +2524,6 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.HasIndex("ProjectId");
-
                     b.HasIndex("PurchaseRequisitionId");
 
                     b.HasIndex("SupplierId");
@@ -2540,9 +2538,6 @@ namespace AnchorPro.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BoqItemId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -2586,8 +2581,6 @@ namespace AnchorPro.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BoqItemId");
-
                     b.HasIndex("InventoryItemId");
 
                     b.HasIndex("PurchaseOrderId");
@@ -2627,9 +2620,6 @@ namespace AnchorPro.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int?>("ProjectId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("RequestedById")
                         .IsRequired()
                         .HasMaxLength(85)
@@ -2667,8 +2657,6 @@ namespace AnchorPro.Migrations
 
                     b.HasIndex("JobCardId");
 
-                    b.HasIndex("ProjectId");
-
                     b.HasIndex("RequestedById");
 
                     b.ToTable("PurchaseRequisitions");
@@ -2681,9 +2669,6 @@ namespace AnchorPro.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BoqItemId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -2723,8 +2708,6 @@ namespace AnchorPro.Migrations
                         .HasColumnType("character varying(85)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BoqItemId");
 
                     b.HasIndex("InventoryItemId");
 
@@ -5237,10 +5220,6 @@ namespace AnchorPro.Migrations
                         .WithMany()
                         .HasForeignKey("JobCardId");
 
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId");
-
                     b.HasOne("AnchorPro.Data.Entities.PurchaseRequisition", "PurchaseRequisition")
                         .WithMany()
                         .HasForeignKey("PurchaseRequisitionId");
@@ -5255,8 +5234,6 @@ namespace AnchorPro.Migrations
 
                     b.Navigation("JobCard");
 
-                    b.Navigation("Project");
-
                     b.Navigation("PurchaseRequisition");
 
                     b.Navigation("Supplier");
@@ -5264,10 +5241,6 @@ namespace AnchorPro.Migrations
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseOrderItem", b =>
                 {
-                    b.HasOne("AnchorPro.Data.Entities.BoqItem", "BoqItem")
-                        .WithMany()
-                        .HasForeignKey("BoqItemId");
-
                     b.HasOne("AnchorPro.Data.Entities.InventoryItem", "InventoryItem")
                         .WithMany()
                         .HasForeignKey("InventoryItemId");
@@ -5277,8 +5250,6 @@ namespace AnchorPro.Migrations
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("BoqItem");
 
                     b.Navigation("InventoryItem");
 
@@ -5299,10 +5270,6 @@ namespace AnchorPro.Migrations
                         .WithMany("PurchaseRequisitions")
                         .HasForeignKey("JobCardId");
 
-                    b.HasOne("AnchorPro.Data.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId");
-
                     b.HasOne("AnchorPro.Data.ApplicationUser", "RequestedBy")
                         .WithMany()
                         .HasForeignKey("RequestedById")
@@ -5315,17 +5282,11 @@ namespace AnchorPro.Migrations
 
                     b.Navigation("JobCard");
 
-                    b.Navigation("Project");
-
                     b.Navigation("RequestedBy");
                 });
 
             modelBuilder.Entity("AnchorPro.Data.Entities.PurchaseRequisitionItem", b =>
                 {
-                    b.HasOne("AnchorPro.Data.Entities.BoqItem", "BoqItem")
-                        .WithMany()
-                        .HasForeignKey("BoqItemId");
-
                     b.HasOne("AnchorPro.Data.Entities.InventoryItem", "InventoryItem")
                         .WithMany()
                         .HasForeignKey("InventoryItemId");
@@ -5335,8 +5296,6 @@ namespace AnchorPro.Migrations
                         .HasForeignKey("PurchaseRequisitionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("BoqItem");
 
                     b.Navigation("InventoryItem");
 

@@ -467,6 +467,51 @@ namespace AnchorPro.Services
         }
 
         // ==========================================
+        // PAYMENT CERTIFICATES (CONSTRUCTION)
+        // ==========================================
+        public async Task PostCertificatePaymentAsync(int certificateId, string userId)
+        {
+            using var context = _factory.CreateDbContext();
+            using var transaction = await context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var cert = await context.PaymentCertificates
+                    .Include(c => c.Project)
+                    .FirstOrDefaultAsync(c => c.Id == certificateId);
+
+                if (cert == null) throw new Exception("Payment Certificate not found");
+
+                var alreadyPosted = await context.LedgerEntries.AnyAsync(e => e.PaymentCertificateId == certificateId);
+                if (alreadyPosted) return; // idempotent — never double-post the same certificate
+
+                var entry = new LedgerEntry
+                {
+                    TransactionDate = DateTime.UtcNow,
+                    Type = LedgerTransactionType.Income,
+                    Amount = cert.NetAmountDue,
+                    Category = "Revenue - Certificates",
+                    Description = $"Payment received for Certificate {cert.CertificateNumber}" +
+                        (cert.Project != null ? $" ({cert.Project.Name})" : ""),
+                    PaymentCertificateId = cert.Id,
+                    RecordedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                context.LedgerEntries.Add(entry);
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ==========================================
         // LEDGER & REPORTING
         // ==========================================
         public async Task<List<LedgerEntry>> GetLedgerEntriesAsync(DateTime? from, DateTime? to)

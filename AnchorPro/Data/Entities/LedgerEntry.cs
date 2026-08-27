@@ -33,6 +33,9 @@ namespace AnchorPro.Data.Entities
         public int? ExpenseId { get; set; }
         public Expense? Expense { get; set; }
 
+        public int? PaymentCertificateId { get; set; }
+        public PaymentCertificate? PaymentCertificate { get; set; }
+
         [MaxLength(100)]
         public string? RecordedBy { get; set; }
     }

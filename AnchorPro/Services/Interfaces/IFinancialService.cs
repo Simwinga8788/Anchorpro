@@ -34,6 +34,9 @@ namespace AnchorPro.Services.Interfaces
         // Ledger & Reporting
         Task<List<LedgerEntry>> GetLedgerEntriesAsync(DateTime? from, DateTime? to);
         Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year);
+
+        // Payment Certificates (Construction)
+        Task PostCertificatePaymentAsync(int certificateId, string userId);
     }
 
     public class FinancialSnapshot

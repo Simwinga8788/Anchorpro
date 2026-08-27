@@ -522,6 +522,7 @@ namespace AnchorPro.Services
                     SupplierId = supplierId,
                     PoType = pr.JobCardId.HasValue ? PurchaseOrderType.DirectPurchase : PurchaseOrderType.InventoryReplenishment,
                     JobCardId = pr.JobCardId,
+                    ProjectId = pr.ProjectId,
                     DepartmentId = pr.DepartmentId,
                     PurchaseRequisitionId = pr.Id,
                     Notes = pr.Notes,
@@ -544,6 +545,7 @@ namespace AnchorPro.Services
                     poItems.Add(new PurchaseOrderItem
                     {
                         InventoryItemId = item.InventoryItemId,
+                        BoqItemId = item.BoqItemId,
                         Description = item.Description,
                         QuantityOrdered = item.QuantityRequested,
                         QuantityReceived = 0,

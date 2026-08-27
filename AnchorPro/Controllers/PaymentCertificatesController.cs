@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +18,12 @@ namespace AnchorPro.Controllers
     public class CertificatesController : ControllerBase
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
+        private readonly IFinancialService _financialService;
 
-        public CertificatesController(IDbContextFactory<ApplicationDbContext> factory)
+        public CertificatesController(IDbContextFactory<ApplicationDbContext> factory, IFinancialService financialService)
         {
             _factory = factory;
+            _financialService = financialService;
         }
 
         /// <summary>
@@ -321,6 +324,9 @@ namespace AnchorPro.Controllers
 
             cert.Status = CertificateStatus.Paid;
             await db.SaveChangesAsync();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "System";
+            await _financialService.PostCertificatePaymentAsync(cert.Id, userId);
 
             return Ok(new { message = "Payment Certificate marked as paid." });
         }

@@ -81,6 +81,12 @@ namespace AnchorPro.Services
             var item = await context.InventoryItems.FindAsync(itemId);
             if (item != null)
             {
+                if (item.QuantityOnHand + quantityAdjustment < 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for '{item.Name}'. Available: {item.QuantityOnHand}, Requested: {-quantityAdjustment}.");
+                }
+
                 item.QuantityOnHand += quantityAdjustment;
                 item.UpdatedAt = DateTime.UtcNow;
                 item.UpdatedBy = userId;

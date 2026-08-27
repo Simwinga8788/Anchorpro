@@ -61,6 +61,10 @@ namespace AnchorPro.Data.Entities
         public int? JobCardId { get; set; }
         public JobCard? JobCard { get; set; }
 
+        // Project link — for construction procurement not tied to a maintenance job card
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
+
         // Purchase Requisition link — optional, set when PO is generated from an approved PR
         public int? PurchaseRequisitionId { get; set; }
         public PurchaseRequisition? PurchaseRequisition { get; set; }
@@ -76,6 +80,10 @@ namespace AnchorPro.Data.Entities
 
         public int? InventoryItemId { get; set; }
         public InventoryItem? InventoryItem { get; set; }
+
+        // BOQ item this line is being procured against — for construction material tracking
+        public int? BoqItemId { get; set; }
+        public BoqItem? BoqItem { get; set; }
 
         [Required]
         [MaxLength(200)]

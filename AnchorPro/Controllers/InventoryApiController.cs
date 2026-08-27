@@ -70,22 +70,36 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            await _inventoryService.AdjustStockAsync(id, req.QuantityAdjustment, userId, req.Reason);
-            return NoContent();
+            try
+            {
+                await _inventoryService.AdjustStockAsync(id, req.QuantityAdjustment, userId, req.Reason);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
         /// POST /api/inventory/{id}/reserve
         /// Body: { "quantity": 5, "jobCardId": 123 }
-        /// Deducts from available stock and adds a reservation audit log to prevent over-allocation.
+        /// Deducts from available stock for a job; rejected if it would take stock below zero.
         /// </summary>
         [HttpPost("{id}/reserve")]
         public async Task<ActionResult> ReserveStock(int id, [FromBody] ReserveStockRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             string reason = $"Reservation for Job #{req.JobCardId}";
-            await _inventoryService.AdjustStockAsync(id, -req.Quantity, userId, reason);
-            return NoContent();
+            try
+            {
+                await _inventoryService.AdjustStockAsync(id, -req.Quantity, userId, reason);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>

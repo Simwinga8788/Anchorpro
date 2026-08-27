@@ -11,6 +11,10 @@ namespace AnchorPro.Data.Entities
         public int? InventoryItemId { get; set; }
         public InventoryItem? InventoryItem { get; set; }
 
+        // BOQ item this line is being requisitioned against — for construction material tracking
+        public int? BoqItemId { get; set; }
+        public BoqItem? BoqItem { get; set; }
+
         [Required]
         [MaxLength(200)]
         public string Description { get; set; } = string.Empty; // Free-text or Stock name
