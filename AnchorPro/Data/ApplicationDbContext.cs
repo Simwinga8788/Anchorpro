@@ -95,6 +95,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.PaymentCertificateVariation> PaymentCertificateVariations { get; set; }
     public DbSet<Entities.Variation> Variations { get; set; }
     public DbSet<Entities.VariationStatusHistory> VariationStatusHistories { get; set; }
+    public DbSet<Entities.WeeklyReport> WeeklyReports { get; set; }
+    public DbSet<Entities.MonthlyReport> MonthlyReports { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

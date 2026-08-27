@@ -908,3 +908,26 @@ export const variationsApi = {
   reject: (id: number, reason?: string) => apiPut<any>(`/api/variations/${id}/reject`, { reason }),
   getHistory: (id: number) => apiFetch<any[]>(`/api/variations/${id}/history`),
 };
+
+// ─── Reporting Engine API ── /api/reports ────────────────────────────────────
+export const reportsApi = {
+  weekly: {
+    getByProject: (projectId: number) => apiFetch<any[]>(`/api/reports/weekly/project/${projectId}`),
+    getById: (id: number) => apiFetch<any>(`/api/reports/weekly/${id}`),
+    generate: (data: { projectId: number; periodStartDate: string; periodEndDate: string }) =>
+      apiPost<any>('/api/reports/weekly/generate', data),
+    updateNarrative: (id: number, data: { keyWorksNarrative: string; lookaheadNarrative?: string }) =>
+      apiPut<any>(`/api/reports/weekly/${id}`, data),
+    issue: (id: number) => apiPost<any>(`/api/reports/weekly/${id}/issue`, {}),
+  },
+  monthly: {
+    getByProject: (projectId: number) => apiFetch<any[]>(`/api/reports/monthly/project/${projectId}`),
+    getById: (id: number) => apiFetch<any>(`/api/reports/monthly/${id}`),
+    generate: (data: { projectId: number; year: number; month: number }) =>
+      apiPost<any>('/api/reports/monthly/generate', data),
+    updateNarrative: (id: number, narrative: string) =>
+      apiPut<any>(`/api/reports/monthly/${id}`, { narrative }),
+    approve: (id: number) => apiPost<any>(`/api/reports/monthly/${id}/approve`, {}),
+    issue: (id: number) => apiPost<any>(`/api/reports/monthly/${id}/issue`, {}),
+  },
+};
