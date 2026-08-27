@@ -50,6 +50,16 @@ namespace AnchorPro.Controllers
             return result == null ? NotFound() : Ok(result);
         }
 
+        /// <summary>GET /api/safety/permits/project/{projectId} — All permits raised against a construction project.</summary>
+        [HttpGet("permits/project/{projectId}")]
+        public async Task<ActionResult<List<PermitToWork>>> GetByProject(int projectId)
+            => Ok(await _safetyService.GetByProjectAsync(projectId));
+
+        /// <summary>GET /api/safety/stats/project/{projectId} — Permit compliance stats scoped to one project.</summary>
+        [HttpGet("stats/project/{projectId}")]
+        public async Task<ActionResult<ProjectSafetyStats>> GetProjectStats(int projectId)
+            => Ok(await _safetyService.GetProjectStatsAsync(projectId));
+
         /// <summary>POST /api/safety/permits — Issue a new permit to work.</summary>
         [HttpPost("permits")]
         public async Task<ActionResult> Create([FromBody] PermitToWork permit)

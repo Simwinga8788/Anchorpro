@@ -92,6 +92,13 @@ namespace AnchorPro.Data.Entities
 
         public int NearMissesCount { get; set; }
 
+        /// <summary>Active permits-to-work raised against this project as of generation.</summary>
+        public int ActivePermitsCount { get; set; }
+
+        /// <summary>% of the project's permits-to-work with all safety checks ticked (isolation, LOTO, area secure, PPE).</summary>
+        [Column(TypeName = "decimal(5,1)")]
+        public decimal PermitCompliancePercent { get; set; }
+
         /// <summary>Editable narrative — auto-seeded by rolling up the month's issued weekly report narratives.</summary>
         public string Narrative { get; set; } = string.Empty;
 

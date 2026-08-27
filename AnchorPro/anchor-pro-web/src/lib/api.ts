@@ -548,6 +548,8 @@ export const safetyApi = {
   getPermits:       ()                          => apiFetch<any[]>('/api/safety/permits'),
   getPermit:        (id: number)                => apiFetch<any>(`/api/safety/permits/${id}`),
   getPermitByJob:   (jobId: number)             => apiFetch<any>(`/api/safety/permits/job/${jobId}`),
+  getPermitsByProject: (projectId: number)      => apiFetch<any[]>(`/api/safety/permits/project/${projectId}`),
+  getProjectStats:  (projectId: number)         => apiFetch<any>(`/api/safety/stats/project/${projectId}`),
   createPermit:     (data: any)                 => apiPost<any>('/api/safety/permits', data),
   updatePermitStatus:(id: number, data: any)    => apiPatch<any>(`/api/safety/permits/${id}/status`, data),
 };

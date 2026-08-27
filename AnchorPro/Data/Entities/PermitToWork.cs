@@ -4,8 +4,13 @@ namespace AnchorPro.Data.Entities
 {
     public class PermitToWork : BaseEntity
     {
-        public int JobCardId { get; set; }
+        // Either JobCardId (maintenance work) or ProjectId (construction site work) — a permit
+        // needs at least one, but construction Site Diary work has no job card to attach to.
+        public int? JobCardId { get; set; }
         public JobCard? JobCard { get; set; }
+
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
 
         // Safety Checks
         public bool IsIsolated { get; set; }

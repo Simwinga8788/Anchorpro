@@ -319,7 +319,7 @@ export default function MonthlyReportPage() {
                 2. Progress Narrative &amp; Safety Summary
               </h3>
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                Safety this month: {selectedReport.safetyIncidentsCount} incidents, {selectedReport.nearMissesCount} near misses (rolled up from issued weekly reports).
+                Safety this month: {selectedReport.safetyIncidentsCount} incidents, {selectedReport.nearMissesCount} near misses (rolled up from issued weekly reports). Permits-to-work: {selectedReport.activePermitsCount} active, {selectedReport.permitCompliancePercent?.toFixed(0) ?? 100}% compliant.
               </div>
               {isDraft ? (
                 <textarea

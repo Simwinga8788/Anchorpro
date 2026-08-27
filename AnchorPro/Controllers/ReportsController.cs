@@ -234,6 +234,8 @@ namespace AnchorPro.Controllers
                 report.LatestCertificateNumber,
                 report.SafetyIncidentsCount,
                 report.NearMissesCount,
+                report.ActivePermitsCount,
+                report.PermitCompliancePercent,
                 report.Narrative,
                 report.ApprovedAt,
                 ApprovedBy = report.ApprovedBy,
@@ -285,6 +287,16 @@ namespace AnchorPro.Controllers
                 ? string.Join("\n\n", issuedWeeklyReports.Select(r => $"Week of {r.PeriodStartDate:dd MMM}:\n{r.KeyWorksNarrative}"))
                 : "No weekly reports were issued for this project during this month.";
 
+            var projectPermits = await db.PermitsToWork
+                .Where(p => p.ProjectId == dto.ProjectId)
+                .ToListAsync();
+            int activePermits = projectPermits.Count(p => p.Status == PermitStatus.Active);
+            int compliantPermits = projectPermits.Count(p =>
+                p.IsIsolated && p.IsLotoApplied && p.IsAreaSecure && p.IsPpeChecked);
+            decimal permitCompliance = projectPermits.Count == 0
+                ? 100m
+                : Math.Round((decimal)compliantPermits / projectPermits.Count * 100, 1);
+
             if (existing != null)
             {
                 existing.OriginalContractSum = project.Budget;
@@ -293,6 +305,8 @@ namespace AnchorPro.Controllers
                 existing.LatestCertificateNumber = latestCert?.CertificateNumber;
                 existing.SafetyIncidentsCount = safetyIncidents;
                 existing.NearMissesCount = nearMisses;
+                existing.ActivePermitsCount = activePermits;
+                existing.PermitCompliancePercent = permitCompliance;
 
                 await db.SaveChangesAsync();
                 return Ok(existing);
@@ -310,6 +324,8 @@ namespace AnchorPro.Controllers
                 LatestCertificateNumber = latestCert?.CertificateNumber,
                 SafetyIncidentsCount = safetyIncidents,
                 NearMissesCount = nearMisses,
+                ActivePermitsCount = activePermits,
+                PermitCompliancePercent = permitCompliance,
                 Narrative = narrative
             };
 

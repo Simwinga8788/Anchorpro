@@ -2,7 +2,7 @@
 
 import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle, PauseCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { safetyApi } from '@/lib/api';
+import { safetyApi, projectsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
@@ -15,18 +15,19 @@ const permitStatusMap: Record<number, { label: string; badge: string }> = {
 export default function SafetyPage() {
   const [permits, setPermits] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    jobCardId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '',
+    jobCardId: '', projectId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '',
     isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, toolboxTalkCompleted: false,
   });
 
   const loadData = () => {
     setLoading(true);
-    Promise.all([safetyApi.getPermits(), safetyApi.getStats()])
-      .then(([p, s]) => { setPermits(p || []); setStats(s); })
+    Promise.all([safetyApi.getPermits(), safetyApi.getStats(), projectsApi.getAll()])
+      .then(([p, s, proj]) => { setPermits(p || []); setStats(s); setProjects(proj || []); })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -35,14 +36,19 @@ export default function SafetyPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.jobCardId && !form.projectId) {
+      alert('Select either a Job Card or a Project for this permit.');
+      return;
+    }
     setSaving(true);
     try {
       await safetyApi.createPermit({
         ...form,
-        jobCardId: parseInt(form.jobCardId),
+        jobCardId: form.jobCardId ? parseInt(form.jobCardId) : null,
+        projectId: form.projectId ? parseInt(form.projectId) : null,
       });
       setShowCreate(false);
-      setForm({ jobCardId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '', isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, toolboxTalkCompleted: false });
+      setForm({ jobCardId: '', projectId: '', authorizedBy: '', workScope: '', hazardsIdentified: '', controlMeasures: '', isIsolated: false, isLotoApplied: false, isAreaSecure: false, isPpeChecked: false, toolboxTalkCompleted: false });
       loadData();
     } catch (err: any) {
       alert('Error creating permit: ' + err.message);
@@ -81,8 +87,15 @@ export default function SafetyPage() {
       <SlideOver open={showCreate} onClose={() => setShowCreate(false)} title="Issue Permit to Work" subtitle="Safety clearance for high-risk operations.">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-field">
+            <label className="form-label">Project</label>
+            <select className="form-input" value={form.projectId} onChange={e => setForm({...form, projectId: e.target.value})}>
+              <option value="">— None (maintenance job card instead) —</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
             <label className="form-label">Job Card ID</label>
-            <input className="form-input" required type="number" placeholder="e.g. 1" value={form.jobCardId} onChange={e => setForm({...form, jobCardId: e.target.value})} />
+            <input className="form-input" type="number" placeholder="Leave blank if linked to a Project above" value={form.jobCardId} onChange={e => setForm({...form, jobCardId: e.target.value})} />
           </div>
           <div className="form-field">
             <label className="form-label">Authorized By</label>

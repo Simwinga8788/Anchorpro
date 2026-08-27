@@ -42,6 +42,16 @@ namespace AnchorPro.Services
                 .FirstOrDefaultAsync(p => p.JobCardId == jobId);
         }
 
+        public async Task<List<PermitToWork>> GetByProjectAsync(int projectId)
+        {
+            using var context = _factory.CreateDbContext();
+            return await context.PermitsToWork
+                .Where(p => p.ProjectId == projectId)
+                .OrderByDescending(p => p.AuthorizedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
         public async Task CreatePermitAsync(PermitToWork permit, string userId)
         {
             using var context = _factory.CreateDbContext();
@@ -94,6 +104,26 @@ namespace AnchorPro.Services
                     p.ClosedAt.HasValue &&
                     p.ClosedAt.Value.Month == thisMonth &&
                     p.ClosedAt.Value.Year == thisYear),
+                CompliancePercent = total == 0 ? 100m : Math.Round((decimal)compliant / total * 100, 1)
+            };
+        }
+
+        public async Task<ProjectSafetyStats> GetProjectStatsAsync(int projectId)
+        {
+            using var context = _factory.CreateDbContext();
+            var permits = await context.PermitsToWork
+                .Where(p => p.ProjectId == projectId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var total = permits.Count;
+            var compliant = total == 0 ? 0 : permits.Count(p =>
+                p.IsIsolated && p.IsLotoApplied && p.IsAreaSecure && p.IsPpeChecked);
+
+            return new ProjectSafetyStats
+            {
+                TotalPermits = total,
+                ActivePermits = permits.Count(p => p.Status == PermitStatus.Active),
                 CompliancePercent = total == 0 ? 100m : Math.Round((decimal)compliant / total * 100, 1)
             };
         }

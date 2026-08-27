@@ -136,7 +136,7 @@ export default function PrintMonthlyReportPage() {
         <div>
           <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>2. Progress Narrative &amp; Safety Summary</h3>
           <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#6b7280' }}>
-            Safety this month: {report.safetyIncidentsCount} incidents, {report.nearMissesCount} near misses.
+            Safety this month: {report.safetyIncidentsCount} incidents, {report.nearMissesCount} near misses. Permits-to-work: {report.activePermitsCount} active, {report.permitCompliancePercent?.toFixed(0) ?? 100}% compliant.
           </p>
           <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.narrative}</p>
         </div>
