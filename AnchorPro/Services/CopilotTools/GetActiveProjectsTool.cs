@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -37,8 +38,24 @@ namespace AnchorPro.Services.CopilotTools
 
             if (!activeProjects.Any()) return ("There are currently no active projects.", "", "");
 
-            var responseText = $"You have {activeProjects.Count} active projects:\n" +
-                               string.Join("\n", activeProjects.Select(p => $"- {p.Name} (Value: {p.Budget})"));
+            var projectIds = activeProjects.Select(p => p.Id).ToList();
+
+            var latestCerts = await _db.PaymentCertificates
+                .Where(c => projectIds.Contains(c.ProjectId) && c.Status != CertificateStatus.Draft)
+                .GroupBy(c => c.ProjectId)
+                .Select(g => g.OrderByDescending(c => c.PeriodEndDate).First())
+                .ToListAsync();
+
+            var lines = activeProjects.Select(p =>
+            {
+                var cert = latestCerts.FirstOrDefault(c => c.ProjectId == p.Id);
+                var progress = cert != null && p.Budget > 0
+                    ? $", {Math.Round(cert.GrossValuationToDate / p.Budget * 100, 1)}% certified, latest cert {cert.CertificateNumber} ({cert.Status})"
+                    : ", no certificates raised yet";
+                return $"- {p.Name} (Budget: {p.Budget:N2}{progress})";
+            });
+
+            var responseText = $"You have {activeProjects.Count} active projects:\n" + string.Join("\n", lines);
             return (responseText, "", "");
         }
     }
