@@ -931,3 +931,15 @@ export const reportsApi = {
     issue: (id: number) => apiPost<any>(`/api/reports/monthly/${id}/issue`, {}),
   },
 };
+
+// ─── Native Schedule API ── /api/schedule ────────────────────────────────────
+export const scheduleApi = {
+  getByProject: (projectId: number) => apiFetch<any[]>(`/api/schedule/project/${projectId}`),
+  create: (data: { projectId: number; title: string; trade?: string; plannedStartDate: string; plannedEndDate: string; predecessorMilestoneId?: number | null }) =>
+    apiPost<any>('/api/schedule', data),
+  update: (id: number, data: { title: string; trade?: string; plannedStartDate: string; plannedEndDate: string; predecessorMilestoneId?: number | null }) =>
+    apiPut<any>(`/api/schedule/${id}`, data),
+  updateProgress: (id: number, data: { progressPercentage: number; status: number; actualStartDate?: string | null; actualEndDate?: string | null }) =>
+    apiPut<any>(`/api/schedule/${id}/progress`, data),
+  remove: (id: number) => apiDelete(`/api/schedule/${id}`),
+};
