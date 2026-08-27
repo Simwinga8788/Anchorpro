@@ -6,6 +6,7 @@ import { Building2, ArrowLeft, Plus, Clock, Users, Wrench, CheckCircle, Hash, Tr
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
+import { dashboardApi } from '@/lib/api';
 
 function HealthBar({ current, total }: { current: number, total: number }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
@@ -23,6 +24,7 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [snapshot, setSnapshot] = useState<any>(null);
 
   const [showTask, setShowTask] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', estimatedHours: '', startDate: '', dueDate: '', assignedToId: '' });
@@ -55,6 +57,8 @@ export default function ProjectDetailsPage() {
     } finally {
       setLoading(false);
     }
+
+    dashboardApi.getProjectSnapshot(Number(id)).then(setSnapshot).catch(() => setSnapshot(null));
   };
 
   const handleCreateTask = async (e: any) => {
@@ -276,6 +280,51 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
           </div>
+
+          {snapshot && (snapshot.contractSum > 0 || snapshot.latestCertificateNumber) && (
+            <div className="card" style={{ padding: 24 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Construction Snapshot</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>CERTIFIED PROGRESS</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.percentComplete?.toFixed(1) ?? 0}%</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    K {snapshot.grossValuationToDate?.toLocaleString() ?? 0} valued of K {snapshot.contractSum?.toLocaleString() ?? 0}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>LATEST CERTIFICATE</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.latestCertificateNumber ?? '—'}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {snapshot.latestCertificateStatus ?? 'No certificate raised'} · K {snapshot.netCertifiedPayable?.toLocaleString() ?? 0} net payable
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>OPEN VARIATIONS</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: snapshot.openVariationsCount > 0 ? 'var(--accent-amber)' : 'var(--text-primary)' }}>
+                    {snapshot.openVariationsCount ?? 0}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>awaiting approval</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>SAFETY & PERMITS</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.permitCompliancePercent?.toFixed(0) ?? 100}%</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {snapshot.activePermitsCount ?? 0} active permits · {snapshot.safetyIncidentsThisMonth ?? 0} incidents this month
+                  </div>
+                </div>
+                {snapshot.nextMilestoneTitle && (
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>NEXT MILESTONE</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.nextMilestoneTitle}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {snapshot.nextMilestoneDate ? new Date(snapshot.nextMilestoneDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="card" style={{ padding: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>Spend vs. Budget Tracking</h3>

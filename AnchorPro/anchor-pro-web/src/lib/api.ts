@@ -376,6 +376,7 @@ export const dashboardApi = {
   getExecutive:                ()                    => apiFetch<ExecutiveSnapshot>('/api/dashboard/executive'),
   getDepartments:              ()                    => apiFetch<DepartmentalSnapshot[]>('/api/dashboard/departments'),
   getEquipmentPerformance:     (id: number, days = 30) => apiFetch<any>(`/api/dashboard/equipment/${id}?days=${days}`),
+  getProjectSnapshot:          (projectId: number)    => apiFetch<any>(`/api/dashboard/project/${projectId}`),
   // Legacy aliases — delegate to real APIs
   getJobCards:                 ()                    => jobCardsApi.getAll(),
   createJobCard:               (data: any)           => jobCardsApi.create(data),

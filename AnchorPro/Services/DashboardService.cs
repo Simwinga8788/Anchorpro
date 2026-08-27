@@ -464,5 +464,63 @@ namespace AnchorPro.Services
 
             return snapshots.OrderByDescending(s => s.JobCount).ToList();
         }
+
+        public async Task<ProjectDashboardSnapshot?> GetProjectSnapshotAsync(int projectId)
+        {
+            using var context = _factory.CreateDbContext();
+            var project = await context.Projects.FindAsync(projectId);
+            if (project == null) return null;
+
+            var now = DateTime.UtcNow;
+            var monthStart = new DateTime(now.Year, now.Month, 1);
+
+            var latestCert = await context.PaymentCertificates
+                .Where(c => c.ProjectId == projectId && c.Status != CertificateStatus.Draft)
+                .OrderByDescending(c => c.PeriodEndDate)
+                .FirstOrDefaultAsync();
+
+            var contractSum = await context.BillsOfQuantities
+                .Where(b => b.ProjectId == projectId)
+                .OrderByDescending(b => b.VersionNumber)
+                .Select(b => b.TotalContractSum)
+                .FirstOrDefaultAsync();
+
+            var openVariations = await context.Variations
+                .CountAsync(v => v.ProjectId == projectId && v.Status == VariationStatus.Pending);
+
+            var projectPermits = await context.PermitsToWork
+                .Where(p => p.ProjectId == projectId)
+                .ToListAsync();
+            int compliantPermits = projectPermits.Count(p =>
+                p.IsIsolated && p.IsLotoApplied && p.IsAreaSecure && p.IsPpeChecked);
+
+            var nextMilestone = await context.ProjectMilestones
+                .Where(m => m.ProjectId == projectId && m.Status != MilestoneStatus.Complete)
+                .OrderBy(m => m.PlannedStartDate)
+                .FirstOrDefaultAsync();
+
+            var safetyIncidentsThisMonth = await context.SiteDiarySafeties
+                .Where(s => s.SiteDiaryEntry!.ProjectId == projectId && s.SiteDiaryEntry.DiaryDate >= monthStart)
+                .SumAsync(s => s.IncidentsReported);
+
+            return new ProjectDashboardSnapshot
+            {
+                ProjectId = projectId,
+                ContractSum = contractSum > 0 ? contractSum : project.Budget,
+                GrossValuationToDate = latestCert?.GrossValuationToDate ?? 0,
+                NetCertifiedPayable = latestCert?.NetAmountDue ?? 0,
+                PercentComplete = (contractSum > 0 ? contractSum : project.Budget) > 0 && latestCert != null
+                    ? Math.Round(latestCert.GrossValuationToDate / (contractSum > 0 ? contractSum : project.Budget) * 100, 1)
+                    : 0,
+                LatestCertificateNumber = latestCert?.CertificateNumber,
+                LatestCertificateStatus = latestCert?.Status.ToString(),
+                OpenVariationsCount = openVariations,
+                ActivePermitsCount = projectPermits.Count(p => p.Status == PermitStatus.Active),
+                PermitCompliancePercent = projectPermits.Count == 0 ? 100m : Math.Round((decimal)compliantPermits / projectPermits.Count * 100, 1),
+                NextMilestoneTitle = nextMilestone?.Title,
+                NextMilestoneDate = nextMilestone?.PlannedStartDate,
+                SafetyIncidentsThisMonth = safetyIncidentsThisMonth
+            };
+        }
     }
 }

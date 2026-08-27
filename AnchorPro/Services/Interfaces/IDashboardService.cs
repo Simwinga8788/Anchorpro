@@ -10,6 +10,28 @@ namespace AnchorPro.Services.Interfaces
         Task<SystemHealth> GetSystemHealthAsync();
         Task<ExecutiveSnapshot> GetExecutiveSnapshotAsync();
         Task<List<DepartmentalSnapshot>> GetDepartmentalSnapshotAsync();
+        Task<ProjectDashboardSnapshot?> GetProjectSnapshotAsync(int projectId);
+    }
+
+    /// <summary>
+    /// Construction-specific project snapshot — cost, progress, certificate and safety status —
+    /// rolled up from BOQ/Certificate/Variation/Schedule/Safety data rather than generic job costing.
+    /// </summary>
+    public class ProjectDashboardSnapshot
+    {
+        public int ProjectId { get; set; }
+        public decimal ContractSum { get; set; }
+        public decimal GrossValuationToDate { get; set; }
+        public decimal NetCertifiedPayable { get; set; }
+        public decimal PercentComplete { get; set; }
+        public string? LatestCertificateNumber { get; set; }
+        public string? LatestCertificateStatus { get; set; }
+        public int OpenVariationsCount { get; set; }
+        public int ActivePermitsCount { get; set; }
+        public decimal PermitCompliancePercent { get; set; }
+        public string? NextMilestoneTitle { get; set; }
+        public DateTime? NextMilestoneDate { get; set; }
+        public int SafetyIncidentsThisMonth { get; set; }
     }
 
     public class ExecutiveSnapshot

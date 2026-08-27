@@ -53,6 +53,17 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// GET /api/dashboard/project/{projectId}
+        /// Construction-specific snapshot: cost, progress, certificate/variation and safety status.
+        /// </summary>
+        [HttpGet("project/{projectId}")]
+        public async Task<ActionResult<ProjectDashboardSnapshot>> GetProjectSnapshot(int projectId)
+        {
+            var snapshot = await _dashboardService.GetProjectSnapshotAsync(projectId);
+            return snapshot == null ? NotFound() : Ok(snapshot);
+        }
+
+        /// <summary>
         /// GET /api/dashboard/equipment/{id}?days=30
         /// Returns performance stats for a single piece of equipment.
         /// Includes: jobs count, downtime hours, cost total, revenue generated.
