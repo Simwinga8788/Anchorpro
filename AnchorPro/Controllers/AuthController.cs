@@ -321,7 +321,7 @@ namespace AnchorPro.Controllers
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity6", Value = "Dewatering", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Activity7", Value = "Shoring & Formwork", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.SourceDestination", Value = "Location ➔ Placement", Group = "Dictionary" },
-                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.Material", Value = "Material / Task Type", Group = "Dictionary" },
+                    new SystemSetting { TenantId = tenant.Id, Key = "Dict.MaterialLabel", Value = "Material / Task Type", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.MaterialPlaceholder", Value = "e.g. Concrete, Steel, Soil", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.Source", Value = "Location / Origin", Group = "Dictionary" },
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.SourcePlaceholder", Value = "e.g. Plot 3, Block B", Group = "Dictionary" },

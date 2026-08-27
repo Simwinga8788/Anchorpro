@@ -357,7 +357,7 @@ namespace AnchorPro.Data
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Activity6", Value = "Dewatering", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Activity7", Value = "Shoring & Formwork", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.SourceDestination", Value = "Location ➔ Placement", Group = "Dictionary" },
-                    new SystemSetting { TenantId = t.Id, Key = "Dict.Material", Value = "Material / Task Type", Group = "Dictionary" },
+                    new SystemSetting { TenantId = t.Id, Key = "Dict.MaterialLabel", Value = "Material / Task Type", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.MaterialPlaceholder", Value = "e.g. Concrete, Steel, Soil", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.Source", Value = "Location / Origin", Group = "Dictionary" },
                     new SystemSetting { TenantId = t.Id, Key = "Dict.SourcePlaceholder", Value = "e.g. Plot 3, Block B", Group = "Dictionary" },
@@ -372,16 +372,19 @@ namespace AnchorPro.Data
                     new SystemSetting { TenantId = t.Id, Key = "Dict.MiningDashboard", Value = "Site Performance", Group = "Dictionary" }
                 };
                 
+                var existingByKey = await context.SystemSettings
+                    .Where(existing => existing.TenantId == t.Id && existing.Key.StartsWith("Dict."))
+                    .ToDictionaryAsync(existing => existing.Key);
+
                 foreach (var s in dictSettings)
                 {
-                    if (!await context.SystemSettings.AnyAsync(existing => existing.TenantId == s.TenantId && existing.Key == s.Key))
+                    if (existingByKey.TryGetValue(s.Key, out var existing))
                     {
-                        context.SystemSettings.Add(s);
+                        existing.Value = s.Value;
                     }
                     else
                     {
-                        var existing = await context.SystemSettings.FirstAsync(existing => existing.TenantId == s.TenantId && existing.Key == s.Key);
-                        existing.Value = s.Value;
+                        context.SystemSettings.Add(s);
                     }
                 }
             }
