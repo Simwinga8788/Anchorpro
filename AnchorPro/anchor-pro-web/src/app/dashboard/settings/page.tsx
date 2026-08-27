@@ -453,6 +453,7 @@ export default function SettingsPage() {
       });
       await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
       await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
+      await refreshDictionary();
       show('Workspace settings saved');
     } catch (e: any) { show(e.message || 'Failed to save', 'error'); }
     finally { setSavingOrg(false); }

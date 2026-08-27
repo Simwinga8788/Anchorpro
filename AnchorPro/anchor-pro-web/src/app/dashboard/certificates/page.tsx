@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { certificatesApi, projectsApi, boqApi } from '@/lib/api';
-import { 
-  FileText, Building2, Plus, CheckCircle2, AlertCircle, 
+import {
+  FileText, Building2, Plus, CheckCircle2, AlertCircle,
   DollarSign, Calculator, ChevronRight, FileCheck, Layers
 } from 'lucide-react';
 import Modal from '@/components/Modal';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 export default function CertificatesPage() {
+  const { formatMoney, currencySymbol } = useDictionary();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [certificates, setCertificates] = useState<any[]>([]);
@@ -183,7 +185,7 @@ export default function CertificatesPage() {
                     Period ending {new Date(c.periodEndDate).toLocaleDateString()}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#10b981', marginTop: 6 }}>
-                    Net: ${Number(c.netAmountDue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    Net: {formatMoney(c.netAmountDue)}
                   </div>
                 </div>
               ))}
@@ -203,25 +205,25 @@ export default function CertificatesPage() {
               <div className="card" style={{ padding: 14 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Gross Valuation to Date</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
-                  ${Number(selectedCert.grossValuationToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedCert.grossValuationToDate)}
                 </div>
               </div>
               <div className="card" style={{ padding: 14 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Retention ({selectedCert.retentionPercentage}%)</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444', marginTop: 4 }}>
-                  -${Number(selectedCert.retentionDeductionToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  -{formatMoney(selectedCert.retentionDeductionToDate)}
                 </div>
               </div>
               <div className="card" style={{ padding: 14 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Previous Certified Paid</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-muted)', marginTop: 4 }}>
-                  -${Number(selectedCert.previousCertificatesPaid || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  -{formatMoney(selectedCert.previousCertificatesPaid)}
                 </div>
               </div>
               <div className="card" style={{ padding: 14, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <div style={{ fontSize: 11, color: '#10b981', textTransform: 'uppercase', fontWeight: 700 }}>Net Amount Due This Period</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#10b981', marginTop: 4 }}>
-                  ${Number(selectedCert.netAmountDue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedCert.netAmountDue)}
                 </div>
               </div>
             </div>
@@ -251,7 +253,7 @@ export default function CertificatesPage() {
                       <th style={{ padding: '10px 14px' }}>Description of Work</th>
                       <th style={{ padding: '10px 14px', width: '70px' }}>Unit</th>
                       <th style={{ padding: '10px 14px', width: '90px', textAlign: 'right' }}>BOQ Qty</th>
-                      <th style={{ padding: '10px 14px', width: '100px', textAlign: 'right' }}>Rate ($)</th>
+                      <th style={{ padding: '10px 14px', width: '100px', textAlign: 'right' }}>Rate ({currencySymbol})</th>
                       <th style={{ padding: '10px 14px', width: '120px', textAlign: 'right' }}>This Period Qty</th>
                       <th style={{ padding: '10px 14px', width: '120px', textAlign: 'right' }}>Cumulative Value</th>
                       <th style={{ padding: '10px 14px', width: '80px', textAlign: 'center' }}>% Done</th>
@@ -266,7 +268,7 @@ export default function CertificatesPage() {
                           <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>{boqItem?.description}</td>
                           <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{boqItem?.unitOfMeasure}</td>
                           <td style={{ padding: '10px 14px', textAlign: 'right' }}>{Number(boqItem?.quantity || 0).toLocaleString()}</td>
-                          <td style={{ padding: '10px 14px', textAlign: 'right' }}>${Number(boqItem?.rate || 0).toFixed(2)}</td>
+                          <td style={{ padding: '10px 14px', textAlign: 'right' }}>{formatMoney(boqItem?.rate)}</td>
                           <td style={{ padding: '8px 14px', textAlign: 'right' }}>
                             <input 
                               type="number" 
@@ -282,7 +284,7 @@ export default function CertificatesPage() {
                             />
                           </td>
                           <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            ${Number(item.cumulativeValueCompleted || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatMoney(item.cumulativeValueCompleted)}
                           </td>
                           <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                             <span style={{ 

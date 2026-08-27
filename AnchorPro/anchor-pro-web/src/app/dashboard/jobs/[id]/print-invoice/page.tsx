@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jobCardsApi, financialApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 export default function PrintInvoicePage() {
   const params = useParams();
@@ -14,6 +15,7 @@ export default function PrintInvoicePage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney, currency } = useDictionary();
 
   useEffect(() => {
     const loadData = async () => {
@@ -137,29 +139,29 @@ export default function PrintInvoicePage() {
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
                 <th style={{ padding: '8px 0', fontWeight: 600, color: '#374151' }}>Cost Category</th>
                 <th style={{ padding: '8px 0', fontWeight: 600, color: '#374151' }}>Details</th>
-                <th style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#374151' }}>Amount (ZMW)</th>
+                <th style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#374151' }}>Amount ({currency})</th>
               </tr>
             </thead>
             <tbody>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Internal Labor & Diagnostics</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Technician labor time and diagnostics</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.laborCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(job.laborCost)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Components</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components reserved for job</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.partsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(job.partsCost)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Direct Purchases</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Non-stock items procured for job card</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.directPurchaseCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(job.directPurchaseCost)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>External Service</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>External service POs</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {(job.subcontractingCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(job.subcontractingCost)}</td>
               </tr>
             </tbody>
           </table>
@@ -170,15 +172,15 @@ export default function PrintInvoicePage() {
           <div style={{ width: '280px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
               <span style={{ color: '#4b5563' }}>Subtotal</span>
-              <span style={{ fontWeight: 600 }}>K {invoice.subtotal ? invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) : (invoice.amount ? (invoice.amount / 1.16).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00')}</span>
+              <span style={{ fontWeight: 600 }}>{formatMoney(invoice.subtotal || (invoice.amount ? invoice.amount / 1.16 : 0))}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
               <span style={{ color: '#4b5563' }}>VAT (16%)</span>
-              <span style={{ color: '#4b5563' }}>K {invoice.taxAmount ? invoice.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : (invoice.amount ? (invoice.amount - (invoice.amount / 1.16)).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00')}</span>
+              <span style={{ color: '#4b5563' }}>{formatMoney(invoice.taxAmount || (invoice.amount ? invoice.amount - (invoice.amount / 1.16) : 0))}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #e5e7eb', fontSize: '15px', fontWeight: 700, marginTop: '8px' }}>
               <span>Total Amount Due</span>
-              <span style={{ color: '#2563eb' }}>K {invoice.amount ? invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
+              <span style={{ color: '#2563eb' }}>{formatMoney(invoice.amount)}</span>
             </div>
           </div>
         </div>

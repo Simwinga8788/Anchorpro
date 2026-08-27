@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Edit2, RefreshCw, Loader2 } from 'lucide-react';
 import { subscriptionsApi } from '@/lib/api';
 import Modal from '@/components/Modal';
+import { formatCurrency } from '@/lib/currency';
 
 const PLAN_COLORS = ['var(--accent-blue)', 'var(--accent-violet)', 'var(--accent-emerald)', 'var(--accent-amber)'];
 const PLAN_GRADIENTS = [
@@ -110,7 +111,7 @@ export default function PlansPage() {
                     {plan.name ?? plan.planName ?? `Plan ${idx + 1}`}
                   </div>
                   <div style={{ fontSize: price === 0 ? 18 : 32, fontWeight: 800, color, letterSpacing: -1, lineHeight: 1 }}>
-                    {price === 0 ? 'Custom' : `K ${price.toLocaleString()}`}
+                    {price === 0 ? 'Custom' : formatCurrency(price, plan.currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>per month</div>
                 </div>
@@ -153,7 +154,7 @@ export default function PlansPage() {
       >
         <form onSubmit={handleSavePrice} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Monthly Price (ZMW)</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Monthly Price ({editingPlan?.currency || 'ZMW'})</label>
             <input
               type="number"
               step="0.01"

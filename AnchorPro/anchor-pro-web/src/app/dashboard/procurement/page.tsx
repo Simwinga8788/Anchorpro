@@ -4,6 +4,7 @@ import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X, PackageC
 import { useState, useEffect } from 'react';
 import { dashboardApi, procurementApi, departmentsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import { hasPermission } from '@/lib/rbac';
@@ -38,6 +39,7 @@ const SUPPLIER_BLANK = { name: '', contactPerson: '', email: '', phone: '', addr
 
 export default function ProcurementPage() {
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
   
   // User authorization checks
   const roles = user?.roles || [];
@@ -569,7 +571,7 @@ export default function ProcurementPage() {
 
           <div style={{ marginTop: 10, padding: 14, background: 'var(--surface-secondary)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Total Estimated Amount:</span>
-            <span style={{ fontSize: 16, color: 'var(--accent-blue)', fontWeight: 700 }}>ZMW {prTotalEstimated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontSize: 16, color: 'var(--accent-blue)', fontWeight: 700 }}>{formatMoney(prTotalEstimated)}</span>
           </div>
 
           <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -589,7 +591,7 @@ export default function ProcurementPage() {
             {activeTab === 'requisitions' 
               ? `${requisitions.length} requisitions · ${requisitions.filter(r => r.status === 1).length} pending approval` 
               : activeTab === 'orders'
-              ? `${orders.length} purchase orders · K ${totalSpend.toLocaleString()} committed`
+              ? `${orders.length} purchase orders · ${formatMoney(totalSpend)} committed`
               : `${suppliers.length} active suppliers`}
           </p>
         </div>
@@ -724,7 +726,7 @@ export default function ProcurementPage() {
                             </div>
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            K {pr.totalEstimatedAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {formatMoney(pr.totalEstimatedAmount)}
                           </td>
                           <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -759,8 +761,8 @@ export default function ProcurementPage() {
                                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
                                       <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
                                       <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityRequested}</span>
-                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.estimatedUnitCost?.toLocaleString()}/u</span>
-                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.estimatedUnitCost * item.quantityRequested)?.toLocaleString()}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{formatMoney(item.estimatedUnitCost)}/u</span>
+                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.estimatedUnitCost * item.quantityRequested)}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -824,7 +826,7 @@ export default function ProcurementPage() {
             {[
               { label: 'Pending Processing', value: pendingCount, color: 'var(--accent-amber)', icon: <Zap size={16}/> },
               { label: 'Received',           value: receivedCount, color: 'var(--accent-emerald)', icon: <FileText size={16}/> },
-              { label: 'Total Spend',        value: `K ${totalSpend.toLocaleString()}`, color: 'var(--accent-blue)', icon: <FileText size={16}/> },
+              { label: 'Total Spend',        value: formatMoney(totalSpend), color: 'var(--accent-blue)', icon: <FileText size={16}/> },
             ].map(s => (
               <div key={s.label} className="stat-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -903,7 +905,7 @@ export default function ProcurementPage() {
                             </div>
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            K {order.totalAmount?.toLocaleString() || '0'}
+                            {formatMoney(order.totalAmount)}
                           </td>
                           <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -942,8 +944,8 @@ export default function ProcurementPage() {
                                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', gap: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12 }}>
                                       <span style={{ color: 'var(--text-primary)' }}>{item.description}</span>
                                       <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
-                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>K {item.unitCost?.toLocaleString()}/u</span>
-                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>K {(item.unitCost * item.quantityOrdered)?.toLocaleString()}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{formatMoney(item.unitCost)}/u</span>
+                                      <span style={{ color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.unitCost * item.quantityOrdered)}</span>
                                     </div>
                                   ))}
                                 </div>

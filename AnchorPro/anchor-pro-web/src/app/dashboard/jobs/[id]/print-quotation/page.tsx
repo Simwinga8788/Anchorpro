@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jobCardsApi, quotationsApi, settingsApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 export default function PrintQuotationPage() {
   const params = useParams();
@@ -14,6 +15,7 @@ export default function PrintQuotationPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney, currencySymbol } = useDictionary();
 
   // Financial settings
   const [partsMarkup, setPartsMarkup] = useState(20);
@@ -186,26 +188,26 @@ export default function PrintQuotationPage() {
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Internal Labor & Diagnostics</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>
-                  {estLaborHours > 0 
-                    ? `Estimated ${estLaborHours} hrs @ K ${laborBillingRate}/hr`
+                  {estLaborHours > 0
+                    ? `Estimated ${estLaborHours} hrs @ ${currencySymbol} ${laborBillingRate}/hr`
                     : 'Technician labor time and diagnostics'}
                 </td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {displayLabor.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(displayLabor)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Components</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Stock components with markup</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {displayParts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(displayParts)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>Direct Purchases</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>Non-stock items procured for job card</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {directPurchaseCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(directPurchaseCost)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '10px 0', fontWeight: 500 }}>External Service</td>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>External service POs</td>
-                <td style={{ padding: '10px 0', textAlign: 'right' }}>K {subcontractingCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '10px 0', textAlign: 'right' }}>{formatMoney(subcontractingCost)}</td>
               </tr>
             </tbody>
           </table>
@@ -216,15 +218,15 @@ export default function PrintQuotationPage() {
           <div style={{ width: '280px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
               <span style={{ color: '#4b5563' }}>Subtotal</span>
-              <span style={{ fontWeight: 600 }}>K {quotation.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ fontWeight: 600 }}>{formatMoney(quotation.subtotal)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
               <span style={{ color: '#4b5563' }}>VAT ({quotation.taxRate}%)</span>
-              <span style={{ color: '#4b5563' }}>K {quotation.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ color: '#4b5563' }}>{formatMoney(quotation.taxAmount)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #e5e7eb', fontSize: '15px', fontWeight: 700, marginTop: '8px' }}>
               <span>Total Quote</span>
-              <span style={{ color: '#2563eb' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ color: '#2563eb' }}>{formatMoney(quotation.total)}</span>
             </div>
           </div>
         </div>

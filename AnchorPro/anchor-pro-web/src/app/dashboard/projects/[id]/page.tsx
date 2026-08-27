@@ -6,6 +6,7 @@ import { Building2, ArrowLeft, Plus, Clock, Users, Wrench, CheckCircle, Hash, Tr
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 function HealthBar({ current, total }: { current: number, total: number }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
@@ -20,6 +21,7 @@ function HealthBar({ current, total }: { current: number, total: number }) {
 export default function ProjectDetailsPage() {
   const router = useRouter();
   const { id } = useParams();
+  const { formatMoney } = useDictionary();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -258,16 +260,16 @@ export default function ProjectDetailsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL BUDGET</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>K {project.budget?.toLocaleString() ?? 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{formatMoney(project.budget)}</div>
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>ACTUAL COSTS TO DATE</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>K {project.totalCost?.toLocaleString() ?? 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>{formatMoney(project.totalCost)}</div>
               <HealthBar current={project.totalCost} total={project.budget} />
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL INVOICED (REVENUE)</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>K {totalInvoiced.toLocaleString()}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>{formatMoney(totalInvoiced)}</div>
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>PROFIT MARGIN</div>
@@ -303,7 +305,7 @@ export default function ProjectDetailsPage() {
                   <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `K${val/1000}k`} />
                   <Tooltip 
                     contentStyle={{ background: 'var(--bg-popover)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-primary)' }}
-                    formatter={(val: any) => [`K ${Number(val || 0).toLocaleString()}`, undefined]}
+                    formatter={(val: any) => [formatMoney(val), undefined]}
                   />
                   <Area type="monotone" dataKey="Budget" stroke="var(--accent-blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorBudget)" />
                   <Area type="monotone" dataKey="Actual" stroke="var(--accent-rose)" strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
@@ -584,7 +586,7 @@ export default function ProjectDetailsPage() {
                     <td>{new Date(inv.invoiceDate).toLocaleDateString()}</td>
                     <td>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
                     <td><span className={`badge ${inv.paymentStatus === 'Paid' ? 'badge-green' : 'badge-orange'}`}>{inv.paymentStatus}</span></td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>K {inv.total?.toLocaleString() ?? 0}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(inv.total)}</td>
                   </tr>
                 ))}
                 {(!project.invoices || project.invoices.length === 0) && (
@@ -656,7 +658,7 @@ export default function ProjectDetailsPage() {
                       <td>{j.jobNumber}</td>
                       <td><span className="badge badge-gray"><Wrench size={12} style={{ marginRight: 4 }}/> Job Card</span></td>
                       <td>{j.status}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>K {j.totalCost?.toLocaleString() ?? 0}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(j.totalCost)}</td>
                     </tr>
                   ))}
                   {project.shiftLogs?.map((s: any) => (
@@ -664,7 +666,7 @@ export default function ProjectDetailsPage() {
                       <td>{s.logNumber}</td>
                       <td><span className="badge badge-gray"><Hash size={12} style={{ marginRight: 4 }}/> Shift Log</span></td>
                       <td>{s.status}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>K {s.totalCost?.toLocaleString() ?? 0}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(s.totalCost)}</td>
                     </tr>
                   ))}
                   {(project.jobCards?.length === 0 && project.shiftLogs?.length === 0) && (
@@ -698,7 +700,7 @@ export default function ProjectDetailsPage() {
                       <td style={{ fontWeight: 500 }}>{e.description}</td>
                       <td><span className="badge badge-blue">{e.category}</span></td>
                       <td>{e.recordedBy}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-rose)' }}>K {e.amount?.toLocaleString() ?? 0}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-rose)' }}>{formatMoney(e.amount)}</td>
                     </tr>
                   ))}
                   {(!project.directExpenses || project.directExpenses.length === 0) && (

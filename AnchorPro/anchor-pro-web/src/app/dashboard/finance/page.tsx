@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { financeApi, financialApi, quotationsApi, procurementApi, usersApi, customersApi, jobCardsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
   CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X,
@@ -41,11 +42,6 @@ const invoiceStatusMap: Record<number, { label: string; badge: string }> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmt(n: number | undefined | null) {
-  if (n === null || n === undefined) return 'ZMW 0.00';
-  return `ZMW ${n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function isOverdue(dueDateStr: string | null | undefined) {
   if (!dueDateStr) return false;
   return new Date(dueDateStr) < new Date();
@@ -147,6 +143,7 @@ export default function FinancePage() {
 
 // ─── P&L Tab ──────────────────────────────────────────────────────────────────
 function ProfitAndLossTab() {
+  const { formatMoney } = useDictionary();
   const [report, setReport] = useState<any>(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -227,7 +224,7 @@ function ProfitAndLossTab() {
                 <div>
                   <span className="stat-label">Total Income (Cash In)</span>
                   <div className="stat-value" style={{ color: 'var(--accent-emerald)', marginTop: 8, fontSize: 22, fontWeight: 700 }}>
-                    {fmt(totalIncome)}
+                    {formatMoney(totalIncome)}
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 6 }}>Payments credited to cashbook</span>
                 </div>
@@ -244,7 +241,7 @@ function ProfitAndLossTab() {
                 <div>
                   <span className="stat-label">Total Expenses (Cash Out)</span>
                   <div className="stat-value" style={{ color: 'var(--accent-rose)', marginTop: 8, fontSize: 22, fontWeight: 700 }}>
-                    {fmt(totalExpenses)}
+                    {formatMoney(totalExpenses)}
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 6 }}>Payables, payroll, and ad-hoc debits</span>
                 </div>
@@ -271,7 +268,7 @@ function ProfitAndLossTab() {
                     fontSize: 22, 
                     fontWeight: 800 
                   }}>
-                    {fmt(netProfit)}
+                    {formatMoney(netProfit)}
                   </div>
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span className={`badge ${netProfit >= 0 ? 'badge-green' : 'badge-rose'}`} style={{ fontSize: 9, padding: '1px 5px' }}>
@@ -322,7 +319,7 @@ function ProfitAndLossTab() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Vendor Bills &amp; Payables</span>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalVendorBills)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(report.totalVendorBills)}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({vendorBillPct}%)</span>
                     </div>
                   </div>
@@ -336,7 +333,7 @@ function ProfitAndLossTab() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Employee Payroll</span>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalPayroll)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(report.totalPayroll)}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({payrollPct}%)</span>
                     </div>
                   </div>
@@ -350,7 +347,7 @@ function ProfitAndLossTab() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Ad-Hoc Expenses</span>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(report.totalAdHocExpenses)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(report.totalAdHocExpenses)}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({adHocPct}%)</span>
                     </div>
                   </div>
@@ -370,7 +367,7 @@ function ProfitAndLossTab() {
                   alignItems: 'center' 
                 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Total Expenditures</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-rose)' }}>{fmt(totalExpenses)}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-rose)' }}>{formatMoney(totalExpenses)}</span>
                 </div>
               </div>
             </div>
@@ -478,6 +475,7 @@ function ProfitAndLossTab() {
 // ─── Vendor Bills Tab ─────────────────────────────────────────────────────────
 function VendorBillsTab() {
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
@@ -593,8 +591,8 @@ function VendorBillsTab() {
                         <td>{row.supplier?.name || '-'}</td>
                         <td>{new Date(row.billDate).toLocaleDateString()}</td>
                         <td><span className={`badge ${st.badge}`}>{st.label}</span></td>
-                        <td>{fmt(row.totalAmount)}</td>
-                        <td>{fmt(row.balance)}</td>
+                        <td>{formatMoney(row.totalAmount)}</td>
+                        <td>{formatMoney(row.balance)}</td>
                         <td>
                           {hasPermission('/dashboard/finance', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
                             <button
@@ -627,7 +625,7 @@ function VendorBillsTab() {
             <form onSubmit={handleRecordPayment} style={{ padding: '20px 24px' }}>
               <p style={{ marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
                 Supplier: {selectedBill.supplier?.name}<br/>
-                Outstanding Balance: <strong>{fmt(selectedBill.balance)}</strong>
+                Outstanding Balance: <strong>{formatMoney(selectedBill.balance)}</strong>
               </p>
               <div className="form-group">
                 <label>Payment Amount</label>
@@ -685,7 +683,7 @@ function VendorBillsTab() {
                           <tr key={po.id}>
                             <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{po.poNumber}</td>
                             <td>{po.supplier?.name}</td>
-                            <td style={{ fontWeight: 600 }}>{fmt(po.totalAmount)}</td>
+                            <td style={{ fontWeight: 600 }}>{formatMoney(po.totalAmount)}</td>
                             <td>
                               <button
                                 type="button"
@@ -719,6 +717,7 @@ function VendorBillsTab() {
 // ─── Expenses Tab ─────────────────────────────────────────────────────────────
 function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -811,7 +810,7 @@ function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
                       <td>{categories[row.category].replace(/([A-Z])/g, ' $1').trim()}</td>
                       <td>{row.description}</td>
                       <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
-                      <td>{fmt(row.amount)}</td>
+                      <td>{formatMoney(row.amount)}</td>
                     </tr>
                   ))
                 )}
@@ -857,6 +856,7 @@ function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
 
 // ─── Ledger Tab ───────────────────────────────────────────────────────────────
 function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
+  const { formatMoney } = useDictionary();
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -902,13 +902,13 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
           <div className="stat-card">
             <span className="stat-label">Total Cash In (Credits)</span>
             <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-emerald)', marginTop: 4 }}>
-              +{fmt(totalCredits)}
+              +{formatMoney(totalCredits)}
             </div>
           </div>
           <div className="stat-card">
             <span className="stat-label">Total Cash Out (Debits)</span>
             <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-rose)', marginTop: 4 }}>
-              -{fmt(totalDebits)}
+              -{formatMoney(totalDebits)}
             </div>
           </div>
           <div className="stat-card" style={{ 
@@ -922,7 +922,7 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
               color: closingBalance >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', 
               marginTop: 4 
             }}>
-              {fmt(closingBalance)}
+              {formatMoney(closingBalance)}
             </div>
           </div>
         </div>
@@ -960,11 +960,11 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
                         <td>{usersMap[row.recordedBy] || row.recordedBy || '—'}</td>
                         <td>
                           <span style={{ fontWeight: 700, color: row.type === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                            {row.type === 0 ? '+' : '-'}{fmt(row.amount)}
+                            {row.type === 0 ? '+' : '-'}{formatMoney(row.amount)}
                           </span>
                         </td>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {fmt(row.runningBalance)}
+                          {formatMoney(row.runningBalance)}
                         </td>
                       </tr>
                     );
@@ -981,6 +981,7 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
 
 // ─── Quotations Tab ───────────────────────────────────────────────────────────
 function QuotationsTab() {
+  const { formatMoney } = useDictionary();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectTarget, setRejectTarget] = useState<any>(null);
@@ -1082,7 +1083,7 @@ function QuotationsTab() {
         </div>
         <div className="stat-card">
           <div className="stat-label">Total Value</div>
-          <div className="stat-value" style={{ fontSize: 16 }}>{fmt(totalValue)}</div>
+          <div className="stat-value" style={{ fontSize: 16 }}>{formatMoney(totalValue)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Pending Review</div>
@@ -1129,7 +1130,7 @@ function QuotationsTab() {
                       <td style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{q.quoteNumber || `Q-${q.id}`}</td>
                       <td>{q.jobCardId ? `#${q.jobCardId}` : '—'}</td>
                       <td>{q.customer?.name || q.customerName || '—'}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(q.totalAmount ?? q.subtotal)}</td>
+                      <td style={{ fontWeight: 600 }}>{formatMoney(q.totalAmount ?? q.subtotal)}</td>
                       <td><span className={`badge ${st.badge}`}>{st.label}</span></td>
                       <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
                         {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : '—'}
@@ -1233,8 +1234,8 @@ function QuotationsTab() {
             <input className="form-input" type="number" step="0.01" required value={createQuoteForm.subtotal} onChange={e => setCreateQuoteForm({ ...createQuoteForm, subtotal: e.target.value })} />
             {createQuoteForm.subtotal && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                VAT (16%): K {(parseFloat(createQuoteForm.subtotal || '0') * 0.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {' '}→ Total: K {(parseFloat(createQuoteForm.subtotal || '0') * 1.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                VAT (16%): {formatMoney(parseFloat(createQuoteForm.subtotal || '0') * 0.16)}
+                {' '}→ Total: {formatMoney(parseFloat(createQuoteForm.subtotal || '0') * 1.16)}
               </div>
             )}
           </div>
@@ -1304,15 +1305,15 @@ function QuotationsTab() {
                 <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                    <span style={{ fontWeight: 600 }}>K {(selectedQuote.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontWeight: 600 }}>{formatMoney(selectedQuote.subtotal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>VAT ({selectedQuote.taxRate}%)</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>K {(selectedQuote.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{formatMoney(selectedQuote.taxAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
                     <span>Total Quote Amount</span>
-                    <span style={{ color: 'var(--accent-indigo)' }}>K {(selectedQuote.total || selectedQuote.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--accent-indigo)' }}>{formatMoney(selectedQuote.total || selectedQuote.totalAmount)}</span>
                   </div>
                   {selectedQuote.notes && (
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
@@ -1358,6 +1359,7 @@ function QuotationsTab() {
 
 // ─── Invoices (Receivables) Tab ───────────────────────────────────────────────
 function InvoicesTab() {
+  const { formatMoney } = useDictionary();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1417,15 +1419,15 @@ function InvoicesTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div className="stat-card">
           <div className="stat-label">Total Invoiced</div>
-          <div className="stat-value" style={{ fontSize: 16 }}>{fmt(totalInvoiced)}</div>
+          <div className="stat-value" style={{ fontSize: 16 }}>{formatMoney(totalInvoiced)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Total Collected</div>
-          <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-emerald)' }}>{fmt(totalCollected)}</div>
+          <div className="stat-value" style={{ fontSize: 16, color: 'var(--accent-emerald)' }}>{formatMoney(totalCollected)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Outstanding</div>
-          <div className="stat-value" style={{ fontSize: 16, color: totalOutstanding > 0 ? 'var(--accent-rose)' : 'var(--text-primary)' }}>{fmt(totalOutstanding)}</div>
+          <div className="stat-value" style={{ fontSize: 16, color: totalOutstanding > 0 ? 'var(--accent-rose)' : 'var(--text-primary)' }}>{formatMoney(totalOutstanding)}</div>
         </div>
       </div>
 
@@ -1469,8 +1471,8 @@ function InvoicesTab() {
                     <tr key={inv.id}>
                       <td style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{inv.invoiceNumber || `INV-${inv.id}`}</td>
                       <td>{inv.customer?.name || inv.customerName || '—'}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(inv.total)}</td>
-                      <td>{fmt(inv.amountPaid)}</td>
+                      <td style={{ fontWeight: 600 }}>{formatMoney(inv.total)}</td>
+                      <td>{formatMoney(inv.amountPaid)}</td>
                       <td>
                         <span className={`badge ${st.badge}`}>{st.label}</span>
                       </td>
@@ -1578,23 +1580,23 @@ function InvoicesTab() {
                 <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                    <span style={{ fontWeight: 600 }}>K {(selectedInvoice.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontWeight: 600 }}>{formatMoney(selectedInvoice.subtotal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>VAT ({selectedInvoice.taxRate || 16}%)</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>K {(selectedInvoice.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{formatMoney(selectedInvoice.taxAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
                     <span>Total Amount</span>
-                    <span style={{ color: 'var(--text-primary)' }}>K {(selectedInvoice.total || selectedInvoice.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{formatMoney(selectedInvoice.total || selectedInvoice.totalAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginTop: 4 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Amount Paid</span>
-                    <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>K {(selectedInvoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>{formatMoney(selectedInvoice.amountPaid)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
                     <span>Balance Due</span>
-                    <span style={{ color: 'var(--accent-rose)' }}>K {(selectedInvoice.balance || (selectedInvoice.total - (selectedInvoice.amountPaid || 0)) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--accent-rose)' }}>{formatMoney(selectedInvoice.balance || (selectedInvoice.total - (selectedInvoice.amountPaid || 0)))}</span>
                   </div>
                   {selectedInvoice.notes && (
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
@@ -1625,6 +1627,7 @@ function InvoicesTab() {
 // ─── Approvals Hub Tab ────────────────────────────────────────────────────────
 function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: number) => void; usersMap: Record<string, string> }) {
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
   const [activeSubTab, setActiveSubTab] = useState<'requisitions' | 'pos'>('requisitions');
   const [pendingPRs, setPendingPRs] = useState<any[]>([]);
   const [pendingPOs, setPendingPOs] = useState<any[]>([]);
@@ -1728,7 +1731,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
               Pending Requisitions (PR)
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: '#818cf8', marginTop: 4 }}>
-              {fmt(totalPRValue)}
+              {formatMoney(totalPRValue)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {pendingPRs.length} requisition{pendingPRs.length !== 1 ? 's' : ''} awaiting review
@@ -1744,7 +1747,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
               Pending Purchase Orders (PO)
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-amber)', marginTop: 4 }}>
-              {fmt(totalPOValue)}
+              {formatMoney(totalPOValue)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {pendingPOs.length} purchase order{pendingPOs.length !== 1 ? 's' : ''} awaiting review
@@ -1874,7 +1877,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                           <td style={{ color: 'var(--text-tertiary)' }}>
                             {pr.requiredDate ? new Date(pr.requiredDate).toLocaleDateString() : '—'}
                           </td>
-                          <td style={{ fontWeight: 600 }}>{fmt(pr.totalEstimatedAmount)}</td>
+                          <td style={{ fontWeight: 600 }}>{formatMoney(pr.totalEstimatedAmount)}</td>
                           <td onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                               <button
@@ -1943,8 +1946,8 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px 140px', gap: 12, padding: '10px 14px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12, border: '1px solid var(--border-subtle)' }}>
                                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.description}</span>
                                       <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityRequested}</span>
-                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{fmt(item.estimatedUnitCost)} / unit</span>
-                                      <span style={{ color: '#818cf8', textAlign: 'right', fontWeight: 600 }}>{fmt(item.estimatedUnitCost * item.quantityRequested)}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{formatMoney(item.estimatedUnitCost)} / unit</span>
+                                      <span style={{ color: '#818cf8', textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.estimatedUnitCost * item.quantityRequested)}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -2018,7 +2021,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                           <td style={{ color: po.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontWeight: po.jobCardId ? 600 : 400 }}>
                             {po.jobCardId ? `Job #${po.jobCardId}` : '—'}
                           </td>
-                          <td style={{ fontWeight: 600 }}>{fmt(po.totalAmount)}</td>
+                          <td style={{ fontWeight: 600 }}>{formatMoney(po.totalAmount)}</td>
                           <td style={{ fontWeight: 500 }}>{raisedByName}</td>
                           <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
                             {po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '—'}
@@ -2091,8 +2094,8 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px 140px', gap: 12, padding: '10px 14px', borderRadius: 6, background: 'var(--bg-elevated)', fontSize: 12, border: '1px solid var(--border-subtle)' }}>
                                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.description}</span>
                                       <span style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Qty: {item.quantityOrdered}</span>
-                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{fmt(item.unitCost)} / unit</span>
-                                      <span style={{ color: 'var(--accent-amber)', textAlign: 'right', fontWeight: 600 }}>{fmt(item.unitCost * item.quantityOrdered)}</span>
+                                      <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{formatMoney(item.unitCost)} / unit</span>
+                                      <span style={{ color: 'var(--accent-amber)', textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.unitCost * item.quantityOrdered)}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -2125,7 +2128,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
             <div style={{ padding: '20px 24px' }}>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
                 Rejecting <strong>{rejectTargetType === 'pr' ? rejectTarget.requisitionNumber : rejectTarget.poNumber}</strong> —{' '}
-                {fmt(rejectTargetType === 'pr' ? rejectTarget.totalEstimatedAmount : rejectTarget.totalAmount)}.
+                {formatMoney(rejectTargetType === 'pr' ? rejectTarget.totalEstimatedAmount : rejectTarget.totalAmount)}.
                 Please provide a reason for the record.
               </p>
               <div className="form-group">
