@@ -34,8 +34,16 @@ namespace AnchorPro.Data.Entities
         public DateTime? ActualStartDate { get; set; }
         public DateTime? ActualEndDate { get; set; }
 
-        /// <summary>0-100. Manually maintained by the site/QS team, not auto-computed.</summary>
+        /// <summary>
+        /// 0-100. When <see cref="BoqSectionId"/> is set, this is computed live from the latest
+        /// Payment Certificate's measured value against that BOQ section's budget, and stored
+        /// values here are stale/ignored. When unlinked, it's maintained manually.
+        /// </summary>
         public int ProgressPercentage { get; set; }
+
+        /// <summary>Optional link to a BOQ trade section — when set, progress and status are auto-derived from certified work, not entered manually.</summary>
+        public int? BoqSectionId { get; set; }
+        public BoqSection? BoqSection { get; set; }
 
         public MilestoneStatus Status { get; set; } = MilestoneStatus.NotStarted;
 
