@@ -397,6 +397,8 @@ export default function SchedulePage() {
   );
 }
 
+const fmtShort = (d: string) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
 const STATUS_BAR_COLOR: Record<number, string> = {
   0: 'var(--text-secondary)',
   1: 'var(--accent-blue)',
@@ -478,7 +480,7 @@ function GanttTimeline({ milestones }: { milestones: any[] }) {
                   </div>
                   <div style={{ flex: 1, position: 'relative', height: rowH }}>
                     <div
-                      title={`${m.title}: ${m.progressPercentage}% — ${STATUS_LABELS[m.status]}`}
+                      title={`${m.title}: ${fmtShort(m.plannedStartDate)} → ${fmtShort(m.plannedEndDate)} — ${m.progressPercentage}% — ${STATUS_LABELS[m.status]}`}
                       style={{
                         position: 'absolute', left: `${startPct}%`, width: `${widthPct}%`, top: '50%', transform: 'translateY(-50%)',
                         height: 20, borderRadius: 4, background: 'var(--bg-hover)', border: `1px solid ${color}`, overflow: 'hidden'
@@ -486,6 +488,12 @@ function GanttTimeline({ milestones }: { milestones: any[] }) {
                     >
                       <div style={{ width: `${m.progressPercentage}%`, height: '100%', background: color, opacity: 0.85 }} />
                     </div>
+                    <span style={{
+                      position: 'absolute', left: `calc(${startPct}% + ${widthPct}% + 8px)`, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: "'Barlow Semi Condensed', sans-serif"
+                    }}>
+                      {fmtShort(m.plannedStartDate)} → {fmtShort(m.plannedEndDate)}
+                    </span>
                   </div>
                 </div>
               );
