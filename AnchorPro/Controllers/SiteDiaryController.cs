@@ -33,6 +33,7 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var query = db.SiteDiaryEntries
                 .Include(d => d.LabourHeadcounts)
+                    .ThenInclude(l => l.Employee)
                 .Include(d => d.PlantUsages)
                 .Include(d => d.Deliveries)
                 .Include(d => d.Photos)
@@ -59,6 +60,7 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var entry = await db.SiteDiaryEntries
                 .Include(d => d.LabourHeadcounts)
+                    .ThenInclude(l => l.Employee)
                 .Include(d => d.PlantUsages)
                 .Include(d => d.Deliveries)
                 .Include(d => d.Photos)
@@ -103,6 +105,7 @@ namespace AnchorPro.Controllers
                         TradeOrCrewName = l.TradeOrCrewName,
                         Headcount = l.Headcount,
                         HoursWorked = l.HoursWorked,
+                        EmployeeUserId = l.EmployeeUserId,
                         Notes = l.Notes
                     });
                 }
@@ -245,6 +248,7 @@ namespace AnchorPro.Controllers
         public string TradeOrCrewName { get; set; } = string.Empty;
         public int Headcount { get; set; }
         public decimal HoursWorked { get; set; } = 8;
+        public string? EmployeeUserId { get; set; }
         public string? Notes { get; set; }
     }
 

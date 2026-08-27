@@ -249,6 +249,11 @@ export default function WeeklyReportPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Man-Hours Worked</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6', marginTop: 4 }}>{Number(selectedReport.totalManHours).toLocaleString()} hrs</div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{selectedReport.averageDailyWorkforce} avg daily workforce</div>
+                {selectedReport.totalLabourCost > 0 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    ${Number(selectedReport.totalLabourCost).toLocaleString(undefined, { minimumFractionDigits: 2 })} employee labour cost
+                  </div>
+                )}
               </div>
               <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Plant Machine Hours</div>

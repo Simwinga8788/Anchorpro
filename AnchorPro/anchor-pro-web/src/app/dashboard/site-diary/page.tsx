@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { siteDiaryApi, projectsApi, equipmentApi, uploadApi } from '@/lib/api';
+import { siteDiaryApi, projectsApi, equipmentApi, uploadApi, hrApi } from '@/lib/api';
 import {
   ClipboardList, Building2, Plus, Sun, CloudRain, Cloud, Wind,
   Users, Truck, ShieldAlert, Camera, CheckCircle2, Calendar, PackageCheck, Loader2
@@ -13,6 +13,7 @@ export default function SiteDiaryPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<number | null>(null);
@@ -30,8 +31,8 @@ export default function SiteDiaryPage() {
     delaysOrConstraints: '',
     // Labour sub-list
     labour: [
-      { tradeOrCrewName: 'General Labour / Site Clearance', headcount: 8, hoursWorked: 8, notes: '' },
-      { tradeOrCrewName: 'Concrete & Formwork Crew', headcount: 6, hoursWorked: 8, notes: '' }
+      { tradeOrCrewName: 'General Labour / Site Clearance', headcount: 8, hoursWorked: 8, employeeUserId: '', notes: '' },
+      { tradeOrCrewName: 'Concrete & Formwork Crew', headcount: 6, hoursWorked: 8, employeeUserId: '', notes: '' }
     ],
     // Plant sub-list
     plant: [
@@ -63,6 +64,10 @@ export default function SiteDiaryPage() {
     equipmentApi.getAll()
       .then((res: any) => setEquipment(Array.isArray(res) ? res : []))
       .catch(() => setEquipment([]));
+
+    hrApi.getEmployees()
+      .then((res: any) => setEmployees(Array.isArray(res) ? res : []))
+      .catch(() => setEmployees([]));
   }, []);
 
   useEffect(() => {
@@ -95,7 +100,7 @@ export default function SiteDiaryPage() {
         workPerformedSummary: form.workPerformedSummary,
         siteInstructionsReceived: form.siteInstructionsReceived,
         delaysOrConstraints: form.delaysOrConstraints,
-        labour: form.labour,
+        labour: form.labour.map(l => ({ ...l, employeeUserId: l.employeeUserId || null })),
         plant: form.plant,
         deliveries: form.deliveries,
         safety: form.safety
@@ -110,7 +115,7 @@ export default function SiteDiaryPage() {
   const addLabourRow = () => {
     setForm({
       ...form,
-      labour: [...form.labour, { tradeOrCrewName: '', headcount: 1, hoursWorked: 8, notes: '' }]
+      labour: [...form.labour, { tradeOrCrewName: '', headcount: 1, hoursWorked: 8, employeeUserId: '', notes: '' }]
     });
   };
 
@@ -321,12 +326,18 @@ export default function SiteDiaryPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
                       Labour Headcount by Trade
                     </div>
-                    {labour.map((l: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span style={{ color: 'var(--text-primary)' }}>{l.tradeOrCrewName}</span>
-                        <span style={{ fontWeight: 700, color: '#3b82f6' }}>{l.headcount} men ({l.hoursWorked}h)</span>
-                      </div>
-                    ))}
+                    {labour.map((l: any, idx: number) => {
+                      const emp = l.employee || l.Employee;
+                      return (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {l.tradeOrCrewName}
+                            {emp && <span style={{ color: 'var(--accent-blue)', fontSize: 11 }}> · {emp.firstName} {emp.lastName}</span>}
+                          </span>
+                          <span style={{ fontWeight: 700, color: '#3b82f6' }}>{l.headcount} men ({l.hoursWorked}h)</span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <div>
@@ -492,7 +503,7 @@ export default function SiteDiaryPage() {
               <button type="button" className="btn btn-sm btn-secondary" onClick={addLabourRow}>+ Add Trade</button>
             </div>
             {form.labour.map((l, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 6 }}>
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 0.8fr 1.4fr', gap: 8, marginBottom: 6 }}>
                 <input
                   type="text" className="form-input" placeholder="Trade (e.g. Bricklayers)"
                   value={l.tradeOrCrewName}
@@ -523,6 +534,20 @@ export default function SiteDiaryPage() {
                   }}
                   required
                 />
+                <select
+                  className="form-input" title="Link to an AnchorPro employee, if this crew is (or is led by) one — enables labour cost roll-up"
+                  value={l.employeeUserId}
+                  onChange={e => {
+                    const next = [...form.labour];
+                    next[idx].employeeUserId = e.target.value;
+                    setForm({ ...form, labour: next });
+                  }}
+                >
+                  <option value="">— Subcontracted / casual —</option>
+                  {employees.map((emp: any) => (
+                    <option key={emp.userId} value={emp.userId}>{emp.firstName} {emp.lastName}</option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>

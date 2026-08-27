@@ -33,6 +33,10 @@ namespace AnchorPro.Data.Entities
         [Column(TypeName = "decimal(6,2)")]
         public decimal AverageDailyWorkforce { get; set; }
 
+        /// <summary>Labour cost for crew lines linked to an actual employee (hours × ApplicationUser.HourlyRate). Excludes subcontracted/casual crews, which are costed via the BOQ instead.</summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalLabourCost { get; set; }
+
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalPlantHours { get; set; }
 

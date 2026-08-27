@@ -65,6 +65,13 @@ namespace AnchorPro.Data.Entities
         [Column(TypeName = "decimal(8,2)")]
         public decimal HoursWorked { get; set; } = 8;
 
+        // Set when this crew line is (or is led by) an actual AnchorPro employee rather than
+        // subcontracted/casual labour — lets their hours roll into cost tracking via ApplicationUser.HourlyRate.
+        [MaxLength(85)]
+        public string? EmployeeUserId { get; set; }
+        [ForeignKey(nameof(EmployeeUserId))]
+        public ApplicationUser? Employee { get; set; }
+
         public string? Notes { get; set; }
     }
 

@@ -83,6 +83,7 @@ namespace AnchorPro.Controllers
 
             var diaryEntries = await db.SiteDiaryEntries
                 .Include(d => d.LabourHeadcounts)
+                    .ThenInclude(l => l.Employee)
                 .Include(d => d.PlantUsages)
                 .Include(d => d.SafetyLogs)
                 .Where(d => d.ProjectId == dto.ProjectId && d.DiaryDate >= periodStart && d.DiaryDate <= periodEnd)
@@ -93,6 +94,9 @@ namespace AnchorPro.Controllers
             decimal avgWorkforce = diaryEntries.Count > 0
                 ? Math.Round(diaryEntries.Sum(d => d.LabourHeadcounts.Sum(l => l.Headcount)) / (decimal)diaryEntries.Count, 1)
                 : 0;
+            decimal totalLabourCost = diaryEntries.Sum(d => d.LabourHeadcounts
+                .Where(l => l.Employee != null)
+                .Sum(l => l.HoursWorked * l.Employee!.HourlyRate));
             decimal totalPlantHours = diaryEntries.Sum(d => d.PlantUsages.Sum(p => p.OperatingHours));
             int weatherDowntimeDays = diaryEntries.Count(d =>
                 d.WeatherCondition.Contains("Rain", StringComparison.OrdinalIgnoreCase) ||
@@ -110,6 +114,7 @@ namespace AnchorPro.Controllers
             {
                 existing.TotalManHours = totalManHours;
                 existing.AverageDailyWorkforce = avgWorkforce;
+                existing.TotalLabourCost = totalLabourCost;
                 existing.TotalPlantHours = totalPlantHours;
                 existing.WeatherDowntimeDays = weatherDowntimeDays;
                 existing.SafetyIncidentsCount = safetyIncidents;
@@ -130,6 +135,7 @@ namespace AnchorPro.Controllers
                 Status = WeeklyReportStatus.Draft,
                 TotalManHours = totalManHours,
                 AverageDailyWorkforce = avgWorkforce,
+                TotalLabourCost = totalLabourCost,
                 TotalPlantHours = totalPlantHours,
                 WeatherDowntimeDays = weatherDowntimeDays,
                 SafetyIncidentsCount = safetyIncidents,

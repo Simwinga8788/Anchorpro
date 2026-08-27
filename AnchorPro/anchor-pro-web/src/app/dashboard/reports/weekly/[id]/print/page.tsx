@@ -82,7 +82,7 @@ export default function PrintWeeklyReportPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '30px' }}>
           {[
-            { label: 'Total Man-Hours', value: `${Number(report.totalManHours).toLocaleString()} hrs` },
+            { label: 'Total Man-Hours', value: `${Number(report.totalManHours).toLocaleString()} hrs`, sub: report.totalLabourCost > 0 ? `$${Number(report.totalLabourCost).toLocaleString(undefined, { minimumFractionDigits: 2 })} employee labour` : undefined },
             { label: 'Plant Machine Hours', value: `${Number(report.totalPlantHours).toLocaleString()} hrs` },
             { label: 'Weather Downtime', value: `${report.weatherDowntimeDays} Days` },
             { label: 'Safety Incidents', value: `${report.safetyIncidentsCount} (${report.nearMissesCount} near misses)` },
@@ -90,6 +90,7 @@ export default function PrintWeeklyReportPage() {
             <div key={stat.label} style={{ padding: '12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
               <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase' }}>{stat.label}</div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginTop: '4px' }}>{stat.value}</div>
+              {stat.sub && <div style={{ fontSize: '9.5px', color: '#9ca3af', marginTop: '2px' }}>{stat.sub}</div>}
             </div>
           ))}
         </div>
