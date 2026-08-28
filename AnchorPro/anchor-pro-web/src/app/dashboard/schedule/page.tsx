@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Calendar, Plus, Edit2, Trash2, Link2, List, GanttChartSquare
 } from 'lucide-react';
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 export default function SchedulePage() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -33,7 +35,9 @@ export default function SchedulePage() {
       .then((res: any) => {
         const list = res.data ?? res;
         setProjects(list);
-        if (list.length > 0 && !selectedProjectId) setSelectedProjectId(list[0].id);
+        const paramId = Number(searchParams.get('project'));
+        if (paramId && list.some((p: any) => p.id === paramId)) setSelectedProjectId(paramId);
+        else if (list.length > 0 && !selectedProjectId) setSelectedProjectId(list[0].id);
       })
       .catch(() => {});
   }, []);

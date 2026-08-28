@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   BarChart3, Printer, Users, CheckCircle2, Plus, Save
 } from 'lucide-react';
@@ -20,6 +21,7 @@ function toISODate(d: Date) {
 }
 
 export default function WeeklyReportPage() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [reports, setReports] = useState<any[]>([]);
@@ -41,7 +43,9 @@ export default function WeeklyReportPage() {
       .then((res: any) => {
         const list = res.data ?? res;
         setProjects(list);
-        if (list.length > 0 && !selectedProjectId) setSelectedProjectId(list[0].id);
+        const paramId = Number(searchParams.get('project'));
+        if (paramId && list.some((p: any) => p.id === paramId)) setSelectedProjectId(paramId);
+        else if (list.length > 0 && !selectedProjectId) setSelectedProjectId(list[0].id);
       })
       .catch(() => {});
   }, []);

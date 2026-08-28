@@ -2,6 +2,7 @@
 
 import { ShieldCheck, CheckCircle2, AlertTriangle, Lock, Activity, Plus, XCircle, PauseCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { safetyApi, projectsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
@@ -13,6 +14,8 @@ const permitStatusMap: Record<number, { label: string; badge: string }> = {
 };
 
 export default function SafetyPage() {
+  const searchParams = useSearchParams();
+  const projectFilter = Number(searchParams.get('project')) || null;
   const [permits, setPermits] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
@@ -26,13 +29,15 @@ export default function SafetyPage() {
 
   const loadData = () => {
     setLoading(true);
-    Promise.all([safetyApi.getPermits(), safetyApi.getStats(), projectsApi.getAll()])
+    const permitsPromise = projectFilter ? safetyApi.getPermitsByProject(projectFilter) : safetyApi.getPermits();
+    const statsPromise = projectFilter ? safetyApi.getProjectStats(projectFilter) : safetyApi.getStats();
+    Promise.all([permitsPromise, statsPromise, projectsApi.getAll()])
       .then(([p, s, proj]) => { setPermits(p || []); setStats(s); setProjects(proj || []); })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [projectFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +145,15 @@ export default function SafetyPage() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 className="page-title">Safety & Compliance</h1>
-          <p className="page-subtitle">Governance over Permit-to-Work, LOTO compliance and Incident tracking.</p>
+          <p className="page-subtitle">
+            Governance over Permit-to-Work, LOTO compliance and Incident tracking.
+            {projectFilter && (
+              <>
+                {' '}· Filtered to <strong>{projects.find(p => p.id === projectFilter)?.name ?? `project #${projectFilter}`}</strong>
+                {' '}<a href="/dashboard/safety" style={{ color: 'var(--accent-blue)' }}>(clear)</a>
+              </>
+            )}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}><ShieldCheck size={14}/> Issue Permit</button>
       </div>

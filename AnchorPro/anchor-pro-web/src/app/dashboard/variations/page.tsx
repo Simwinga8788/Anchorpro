@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Layers, Plus, FileText, CheckCircle2, Clock,
   AlertCircle, DollarSign, ArrowUpRight, Search, Loader2, X, Link2
@@ -24,6 +25,7 @@ interface VariationItem {
 }
 
 export default function VariationsPage() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [variations, setVariations] = useState<VariationItem[]>([]);
@@ -46,7 +48,10 @@ export default function VariationsPage() {
       .then((res: any) => {
         const list = res.data ?? res;
         setProjects(list);
-        if (list.length > 0 && !selectedProjectId) {
+        const paramId = Number(searchParams.get('project'));
+        if (paramId && list.some((p: any) => p.id === paramId)) {
+          setSelectedProjectId(paramId);
+        } else if (list.length > 0 && !selectedProjectId) {
           setSelectedProjectId(list[0].id);
         }
       })

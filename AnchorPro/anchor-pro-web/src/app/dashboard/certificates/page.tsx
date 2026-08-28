@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { certificatesApi, projectsApi, boqApi } from '@/lib/api';
 import {
   FileText, Building2, Plus, CheckCircle2, AlertCircle,
@@ -9,6 +10,7 @@ import {
 import Modal from '@/components/Modal';
 
 export default function CertificatesPage() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [certificates, setCertificates] = useState<any[]>([]);
@@ -34,7 +36,9 @@ export default function CertificatesPage() {
       .then((res: any) => {
         const list = Array.isArray(res) ? res : res?.data ?? [];
         setProjects(list);
-        if (list.length > 0) setSelectedProjectId(list[0].id);
+        const paramId = Number(searchParams.get('project'));
+        if (paramId && list.some((p: any) => p.id === paramId)) setSelectedProjectId(paramId);
+        else if (list.length > 0) setSelectedProjectId(list[0].id);
       })
       .catch(() => setError('Failed to load projects.'));
   }, []);
