@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wrench, ClipboardList, BarChart3,
   Building2, Package, Users, ShieldCheck, Zap,
   Settings, LogOut, Activity, Globe, ChevronDown,
-  Hash, TrendingUp, Pause, DollarSign, Timer, X, FileText, Shield, UserCog,
+  Hash, DollarSign, X, FileText, Shield, UserCog,
   Calendar, Camera, FileCheck, Truck, HardHat, FileSpreadsheet, Layers
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -23,10 +23,7 @@ const CONSTRUCTION_NAV_SECTIONS = [
     items: [
       { href: '/dashboard',               label: 'Site Overview',         icon: LayoutDashboard },
       { href: '/dashboard/site-diary',    label: 'Daily Site Diary',      icon: ClipboardList },
-      { href: '/dashboard/shift-logs',    label: 'Daily Shift Logs',      icon: FileCheck },
       { href: '/dashboard/schedule',      label: 'Program & Schedule',    icon: Calendar },
-      { href: '/dashboard/time-tracking', label: 'Site Labour Hours',     icon: Timer },
-      { href: '/dashboard/downtime',      label: 'Delays & Constraints',  icon: Pause },
       { href: '/dashboard/safety',        label: 'Safety & Incidents',    icon: ShieldCheck },
     ],
   },
@@ -45,7 +42,6 @@ const CONSTRUCTION_NAV_SECTIONS = [
       { href: '/dashboard/projects',          label: 'Projects Portfolio',   icon: Building2 },
       { href: '/dashboard/reports/weekly',    label: 'Weekly Progress Report', icon: BarChart3 },
       { href: '/dashboard/reports/monthly',   label: 'Monthly Client Report', icon: FileText },
-      { href: '/dashboard/intelligence',      label: 'Project Intelligence', icon: TrendingUp },
     ],
   },
   {
