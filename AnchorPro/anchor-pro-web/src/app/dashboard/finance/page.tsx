@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { financeApi, financialApi, quotationsApi, procurementApi, usersApi, customersApi, jobCardsApi } from '@/lib/api';
+import { financeApi, financialApi, quotationsApi, procurementApi, usersApi, customersApi, jobCardsApi, projectsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
@@ -859,10 +859,15 @@ function ExpensesTab({ usersMap }: { usersMap: Record<string, string> }) {
 function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectFilter, setProjectFilter] = useState<string>('');
 
   const fetchLedger = async () => {
+    setLoading(true);
     try {
-      const data = await financeApi.getLedgerEntries();
+      const data = projectFilter
+        ? (await financeApi.getProjectLedger(Number(projectFilter))).entries
+        : await financeApi.getLedgerEntries();
       setEntries(data || []);
     } catch (err) {
       console.error(err);
@@ -871,7 +876,11 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
     }
   };
 
-  useEffect(() => { fetchLedger(); }, []);
+  useEffect(() => {
+    projectsApi.getAll().then((p: any) => setProjects(Array.isArray(p) ? p : [])).catch(() => setProjects([]));
+  }, []);
+
+  useEffect(() => { fetchLedger(); }, [projectFilter]);
 
   // Compute running balance chronologically
   const sortedChronologically = [...entries].sort(
@@ -895,7 +904,15 @@ function LedgerTab({ usersMap }: { usersMap: Record<string, string> }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Project</span>
+        <select className="form-input" style={{ maxWidth: 280 }} value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
+          <option value="">All Projects (company-wide)</option>
+          {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+
       {/* Ledger Summary KPIs */}
       {!loading && entries.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>

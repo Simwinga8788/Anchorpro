@@ -105,6 +105,14 @@ namespace AnchorPro.Controllers
             return Ok(entries);
         }
 
+        /// <summary>GET /api/finance/ledger/project/{projectId} — ledger entries traceable to one project.</summary>
+        [HttpGet("ledger/project/{projectId}")]
+        public async Task<IActionResult> GetProjectLedger(int projectId)
+        {
+            var report = await _financialService.GetProjectLedgerAsync(projectId);
+            return Ok(report);
+        }
+
         [HttpGet("profit-and-loss")]
         public async Task<IActionResult> GetProfitAndLoss([FromQuery] int month, [FromQuery] int year)
         {

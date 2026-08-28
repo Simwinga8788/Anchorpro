@@ -528,6 +528,34 @@ namespace AnchorPro.Services
                 .ToListAsync();
         }
 
+        public async Task<ProjectLedgerReport> GetProjectLedgerAsync(int projectId)
+        {
+            using var context = _factory.CreateDbContext();
+
+            var vendorBillIds = await context.VendorBills
+                .Where(b => b.PurchaseOrder != null && b.PurchaseOrder.ProjectId == projectId)
+                .Select(b => b.Id)
+                .ToListAsync();
+
+            var entries = await context.LedgerEntries
+                .Where(e =>
+                    (e.InvoiceId != null && e.Invoice!.ProjectId == projectId) ||
+                    (e.ExpenseId != null && e.Expense!.ProjectId == projectId) ||
+                    (e.PaymentCertificateId != null && e.PaymentCertificate!.ProjectId == projectId) ||
+                    (e.VendorBillId != null && vendorBillIds.Contains(e.VendorBillId.Value)))
+                .OrderByDescending(e => e.TransactionDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new ProjectLedgerReport
+            {
+                ProjectId = projectId,
+                TotalIncome = entries.Where(e => e.Type == LedgerTransactionType.Income).Sum(e => e.Amount),
+                TotalExpense = entries.Where(e => e.Type == LedgerTransactionType.Expense).Sum(e => e.Amount),
+                Entries = entries
+            };
+        }
+
         public async Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year)
         {
             using var context = _factory.CreateDbContext();

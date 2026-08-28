@@ -846,6 +846,7 @@ export const financeApi = {
     const qs = params.toString();
     return apiFetch<any[]>(`/api/finance/ledger${qs ? `?${qs}` : ''}`);
   },
+  getProjectLedger:       (projectId: number) => apiFetch<any>(`/api/finance/ledger/project/${projectId}`),
   getProfitAndLoss:       (month: number, year: number) => apiFetch<any>(`/api/finance/profit-and-loss?month=${month}&year=${year}`),
 };
 

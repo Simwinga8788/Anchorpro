@@ -33,6 +33,7 @@ namespace AnchorPro.Services.Interfaces
 
         // Ledger & Reporting
         Task<List<LedgerEntry>> GetLedgerEntriesAsync(DateTime? from, DateTime? to);
+        Task<ProjectLedgerReport> GetProjectLedgerAsync(int projectId);
         Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year);
 
         // Payment Certificates (Construction)
@@ -55,6 +56,20 @@ namespace AnchorPro.Services.Interfaces
         public decimal Days61To90 { get; set; }
         public decimal Days90Plus { get; set; }
         public decimal TotalOutstanding => Current + Days31To60 + Days61To90 + Days90Plus;
+    }
+
+    /// <summary>
+    /// Ledger entries attributable to a single project, derived by joining LedgerEntry through
+    /// whichever of its origin links (Invoice, VendorBill→PurchaseOrder, Expense, PaymentCertificate)
+    /// carries that project's Id — the ledger itself has no direct ProjectId.
+    /// </summary>
+    public class ProjectLedgerReport
+    {
+        public int ProjectId { get; set; }
+        public decimal TotalIncome { get; set; }
+        public decimal TotalExpense { get; set; }
+        public decimal Net => TotalIncome - TotalExpense;
+        public List<LedgerEntry> Entries { get; set; } = new();
     }
 
     public class ProfitAndLossReport
