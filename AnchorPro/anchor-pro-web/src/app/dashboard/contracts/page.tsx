@@ -2,30 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, FileText, Search, Edit2, XCircle, CheckCircle2, Clock } from 'lucide-react';
-import { contractsApi, dashboardApi } from '@/lib/api';
+import { contractsApi, dashboardApi, projectsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
 
+// Must match the backend ContractStatus enum (Data/Entities/Contract.cs) exactly, in order —
+// the API has no string-enum converter registered, so it serializes/expects the numeric index.
+const STATUS_NAMES = ['Draft', 'Active', 'Expired', 'Cancelled', 'OnHold'];
+
 const statusConfig: Record<string, { badge: string; dot: string }> = {
+  Draft:     { badge: 'badge-muted',  dot: 'muted' },
   Active:    { badge: 'badge-green',  dot: 'green' },
-  Pending:   { badge: 'badge-amber',  dot: 'amber' },
-  Expired:   { badge: 'badge-muted',  dot: 'muted' },
+  Expired:   { badge: 'badge-amber',  dot: 'amber' },
   Cancelled: { badge: 'badge-rose',   dot: 'rose'  },
+  OnHold:    { badge: 'badge-amber',  dot: 'amber' },
 };
 
 const BLANK = {
   customerId: '',
+  projectId: '',
   title: '',
   startDate: '',
   endDate: '',
   value: '',
   terms: '',
-  status: 'Pending',
+  status: 'Draft',
 };
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [slideMode, setSlideMode] = useState<'create' | 'edit' | null>(null);
@@ -39,9 +46,11 @@ export default function ContractsPage() {
     Promise.all([
       contractsApi.getAll(),
       dashboardApi.getCustomers(),
-    ]).then(([contracts, customers]) => {
+      projectsApi.getAll(),
+    ]).then(([contracts, customers, projects]) => {
       setContracts(contracts || []);
       setCustomers(customers || []);
+      setProjects(projects || []);
     }).catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -57,12 +66,13 @@ export default function ContractsPage() {
   const openEdit = (contract: any) => {
     setFormData({
       customerId: String(contract.customerId || ''),
+      projectId: contract.projectId ? String(contract.projectId) : '',
       title: contract.title || '',
       startDate: contract.startDate ? contract.startDate.slice(0, 10) : '',
       endDate: contract.endDate ? contract.endDate.slice(0, 10) : '',
       value: String(contract.value || ''),
       terms: contract.terms || '',
-      status: contract.status || 'Active',
+      status: STATUS_NAMES[contract.status] ?? 'Active',
     });
     setEditTarget(contract);
     setSlideMode('edit');
@@ -74,12 +84,13 @@ export default function ContractsPage() {
     try {
       const payload = {
         customerId: parseInt(formData.customerId),
+        projectId: formData.projectId ? parseInt(formData.projectId) : null,
         title: formData.title,
         startDate: formData.startDate,
         endDate: formData.endDate,
         value: parseFloat(formData.value) || 0,
         terms: formData.terms,
-        status: formData.status,
+        status: STATUS_NAMES.indexOf(formData.status),
       };
       if (slideMode === 'edit' && editTarget) {
         await contractsApi.update(editTarget.id, { ...editTarget, ...payload });
@@ -113,8 +124,8 @@ export default function ContractsPage() {
     (c.customer?.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount  = contracts.filter(c => c.status === 'Active').length;
-  const totalValue   = contracts.filter(c => c.status === 'Active').reduce((a, c) => a + (c.value || 0), 0);
+  const activeCount  = contracts.filter(c => STATUS_NAMES[c.status] === 'Active').length;
+  const totalValue   = contracts.filter(c => STATUS_NAMES[c.status] === 'Active').reduce((a, c) => a + (c.value || 0), 0);
   const expiringCount = contracts.filter(c => {
     if (!c.endDate) return false;
     const diff = (new Date(c.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
@@ -138,6 +149,17 @@ export default function ContractsPage() {
         <label className="form-label">Contract Title *</label>
         <input className="form-input" required placeholder="e.g. Annual Maintenance Agreement"
           value={formData.title} onChange={e => setFormData(f => ({ ...f, title: e.target.value }))} />
+      </div>
+
+      <div className="form-field">
+        <label className="form-label">Project (if this is a main contract)</label>
+        <select className="form-select" value={formData.projectId}
+          onChange={e => setFormData(f => ({ ...f, projectId: e.target.value }))}>
+          <option value="">— Not project-specific —</option>
+          {projects.map((p: any) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="form-row">
@@ -255,7 +277,8 @@ export default function ContractsPage() {
                 </td>
               </tr>
             ) : filtered.map(contract => {
-              const sc = statusConfig[contract.status] ?? statusConfig['Pending'];
+              const statusName = STATUS_NAMES[contract.status] ?? 'Draft';
+              const sc = statusConfig[statusName] ?? statusConfig['Draft'];
               const isExpiring = (() => {
                 if (!contract.endDate) return false;
                 const diff = (new Date(contract.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
@@ -265,6 +288,9 @@ export default function ContractsPage() {
                 <tr key={contract.id} style={{ cursor: 'pointer' }} onClick={() => openEdit(contract)}>
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{contract.title}</div>
+                    {contract.project?.name && (
+                      <div style={{ fontSize: 10, color: 'var(--accent-blue)', marginTop: 2 }}>{contract.project.name}</div>
+                    )}
                     {isExpiring && (
                       <div style={{ fontSize: 10, color: 'var(--accent-amber)', marginTop: 2 }}>⚠ Expiring soon</div>
                     )}
@@ -283,7 +309,7 @@ export default function ContractsPage() {
                   <td>
                     <span className={`badge ${sc.badge}`}>
                       <span className={`status-dot ${sc.dot}`} />
-                      {contract.status}
+                      {statusName}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
@@ -292,7 +318,7 @@ export default function ContractsPage() {
                         title="Edit" onClick={() => openEdit(contract)}>
                         <Edit2 size={13} />
                       </button>
-                      {contract.status !== 'Cancelled' && (
+                      {statusName !== 'Cancelled' && (
                         <button className="btn btn-ghost btn-sm" style={{ padding: 4, color: 'var(--accent-rose)' }}
                           title="Cancel Contract" disabled={cancelling === contract.id}
                           onClick={() => handleCancel(contract.id)}>

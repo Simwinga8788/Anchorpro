@@ -20,6 +20,7 @@ namespace AnchorPro.Services
             using var context = _factory.CreateDbContext();
             return await context.Contracts
                 .Include(c => c.Customer)
+                .Include(c => c.Project)
                 .OrderByDescending(c => c.StartDate)
                 .AsNoTracking()
                 .ToListAsync();
@@ -48,6 +49,13 @@ namespace AnchorPro.Services
         public async Task CreateContractAsync(Contract contract, string userId)
         {
             using var context = _factory.CreateDbContext();
+
+            if (string.IsNullOrWhiteSpace(contract.ContractNumber) || contract.ContractNumber == "TEMP")
+            {
+                var count = await context.Contracts.CountAsync(c => c.CreatedAt.Year == DateTime.UtcNow.Year) + 1;
+                contract.ContractNumber = $"CON-{DateTime.UtcNow:yyyy}-{count:D4}";
+            }
+
             contract.CreatedAt = DateTime.UtcNow;
             contract.CreatedBy = userId;
             context.Contracts.Add(contract);

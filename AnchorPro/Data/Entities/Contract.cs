@@ -18,12 +18,18 @@ namespace AnchorPro.Data.Entities
         [MaxLength(100)]
         public string Title { get; set; } = string.Empty;
 
+        // Defaults to a non-empty placeholder so [Required]/[ApiController] model validation
+        // doesn't reject a create request before ContractService can auto-generate the real one.
         [Required]
         [MaxLength(30)]
-        public string ContractNumber { get; set; } = string.Empty;
+        public string ContractNumber { get; set; } = "TEMP";
 
         public int CustomerId { get; set; }
         public Customer? Customer { get; set; }
+
+        /// <summary>The construction project this main contract governs, if any (nullable — general service contracts aren't project-specific).</summary>
+        public int? ProjectId { get; set; }
+        public Project? Project { get; set; }
 
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
