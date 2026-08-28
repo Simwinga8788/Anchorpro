@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Menu, X, LayoutDashboard, Building2, CreditCard, ClipboardList, Settings, Shield, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import CopilotWidget from "@/components/CopilotWidget";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -180,7 +179,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           }
         }
       `}</style>
-      <CopilotWidget />
     </AuthProvider>
   );
 }
