@@ -389,11 +389,13 @@ export default function SettingsPage() {
     }).catch(() => {});
 
     if (user?.tenantId) {
+      // Org.Name (the setting, loaded above) is the single source of truth for the
+      // displayed/editable workspace name — Tenant.Name is a write-target kept in sync
+      // by handleSaveOrg, never read back here, so the two can't race and diverge.
       tenantsApi.getById(user.tenantId).then((t: any) => {
         if (t) {
           setOrgForm(prev => ({
             ...prev,
-            name: t.name || prev.name,
             logoUrl: t.logoUrl || '',
             address: t.address || '',
             contactEmail: t.contactEmail || '',
