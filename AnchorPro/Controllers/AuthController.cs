@@ -246,11 +246,11 @@ namespace AnchorPro.Controllers
                 Industry     = req.Industry,
                 OperationMode = req.Industry switch
                 {
-                    "Mining & Extraction"   => OperationMode.ShiftProductionLog,
-                    "Logistics & Fleet"     => OperationMode.TripSheet,
-                    "Construction"          => OperationMode.SiteDiary,
-                    "Facilities Management" => OperationMode.MaintenanceRecord,
-                    _                       => OperationMode.JobCard, // Default for all other industries
+                    "Mining & Extraction"     => OperationMode.ShiftProductionLog,
+                    "Logistics & Fleet"       => OperationMode.TripSheet,
+                    "Facilities Management"   => OperationMode.MaintenanceRecord,
+                    "Workshop & Maintenance"  => OperationMode.JobCard,
+                    _                         => OperationMode.SiteDiary, // Default ("Construction", "Other", unset) — Construction is the system's primary focus
                 },
                 IsActive     = true,
             };
