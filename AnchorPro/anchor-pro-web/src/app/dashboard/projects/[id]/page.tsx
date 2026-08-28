@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
 import { dashboardApi, scheduleApi, certificatesApi } from '@/lib/api';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const CONSTRUCTION_MODULES = [
   { key: 'boq', label: 'Bill of Quantities', desc: 'Contract sum, sections & rates', icon: Layers, href: (id: string | number) => `/dashboard/boq?project=${id}` },
@@ -35,6 +36,7 @@ function HealthBar({ current, total }: { current: number, total: number }) {
 export default function ProjectDetailsPage() {
   const router = useRouter();
   const { id } = useParams();
+  const { formatMoney } = useDictionary();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -280,16 +282,16 @@ export default function ProjectDetailsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL BUDGET</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>K {project.budget?.toLocaleString() ?? 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{formatMoney(project.budget)}</div>
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>ACTUAL COSTS TO DATE</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>K {project.totalCost?.toLocaleString() ?? 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-rose)' }}>{formatMoney(project.totalCost)}</div>
               <HealthBar current={project.totalCost} total={project.budget} />
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>TOTAL INVOICED (REVENUE)</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>K {totalInvoiced.toLocaleString()}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)' }}>{formatMoney(totalInvoiced)}</div>
             </div>
             <div className="card" style={{ padding: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>PROFIT MARGIN</div>
@@ -307,14 +309,14 @@ export default function ProjectDetailsPage() {
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>CERTIFIED PROGRESS</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.percentComplete?.toFixed(1) ?? 0}%</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    K {snapshot.grossValuationToDate?.toLocaleString() ?? 0} valued of K {snapshot.contractSum?.toLocaleString() ?? 0}
+                    {formatMoney(snapshot.grossValuationToDate)} valued of {formatMoney(snapshot.contractSum)}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>LATEST CERTIFICATE</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{snapshot.latestCertificateNumber ?? '—'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {snapshot.latestCertificateStatus ?? 'No certificate raised'} · K {snapshot.netCertifiedPayable?.toLocaleString() ?? 0} net payable
+                    {snapshot.latestCertificateStatus ?? 'No certificate raised'} · {formatMoney(snapshot.netCertifiedPayable)} net payable
                   </div>
                 </div>
                 <div>
@@ -499,8 +501,8 @@ export default function ProjectDetailsPage() {
                       <td style={{ fontWeight: 600 }}>{c.certificateNumber}</td>
                       <td>{new Date(c.periodStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(c.periodEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                       <td><span className={`badge ${badgeClass}`}>{label}</span></td>
-                      <td style={{ textAlign: 'right' }}>K {c.grossValuationToDate?.toLocaleString() ?? 0}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>K {c.netAmountDue?.toLocaleString() ?? 0}</td>
+                      <td style={{ textAlign: 'right' }}>{formatMoney(c.grossValuationToDate)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(c.netAmountDue)}</td>
                     </tr>
                   );
                 })}
@@ -533,7 +535,7 @@ export default function ProjectDetailsPage() {
                     <td>{new Date(inv.invoiceDate).toLocaleDateString()}</td>
                     <td>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
                     <td><span className={`badge ${inv.paymentStatus === 'Paid' ? 'badge-green' : 'badge-orange'}`}>{inv.paymentStatus}</span></td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>K {inv.total?.toLocaleString() ?? 0}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(inv.total)}</td>
                   </tr>
                 ))}
                 {(!project.invoices || project.invoices.length === 0) && (
@@ -625,7 +627,7 @@ export default function ProjectDetailsPage() {
                       <td style={{ fontWeight: 500 }}>{e.description}</td>
                       <td><span className="badge badge-blue">{e.category}</span></td>
                       <td>{e.recordedBy}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-rose)' }}>K {e.amount?.toLocaleString() ?? 0}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-rose)' }}>{formatMoney(e.amount)}</td>
                     </tr>
                   ))}
                   {(!project.directExpenses || project.directExpenses.length === 0) && (

@@ -28,7 +28,7 @@ function getToken() {
 
 export default function ContractorsPage() {
   const router = useRouter();
-  const { t } = useDictionary();
+  const { t, formatMoney } = useDictionary();
   const contractorTypes = getContractorTypes(t);
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +200,7 @@ export default function ContractorsPage() {
                     <td>
                       {c.unitRate ? (
                         <div>
-                          <span style={{ fontWeight: 600 }}>K {Number(c.unitRate).toLocaleString()}</span>
+                          <span style={{ fontWeight: 600 }}>{formatMoney(c.unitRate)}</span>
                           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}> {c.rateType || `/${c.unitOfMeasure}`}</span>
                         </div>
                       ) : '-'}

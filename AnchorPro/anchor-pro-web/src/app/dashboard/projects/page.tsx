@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Building2, Plus, Calendar, DollarSign, Users, CheckCircle, Clock, Loader2, Save, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 function getToken() {
   return localStorage.getItem('anchor_auth_token') || '';
@@ -22,6 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 };
 
 function ProjectCard({ project, onClick }: { project: any; onClick: () => void }) {
+  const { formatMoney } = useDictionary();
   const tasks = project.tasks || [];
   const doneTasks = tasks.filter((t: any) => t.status === 'Done').length;
   const completionPct = project.completionPercentage ?? (tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0);
@@ -86,8 +88,8 @@ function ProjectCard({ project, onClick }: { project: any; onClick: () => void }
             <div style={{ height: '100%', width: `${budgetPct}%`, background: budgetColor, borderRadius: 3 }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>K {budgetUsed.toLocaleString()} spent</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>K {(project.budget || 0).toLocaleString()} budget</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatMoney(budgetUsed)} spent</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatMoney(project.budget)} budget</span>
           </div>
         </div>
 

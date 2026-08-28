@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeApi, uploadApi, settingsApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 import { hasPermission } from '@/lib/rbac';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
@@ -45,11 +46,6 @@ const MONTHS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function initials(first?: string, last?: string) {
   return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
-}
-
-function fmt(n: number | undefined | null) {
-  if (n === null || n === undefined) return 'ZMW 0.00';
-  return `ZMW ${n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function daysUntilExpiry(endDate?: string | null) {
@@ -555,6 +551,7 @@ IN WITNESS WHEREOF, the parties have executed this Contract as of the date first
 // ─── Contracts Tab ────────────────────────────────────────────────────────────
 function ContractsTab() {
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
   const [contracts, setContracts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -789,7 +786,7 @@ function ContractsTab() {
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.standardHoursPerMonth ? `${c.standardHoursPerMonth}h` : 'Default'}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.overtimeMultiplier ? `${c.overtimeMultiplier}x` : 'Default'}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(c.agreedMonthlySalary)}</td>
+                      <td style={{ fontWeight: 600 }}>{formatMoney(c.agreedMonthlySalary)}</td>
                       <td><span className={`badge ${contractStatusMap[c.status]?.badge || 'badge-muted'}`}>{contractStatusMap[c.status]?.label || '—'}</span></td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
@@ -992,6 +989,7 @@ function ContractsTab() {
 
 // ─── Payroll Tab ──────────────────────────────────────────────────────────────
 function PayrollTab() {
+  const { formatMoney, currencySymbol } = useDictionary();
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRun, setSelectedRun] = useState<any | null>(null);
@@ -1082,10 +1080,10 @@ function PayrollTab() {
         {/* Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
           {[
-            { label: 'Total Gross', value: fmt(selectedRun.totalGross), color: 'var(--accent-blue)' },
-            { label: 'Total Deductions', value: fmt(selectedRun.totalDeductions), color: 'var(--accent-rose)' },
-            { label: 'Total Net Pay', value: fmt(selectedRun.totalNet), color: 'var(--accent-emerald)' },
-            { label: 'Employer NAPSA', value: fmt(selectedRun.totalEmployerNapsa), color: 'var(--accent-amber)' },
+            { label: 'Total Gross', value: formatMoney(selectedRun.totalGross), color: 'var(--accent-blue)' },
+            { label: 'Total Deductions', value: formatMoney(selectedRun.totalDeductions), color: 'var(--accent-rose)' },
+            { label: 'Total Net Pay', value: formatMoney(selectedRun.totalNet), color: 'var(--accent-emerald)' },
+            { label: 'Employer NAPSA', value: formatMoney(selectedRun.totalEmployerNapsa), color: 'var(--accent-amber)' },
           ].map(card => (
             <div key={card.label} className="card" style={{ padding: '14px 16px' }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{card.label}</div>
@@ -1124,17 +1122,17 @@ function PayrollTab() {
                         <div style={{ fontWeight: 600 }}>{p.user?.firstName} {p.user?.lastName}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.user?.employeeNumber || 'Emp'}</div>
                       </td>
-                      <td style={{ fontFamily: 'monospace' }}>{fmt(p.basicSalary)}</td>
+                      <td style={{ fontFamily: 'monospace' }}>{formatMoney(p.basicSalary)}</td>
                       <td style={{ fontFamily: 'monospace' }}>
                         {p.overtimeHours > 0 ? (
-                          <span title={`${p.overtimeHours}h × ZMW ${p.overtimeRate}`}>{fmt(p.overtimePay)}</span>
+                          <span title={`${p.overtimeHours}h × ${currencySymbol} ${p.overtimeRate}`}>{formatMoney(p.overtimePay)}</span>
                         ) : '—'}
                       </td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(p.grossPay)}</td>
-                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({fmt(p.payeTax)})</td>
-                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({fmt(p.napsaEmployee)})</td>
-                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({fmt(p.nhimaContribution)})</td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-emerald)' }}>{fmt(p.netPay)}</td>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatMoney(p.grossPay)}</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({formatMoney(p.payeTax)})</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({formatMoney(p.napsaEmployee)})</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--accent-rose)' }}>({formatMoney(p.nhimaContribution)})</td>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-emerald)' }}>{formatMoney(p.netPay)}</td>
                       <td><span className="badge badge-muted">{p.status === 2 ? 'Paid' : p.status === 1 ? 'Approved' : 'Pending'}</span></td>
                       <td style={{ textAlign: 'right' }}>
                         <button className="btn btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setViewingPayslip(p)}>
@@ -1183,8 +1181,8 @@ function PayrollTab() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 700, color: 'var(--accent-emerald)' }}>{fmt(run.totalNet)} net</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{fmt(run.totalGross)} gross</div>
+                <div style={{ fontWeight: 700, color: 'var(--accent-emerald)' }}>{formatMoney(run.totalNet)} net</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatMoney(run.totalGross)} gross</div>
               </div>
               <span className={`badge ${payrollStatusMap[run.status]?.badge}`}>{payrollStatusMap[run.status]?.label}</span>
               <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
@@ -1675,6 +1673,7 @@ const vendorBillStatusMap: Record<number, { label: string; badge: string }> = {
 
 // ─── Departments Tab ──────────────────────────────────────────────────────────
 function DepartmentsTab() {
+  const { formatMoney } = useDictionary();
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [assets, setAssets] = useState<any[]>([]);
@@ -1963,7 +1962,7 @@ function DepartmentsTab() {
                                 <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{pr.requisitionNumber || pr.prNumber}</td>
                                 <td style={{ color: 'var(--text-secondary)' }}>{new Date(pr.createdAt || pr.requiredDate).toLocaleDateString()}</td>
                                 <td>{pr.requestedBy?.firstName ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName || ''}` : pr.requestedBy?.userName || '—'}</td>
-                                <td style={{ fontWeight: 600 }}>{fmt(pr.totalEstimatedAmount || pr.totalAmount)}</td>
+                                <td style={{ fontWeight: 600 }}>{formatMoney(pr.totalEstimatedAmount || pr.totalAmount)}</td>
                                 <td>
                                   <span className={`badge ${stat.badge}`}>{stat.label}</span>
                                 </td>
@@ -2003,7 +2002,7 @@ function DepartmentsTab() {
                                 <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{order.poNumber}</td>
                                 <td style={{ color: 'var(--text-primary)' }}>{order.supplier?.name || '—'}</td>
                                 <td style={{ color: 'var(--text-secondary)' }}>{new Date(order.orderDate).toLocaleDateString()}</td>
-                                <td style={{ fontWeight: 600 }}>{fmt(order.totalAmount)}</td>
+                                <td style={{ fontWeight: 600 }}>{formatMoney(order.totalAmount)}</td>
                                 <td>
                                   <span className={`badge ${stat.badge}`}>{stat.label}</span>
                                 </td>
@@ -2050,9 +2049,9 @@ function DepartmentsTab() {
                               <td>{bill.supplier?.name || '—'}</td>
                               <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.billDate).toLocaleDateString()}</td>
                               <td style={{ color: 'var(--text-secondary)' }}>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                              <td style={{ fontWeight: 600 }}>{fmt(bill.totalAmount)}</td>
+                              <td style={{ fontWeight: 600 }}>{formatMoney(bill.totalAmount)}</td>
                               <td style={{ fontWeight: 600, color: bill.balance > 0 ? 'var(--accent-rose)' : 'var(--text-secondary)' }}>
-                                {fmt(bill.balance)}
+                                {formatMoney(bill.balance)}
                               </td>
                               <td>
                                 <span className={`badge ${stat.badge}`}>{stat.label}</span>

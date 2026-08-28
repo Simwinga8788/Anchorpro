@@ -38,7 +38,7 @@ export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { isTechnician, hasRole, user } = useAuth();
-  const { t } = useDictionary();
+  const { t, formatMoney } = useDictionary();
   const id = parseInt(params.id as string);
 
   const jobsLabel = t('Job Cards', 'Job Cards');
@@ -945,7 +945,7 @@ export default function JobDetailPage() {
                               )}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                              K {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {formatMoney(totalCost)}
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -1042,7 +1042,7 @@ export default function JobDetailPage() {
                                 </div>
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                K {pr.totalEstimatedAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                {formatMoney(pr.totalEstimatedAmount)}
                               </td>
                             </tr>
                           );
@@ -1109,7 +1109,7 @@ export default function JobDetailPage() {
                             </span>
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                            K {po.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {formatMoney(po.totalAmount)}
                           </td>
                         </tr>
                       ))}
@@ -1325,7 +1325,7 @@ export default function JobDetailPage() {
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{row.desc}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: row.value > 0 ? row.color : 'var(--text-secondary)' }}>
-                    K {(row.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatMoney(row.value)}
                   </div>
                 </div>
               ))}
@@ -1333,7 +1333,7 @@ export default function JobDetailPage() {
               <div style={{ borderTop: '1px solid var(--border-default)', marginTop: 8, paddingTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px' }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Total Cost</span>
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{formatMoney(job.totalCost)}</span>
                 </div>
               </div>
             </div>
@@ -1408,7 +1408,7 @@ export default function JobDetailPage() {
               <div style={{ padding: 14, background: 'var(--surface-secondary)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Total Estimated Amount:</span>
                 <span style={{ fontSize: 16, color: 'var(--accent-blue)', fontWeight: 700 }}>
-                  ZMW {prForm.items.reduce((sum, i) => sum + (i.quantityRequested * i.estimatedUnitCost), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatMoney(prForm.items.reduce((sum, i) => sum + (i.quantityRequested * i.estimatedUnitCost), 0))}
                 </span>
               </div>
 
@@ -1516,12 +1516,12 @@ export default function JobDetailPage() {
                   ].map(row => (
                     <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>{row.label}</span>
-                      <span style={{ fontWeight: 500 }}>K {(row.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span style={{ fontWeight: 500 }}>{formatMoney(row.value)}</span>
                     </div>
                   ))}
                   <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--text-muted)' }}>Total Operational Cost</span>
-                    <span style={{ fontWeight: 600 }}>K {(job.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontWeight: 600 }}>{formatMoney(job.totalCost)}</span>
                   </div>
                 </div>
 
@@ -1542,8 +1542,8 @@ export default function JobDetailPage() {
                       />
                       {quoteEditForm.subtotal && (
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                          VAT (16%): K {(parseFloat(quoteEditForm.subtotal || '0') * 0.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          {' '}→ Total: K {(parseFloat(quoteEditForm.subtotal || '0') * 1.16).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          VAT (16%): {formatMoney(parseFloat(quoteEditForm.subtotal || '0') * 0.16)}
+                          {' '}→ Total: {formatMoney(parseFloat(quoteEditForm.subtotal || '0') * 1.16)}
                         </div>
                       )}
                     </div>
@@ -1581,7 +1581,7 @@ export default function JobDetailPage() {
                             onChange={e => setPartsMarkup(Math.max(0, parseFloat(e.target.value) || 0))}
                           />
                           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
-                            Base parts: K {(job?.partsCost || 0).toLocaleString()} → Markup: K {((job?.partsCost || 0) * (1 + partsMarkup / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Base parts: {formatMoney(job?.partsCost)} → Markup: {formatMoney((job?.partsCost || 0) * (1 + partsMarkup / 100))}
                           </div>
                         </div>
 
@@ -1608,7 +1608,7 @@ export default function JobDetailPage() {
                           </div>
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          Labor Hours (Est): {job?.estimatedLaborHours || 0} hrs · Quoted Labor: K {((job?.estimatedLaborHours || 0) * laborBillingRate * (1 + laborMarkup / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          Labor Hours (Est): {job?.estimatedLaborHours || 0} hrs · Quoted Labor: {formatMoney((job?.estimatedLaborHours || 0) * laborBillingRate * (1 + laborMarkup / 100))}
                         </div>
                       </div>
                     )}
@@ -1649,15 +1649,15 @@ export default function JobDetailPage() {
                   <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Negotiated Subtotal</span>
-                      <span style={{ fontWeight: 600 }}>K {quotation.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span style={{ fontWeight: 600 }}>{formatMoney(quotation.subtotal)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>VAT ({quotation.taxRate}%)</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>K {quotation.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{formatMoney(quotation.taxAmount)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '1px solid var(--border-default)', paddingTop: 8 }}>
                       <span>Total Quote Amount</span>
-                      <span style={{ color: 'var(--accent-indigo)' }}>K {quotation.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span style={{ color: 'var(--accent-indigo)' }}>{formatMoney(quotation.total)}</span>
                     </div>
                     {quotation.notes && (
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontStyle: 'italic' }}>
