@@ -125,6 +125,9 @@ namespace AnchorPro.Controllers
                     d.FileName,
                     d.FileUrl,
                     d.UploadedAt,
+                    d.Category,
+                    d.RevisionNumber,
+                    d.BoqSectionId,
                     UploadedBy = new {
                         d.UploadedBy?.FirstName,
                         d.UploadedBy?.LastName
@@ -254,7 +257,12 @@ namespace AnchorPro.Controllers
         }
 
         [HttpPost("{id}/documents")]
-        public async Task<IActionResult> UploadDocument(int id, IFormFile file)
+        public async Task<IActionResult> UploadDocument(
+            int id,
+            IFormFile file,
+            [FromForm] ProjectDocumentCategory category = ProjectDocumentCategory.Other,
+            [FromForm] string? revisionNumber = null,
+            [FromForm] int? boqSectionId = null)
         {
             if (file == null || file.Length == 0) return BadRequest("No file provided");
 
@@ -276,7 +284,10 @@ namespace AnchorPro.Controllers
                 ProjectId = id,
                 FileName = file.FileName,
                 FileUrl = $"/uploads/{fileName}",
-                UploadedById = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                UploadedById = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+                Category = category,
+                RevisionNumber = string.IsNullOrWhiteSpace(revisionNumber) ? null : revisionNumber.Trim(),
+                BoqSectionId = boqSectionId
             };
 
             _context.ProjectDocuments.Add(doc);
@@ -287,7 +298,10 @@ namespace AnchorPro.Controllers
                 doc.Id,
                 doc.FileName,
                 doc.FileUrl,
-                doc.UploadedAt
+                doc.UploadedAt,
+                doc.Category,
+                doc.RevisionNumber,
+                doc.BoqSectionId
             });
         }
 

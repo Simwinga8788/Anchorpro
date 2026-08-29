@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
-import { dashboardApi, scheduleApi, certificatesApi } from '@/lib/api';
+import { dashboardApi, scheduleApi, certificatesApi, boqApi } from '@/lib/api';
 import { useDictionary } from '@/lib/DictionaryContext';
 
 const CONSTRUCTION_MODULES = [
@@ -22,6 +22,9 @@ const CONSTRUCTION_MODULES = [
   { key: 'weekly', label: 'Weekly Reports', desc: 'Site progress rollups', icon: BarChart3, href: (id: string | number) => `/dashboard/reports/weekly?project=${id}` },
   { key: 'monthly', label: 'Monthly Reports', desc: 'Client & consultant report', icon: FileCheck, href: (id: string | number) => `/dashboard/reports/monthly?project=${id}` },
 ];
+
+// Must match the backend ProjectDocumentCategory enum (Data/Entities/ProjectDocument.cs) order exactly.
+const DOCUMENT_CATEGORIES = ['Drawing', 'Specification', 'Contract', 'Photo', 'Other'];
 
 function HealthBar({ current, total }: { current: number, total: number }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
@@ -56,6 +59,10 @@ export default function ProjectDetailsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showDocUpload, setShowDocUpload] = useState(false);
+  const [docForm, setDocForm] = useState({ category: 'Other', revisionNumber: '', boqSectionId: '' });
+  const [boqSections, setBoqSections] = useState<any[]>([]);
 
   useEffect(() => {
     loadProject();
@@ -79,6 +86,7 @@ export default function ProjectDetailsPage() {
     dashboardApi.getProjectSnapshot(Number(id)).then(setSnapshot).catch(() => setSnapshot(null));
     scheduleApi.getByProject(Number(id)).then((m: any) => setMilestones(Array.isArray(m) ? m : [])).catch(() => setMilestones([]));
     certificatesApi.getByProject(Number(id)).then((c: any) => setCertificates(Array.isArray(c) ? c : [])).catch(() => setCertificates([]));
+    boqApi.getByProject(Number(id)).then((b: any) => setBoqSections(b?.sections || [])).catch(() => setBoqSections([]));
   };
 
   const handleCreateTask = async (e: any) => {
@@ -190,13 +198,24 @@ export default function ProjectDetailsPage() {
     } catch(err) { toast.error('Error adding expense'); }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingFile(file);
+    setDocForm({ category: 'Other', revisionNumber: '', boqSectionId: '' });
+    setShowDocUpload(true);
+  };
+
+  const handleDocUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingFile) return;
 
     setUploadingDoc(true);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', pendingFile);
+    formData.append('category', docForm.category);
+    if (docForm.revisionNumber) formData.append('revisionNumber', docForm.revisionNumber);
+    if (docForm.boqSectionId) formData.append('boqSectionId', docForm.boqSectionId);
 
     try {
       const res = await fetch(`/api/projects/${id}/documents`, {
@@ -206,6 +225,8 @@ export default function ProjectDetailsPage() {
       });
       if (res.ok) {
         toast.success('Document uploaded successfully');
+        setShowDocUpload(false);
+        setPendingFile(null);
         loadProject();
       } else {
         toast.error('Failed to upload document');
@@ -551,7 +572,7 @@ export default function ProjectDetailsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Documents</h3>
-            <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+            <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelected} />
             <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingDoc}>
               <Plus size={16} style={{ marginRight: 6 }}/> {uploadingDoc ? 'Uploading...' : 'Upload File'}
             </button>
@@ -562,24 +583,34 @@ export default function ProjectDetailsPage() {
               <thead>
                 <tr>
                   <th>File Name</th>
+                  <th>Category</th>
+                  <th>Revision</th>
                   <th>Uploaded At</th>
                   <th>Uploaded By</th>
                   <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {project.documents?.map((doc: any) => (
-                  <tr key={`doc-${doc.id}`}>
-                    <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>{doc.fileName}</td>
-                    <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
-                    <td>{doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>Download</a>
-                    </td>
-                  </tr>
-                ))}
+                {project.documents?.map((doc: any) => {
+                  const section = boqSections.find(s => s.id === doc.boqSectionId);
+                  return (
+                    <tr key={`doc-${doc.id}`}>
+                      <td style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
+                        {doc.fileName}
+                        {section && <div style={{ fontSize: 10.5, color: 'var(--text-secondary)', fontWeight: 400 }}>{section.sectionName}</div>}
+                      </td>
+                      <td><span className="badge badge-gray">{DOCUMENT_CATEGORIES[doc.category] ?? 'Other'}</span></td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{doc.revisionNumber || '—'}</td>
+                      <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
+                      <td>{doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>Download</a>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {(!project.documents || project.documents.length === 0) && (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No documents uploaded.</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>No documents uploaded.</td></tr>
                 )}
               </tbody>
             </table>
@@ -731,6 +762,45 @@ export default function ProjectDetailsPage() {
           </div>
           <div style={{ marginTop: 20 }}>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Assign Member</button>
+          </div>
+        </form>
+      </SlideOver>
+
+      <SlideOver
+        open={showDocUpload}
+        onClose={() => { setShowDocUpload(false); setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+        title="Upload Document"
+        subtitle={pendingFile?.name}
+      >
+        <form onSubmit={handleDocUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-field">
+            <label className="form-label">Category</label>
+            <select className="form-input" value={docForm.category} onChange={e => setDocForm({...docForm, category: e.target.value})}>
+              <option value="Drawing">Drawing</option>
+              <option value="Specification">Specification</option>
+              <option value="Contract">Contract</option>
+              <option value="Photo">Photo</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Revision</label>
+            <input className="form-input" placeholder="e.g. Rev A, Rev 2" value={docForm.revisionNumber} onChange={e => setDocForm({...docForm, revisionNumber: e.target.value})} />
+            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+              Captured as a record only — there&apos;s no live sync to flag when a newer revision exists elsewhere.
+            </p>
+          </div>
+          <div className="form-field">
+            <label className="form-label">BOQ Section (optional)</label>
+            <select className="form-input" value={docForm.boqSectionId} onChange={e => setDocForm({...docForm, boqSectionId: e.target.value})}>
+              <option value="">— Not linked to a section —</option>
+              {boqSections.map((s: any) => <option key={s.id} value={s.id}>{s.sectionCode} — {s.sectionName}</option>)}
+            </select>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={uploadingDoc}>
+              {uploadingDoc ? 'Uploading...' : 'Upload'}
+            </button>
           </div>
         </form>
       </SlideOver>
