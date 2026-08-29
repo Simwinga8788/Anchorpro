@@ -57,7 +57,6 @@ const CONSTRUCTION_NAV_SECTIONS = [
     label: 'Finance & Administration',
     items: [
       { href: '/dashboard/finance',      label: 'Project Cost & Ledger', icon: DollarSign },
-      { href: '/dashboard/invoices',     label: 'Billing & Claims',     icon: DollarSign },
       { href: '/dashboard/customers',    label: 'Clients & Consultants',icon: Users },
       { href: '/dashboard/hr',           label: 'Site Team & HR',       icon: UserCog },
       { href: '/dashboard/roles',        label: 'Roles & Permissions',  icon: Shield },
