@@ -201,6 +201,14 @@ export default function ProjectDetailsPage() {
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error('File exceeds the 50MB upload limit.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setPendingFile(file);
     setDocForm({ category: 'Other', revisionNumber: '', boqSectionId: '' });
     setShowDocUpload(true);
@@ -570,9 +578,20 @@ export default function ProjectDetailsPage() {
 
       {activeTab === 'documents' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Documents</h3>
-            <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelected} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 600 }}>Project Documents</h3>
+              <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                PDF, Word/Excel, DWG/DXF, or images — up to 50MB.
+              </p>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png,.heic,.webp"
+              style={{ display: 'none' }}
+              onChange={handleFileSelected}
+            />
             <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingDoc}>
               <Plus size={16} style={{ marginRight: 6 }}/> {uploadingDoc ? 'Uploading...' : 'Upload File'}
             </button>

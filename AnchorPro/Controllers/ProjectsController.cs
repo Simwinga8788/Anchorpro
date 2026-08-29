@@ -256,7 +256,17 @@ namespace AnchorPro.Controllers
             return Ok();
         }
 
+        private const long MaxDocumentUploadBytes = 50 * 1024 * 1024; // 50MB
+
+        private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx",   // documents, specs, contracts
+            ".dwg", ".dxf",                              // CAD drawings
+            ".jpg", ".jpeg", ".png", ".heic", ".webp",   // photos / scanned pages
+        };
+
         [HttpPost("{id}/documents")]
+        [RequestSizeLimit(MaxDocumentUploadBytes)]
         public async Task<IActionResult> UploadDocument(
             int id,
             IFormFile file,
@@ -265,6 +275,13 @@ namespace AnchorPro.Controllers
             [FromForm] int? boqSectionId = null)
         {
             if (file == null || file.Length == 0) return BadRequest("No file provided");
+
+            if (file.Length > MaxDocumentUploadBytes)
+                return BadRequest($"File exceeds the {MaxDocumentUploadBytes / 1024 / 1024}MB upload limit.");
+
+            var extension = Path.GetExtension(file.FileName);
+            if (string.IsNullOrEmpty(extension) || !AllowedDocumentExtensions.Contains(extension))
+                return BadRequest($"File type '{extension}' is not allowed. Accepted types: {string.Join(", ", AllowedDocumentExtensions.OrderBy(e => e))}.");
 
             var project = await _context.Projects.FindAsync(id);
             if (project == null) return NotFound();
