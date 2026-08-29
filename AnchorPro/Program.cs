@@ -117,6 +117,8 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetJobCardsSummaryTool>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetActiveProjectsTool>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.GetConstructionProjectStatusTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.NavigateTool>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICopilotTool, AnchorPro.Services.CopilotTools.CreateJobCardTool>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEquipmentService, AnchorPro.Services.EquipmentService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobCardService, AnchorPro.Services.JobCardService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IJobTaskService, AnchorPro.Services.JobTaskService>();
