@@ -10,7 +10,7 @@ public class ApplicationUser : IdentityUser
 
     [PersonalData]
     public string? LastName { get; set; }
-    
+
     public string? EmployeeNumber { get; set; }
 
     public int? TenantId { get; set; }

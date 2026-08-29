@@ -1869,7 +1869,8 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                   pendingPRs.map(pr => {
                     const isExpanded = expandedPRId === pr.id;
                     const isRequester = pr.requestedById === user?.id;
-                    const raisedByName = usersMap[pr.requestedById] || pr.createdByName || pr.requestedBy || '—';
+                    const raisedByName = usersMap[pr.requestedById] || pr.createdByName
+                      || (pr.requestedBy && [pr.requestedBy.firstName, pr.requestedBy.lastName].filter(Boolean).join(' ')) || '—';
 
                     return (
                       <React.Fragment key={pr.id}>

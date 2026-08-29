@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using AnchorPro.Data;
 using AnchorPro.Services;
 using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json.Serialization.Metadata;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -158,6 +159,27 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+
+        // ApplicationUser (IdentityUser) carries PasswordHash/SecurityStamp/etc. Many controllers
+        // Include() a User/AssignedTechnician/RequestedBy/etc. navigation and return the entity
+        // graph raw (the established entity-passthrough pattern in this codebase), which would
+        // otherwise serialize those straight into the HTTP response. Strip them at the JSON layer —
+        // not on the entity itself, since shadowing inherited properties there risks EF Core
+        // treating them as distinct mapped columns and breaking login.
+        var identitySensitiveFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
+            "NormalizedEmail", "LockoutEnabled", "LockoutEnd", "AccessFailedCount"
+        };
+        options.JsonSerializerOptions.TypeInfoResolver = new DefaultJsonTypeInfoResolver()
+            .WithAddedModifier(typeInfo =>
+            {
+                if (typeInfo.Type != typeof(AnchorPro.Data.ApplicationUser)) return;
+                foreach (var prop in typeInfo.Properties.Where(p => identitySensitiveFields.Contains(p.Name)).ToList())
+                {
+                    typeInfo.Properties.Remove(prop);
+                }
+            });
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
