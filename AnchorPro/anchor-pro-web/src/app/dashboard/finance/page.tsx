@@ -83,8 +83,6 @@ export default function FinancePage() {
     { key: 'vendor-bills', label: 'Vendor Bills',   icon: <FileText size={13} />    },
     { key: 'expenses',     label: 'Expenses',       icon: <CreditCard size={13} />  },
     { key: 'ledger',       label: 'Ledger Log',     icon: <DollarSign size={13} />  },
-    { key: 'quotations',   label: 'Quotations',     icon: <FileText size={13} />    },
-    { key: 'invoices',     label: 'Receivables',    icon: <DollarSign size={13} />  },
     { key: 'po-approvals', label: 'Approvals',      icon: <ShieldCheck size={13} /> },
   ];
 
