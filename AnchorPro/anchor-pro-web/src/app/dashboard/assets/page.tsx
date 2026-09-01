@@ -15,7 +15,7 @@ const getAssetStatus = (_asset: any): { label: string; badge: string; dot: strin
 const BLANK: { name: string; modelNumber: string; serialNumber: string; manufacturer: string; departmentId: number | null; payloadCapacity: number | null } = { name: '', modelNumber: '', serialNumber: '', manufacturer: '', departmentId: null, payloadCapacity: null };
 
 export default function AssetsPage() {
-  const { t } = useDictionary();
+  const { t, formatMoney } = useDictionary();
   const equipLabel = t('Equipment', 'Equipment');
   const { user } = useAuth(); // Import useAuth at the top if not imported
 
@@ -219,7 +219,7 @@ export default function AssetsPage() {
           { label: `Total ${equipLabel}s`,        value: assets.length,                                            color: 'var(--accent-emerald)', icon: <TrendingUp size={16} /> },
           { label: 'Operational',       value: assets.length,                                            color: 'var(--accent-blue)', icon: <CheckCircle2 size={16} /> },
           { label: `Highest Cost ${equipLabel}`,  value: (() => { const top = Object.entries(assetCosts).sort((a,b)=>b[1]-a[1])[0]; if (!top) return '—'; const a = assets.find(x=>x.id===parseInt(top[0])); return a ? a.name.split(' ').slice(0,2).join(' ') : '—'; })(), color: 'var(--accent-rose)', icon: <AlertTriangle size={16} /> },
-          { label: 'Total Value Tracked', value: `K ${Object.values(assetCosts).reduce((a,b)=>a+b,0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, color: 'var(--text-primary)', icon: <DollarSign size={16} /> }
+          { label: 'Total Value Tracked', value: formatMoney(Object.values(assetCosts).reduce((a,b)=>a+b,0)), color: 'var(--text-primary)', icon: <DollarSign size={16} /> }
         ].map((s, i) => (
           <div key={i} className="stat-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -284,7 +284,7 @@ export default function AssetsPage() {
                     <td><span className="badge badge-muted">{departments.find(d => d.id === asset.departmentId)?.name || (asset.departmentId ? `Dept #${asset.departmentId}` : '—')}</span></td>
                     <td><span className={`badge ${sc.badge}`}><span className={`status-dot ${sc.dot}`} />{sc.label}</span></td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: lifetimeCost > 0 ? (isTopCost ? 'var(--accent-rose)' : 'var(--text-primary)') : 'var(--text-muted)', fontSize: 13 }}>
-                      {lifetimeCost > 0 ? `K ${lifetimeCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                      {lifetimeCost > 0 ? formatMoney(lifetimeCost, { maximumFractionDigits: 0 }) : '—'}
                     </td>
                     <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                       <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={() => openEdit(asset)}><Edit2 size={13} /></button>

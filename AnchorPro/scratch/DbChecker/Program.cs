@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Npgsql;
 var connString = Environment.GetEnvironmentVariable("ANCHORPRO_DB_CONNECTION")
@@ -7,62 +8,46 @@ var connString = Environment.GetEnvironmentVariable("ANCHORPRO_DB_CONNECTION")
 using var conn = new NpgsqlConnection(connString);
 conn.Open();
 
-const int tenantId = 6;
-const string orgName = "Retrix Enterprise";
-
-// The Settings page's "Save" action writes Tenant.Name and the Org.Name SystemSetting
-// together (handleSaveOrg in dashboard/settings/page.tsx), so once both hold the same
-// value here they'll stay in sync going forward via that existing dual-write — no code
-// change needed, this is a one-time catch-up. The Org.Name setting was found missing
-// entirely for this tenant, so recreate it alongside syncing Tenant.Name.
-
-Console.WriteLine("--- Upserting Org.Name setting ---");
-bool orgNameExists;
-using (var cmd = new NpgsqlCommand(
-    "SELECT COUNT(*) FROM \"SystemSettings\" WHERE \"TenantId\" = @tid AND \"Key\" = 'Org.Name'", conn))
+// Every table that has a "TenantId" column, discovered from the DB itself rather than
+// guessed from entity names — so nothing is missed.
+var tables = new List<string>();
+using (var cmd = new NpgsqlCommand(@"
+    SELECT table_name FROM information_schema.columns
+    WHERE table_schema = 'public' AND column_name = 'TenantId'
+    ORDER BY table_name;", conn))
+using (var reader = cmd.ExecuteReader())
 {
-    cmd.Parameters.AddWithValue("tid", tenantId);
-    orgNameExists = (long)cmd.ExecuteScalar()! > 0;
+    while (reader.Read()) tables.Add(reader.GetString(0));
 }
 
-if (orgNameExists)
-{
-    using var cmd = new NpgsqlCommand(
-        "UPDATE \"SystemSettings\" SET \"Value\" = @value WHERE \"TenantId\" = @tid AND \"Key\" = 'Org.Name'", conn);
-    cmd.Parameters.AddWithValue("tid", tenantId);
-    cmd.Parameters.AddWithValue("value", orgName);
-    var rows = cmd.ExecuteNonQuery();
-    Console.WriteLine($"Updated existing Org.Name ({rows} row)");
-}
-else
-{
-    using var cmd = new NpgsqlCommand(
-        "INSERT INTO \"SystemSettings\" (\"TenantId\", \"Key\", \"Value\", \"Description\", \"Group\") " +
-        "VALUES (@tid, 'Org.Name', @value, 'Organisation name', 'Org')", conn);
-    cmd.Parameters.AddWithValue("tid", tenantId);
-    cmd.Parameters.AddWithValue("value", orgName);
-    var rows = cmd.ExecuteNonQuery();
-    Console.WriteLine($"Inserted Org.Name ({rows} row)");
-}
+Console.WriteLine($"Found {tables.Count} tables with a TenantId column.\n");
+Console.WriteLine($"{"Table",-35} {"NullTenant",12} {"Total",10} {"%Null",8}");
+Console.WriteLine(new string('-', 68));
 
-Console.WriteLine("--- Syncing Tenant.Name ---");
-using (var cmd = new NpgsqlCommand("UPDATE \"Tenants\" SET \"Name\" = @name, \"UpdatedAt\" = now() WHERE \"Id\" = @id", conn))
-{
-    cmd.Parameters.AddWithValue("id", tenantId);
-    cmd.Parameters.AddWithValue("name", orgName);
-    var rows = cmd.ExecuteNonQuery();
-    Console.WriteLine($"Tenant.Name rows updated: {rows}");
-}
+var results = new List<(string Table, long NullCount, long Total)>();
 
-Console.WriteLine("--- Verify ---");
-using (var cmd = new NpgsqlCommand("SELECT \"Id\", \"Name\" FROM \"Tenants\" WHERE \"Id\" = @id", conn))
+foreach (var table in tables)
 {
-    cmd.Parameters.AddWithValue("id", tenantId);
+    using var cmd = new NpgsqlCommand($@"
+        SELECT
+            COUNT(*) FILTER (WHERE ""TenantId"" IS NULL) AS null_count,
+            COUNT(*) AS total
+        FROM ""{table}"";", conn);
     using var reader = cmd.ExecuteReader();
-    while (reader.Read()) Console.WriteLine($"Tenant: Id={reader[0]} Name={reader[1]}");
+    if (reader.Read())
+    {
+        var nullCount = reader.GetInt64(0);
+        var total = reader.GetInt64(1);
+        results.Add((table, nullCount, total));
+    }
 }
-using (var cmd = new NpgsqlCommand("SELECT \"Value\" FROM \"SystemSettings\" WHERE \"TenantId\" = @tid AND \"Key\" = 'Org.Name'", conn))
+
+foreach (var r in results.OrderByDescending(r => r.NullCount))
 {
-    cmd.Parameters.AddWithValue("tid", tenantId);
-    Console.WriteLine($"Org.Name setting = {cmd.ExecuteScalar()}");
+    var pct = r.Total > 0 ? (double)r.NullCount / r.Total * 100 : 0;
+    var flag = r.NullCount > 0 ? " <-- has orphaned rows" : "";
+    Console.WriteLine($"{r.Table,-35} {r.NullCount,12} {r.Total,10} {pct,7:F1}%{flag}");
 }
+
+Console.WriteLine();
+Console.WriteLine($"Total tables with at least one NULL TenantId row: {results.Count(r => r.NullCount > 0)} of {results.Count}");

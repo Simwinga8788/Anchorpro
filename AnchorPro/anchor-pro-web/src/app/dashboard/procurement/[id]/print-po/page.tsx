@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { procurementApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const PO_TYPE_LABEL: Record<number, string> = {
   0: 'Inventory Replenishment',
@@ -41,6 +42,7 @@ export default function PrintPurchaseOrderPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,7 +80,7 @@ export default function PrintPurchaseOrderPage() {
     return <div style={{ padding: 40, fontFamily: 'sans-serif', color: 'red' }}>Error: Purchase Order not found.</div>;
   }
 
-  const fmt = (n: number) => `K ${(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (n: number) => formatMoney(n || 0);
   const fmtDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (

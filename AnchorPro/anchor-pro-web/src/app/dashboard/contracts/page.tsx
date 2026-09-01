@@ -5,6 +5,7 @@ import { Plus, FileText, Search, Edit2, XCircle, CheckCircle2, Clock } from 'luc
 import { contractsApi, dashboardApi, projectsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 // Must match the backend ContractStatus enum (Data/Entities/Contract.cs) exactly, in order —
 // the API has no string-enum converter registered, so it serializes/expects the numeric index.
@@ -30,6 +31,7 @@ const BLANK = {
 };
 
 export default function ContractsPage() {
+  const { formatMoney, currencySymbol } = useDictionary();
   const [contracts, setContracts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -177,7 +179,7 @@ export default function ContractsPage() {
 
       <div className="form-row">
         <div className="form-field">
-          <label className="form-label">Contract Value (K)</label>
+          <label className="form-label">Contract Value ({currencySymbol})</label>
           <input className="form-input" type="number" placeholder="0.00" value={formData.value}
             onChange={e => setFormData(f => ({ ...f, value: e.target.value }))} />
         </div>
@@ -228,7 +230,7 @@ export default function ContractsPage() {
         {[
           { label: 'Active',    value: activeCount,                                                            color: 'var(--accent-emerald)', icon: <CheckCircle2 size={16} /> },
           { label: 'Expiring (30d)', value: expiringCount,                                                     color: 'var(--accent-amber)',   icon: <Clock size={16} /> },
-          { label: 'Total Value',   value: `K ${totalValue.toLocaleString()}`,                                 color: 'var(--accent-blue)',    icon: <FileText size={16} /> },
+          { label: 'Total Value',   value: formatMoney(totalValue),                                            color: 'var(--accent-blue)',    icon: <FileText size={16} /> },
         ].map(s => (
           <div key={s.label} className="stat-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -304,7 +306,7 @@ export default function ContractsPage() {
                     {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : '—'}
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    {contract.value ? `K ${(contract.value).toLocaleString()}` : '—'}
+                    {contract.value ? formatMoney(contract.value) : '—'}
                   </td>
                   <td>
                     <span className={`badge ${sc.badge}`}>

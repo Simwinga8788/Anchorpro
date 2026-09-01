@@ -17,7 +17,7 @@ public class SettingsService : ISettingsService
     public async Task<string> GetSettingAsync(string key, string defaultValue = "")
     {
         using var context = _factory.CreateDbContext();
-        var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == key);
+        var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == key && s.TenantId == context.CurrentTenantId);
         return setting?.Value ?? defaultValue;
     }
 
@@ -39,8 +39,9 @@ public class SettingsService : ISettingsService
     public async Task SetSettingAsync(string key, string value, string description = "", string group = "General")
     {
         using var context = _factory.CreateDbContext();
-        // Standard Set uses CurrentTenantId automatically via Filter
-        var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == key);
+        // Explicitly scoped to CurrentTenantId — the entity's query filter alone can't be
+        // trusted here because ApplicationDbContext.IgnoreTenantFilter defaults to true.
+        var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == key && s.TenantId == context.CurrentTenantId);
 
         if (setting == null)
         {
@@ -67,7 +68,10 @@ public class SettingsService : ISettingsService
     public async Task<List<SystemSetting>> GetAllSettingsAsync()
     {
         using var context = _factory.CreateDbContext();
-        return await context.SystemSettings.OrderBy(s => s.Group).ThenBy(s => s.Key).ToListAsync();
+        return await context.SystemSettings
+            .Where(s => s.TenantId == context.CurrentTenantId)
+            .OrderBy(s => s.Group).ThenBy(s => s.Key)
+            .ToListAsync();
     }
 
     public async Task SetGlobalSettingAsync(string key, string value, string description = "", string group = "General")

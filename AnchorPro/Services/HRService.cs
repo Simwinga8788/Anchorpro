@@ -208,8 +208,10 @@ public class HRService(ApplicationDbContext context, UserManager<ApplicationUser
             .ToListAsync();
 
         // Load System-level Fallback Working Hours and Overtime Multipliers
-        var defaultHoursSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultStandardMonthlyHours");
-        var defaultMultiplierSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultOvertimeMultiplier");
+        // Explicitly scoped to CurrentTenantId — the entity's query filter alone can't be
+        // trusted here because ApplicationDbContext.IgnoreTenantFilter defaults to true.
+        var defaultHoursSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultStandardMonthlyHours" && s.TenantId == context.CurrentTenantId);
+        var defaultMultiplierSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "HR.DefaultOvertimeMultiplier" && s.TenantId == context.CurrentTenantId);
 
         double fallbackHours = defaultHoursSetting != null ? (double.TryParse(defaultHoursSetting.Value, out var dh) ? dh : 176.0) : 176.0;
         decimal fallbackMultiplier = defaultMultiplierSetting != null ? (decimal.TryParse(defaultMultiplierSetting.Value, out var dm) ? dm : 1.5m) : 1.5m;

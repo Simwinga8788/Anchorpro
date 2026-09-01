@@ -23,11 +23,6 @@ function fmt(n: number | undefined | null, prefix = '') {
   return `${prefix}${n.toLocaleString()}`;
 }
 
-function fmtK(n: number | undefined | null) {
-  if (n === undefined || n === null) return '—';
-  return `K ${n.toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
-
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
@@ -105,7 +100,7 @@ export default function DashboardPage() {
 }
 
 function WorkshopOverviewDashboard() {
-  const { t } = useDictionary();
+  const { t, formatMoney } = useDictionary();
   const jobsLabel = t('Job Cards', 'Job Cards');
   const jobLabel = jobsLabel.endsWith('s') && !jobsLabel.toLowerCase().endsWith('ss') ? jobsLabel.slice(0, -1) : jobsLabel;
 
@@ -418,7 +413,7 @@ function WorkshopOverviewDashboard() {
                       <td><PriorityBadge priority={job.priority} /></td>
                       <td><StatusBadge status={job.status} /></td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {fmtK(job.totalCost)}
+                        {job.totalCost != null ? formatMoney(job.totalCost) : '—'}
                       </td>
                     </tr>
                   ))
