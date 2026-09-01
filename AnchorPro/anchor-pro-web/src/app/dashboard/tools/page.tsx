@@ -8,6 +8,7 @@ import IssueToolModal from '@/components/tools/IssueToolModal';
 import ReturnToolModal from '@/components/tools/ReturnToolModal';
 import EditToolModal from '@/components/tools/EditToolModal';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const conditionMap: Record<number, { label: string, color: string, badgeClass: string }> = {
   1: { label: 'New', color: 'var(--accent-emerald)', badgeClass: 'badge-green' },
@@ -25,6 +26,7 @@ const statusMap: Record<number, { label: string, badgeClass: string }> = {
 };
 
 export default function ToolsPage() {
+  const { formatMoney } = useDictionary();
   const [activeTab, setActiveTab] = useState<'all' | 'issued'>('all');
   const [search, setSearch] = useState('');
   const [tools, setTools] = useState<any[]>([]);
@@ -319,10 +321,10 @@ export default function ToolsPage() {
                                 <span style={{ color: 'var(--text-secondary)' }}> / {group.totalQty} available</span>
                               </td>
                               <td style={{ textAlign: 'right', padding: '12px 16px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-                                K {avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatMoney(avgCost)}
                               </td>
                               <td style={{ textAlign: 'right', padding: '12px 16px', color: 'var(--accent-blue)', fontWeight: 700, fontFamily: 'monospace' }}>
-                                K {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatMoney(totalValue)}
                               </td>
                               <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>
                                 {condSummary}
@@ -352,7 +354,7 @@ export default function ToolsPage() {
                                   </span>
                                   {t.purchaseCost > 0 && (
                                     <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 10, fontFamily: 'monospace' }}>
-                                      Cost: K {t.purchaseCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      Cost: {formatMoney(t.purchaseCost)}
                                     </span>
                                   )}
                                 </td>

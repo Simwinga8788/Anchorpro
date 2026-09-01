@@ -5,12 +5,20 @@ import { useState, useEffect, useRef } from 'react';
 import { dashboardApi, inventoryApi, jobCardsApi } from '@/lib/api';
 import SlideOver from '@/components/SlideOver';
 import ResponsiveTable from '@/components/ResponsiveTable';
+import { useDictionary } from '@/lib/DictionaryContext';
+import { useAuth } from '@/lib/AuthContext';
 
 const BLANK = { name: '', partNumber: '', category: '', location: '', unitCost: 0, quantityOnHand: 0, reorderLevel: 5, unitOfMeasure: 'Unit' };
 
 export default function InventoryPage() {
+  const { t, formatMoney } = useDictionary();
+  const { user } = useAuth();
+  // Job Cards (and their Parts Requests queue) are only a live workflow for JobCard-mode
+  // tenants (workshops) — for other verticals (construction, mining, etc.) no Job Cards
+  // are ever created, so this tab would always show empty and is just noise.
+  const showPartsRequests = (user?.operationMode ?? 0) === 0;
   const [activeTab, setActiveTab] = useState<'inventory' | 'requests'>('inventory');
-  
+
   // Stock Registry state
   const [search, setSearch]       = useState('');
   const [cat, setCat]             = useState('All');
@@ -252,8 +260,8 @@ export default function InventoryPage() {
 
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <h1 className="page-title">Inventory & Parts</h1>
-          <p className="page-subtitle">{inventory.length} SKUs · K {totalValue.toLocaleString()} total value</p>
+          <h1 className="page-title">{t('Inventory & Parts', 'Inventory & Parts')}</h1>
+          <p className="page-subtitle">{inventory.length} SKUs · {formatMoney(totalValue)} total value</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="btn btn-secondary btn-sm" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -290,24 +298,26 @@ export default function InventoryPage() {
         >
           Stock Registry
         </button>
-        <button
-          onClick={() => { setActiveTab('requests'); fetchRequests(); }}
-          style={{
-            fontSize: 14, fontWeight: activeTab === 'requests' ? 700 : 500,
-            color: activeTab === 'requests' ? 'var(--accent-blue)' : 'var(--text-secondary)',
-            borderBottom: activeTab === 'requests' ? '2px solid var(--accent-blue)' : 'none',
-            background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-            padding: '8px 16px 12px', cursor: 'pointer', outline: 'none',
-            display: 'flex', alignItems: 'center', gap: 6
-          }}
-        >
-          Parts Requests
-          {requests.length > 0 && (
-            <span style={{ fontSize: 11, background: 'var(--accent-rose)', color: 'white', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
-              {requests.length}
-            </span>
-          )}
-        </button>
+        {showPartsRequests && (
+          <button
+            onClick={() => { setActiveTab('requests'); fetchRequests(); }}
+            style={{
+              fontSize: 14, fontWeight: activeTab === 'requests' ? 700 : 500,
+              color: activeTab === 'requests' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'requests' ? '2px solid var(--accent-blue)' : 'none',
+              background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+              padding: '8px 16px 12px', cursor: 'pointer', outline: 'none',
+              display: 'flex', alignItems: 'center', gap: 6
+            }}
+          >
+            Parts Requests
+            {requests.length > 0 && (
+              <span style={{ fontSize: 11, background: 'var(--accent-rose)', color: 'white', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
+                {requests.length}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {lowStock.length > 0 && activeTab === 'inventory' && !loading && (
@@ -353,7 +363,7 @@ export default function InventoryPage() {
                     <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-tertiary)' }}>{item.partNumber || '—'}</td>
                     <td><span className="badge badge-muted">{item.category || 'Uncategorized'}</span></td>
                     <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{item.location || '—'}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>K {(item.unitCost || 0).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{formatMoney(item.unitCost || 0)}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontWeight: 700, fontSize: 15, color: isLow ? 'var(--accent-rose)' : 'var(--text-primary)' }}>{qty}</span>
@@ -377,7 +387,7 @@ export default function InventoryPage() {
       )}
 
       {/* Tab Content 2: Parts Requests */}
-      {activeTab === 'requests' && (
+      {showPartsRequests && activeTab === 'requests' && (
         <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
           <ResponsiveTable>
 <table className="data-table">
