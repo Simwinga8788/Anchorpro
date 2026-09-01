@@ -183,10 +183,15 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           }} />
           <input
             className="search-input"
-            placeholder={`Search Job #, ${t('Equipment', 'Equipment')}...`}
+            placeholder={user?.operationMode === 3 ? `Search Project, ${t('Equipment', 'Equipment')}...` : `Search Job #, ${t('Equipment', 'Equipment')}...`}
             style={{ paddingLeft: '30px', width: '180px' }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') alert(`Searching for "${e.currentTarget.value}" across ${t('Equipment', 'Equipment')} Registry and Job Cards...`);
+              if (e.key !== 'Enter') return;
+              if (user?.operationMode === 3) {
+                alert(`Searching for "${e.currentTarget.value}" across Projects and ${t('Equipment', 'Equipment')} Registry...`);
+              } else {
+                alert(`Searching for "${e.currentTarget.value}" across ${t('Equipment', 'Equipment')} Registry and Job Cards...`);
+              }
             }}
           />
         </div>

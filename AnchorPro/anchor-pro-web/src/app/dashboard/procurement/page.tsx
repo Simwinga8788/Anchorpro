@@ -2,7 +2,7 @@
 
 import { Plus, Search, FileText, MoreHorizontal, Zap, Truck, Trash2, X, PackageCheck, ChevronDown, ChevronUp, ClipboardList, Check, Ban, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dashboardApi, procurementApi, departmentsApi } from '@/lib/api';
+import { dashboardApi, procurementApi, departmentsApi, projectsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import SlideOver from '@/components/SlideOver';
@@ -53,6 +53,7 @@ export default function ProcurementPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   
   const allowedDepartments = departments;
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function ProcurementPage() {
   // PO form state
   const [isSlideOpen, setIsSlideOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ supplierId: '', poType: 0, jobCardId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
+  const [formData, setFormData] = useState({ supplierId: '', poType: 0, jobCardId: '', projectId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
 
   // Supplier form state
   const [showSupplierForm, setShowSupplierForm] = useState(false);
@@ -76,9 +77,10 @@ export default function ProcurementPage() {
   // PR form state
   const [isPrSlideOpen, setIsPrSlideOpen] = useState(false);
   const [prFormData, setPrFormData] = useState({
-    type: 'operational', // 'operational' | 'departmental'
+    type: 'operational', // 'operational' | 'departmental' | 'project' | 'inventory'
     jobCardId: '',
     departmentId: '',
+    projectId: '',
     notes: '',
     submitImmediately: true,
     items: [{ description: '', quantityRequested: 1, estimatedUnitCost: 0 }]
@@ -104,14 +106,16 @@ export default function ProcurementPage() {
       dashboardApi.getSuppliers(),
       dashboardApi.getJobCards(),
       procurementApi.getRequisitions(),
-      departmentsApi.getAll()
+      departmentsApi.getAll(),
+      projectsApi.getAll()
     ])
-      .then(([ordersData, suppliersData, jobsData, requisitionsData, departmentsData]) => {
+      .then(([ordersData, suppliersData, jobsData, requisitionsData, departmentsData, projectsData]) => {
         setOrders(ordersData || []);
         setSuppliers(suppliersData || []);
         setJobs(jobsData || []);
         setRequisitions(requisitionsData || []);
         setDepartments(departmentsData || []);
+        setProjects(projectsData || []);
       })
       .catch(err => console.error("Failed to load data", err))
       .finally(() => setLoading(false));
@@ -127,15 +131,18 @@ export default function ProcurementPage() {
     try {
       const prefix = formData.poType === 2 ? 'PO-SUB' : 'PO';
       await dashboardApi.createPurchaseOrder({
-        poNumber: `${prefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        supplierId: parseInt(formData.supplierId),
-        poType: formData.poType,
-        jobCardId: formData.jobCardId ? parseInt(formData.jobCardId) : undefined,
-        notes: formData.notes || undefined,
+        purchaseOrder: {
+          poNumber: `${prefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          supplierId: parseInt(formData.supplierId),
+          poType: formData.poType,
+          jobCardId: formData.jobCardId ? parseInt(formData.jobCardId) : null,
+          projectId: formData.projectId ? parseInt(formData.projectId) : null,
+          notes: formData.notes || null,
+        },
         items: formData.items
       });
       setIsSlideOpen(false);
-      setFormData({ supplierId: '', poType: 0, jobCardId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
+      setFormData({ supplierId: '', poType: 0, jobCardId: '', projectId: '', notes: '', items: [{ description: '', quantityOrdered: 1, unitCost: 0 }] });
       fetchData();
     } catch (err) {
       alert("Failed to raise PO");
@@ -219,6 +226,7 @@ export default function ProcurementPage() {
           requestedById: 'TEMP',
           jobCardId: prFormData.type === 'operational' && prFormData.jobCardId ? parseInt(prFormData.jobCardId) : null,
           departmentId: prFormData.type === 'departmental' && prFormData.departmentId ? parseInt(prFormData.departmentId) : null,
+          projectId: prFormData.type === 'project' && prFormData.projectId ? parseInt(prFormData.projectId) : null,
           notes: prFormData.notes || null,
         },
         items: prFormData.items.map(i => ({
@@ -233,6 +241,7 @@ export default function ProcurementPage() {
         type: 'operational',
         jobCardId: '',
         departmentId: user?.departmentId ? String(user.departmentId) : '',
+        projectId: '',
         notes: '',
         submitImmediately: true,
         items: [{ description: '', quantityRequested: 1, estimatedUnitCost: 0 }]
@@ -442,6 +451,14 @@ export default function ProcurementPage() {
           )}
 
           <div className="form-field">
+            <label className="form-label">Linked Project <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <select className="form-select" value={formData.projectId} onChange={e => setFormData({...formData, projectId: e.target.value})}>
+              <option value="">— Not linked to a project —</option>
+              {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          <div className="form-field">
             <label className="form-label">Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
             <input className="form-input" placeholder="Internal notes or reference..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
           </div>
@@ -487,14 +504,25 @@ export default function ProcurementPage() {
         <form onSubmit={handlePrSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-field">
             <label className="form-label">Requisition Type</label>
-            <select className="form-select" value={prFormData.type} onChange={e => setPrFormData({ ...prFormData, type: e.target.value, jobCardId: '', departmentId: '' })}>
+            <select className="form-select" value={prFormData.type} onChange={e => setPrFormData({ ...prFormData, type: e.target.value, jobCardId: '', departmentId: '', projectId: '' })}>
+              <option value="project">Construction Project (BOQ / Site Material)</option>
               <option value="operational">Operational (Job Card Part)</option>
               <option value="departmental">Department Overhead (Overhead Expenses)</option>
               <option value="inventory">Inventory Replenishment (Warehouse Stock)</option>
             </select>
           </div>
 
-          {prFormData.type === 'operational' ? (
+          {prFormData.type === 'project' ? (
+            <div className="form-field">
+              <label className="form-label">Project *</label>
+              <select className="form-select" required value={prFormData.projectId} onChange={e => setPrFormData({ ...prFormData, projectId: e.target.value })}>
+                <option value="">Select a project...</option>
+                {projects.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : prFormData.type === 'operational' ? (
             <div className="form-field">
               <label className="form-label">Linked Job Card *</label>
               <select className="form-select" required value={prFormData.jobCardId} onChange={e => setPrFormData({ ...prFormData, jobCardId: e.target.value })}>
@@ -596,7 +624,12 @@ export default function ProcurementPage() {
           </p>
         </div>
         {activeTab === 'requisitions' && hasPermission('/dashboard/procurement:create_requisitions', user?.allowedRoutes || [], user?.isPlatformOwner ?? false) && (
-          <button className="btn btn-primary" onClick={() => setIsPrSlideOpen(true)}>
+          <button className="btn btn-primary" onClick={() => {
+            // Default the requisition type to whatever's actually relevant for this tenant's
+            // vertical, instead of always opening on the JobCard-mode "Operational" option.
+            setPrFormData(f => ({ ...f, type: user?.operationMode === 3 ? 'project' : 'operational' }));
+            setIsPrSlideOpen(true);
+          }}>
             <Plus size={14}/> Raise PR
           </button>
         )}
@@ -700,7 +733,11 @@ export default function ProcurementPage() {
                             {pr.requestedBy ? `${pr.requestedBy.firstName} ${pr.requestedBy.lastName}` : 'System'}
                           </td>
                           <td>
-                            {pr.jobCardId ? (
+                            {pr.projectId ? (
+                              <span className="badge badge-emerald" style={{ fontSize: 11 }}>
+                                {pr.project?.name || projects.find((p: any) => p.id === pr.projectId)?.name || 'Project'}
+                              </span>
+                            ) : pr.jobCardId ? (
                               <span className="badge badge-blue" style={{ fontSize: 11 }}>
                                 Job #{pr.jobCard?.jobNumber || pr.jobCardId}
                               </span>
@@ -857,7 +894,7 @@ export default function ProcurementPage() {
                     <th>PO Number</th>
                     <th>Supplier</th>
                     <th>Type</th>
-                    <th>Linked Job</th>
+                    <th>Linked To</th>
                     <th>Date</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Total</th>
@@ -881,8 +918,10 @@ export default function ProcurementPage() {
                           <td style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: 13 }}>{order.poNumber}</td>
                           <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.supplier?.name || 'Unknown Supplier'}</td>
                           <td><span className={`badge ${typeCfg.badge}`}>{typeCfg.label}</span></td>
-                          <td style={{ color: order.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontSize: 13, fontWeight: order.jobCardId ? 600 : 400 }}>
-                            {order.jobCardId ? `Job #${order.jobCardId}` : '—'}
+                          <td style={{ color: (order.jobCardId || order.projectId) ? 'var(--accent-blue)' : 'var(--text-muted)', fontSize: 13, fontWeight: (order.jobCardId || order.projectId) ? 600 : 400 }}>
+                            {order.projectId
+                              ? (order.project?.name || projects.find((p: any) => p.id === order.projectId)?.name || 'Project')
+                              : order.jobCardId ? `Job #${order.jobCardId}` : '—'}
                           </td>
                           <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(order.orderDate).toLocaleDateString()}</td>
                           <td>
