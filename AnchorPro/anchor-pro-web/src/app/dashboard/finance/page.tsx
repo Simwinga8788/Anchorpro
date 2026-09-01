@@ -1646,8 +1646,9 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
   const [activeSubTab, setActiveSubTab] = useState<'requisitions' | 'pos'>('requisitions');
   const [pendingPRs, setPendingPRs] = useState<any[]>([]);
   const [pendingPOs, setPendingPOs] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Row expansion state
   const [expandedPRId, setExpandedPRId] = useState<number | null>(null);
   const [expandedPOId, setExpandedPOId] = useState<number | null>(null);
@@ -1677,6 +1678,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
 
   useEffect(() => {
     fetchPending();
+    projectsApi.getAll().then((p: any) => setProjects(Array.isArray(p) ? p : [])).catch(() => setProjects([]));
   }, []);
 
   const canApprove = hasPermission('/dashboard/procurement:approve_reject', user?.allowedRoutes || [], user?.isPlatformOwner ?? false);
@@ -1876,7 +1878,11 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                           <td style={{ color: '#818cf8', fontWeight: 600 }}>{pr.requisitionNumber}</td>
                           <td style={{ fontWeight: 500 }}>{raisedByName}</td>
                           <td>
-                            {pr.jobCardId ? (
+                            {pr.projectId ? (
+                              <span className="badge badge-emerald">
+                                {pr.project?.name || projects.find((p: any) => p.id === pr.projectId)?.name || 'Project'}
+                              </span>
+                            ) : pr.jobCardId ? (
                               <span className="badge badge-blue">
                                 Job #{pr.jobCard?.jobNumber || pr.jobCardId}
                               </span>
@@ -1988,7 +1994,7 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                   <th>PO #</th>
                   <th>Supplier</th>
                   <th>Type</th>
-                  <th>Linked Job</th>
+                  <th>Linked To</th>
                   <th>Value</th>
                   <th>Raised By</th>
                   <th>Date</th>
@@ -2034,8 +2040,10 @@ function ApprovalsHubTab({ onCountChange, usersMap }: { onCountChange: (n: numbe
                               {typeLabels[po.poType] ?? 'Unknown'}
                             </span>
                           </td>
-                          <td style={{ color: po.jobCardId ? 'var(--accent-blue)' : 'var(--text-muted)', fontWeight: po.jobCardId ? 600 : 400 }}>
-                            {po.jobCardId ? `Job #${po.jobCardId}` : '—'}
+                          <td style={{ color: (po.jobCardId || po.projectId) ? 'var(--accent-blue)' : 'var(--text-muted)', fontWeight: (po.jobCardId || po.projectId) ? 600 : 400 }}>
+                            {po.projectId
+                              ? (po.project?.name || projects.find((p: any) => p.id === po.projectId)?.name || 'Project')
+                              : po.jobCardId ? `Job #${po.jobCardId}` : '—'}
                           </td>
                           <td style={{ fontWeight: 600 }}>{formatMoney(po.totalAmount)}</td>
                           <td style={{ fontWeight: 500 }}>{raisedByName}</td>
