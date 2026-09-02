@@ -40,6 +40,10 @@ export default function PlatformSettingsPage() {
   const [newGeminiKey, setNewGeminiKey] = useState('');
   const [editingSmtpPass, setEditingSmtpPass] = useState(false);
   const [newSmtpPass, setNewSmtpPass] = useState('');
+  // Tracks whether the initial load actually succeeded — Save must never write settings.*
+  // to the database while this is false, or it silently clobbers every real value with
+  // the blank/default initial state (confirmed live: wiped Smtp_Host and Smtp_User).
+  const [loadedOk, setLoadedOk] = useState(false);
 
   const [settings, setSettings] = useState({
     platformName:          'Anchor Pro',
@@ -127,9 +131,13 @@ export default function PlatformSettingsPage() {
           stripeWebhookSecret:   get('Stripe.WebhookSecret',         prev.stripeWebhookSecret),
           geminiApiKey:          get('Integration.Gemini.ApiKey',    get('Gemini.ApiKey', prev.geminiApiKey)),
         }));
+        setLoadedOk(true);
       }
-    } catch {
-      // Settings endpoint may not exist on all deploys — use defaults silently
+    } catch (e: any) {
+      // Do NOT silently swallow this — Save must be blocked until a real load succeeds,
+      // otherwise it writes the blank initial state over every already-configured value.
+      setLoadedOk(false);
+      setErr('Failed to load current settings (' + (e?.message || 'unknown error') + '). Saving is disabled until this succeeds — reload the page.');
     } finally {
       setLoading(false);
     }
@@ -138,6 +146,10 @@ export default function PlatformSettingsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
+    if (!loadedOk) {
+      setErr('Cannot save: the current settings never finished loading, so saving now would overwrite real values with blanks. Reload the page and try again.');
+      return;
+    }
     setSaving(true); setErr(null);
     try {
       const finalSettings = { ...settings };
@@ -452,7 +464,7 @@ export default function PlatformSettingsPage() {
             </div>
           )}
           <button className="btn btn-secondary" onClick={load} disabled={loading}>Discard Changes</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || !loadedOk} title={!loadedOk ? 'Settings have not finished loading yet' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><Save size={13} /> Save Changes</>}
           </button>
         </div>
