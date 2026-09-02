@@ -4,6 +4,33 @@ import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTria
 import { useState, useEffect, useCallback } from 'react';
 import { settingsApi } from '@/lib/api';
 
+// Hoisted to module scope — defining these inside the page component would give them a new
+// identity on every render (e.g. every keystroke), causing React to unmount/remount every
+// input on every change and drop focus/scroll position mid-typing.
+const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
+  <button onClick={() => onChange(!value)} style={{
+    width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+    background: value ? 'var(--accent-blue)' : 'rgba(255,255,255,0.1)',
+    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+  }}>
+    <div style={{
+      width: 18, height: 18, borderRadius: '50%', background: 'white',
+      position: 'absolute', top: 3, left: value ? 21 : 3,
+      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    }} />
+  </button>
+);
+
+const Field = ({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ flex: 1, paddingRight: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</div>}
+    </div>
+    {children}
+  </div>
+);
+
 export default function PlatformSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -141,30 +168,6 @@ export default function PlatformSettingsPage() {
       setSaving(false);
     }
   };
-
-  const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-    <button onClick={() => onChange(!value)} style={{
-      width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-      background: value ? 'var(--accent-blue)' : 'rgba(255,255,255,0.1)',
-      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-    }}>
-      <div style={{
-        width: 18, height: 18, borderRadius: '50%', background: 'white',
-        position: 'absolute', top: 3, left: value ? 21 : 3,
-        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-      }} />
-    </button>
-  );
-
-  const Field = ({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ flex: 1, paddingRight: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</div>}
-      </div>
-      {children}
-    </div>
-  );
 
   const inputStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-default)',
