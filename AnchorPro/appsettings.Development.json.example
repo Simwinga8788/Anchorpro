@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "ASK_A_TEAMMATE_FOR_THE_REAL_SUPABASE_CONNECTION_STRING__DO_NOT_COMMIT_IT"
+  }
+}
