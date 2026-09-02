@@ -11,6 +11,8 @@ export default function PlatformSettingsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [editingGeminiKey, setEditingGeminiKey] = useState(false);
   const [newGeminiKey, setNewGeminiKey] = useState('');
+  const [editingSmtpPass, setEditingSmtpPass] = useState(false);
+  const [newSmtpPass, setNewSmtpPass] = useState('');
 
   const [settings, setSettings] = useState({
     platformName:          'Anchor Pro',
@@ -29,7 +31,9 @@ export default function PlatformSettingsPage() {
     smtpHost:              '',
     smtpPort:              '587',
     smtpUser:              '',
+    smtpPass:              '',
     smtpFromName:          'Anchor Pro',
+    smtpFromAddress:       '',
     stripePublicKey:       '',
     stripeWebhookSecret:   '',
     geminiApiKey:          '',
@@ -49,10 +53,16 @@ export default function PlatformSettingsPage() {
     sessionTimeout:        'Security.SessionTimeoutMinutes',
     failedLoginLimit:      'Security.FailedLoginLimit',
     jwtExpiryHours:        'Security.JwtExpiryHours',
-    smtpHost:              'Email.SmtpHost',
-    smtpPort:              'Email.SmtpPort',
-    smtpUser:              'Email.SmtpUser',
-    smtpFromName:          'Email.FromName',
+    // NOTE: these map to the underscore-named keys Services/SmtpEmailService.cs
+    // actually reads at send time — NOT the old "Email.Smtp*" dot-named keys this
+    // page used to write, which the email service never looked at (so SMTP could
+    // never be configured through this page at all before this fix).
+    smtpHost:              'Smtp_Host',
+    smtpPort:              'Smtp_Port',
+    smtpUser:              'Smtp_User',
+    smtpPass:              'Smtp_Pass',
+    smtpFromName:          'Email_From_Name',
+    smtpFromAddress:       'Email_From_Address',
     stripePublicKey:       'Stripe.PublicKey',
     stripeWebhookSecret:   'Stripe.WebhookSecret',
     geminiApiKey:          'Integration.Gemini.ApiKey',
@@ -80,10 +90,12 @@ export default function PlatformSettingsPage() {
           sessionTimeout:        get('Security.SessionTimeoutMinutes',prev.sessionTimeout),
           failedLoginLimit:      get('Security.FailedLoginLimit',     prev.failedLoginLimit),
           jwtExpiryHours:        get('Security.JwtExpiryHours',       prev.jwtExpiryHours),
-          smtpHost:              get('Email.SmtpHost',                prev.smtpHost),
-          smtpPort:              get('Email.SmtpPort',                prev.smtpPort),
-          smtpUser:              get('Email.SmtpUser',                prev.smtpUser),
-          smtpFromName:          get('Email.FromName',                prev.smtpFromName),
+          smtpHost:              get('Smtp_Host',                     prev.smtpHost),
+          smtpPort:              get('Smtp_Port',                     prev.smtpPort),
+          smtpUser:              get('Smtp_User',                     prev.smtpUser),
+          smtpPass:              get('Smtp_Pass',                     prev.smtpPass),
+          smtpFromName:          get('Email_From_Name',               prev.smtpFromName),
+          smtpFromAddress:       get('Email_From_Address',            prev.smtpFromAddress),
           stripePublicKey:       get('Stripe.PublicKey',              prev.stripePublicKey),
           stripeWebhookSecret:   get('Stripe.WebhookSecret',         prev.stripeWebhookSecret),
           geminiApiKey:          get('Integration.Gemini.ApiKey',    get('Gemini.ApiKey', prev.geminiApiKey)),
@@ -107,6 +119,11 @@ export default function PlatformSettingsPage() {
         finalSettings.geminiApiKey = newGeminiKey;
         setSettings(finalSettings);
         setEditingGeminiKey(false);
+      }
+      if (editingSmtpPass && newSmtpPass) {
+        finalSettings.smtpPass = newSmtpPass;
+        setSettings(finalSettings);
+        setEditingSmtpPass(false);
       }
 
       const entries = Object.entries(finalSettings) as [string, any][];
@@ -238,9 +255,62 @@ export default function PlatformSettingsPage() {
             <input style={inputStyle} placeholder="apikey or user@example.com" value={settings.smtpUser}
               onChange={e => setSettings(s => ({ ...s, smtpUser: e.target.value }))} />
           </Field>
+          <Field label="SMTP Password" sub="For Gmail, use a 16-character App Password, not the account password">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+              {settings.smtpPass && !editingSmtpPass ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ ...inputStyle, width: 240, fontFamily: 'monospace', fontSize: 13, letterSpacing: 3, color: 'var(--text-muted)', pointerEvents: 'none', userSelect: 'none' }}>
+                    {'•'.repeat(16)}
+                  </div>
+                  <button
+                    onClick={() => { setNewSmtpPass(''); setEditingSmtpPass(true); }}
+                    style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    Replace
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11, width: 240 }}
+                    type="password"
+                    placeholder="Paste your App Password here…"
+                    value={newSmtpPass}
+                    onChange={e => setNewSmtpPass(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <button
+                    onClick={() => { setSettings(s => ({ ...s, smtpPass: newSmtpPass })); setEditingSmtpPass(false); }}
+                    disabled={!newSmtpPass}
+                    style={{ background: newSmtpPass ? 'rgba(15,157,103,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${newSmtpPass ? 'rgba(15,157,103,0.4)' : 'var(--border-subtle)'}`, borderRadius: 6, padding: '6px 14px', cursor: newSmtpPass ? 'pointer' : 'default', color: newSmtpPass ? 'var(--accent-emerald, #10b981)' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    Set
+                  </button>
+                  {settings.smtpPass && (
+                    <button
+                      onClick={() => setEditingSmtpPass(false)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 6 }}
+                      title="Cancel"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+              {settings.smtpPass && !editingSmtpPass && (
+                <div style={{ fontSize: 11, color: 'var(--accent-emerald, #10b981)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <CheckCircle2 size={11} /> SMTP password is configured
+                </div>
+              )}
+            </div>
+          </Field>
           <Field label="From Display Name" sub="Shown as the sender in outbound emails">
             <input style={inputStyle} value={settings.smtpFromName}
               onChange={e => setSettings(s => ({ ...s, smtpFromName: e.target.value }))} />
+          </Field>
+          <Field label="From Email Address" sub="The sender address recipients see">
+            <input style={inputStyle} placeholder="no-reply@anchorpro.com" value={settings.smtpFromAddress}
+              onChange={e => setSettings(s => ({ ...s, smtpFromAddress: e.target.value }))} />
           </Field>
         </div>
 
