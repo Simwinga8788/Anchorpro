@@ -153,6 +153,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // SystemSetting Configuration
         builder.Entity<SystemSetting>().HasQueryFilter(s => IgnoreTenantFilter || s.TenantId == CurrentTenantId);
         builder.Entity<SystemSetting>().HasIndex(s => new { s.TenantId, s.Key }).IsUnique();
+
+        // Prevents the check-then-create race in BoqController.GetByProject (two concurrent
+        // requests for a brand-new project's BOQ can both see "none exists yet" and both insert
+        // a starter Version 1) from ever landing two rows — the second insert now fails at the
+        // DB level and the controller falls back to re-reading the winner.
+        builder.Entity<BillOfQuantities>().HasIndex(b => new { b.ProjectId, b.VersionNumber }).IsUnique();
     }
 
     private void SetTenantFilter<T>(ModelBuilder builder) where T : BaseEntity

@@ -81,7 +81,23 @@ namespace AnchorPro.Controllers
                 };
 
                 db.BillsOfQuantities.Add(boq);
-                await db.SaveChangesAsync();
+                try
+                {
+                    await db.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    // Lost a race against a concurrent request that created the starter BOQ first
+                    // (unique index on ProjectId+VersionNumber) — re-read the actual winner instead
+                    // of erroring out or silently leaving our own duplicate half-inserted.
+                    using var retryDb = _factory.CreateDbContext();
+                    boq = await retryDb.BillsOfQuantities
+                        .Include(b => b.Sections.OrderBy(s => s.DisplayOrder))
+                            .ThenInclude(s => s.Items.OrderBy(i => i.DisplayOrder))
+                        .Where(b => b.ProjectId == projectId)
+                        .OrderByDescending(b => b.VersionNumber)
+                        .FirstAsync();
+                }
             }
 
             return Ok(boq);
@@ -132,6 +148,13 @@ namespace AnchorPro.Controllers
             boq.Status = BoqStatus.Approved;
             boq.ApprovedAt = DateTime.UtcNow;
             boq.ApprovedById = userId;
+
+            // Now that the contract sum is final, it becomes the project's agreed budget.
+            var project = await db.Projects.FindAsync(boq.ProjectId);
+            if (project != null)
+            {
+                project.Budget = boq.TotalContractSum;
+            }
 
             await db.SaveChangesAsync();
             return Ok(boq);
@@ -406,13 +429,10 @@ namespace AnchorPro.Controllers
             if (boq != null)
             {
                 boq.TotalContractSum = grandTotal;
-                
-                // Update linked project contract sum / budget
-                var project = await db.Projects.FindAsync(boq.ProjectId);
-                if (project != null)
-                {
-                    project.Budget = grandTotal;
-                }
+                // NOTE: deliberately NOT syncing this into Project.Budget here — this runs on every
+                // draft-time item add/edit/import, so a half-priced BOQ would silently overwrite
+                // whatever budget the PM entered at project setup while the QS is still mid-build.
+                // The sync happens once, in Approve() below, when the contract sum is actually final.
             }
 
             await db.SaveChangesAsync();
