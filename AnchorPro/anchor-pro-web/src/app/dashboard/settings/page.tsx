@@ -801,7 +801,7 @@ export default function SettingsPage() {
               <div style={{ padding: 16, borderRadius: 8, background: 'var(--accent-rose-dim)', border: '1px solid rgba(232,72,85,0.25)' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-rose)', marginBottom: 6 }}>Delete Workspace</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14 }}>
-                  Permanently deletes all job cards, assets, inventory, and team data. This cannot be undone.
+                  Permanently deletes all {user?.operationMode === 3 ? 'projects' : 'job cards'}, assets, inventory, and team data. This cannot be undone.
                 </div>
                 <button className="btn btn-sm" style={{ background: 'var(--accent-rose)', color: '#fff', border: 'none' }}
                   onClick={() => setShowDeleteConfirm(true)}>
@@ -1384,7 +1384,10 @@ export default function SettingsPage() {
               {NAV_GROUPS.map(group => {
                 const showGroup = group.label === 'Account' || (user?.tenantId && isAdmin);
                 if (!showGroup) return null;
-                if (group.label === 'Operations' && tenantMode === 1) return null;
+                // Config & SLA / Job Types are Job Card (maintenance) concepts — response-time
+                // SLAs and job categories don't map onto construction, which runs on
+                // BOQ/Schedule/Site Diary instead.
+                if (group.label === 'Operations' && (tenantMode === 1 || tenantMode === 3)) return null;
                 return (
                   <div key={group.label}>
                     <div className="settings-group-label">{group.label}</div>
