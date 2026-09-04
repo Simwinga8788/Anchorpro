@@ -775,7 +775,11 @@ export default function SettingsPage() {
             </div>
           </SectionCard>
 
-          {isAdmin && (
+          {isAdmin && user?.operationMode !== 3 && (
+            // Hidden for construction tenants — these are Job Card / Quotation markup defaults
+            // (parts markup, hourly labor billing rate), a workshop-vertical concept construction
+            // pricing doesn't use (that runs through the BOQ instead), and Quotations aren't even
+            // in the construction nav anymore.
             <SectionCard title="Financial & Markup Defaults" subtitle="Set your default profit margins and hourly billing rates applied directly to new quotations" icon={<CreditCard size={16} />}
               footer={<SaveBtn loading={savingFin} onClick={handleSaveFin} />}>
               <div className="settings-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
