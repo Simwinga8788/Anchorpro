@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { reportsApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 export default function PrintWeeklyReportPage() {
   const params = useParams();
@@ -13,6 +14,7 @@ export default function PrintWeeklyReportPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney } = useDictionary();
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,7 +84,7 @@ export default function PrintWeeklyReportPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '30px' }}>
           {[
-            { label: 'Total Man-Hours', value: `${Number(report.totalManHours).toLocaleString()} hrs`, sub: report.totalLabourCost > 0 ? `$${Number(report.totalLabourCost).toLocaleString(undefined, { minimumFractionDigits: 2 })} employee labour` : undefined },
+            { label: 'Total Man-Hours', value: `${Number(report.totalManHours).toLocaleString()} hrs`, sub: report.totalLabourCost > 0 ? `${formatMoney(report.totalLabourCost)} employee labour` : undefined },
             { label: 'Plant Machine Hours', value: `${Number(report.totalPlantHours).toLocaleString()} hrs` },
             { label: 'Weather Downtime', value: `${report.weatherDowntimeDays} Days` },
             { label: 'Safety Incidents', value: `${report.safetyIncidentsCount} (${report.nearMissesCount} near misses)` },

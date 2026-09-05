@@ -9,6 +9,7 @@ import {
   Lock, GitBranch, History
 } from 'lucide-react';
 import Modal from '@/components/Modal';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 interface BoqItem {
   id: number;
@@ -40,6 +41,7 @@ interface BOQ {
 }
 
 export default function BoqPage() {
+  const { formatMoney, currencySymbol } = useDictionary();
   const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -300,7 +302,7 @@ export default function BoqPage() {
               Total Contract Sum (Agreed BOQ)
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-blue)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-              ${Number(boq.totalContractSum || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatMoney(boq.totalContractSum || 0)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--accent-emerald)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               <CheckCircle2 size={13} /> {boq.sections?.length || 0} Trade Sections Priced
@@ -379,7 +381,7 @@ export default function BoqPage() {
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Section Subtotal: </span>
                     <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-                      ${Number(sec.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatMoney(sec.subtotal || 0)}
                     </span>
                   </div>
                   {!isLocked && (
@@ -403,8 +405,8 @@ export default function BoqPage() {
                       <th style={{ padding: '9px 16px', fontWeight: 600 }}>Description of Work</th>
                       <th style={{ padding: '9px 16px', width: '90px', fontWeight: 600 }}>Unit</th>
                       <th style={{ padding: '9px 16px', width: '110px', textAlign: 'right', fontWeight: 600 }}>Quantity</th>
-                      <th style={{ padding: '9px 16px', width: '130px', textAlign: 'right', fontWeight: 600 }}>Rate ($)</th>
-                      <th style={{ padding: '9px 16px', width: '140px', textAlign: 'right', fontWeight: 600 }}>Total Amount ($)</th>
+                      <th style={{ padding: '9px 16px', width: '130px', textAlign: 'right', fontWeight: 600 }}>Rate ({currencySymbol})</th>
+                      <th style={{ padding: '9px 16px', width: '140px', textAlign: 'right', fontWeight: 600 }}>Total Amount ({currencySymbol})</th>
                       <th style={{ padding: '9px 16px', width: '90px', textAlign: 'center', fontWeight: 600 }}>Actions</th>
                     </tr>
                   </thead>
@@ -415,9 +417,9 @@ export default function BoqPage() {
                         <td style={{ padding: '10px 16px', color: 'var(--text-primary)' }}>{item.description}</td>
                         <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{item.unitOfMeasure}</td>
                         <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 500 }}>{Number(item.quantity).toLocaleString()}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text-secondary)' }}>${Number(item.rate).toFixed(2)}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text-secondary)' }}>{formatMoney(item.rate)}</td>
                         <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-                          ${Number(item.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {formatMoney(item.totalAmount)}
                         </td>
                         <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                           {isLocked ? (
@@ -557,7 +559,7 @@ export default function BoqPage() {
               />
             </div>
             <div>
-              <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Unit Rate ($) *</label>
+              <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Unit Rate ({currencySymbol}) *</label>
               <input 
                 className="form-input" 
                 type="number" 
@@ -572,7 +574,7 @@ export default function BoqPage() {
           <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Calculated Total Amount:</span>
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent-blue)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-              ${((itemForm.quantity || 0) * (itemForm.rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {formatMoney((itemForm.quantity || 0) * (itemForm.rate || 0))}
             </span>
           </div>
 
@@ -630,7 +632,7 @@ export default function BoqPage() {
                   )}
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>
-                  ${Number(v.totalContractSum || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(v.totalContractSum || 0)}
                 </div>
               </div>
             ))}

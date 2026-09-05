@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { projectsApi, reportsApi } from '@/lib/api';
 import Modal from '@/components/Modal';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 function startOfWeek(d: Date) {
   const date = new Date(d);
@@ -21,6 +22,7 @@ function toISODate(d: Date) {
 }
 
 export default function WeeklyReportPage() {
+  const { formatMoney } = useDictionary();
   const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -255,7 +257,7 @@ export default function WeeklyReportPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{selectedReport.averageDailyWorkforce} avg daily workforce</div>
                 {selectedReport.totalLabourCost > 0 && (
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    ${Number(selectedReport.totalLabourCost).toLocaleString(undefined, { minimumFractionDigits: 2 })} employee labour cost
+                    {formatMoney(selectedReport.totalLabourCost)} employee labour cost
                   </div>
                 )}
               </div>

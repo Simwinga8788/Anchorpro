@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { projectsApi, variationsApi, boqApi } from '@/lib/api';
 import Modal from '@/components/Modal';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 interface VariationItem {
   id: number;
@@ -25,6 +26,7 @@ interface VariationItem {
 }
 
 export default function VariationsPage() {
+  const { formatMoney, currencySymbol } = useDictionary();
   const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -181,7 +183,7 @@ export default function VariationsPage() {
             Approved Variations
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-emerald)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-            ${totalApproved.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatMoney(totalApproved)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--accent-emerald)', marginTop: 2 }}>Added to Contract Sum</div>
         </div>
@@ -191,7 +193,7 @@ export default function VariationsPage() {
             Pending Claims
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-amber)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-            ${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatMoney(totalPending)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--accent-amber)', marginTop: 2 }}>Awaiting Engineer Determination</div>
         </div>
@@ -251,7 +253,7 @@ export default function VariationsPage() {
                       )}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-                      ${Number(v.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatMoney(v.amount)}
                     </td>
                     <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>+{v.timeExtensionDays || 0} days</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -303,7 +305,7 @@ export default function VariationsPage() {
               <input className="form-input" placeholder="e.g. SI-12" value={newVo.siteInstructionRef} onChange={e => setNewVo({ ...newVo, siteInstructionRef: e.target.value })} />
             </div>
             <div>
-              <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Claimed Amount ($) *</label>
+              <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Claimed Amount ({currencySymbol}) *</label>
               <input className="form-input" type="number" placeholder="5000.00" value={newVo.amount || ''} onChange={e => setNewVo({ ...newVo, amount: parseFloat(e.target.value) || 0 })} />
             </div>
           </div>
@@ -321,7 +323,7 @@ export default function VariationsPage() {
               <option value="">Not linked — new priced item</option>
               {boqItems.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {item.itemNumber} — {item.description} (rate ${Number(item.rate).toFixed(2)}/{item.unitOfMeasure})
+                  {item.itemNumber} — {item.description} (rate {formatMoney(item.rate)}/{item.unitOfMeasure})
                 </option>
               ))}
             </select>

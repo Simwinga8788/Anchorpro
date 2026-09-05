@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { reportsApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const STATUS_LABELS: Record<number, string> = { 0: 'Draft', 1: 'Approved', 2: 'Issued' };
-const money = (n: any) => `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function PrintMonthlyReportPage() {
   const params = useParams();
@@ -17,6 +17,7 @@ export default function PrintMonthlyReportPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney: money } = useDictionary();
 
   useEffect(() => {
     const loadData = async () => {

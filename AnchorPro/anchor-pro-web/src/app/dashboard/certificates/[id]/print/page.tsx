@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { certificatesApi, tenantsApi } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const STATUS_LABELS: Record<number, string> = {
   0: 'Draft',
@@ -14,8 +15,6 @@ const STATUS_LABELS: Record<number, string> = {
   5: 'Paid',
 };
 
-const money = (n: any) => `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
 export default function PrintCertificatePage() {
   const params = useParams();
   const router = useRouter();
@@ -24,6 +23,7 @@ export default function PrintCertificatePage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { formatMoney: money } = useDictionary();
 
   useEffect(() => {
     const loadData = async () => {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { projectsApi, reportsApi } from '@/lib/api';
 import Modal from '@/components/Modal';
+import { useDictionary } from '@/lib/DictionaryContext';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const STATUS_INFO: Record<number, { label: string; badge: string }> = {
@@ -16,6 +17,7 @@ const STATUS_INFO: Record<number, { label: string; badge: string }> = {
 };
 
 export default function MonthlyReportPage() {
+  const { formatMoney } = useDictionary();
   const searchParams = useSearchParams();
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -262,14 +264,14 @@ export default function MonthlyReportPage() {
               <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Original Contract Sum</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
-                  ${Number(selectedReport.originalContractSum).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedReport.originalContractSum)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Approved BOQ Baseline</div>
               </div>
               <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Gross Valuation to Date</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6', marginTop: 4 }}>
-                  ${Number(selectedReport.grossValuationToDate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedReport.grossValuationToDate)}
                 </div>
                 <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 2 }}>{financialProgress}% Financial Progress</div>
               </div>
@@ -278,7 +280,7 @@ export default function MonthlyReportPage() {
                   Net Certified Payable {selectedReport.latestCertificateNumber ? `(${selectedReport.latestCertificateNumber})` : ''}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#10b981', marginTop: 4 }}>
-                  ${Number(selectedReport.netCertifiedPayable).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedReport.netCertifiedPayable)}
                 </div>
               </div>
             </div>
@@ -304,8 +306,8 @@ export default function MonthlyReportPage() {
                       <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <td style={{ padding: '10px', fontWeight: 600, color: '#3b82f6' }}>Sec {s.sectionCode}</td>
                         <td style={{ padding: '10px', color: 'var(--text-primary)' }}>{s.sectionName}</td>
-                        <td style={{ padding: '10px', textAlign: 'right' }}>${Number(s.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#10b981' }}>${Number(s.valuedToDate).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td style={{ padding: '10px', textAlign: 'right' }}>{formatMoney(s.budget)}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', color: '#10b981' }}>{formatMoney(s.valuedToDate)}</td>
                         <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{s.percentComplete}%</td>
                       </tr>
                     ))}

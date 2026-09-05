@@ -474,7 +474,7 @@ export default function CertificatesPage() {
                             <td style={{ padding: '10px 14px', fontWeight: 600, color: '#3b82f6' }}>{variation?.variationNumber}</td>
                             <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>{variation?.title}</td>
                             <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              ${Number(cv.valuedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              {formatMoney(cv.valuedAmount || 0)}
                             </td>
                           </tr>
                         );
