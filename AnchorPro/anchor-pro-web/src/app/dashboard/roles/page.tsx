@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { rolesApi, teamApi } from '@/lib/api';
 import { useDictionary } from '@/lib/DictionaryContext';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 
 import { useAuth } from '@/lib/AuthContext';
 
@@ -259,7 +260,7 @@ export default function RolesPage() {
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{role.name}</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{roleDisplayName(role.name)}</span>
                         {role.isSystemRole && (
                           <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--bg-hover)', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Lock size={10} /> System Default
@@ -293,7 +294,7 @@ export default function RolesPage() {
                 {isOpen && (
                   <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
                     <div style={{ marginBottom: 24, fontSize: 13, color: 'var(--text-secondary)' }}>
-                      Tick the modules that users with the <strong>{role.name}</strong> role should be able to access. 
+                      Tick the modules that users with the <strong>{roleDisplayName(role.name)}</strong> role should be able to access.
                       Any unchecked module will be completely hidden from their sidebar.
                     </div>
 

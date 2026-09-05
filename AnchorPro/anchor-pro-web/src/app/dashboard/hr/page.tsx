@@ -5,6 +5,7 @@ import { hrApi, departmentsApi, usersApi, equipmentApi, procurementApi, financeA
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { hasPermission } from '@/lib/rbac';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 import {
   Users, FileText, DollarSign, Clock, Plus, Search,
   ChevronRight, AlertCircle, CheckCircle, X, Edit, Trash2, ArrowLeft,
@@ -53,6 +54,7 @@ function daysUntilExpiry(endDate?: string | null) {
   const diff = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
   return diff;
 }
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 type Tab = 'employees' | 'contracts' | 'payroll' | 'team' | 'departments';
@@ -283,7 +285,7 @@ function EmployeesTab() {
                         </div>
                       </div>
                     </td>
-                    <td><span className="badge badge-blue">{emp.role || '—'}</span></td>
+                    <td><span className="badge badge-blue">{roleDisplayName(emp.role) || '—'}</span></td>
                     <td style={{ color: 'var(--text-secondary)' }}>{emp.department || '—'}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>{emp.employmentType ? employmentTypeMap[emp.employmentType] ?? emp.employmentType : '—'}</td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
@@ -320,7 +322,7 @@ function EmployeesTab() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{selected.firstName} {selected.lastName}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selected.jobTitle || selected.role} · #{selected.employeeNumber || 'No employee #'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selected.jobTitle || roleDisplayName(selected.role)} · #{selected.employeeNumber || 'No employee #'}</div>
             </div>
             <button className="icon-btn" onClick={() => setSelected(null)}><X size={16} /></button>
           </div>
@@ -1471,7 +1473,7 @@ function TeamTab() {
                         <td>
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                             {(u.roles || [u.role]).filter(Boolean).map((r: string) => (
-                              <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{r}</span>
+                              <span key={r} className="badge badge-blue" style={{ fontSize: 10 }}>{roleDisplayName(r)}</span>
                             ))}
                           </div>
                         </td>
@@ -1545,7 +1547,7 @@ function TeamTab() {
                     <div className="form-group">
                       <label className="form-label">Role</label>
                       <select className="form-select" value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}>
-                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{roleDisplayName(r)}</option>)}
                       </select>
                     </div>
                   </div>
@@ -1612,7 +1614,7 @@ function TeamTab() {
                     <div className="form-group">
                       <label className="form-label">Role</label>
                       <select className="form-select" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
-                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        {AVAILABLE_ROLES.map(r => <option key={r} value={r}>{roleDisplayName(r)}</option>)}
                       </select>
                     </div>
                   </div>
@@ -1876,7 +1878,7 @@ function DepartmentsTab() {
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullName}</div>
                             <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                              <Briefcase size={10} /> {u.role || 'Staff'}
+                              <Briefcase size={10} /> {roleDisplayName(u.role) || 'Staff'}
                             </div>
                             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Mail size={10} /> {u.email}

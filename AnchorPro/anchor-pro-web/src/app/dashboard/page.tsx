@@ -13,6 +13,7 @@ import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import { useAuth } from '@/lib/AuthContext';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -337,7 +338,7 @@ function WorkshopOverviewDashboard() {
                   <div className="avatar" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0, background: COLORS[i % COLORS.length] }}>{initial}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{t.roles?.[0] ?? 'Technician'}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{roleDisplayName(t.roles?.[0]) ?? 'Technician'}</div>
                   </div>
                   <span className={`badge ${busy ? 'badge-amber' : 'badge-green'}`} style={{ fontSize: 9, flexShrink: 0 }}>
                     {busy ? 'Busy' : 'Free'}

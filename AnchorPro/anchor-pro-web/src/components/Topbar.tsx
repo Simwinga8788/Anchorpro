@@ -7,6 +7,7 @@ import { useNotifications } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { adminAccessApi } from '@/lib/api';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 
 interface TopbarProps {
   title: string;
@@ -325,7 +326,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{user?.email}</div>
                 {user?.roles?.[0] && (
                   <span style={{ marginTop: 6, display: 'inline-block', fontSize: 10, padding: '2px 7px', background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', borderRadius: 4, fontWeight: 500 }}>
-                    {user.roles[0]}
+                    {roleDisplayName(user.roles[0])}
                   </span>
                 )}
               </div>

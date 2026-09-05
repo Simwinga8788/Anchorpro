@@ -15,6 +15,7 @@ import { canAccess } from '@/lib/rbac';
 import { useSidebar } from '@/lib/SidebarContext';
 import { useState, useEffect } from 'react';
 import { adminAccessApi } from '@/lib/api';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 
 // ── Construction Management Suite Navigation ─────────────────────────────────
 const CONSTRUCTION_NAV_SECTIONS = [
@@ -267,7 +268,7 @@ export default function Sidebar() {
               {displayName}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {isPlatformOwner ? 'Platform Owner' : (userRoles[0] ?? 'User')}
+              {isPlatformOwner ? 'Platform Owner' : (roleDisplayName(userRoles[0]) ?? 'User')}
             </div>
           </div>
           <ChevronDown size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
