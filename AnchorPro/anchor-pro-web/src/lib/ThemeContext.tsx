@@ -15,25 +15,19 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  // Dark mode is disabled for now — always render light, regardless of any
+  // theme a user previously picked. toggleTheme is kept as a no-op (rather
+  // than removed) so call sites don't need to change when this is re-enabled.
+  const theme: Theme = 'light';
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    const stored = localStorage.getItem('anchor-theme') as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored);
-      document.documentElement.setAttribute('data-theme', stored);
-    }
+    // The bare :root in globals.css is the dark palette — [data-theme="light"] is the
+    // override, so forcing light means setting the attribute, not clearing it.
+    document.documentElement.setAttribute('data-theme', 'light');
   }, []);
 
-  const toggleTheme = () => {
-    setTheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('anchor-theme', next);
-      document.documentElement.setAttribute('data-theme', next);
-      return next;
-    });
-  };
+  const toggleTheme = () => {};
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

@@ -44,10 +44,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="AnchorPro" />
         <meta name="mobile-web-app-capable" content="yes" />
 
-        {/* Prevent dark/light flash — apply stored theme before paint */}
+        {/* Dark mode is disabled for now (see ThemeContext.tsx) — force light before paint
+            instead of applying a stored preference, so there's no flash of dark either. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('anchor-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+            __html: `document.documentElement.setAttribute('data-theme','light');`,
           }}
         />
         {/* Register service worker and handle updates */}

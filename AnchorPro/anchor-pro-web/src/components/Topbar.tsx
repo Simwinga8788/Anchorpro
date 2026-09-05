@@ -1,8 +1,7 @@
 'use client';
 
-import { Bell, Search, ChevronDown, Sun, Moon, Menu, Check, RefreshCw, LogOut, Settings, WifiOff } from 'lucide-react';
+import { Bell, Search, ChevronDown, Menu, Check, RefreshCw, LogOut, Settings, WifiOff } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useTheme } from '@/lib/ThemeContext';
 import { useNotifications } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -23,7 +22,6 @@ const notifDotColor: Record<string, string> = {
 };
 
 export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps) {
-  const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAllRead, markRead, refresh: refreshNotifs } = useNotifications();
   const { user, logout, isPlatformOwner } = useAuth();
   const { t, workspaceName } = useDictionary();
@@ -197,15 +195,7 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           />
         </div>
 
-        {/* Dark / Light toggle */}
-        <button
-          className="btn btn-ghost btn-sm"
-          style={{ padding: '7px' }}
-          onClick={toggleTheme}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
+        {/* Dark mode is disabled for now — toggle hidden until it's re-enabled */}
 
         {/* Notifications */}
         <div ref={notifRef} style={{ position: 'relative' }}>
