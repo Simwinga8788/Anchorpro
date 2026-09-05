@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
 import { dashboardApi, scheduleApi, certificatesApi, boqApi } from '@/lib/api';
 import { useDictionary } from '@/lib/DictionaryContext';
+import { roleDisplayName } from '@/lib/roleDisplayNames';
 
 const CONSTRUCTION_MODULES = [
   { key: 'boq', label: 'Bill of Quantities', desc: 'Contract sum, sections & rates', icon: Layers, href: (id: string | number) => `/dashboard/boq?project=${id}` },
@@ -262,7 +263,10 @@ export default function ProjectDetailsPage() {
   const doneTasks = project.tasks?.filter((t: any) => t.status === 'Done') || [];
 
   // Financial calculations
-  const totalInvoiced = project.invoices?.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
+  // Construction projects bill via Payment Certificates rather than the Job-Card Invoices flow,
+  // so revenue recognized to date is whatever certificates have actually been paid.
+  const certifiedRevenue = certificates.filter((c: any) => c.status === 5).reduce((sum: number, c: any) => sum + (c.netAmountDue || 0), 0);
+  const totalInvoiced = (project.invoices?.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0) + certifiedRevenue;
   const profitMargin = totalInvoiced > 0 ? ((totalInvoiced - (project.totalCost || 0)) / totalInvoiced) * 100 : 0;
 
   return (
@@ -768,7 +772,7 @@ export default function ProjectDetailsPage() {
             <label className="form-label">Select User</label>
             <select className="form-input" required value={teamForm.userId} onChange={e => setTeamForm({...teamForm, userId: e.target.value})}>
               <option value="">Select a user...</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+              {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({roleDisplayName(u.role)})</option>)}
             </select>
           </div>
           <div className="form-field">

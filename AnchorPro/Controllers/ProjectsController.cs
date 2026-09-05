@@ -43,8 +43,9 @@ namespace AnchorPro.Controllers
                     CustomerName = p.Customer != null ? p.Customer.Name : null,
                     ManagerName = p.Manager != null ? p.Manager.FirstName + " " + p.Manager.LastName : null,
                     OperationsCount = p.JobCards.Count + p.ShiftLogs.Count,
-                    // Roll up costs from Job Cards, Shift Logs, and Direct Expenses
+                    // Roll up costs from Job Cards, Shift Logs, Direct Expenses, and Vendor Bills (materials/subcontractors billed against this project's Purchase Orders)
                     TotalCost = p.JobCards.Sum(j => j.TotalCost) + p.ShiftLogs.SelectMany(s => s.CostEntries).Sum(c => c.Amount) + p.Expenses.Sum(e => e.Amount)
+                        + _context.VendorBills.Where(vb => vb.PurchaseOrder != null && vb.PurchaseOrder.ProjectId == p.Id).Sum(vb => (decimal?)vb.TotalAmount) ?? 0
                 })
                 .ToListAsync();
 
@@ -74,6 +75,12 @@ namespace AnchorPro.Controllers
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null) return NotFound();
+
+            // Materials/subcontractor costs billed against this project's Purchase Orders — not a direct
+            // navigation on Project, so queried separately rather than via an Include above.
+            var vendorBillsTotal = await _context.VendorBills
+                .Where(vb => vb.PurchaseOrder != null && vb.PurchaseOrder.ProjectId == id)
+                .SumAsync(vb => (decimal?)vb.TotalAmount) ?? 0;
 
             var projectTasks = await _context.ProjectTasks
                 .Include(t => t.AssignedTo)
@@ -108,7 +115,7 @@ namespace AnchorPro.Controllers
                 ManagerName = project.Manager != null ? project.Manager.FirstName + " " + project.Manager.LastName : null,
                 
                 // Rollups
-                TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<WorkDocumentCostEntry>()).Sum(c => c.Amount) ?? 0) + (project.Expenses?.Sum(e => e.Amount) ?? 0),
+                TotalCost = (project.JobCards?.Sum(j => j.TotalCost) ?? 0) + (project.ShiftLogs?.SelectMany(s => s.CostEntries ?? new List<WorkDocumentCostEntry>()).Sum(c => c.Amount) ?? 0) + (project.Expenses?.Sum(e => e.Amount) ?? 0) + vendorBillsTotal,
                 
                 Invoices = project.Invoices?.Select(i => new
                 {
