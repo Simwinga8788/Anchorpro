@@ -163,6 +163,8 @@ export default function SchedulePage() {
   };
 
   const isLate = (m: any) => m.status !== 2 && new Date(m.plannedEndDate) < new Date();
+  const daysLate = (m: any) => Math.ceil((Date.now() - new Date(m.plannedEndDate).getTime()) / (24 * 60 * 60 * 1000));
+  const behindScheduleCount = milestones.filter(m => m.status === 3 || isLate(m)).length;
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -238,12 +240,12 @@ export default function SchedulePage() {
 
         <div className="card" style={{ padding: 16 }}>
           <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-            Delayed
+            Behind Schedule
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: milestones.filter(m => m.status === 3).length > 0 ? '#ef4444' : 'var(--accent-amber)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
-            {milestones.filter(m => m.status === 3).length}
+          <div style={{ fontSize: 24, fontWeight: 700, color: behindScheduleCount > 0 ? '#ef4444' : 'var(--accent-amber)', marginTop: 4, fontFamily: "'Barlow Semi Condensed', sans-serif" }}>
+            {behindScheduleCount}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Flagged by status</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Past planned end date, not complete</div>
         </div>
       </div>
 
@@ -300,6 +302,11 @@ export default function SchedulePage() {
                     </td>
                     <td style={{ padding: '12px 16px', color: isLate(m) ? '#ef4444' : 'var(--text-secondary)' }}>
                       {new Date(m.plannedStartDate).toLocaleDateString()} → {new Date(m.plannedEndDate).toLocaleDateString()}
+                      {isLate(m) && (
+                        <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+                          {daysLate(m)} day{daysLate(m) === 1 ? '' : 's'} behind schedule
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
                       {m.actualStartDate ? new Date(m.actualStartDate).toLocaleDateString() : '—'}
@@ -471,7 +478,8 @@ function GanttTimeline({ milestones }: { milestones: any[] }) {
               const startPct = pctOf(new Date(m.plannedStartDate).getTime());
               const endPct = pctOf(new Date(m.plannedEndDate).getTime());
               const widthPct = Math.max(endPct - startPct, 0.5);
-              const color = STATUS_BAR_COLOR[m.status];
+              const late = m.status !== 2 && new Date(m.plannedEndDate) < new Date();
+              const color = late ? '#ef4444' : STATUS_BAR_COLOR[m.status];
               return (
                 <div key={m.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
                   <div style={{ width: labelColW, flexShrink: 0, padding: '0 16px', overflow: 'hidden' }}>
@@ -484,7 +492,7 @@ function GanttTimeline({ milestones }: { milestones: any[] }) {
                   </div>
                   <div style={{ flex: 1, position: 'relative', height: rowH }}>
                     <div
-                      title={`${m.title}: ${fmtShort(m.plannedStartDate)} → ${fmtShort(m.plannedEndDate)} — ${m.progressPercentage}% — ${STATUS_LABELS[m.status]}`}
+                      title={`${m.title}: ${fmtShort(m.plannedStartDate)} → ${fmtShort(m.plannedEndDate)} — ${m.progressPercentage}% — ${late ? 'Behind schedule' : STATUS_LABELS[m.status]}`}
                       style={{
                         position: 'absolute', left: `${startPct}%`, width: `${widthPct}%`, top: '50%', transform: 'translateY(-50%)',
                         height: 20, borderRadius: 4, background: 'var(--bg-hover)', border: `1px solid ${color}`, overflow: 'hidden'
@@ -494,9 +502,10 @@ function GanttTimeline({ milestones }: { milestones: any[] }) {
                     </div>
                     <span style={{
                       position: 'absolute', left: `calc(${startPct}% + ${widthPct}% + 8px)`, top: '50%', transform: 'translateY(-50%)',
-                      fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: "'Barlow Semi Condensed', sans-serif"
+                      fontSize: 11, color: late ? '#ef4444' : 'var(--text-secondary)', fontWeight: late ? 700 : 400, whiteSpace: 'nowrap', fontFamily: "'Barlow Semi Condensed', sans-serif"
                     }}>
                       {fmtShort(m.plannedStartDate)} → {fmtShort(m.plannedEndDate)}
+                      {late && ` (${Math.ceil((Date.now() - new Date(m.plannedEndDate).getTime()) / 86400000)}d behind)`}
                     </span>
                   </div>
                 </div>
