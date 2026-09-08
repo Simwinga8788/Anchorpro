@@ -160,6 +160,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // a starter Version 1) from ever landing two rows — the second insert now fails at the
         // DB level and the controller falls back to re-reading the winner.
         builder.Entity<BillOfQuantities>().HasIndex(b => new { b.ProjectId, b.VersionNumber }).IsUnique();
+
+        // Site Diary <-> Schedule evidence link (many-to-many: one day's diary can cover several
+        // activities, one activity accumulates evidence across many days). See ScheduleController.UpdateProgress.
+        builder.Entity<SiteDiaryEntry>()
+            .HasMany(d => d.LinkedActivities)
+            .WithMany(m => m.DiaryEntries)
+            .UsingEntity(j => j.ToTable("SiteDiaryEntryMilestoneLinks"));
     }
 
     private void SetTenantFilter<T>(ModelBuilder builder) where T : BaseEntity

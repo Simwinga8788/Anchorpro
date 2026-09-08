@@ -39,6 +39,7 @@ namespace AnchorPro.Controllers
             using var db = _factory.CreateDbContext();
             var milestones = await db.ProjectMilestones
                 .Include(m => m.BoqSection)
+                .Include(m => m.DiaryEntries)
                 .Where(m => m.ProjectId == projectId)
                 .OrderBy(m => m.DisplayOrder).ThenBy(m => m.PlannedStartDate)
                 .ToListAsync();
@@ -73,7 +74,10 @@ namespace AnchorPro.Controllers
                     m.PredecessorMilestoneId,
                     m.BoqSectionId,
                     BoqSectionName = m.BoqSection?.SectionName,
-                    IsAutoTracked = isAutoTracked
+                    IsAutoTracked = isAutoTracked,
+                    // Site Diary entries tagged as evidence for this activity — required (see UpdateProgress)
+                    // before a non-BOQ-linked activity's progress can be set above 0%.
+                    DiaryEntryCount = m.DiaryEntries.Count
                 };
             });
 
@@ -138,7 +142,9 @@ namespace AnchorPro.Controllers
         public async Task<IActionResult> UpdateProgress(int id, [FromBody] UpdateMilestoneProgressDto dto)
         {
             using var db = _factory.CreateDbContext();
-            var milestone = await db.ProjectMilestones.FindAsync(id);
+            var milestone = await db.ProjectMilestones
+                .Include(m => m.DiaryEntries)
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (milestone == null) return NotFound();
 
             if (milestone.BoqSectionId.HasValue)
@@ -146,6 +152,11 @@ namespace AnchorPro.Controllers
 
             if (dto.ProgressPercentage < 0 || dto.ProgressPercentage > 100)
                 return BadRequest("Progress must be between 0 and 100.");
+
+            // A manually-tracked activity can't be claimed above 0% on trust alone — at least one Site
+            // Diary entry has to be tagged to it first as real evidence the work actually happened.
+            if (dto.ProgressPercentage > 0 && milestone.DiaryEntries.Count == 0)
+                return BadRequest("Link at least one Site Diary entry to this activity as evidence before setting progress above 0%.");
 
             milestone.ProgressPercentage = dto.ProgressPercentage;
             milestone.Status = dto.Status;

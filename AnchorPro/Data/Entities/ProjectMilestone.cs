@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AnchorPro.Data.Entities
@@ -52,5 +53,10 @@ namespace AnchorPro.Data.Entities
         /// <summary>Optional reference to another activity this one follows — display/reference only, no auto-rescheduling.</summary>
         public int? PredecessorMilestoneId { get; set; }
         public ProjectMilestone? PredecessorMilestone { get; set; }
+
+        /// <summary>Site Diary entries tagged as evidence for work on this activity. A manually-set (non-BOQ-linked)
+        /// activity cannot be moved above 0% progress until at least one entry is linked here — see
+        /// ScheduleController.UpdateProgress. Closes the gap where progress was previously just a trusted number.</summary>
+        public ICollection<SiteDiaryEntry> DiaryEntries { get; set; } = new List<SiteDiaryEntry>();
     }
 }

@@ -299,6 +299,13 @@ export default function SchedulePage() {
                           <Link2 size={11} /> Auto from BOQ: {m.boqSectionName}
                         </div>
                       )}
+                      {!m.isAutoTracked && (
+                        <div style={{ fontSize: 11, marginTop: 3, color: m.diaryEntryCount > 0 ? 'var(--text-secondary)' : '#ef4444', fontWeight: m.diaryEntryCount > 0 ? 400 : 600 }}>
+                          {m.diaryEntryCount > 0
+                            ? `${m.diaryEntryCount} diary ${m.diaryEntryCount === 1 ? 'entry' : 'entries'} as evidence`
+                            : 'No evidence logged yet'}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px', color: isLate(m) ? '#ef4444' : 'var(--text-secondary)' }}>
                       {new Date(m.plannedStartDate).toLocaleDateString()} → {new Date(m.plannedEndDate).toLocaleDateString()}

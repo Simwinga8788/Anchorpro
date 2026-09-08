@@ -39,6 +39,7 @@ namespace AnchorPro.Controllers
                 .Include(d => d.Photos)
                 .Include(d => d.SafetyLogs)
                 .Include(d => d.LoggedBy)
+                .Include(d => d.LinkedActivities)
                 .Where(d => d.ProjectId == projectId);
 
             if (fromDate.HasValue)
@@ -163,6 +164,15 @@ namespace AnchorPro.Controllers
                 }
             }
 
+            if (dto.MilestoneIds != null && dto.MilestoneIds.Count > 0)
+            {
+                var milestones = await db.ProjectMilestones
+                    .Where(m => dto.MilestoneIds.Contains(m.Id) && m.ProjectId == dto.ProjectId)
+                    .ToListAsync();
+                foreach (var m in milestones)
+                    entry.LinkedActivities.Add(m);
+            }
+
             if (dto.Safety != null)
             {
                 entry.SafetyLogs.Add(new SiteDiarySafety
@@ -260,6 +270,7 @@ namespace AnchorPro.Controllers
         public List<DiaryPlantDto>? Plant { get; set; }
         public List<DiaryDeliveryDto>? Deliveries { get; set; }
         public DiarySafetyDto? Safety { get; set; }
+        public List<int>? MilestoneIds { get; set; }
     }
 
     public class DiaryLabourDto

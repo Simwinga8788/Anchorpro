@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { siteDiaryApi, projectsApi, equipmentApi, uploadApi, hrApi } from '@/lib/api';
+import { siteDiaryApi, projectsApi, equipmentApi, uploadApi, hrApi, scheduleApi } from '@/lib/api';
 import {
   ClipboardList, Building2, Plus, Sun, CloudRain, Cloud, Wind,
   Users, Truck, ShieldAlert, Camera, CheckCircle2, Calendar, PackageCheck, Loader2, Printer
@@ -16,6 +16,8 @@ export default function SiteDiaryPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [selectedMilestoneIds, setSelectedMilestoneIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<number | null>(null);
@@ -77,6 +79,9 @@ export default function SiteDiaryPage() {
   useEffect(() => {
     if (!selectedProjectId) return;
     loadEntries(selectedProjectId);
+    scheduleApi.getByProject(selectedProjectId)
+      .then((res: any) => setMilestones(Array.isArray(res) ? res : []))
+      .catch(() => setMilestones([]));
   }, [selectedProjectId]);
 
   const loadEntries = async (projId: number) => {
@@ -107,9 +112,11 @@ export default function SiteDiaryPage() {
         labour: form.labour.map(l => ({ ...l, employeeUserId: l.employeeUserId || null })),
         plant: form.plant,
         deliveries: form.deliveries,
-        safety: form.safety
+        safety: form.safety,
+        milestoneIds: selectedMilestoneIds
       });
       setShowCreateModal(false);
+      setSelectedMilestoneIds([]);
       loadEntries(selectedProjectId);
     } catch (err: any) {
       alert(err.message);
@@ -324,6 +331,15 @@ export default function SiteDiaryPage() {
                   <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5 }}>
                     {entry.workPerformedSummary}
                   </div>
+                  {(entry.linkedActivities || entry.LinkedActivities || []).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {(entry.linkedActivities || entry.LinkedActivities || []).map((m: any) => (
+                        <span key={m.id} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
+                          {m.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Delays / Constraints if any */}
@@ -498,6 +514,33 @@ export default function SiteDiaryPage() {
               required
             />
           </div>
+
+          {milestones.length > 0 && (
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Which Program Activities does this cover?
+              </label>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+                Tag every Schedule activity this day's work counts as evidence for — an activity can't move past 0% progress without at least one linked diary entry.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 140, overflowY: 'auto', padding: 8, border: '1px solid var(--border-subtle)', borderRadius: 6 }}>
+                {milestones.map((m: any) => (
+                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedMilestoneIds.includes(m.id)}
+                      onChange={e => {
+                        setSelectedMilestoneIds(prev =>
+                          e.target.checked ? [...prev, m.id] : prev.filter(id => id !== m.id)
+                        );
+                      }}
+                    />
+                    {m.title}{m.trade ? ` (${m.trade})` : ''}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Delays / Constraints / Standing Time</label>

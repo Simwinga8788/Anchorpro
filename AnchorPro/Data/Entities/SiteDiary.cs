@@ -49,6 +49,10 @@ namespace AnchorPro.Data.Entities
         public ICollection<SiteDiaryDelivery> Deliveries { get; set; } = new List<SiteDiaryDelivery>();
         public ICollection<SiteDiaryPhoto> Photos { get; set; } = new List<SiteDiaryPhoto>();
         public ICollection<SiteDiarySafety> SafetyLogs { get; set; } = new List<SiteDiarySafety>();
+
+        /// <summary>Schedule activities this day's work counts as evidence for — tagged by whoever logs the
+        /// entry. Lets a Schedule activity's progress be backed by real diary records instead of a bare number.</summary>
+        public ICollection<ProjectMilestone> LinkedActivities { get; set; } = new List<ProjectMilestone>();
     }
 
     public class SiteDiaryLabour : BaseEntity
