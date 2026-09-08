@@ -7,7 +7,7 @@ import {
   CheckCircle2, Clock, Users, Zap, BarChart3,
   Activity, RefreshCw, WifiOff, Building2, FileText
 } from 'lucide-react';
-import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats, projectsApi, shiftLogsApi, safetyApi } from '@/lib/api';
+import { dashboardApi, intelligenceApi, referenceDataApi, DashboardStats, projectsApi, siteDiaryApi, safetyApi } from '@/lib/api';
 import { useApiData } from '@/lib/useApiData';
 import Modal from '@/components/Modal';
 import JobCardForm from '@/components/JobCardForm';
@@ -518,17 +518,14 @@ function ConstructionOverviewDashboard() {
   const router = useRouter();
 
   const projects = useApiData(() => projectsApi.getAll());
-  const shiftLogs = useApiData(() => shiftLogsApi.getAll());
+  const diaryToday = useApiData(() => siteDiaryApi.getToday());
   const safetyStats = useApiData(() => safetyApi.getStats());
 
-  const activeProjects = Array.isArray(projects.data) 
-    ? projects.data.filter((p: any) => p.status === 'Active') 
+  const activeProjects = Array.isArray(projects.data)
+    ? projects.data.filter((p: any) => p.status === 'Active')
     : [];
-    
-  const todayStr = new Date().toISOString().split('T')[0];
-  const logsToday = Array.isArray(shiftLogs.data)
-    ? shiftLogs.data.filter((l: any) => l.shiftDate?.startsWith(todayStr))
-    : [];
+
+  const logsToday = Array.isArray(diaryToday.data) ? diaryToday.data : [];
 
   return (
     <div className="animate-in">
@@ -548,7 +545,7 @@ function ConstructionOverviewDashboard() {
             </span>
           </div>
         </div>
-        <button className="btn btn-secondary" onClick={() => { projects.refresh(); shiftLogs.refresh(); safetyStats.refresh(); }}>
+        <button className="btn btn-secondary" onClick={() => { projects.refresh(); diaryToday.refresh(); safetyStats.refresh(); }}>
           <RefreshCw size={16} /> Refresh
         </button>
       </div>
@@ -575,11 +572,11 @@ function ConstructionOverviewDashboard() {
         </div>
 
         {/* DAILY LOGS TODAY */}
-        <div className="stat-card" onClick={() => router.push('/dashboard/shift-logs')} style={{ cursor: 'pointer' }}>
+        <div className="stat-card" onClick={() => router.push('/dashboard/site-diary')} style={{ cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div className="stat-label">DAILY LOGS TODAY</div>
-              {shiftLogs.loading ? <Skeleton h={36} w={40} /> :
+              {diaryToday.loading ? <Skeleton h={36} w={40} /> :
                 <div className="stat-value" style={{ color: 'var(--accent-emerald)' }}>
                   {logsToday.length}
                 </div>
@@ -664,10 +661,10 @@ function ConstructionOverviewDashboard() {
               <div className="section-title">Recent Daily Logs</div>
               <div className="section-sub">Logs submitted from sites today</div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard/shift-logs')}>View All</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/dashboard/site-diary')}>View All</button>
           </div>
           <div style={{ padding: '16px 0 10px' }}>
-            {shiftLogs.loading ? <Skeleton h={150} /> : logsToday.length === 0 ? (
+            {diaryToday.loading ? <Skeleton h={150} /> : logsToday.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No daily logs submitted today.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px' }}>
@@ -675,10 +672,10 @@ function ConstructionOverviewDashboard() {
                   <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{l.project?.name || `Log #${l.id}`}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Supervisor: {l.supervisor?.firstName || 'Unknown'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Logged by: {l.loggedBy?.firstName || 'Unknown'}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span className="badge badge-emerald">Submitted</span>
+                      <span className={`badge ${l.status >= 1 ? 'badge-emerald' : 'badge-muted'}`}>{l.status === 2 ? 'Approved' : l.status === 1 ? 'Submitted' : 'Draft'}</span>
                     </div>
                   </div>
                 ))}

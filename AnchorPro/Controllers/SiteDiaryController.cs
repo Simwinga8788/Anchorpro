@@ -51,6 +51,25 @@ namespace AnchorPro.Controllers
         }
 
         /// <summary>
+        /// GET /api/sitediary/today
+        /// Diary entries logged today, across every project — feeds the "Daily Logs Today" dashboard stat.
+        /// </summary>
+        [HttpGet("today")]
+        public async Task<IActionResult> GetToday()
+        {
+            using var db = _factory.CreateDbContext();
+            var today = DateTime.UtcNow.Date;
+            var entries = await db.SiteDiaryEntries
+                .Include(d => d.Project)
+                .Include(d => d.LoggedBy)
+                .Where(d => d.DiaryDate == today)
+                .OrderByDescending(d => d.CreatedAt)
+                .ToListAsync();
+
+            return Ok(entries);
+        }
+
+        /// <summary>
         /// GET /api/sitediary/{id}
         /// Get single diary entry with all child details
         /// </summary>

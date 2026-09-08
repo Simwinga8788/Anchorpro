@@ -24,7 +24,7 @@ namespace AnchorPro.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProjects()
         {
-            var projects = await _context.Projects
+            var rows = await _context.Projects
                 .Include(p => p.Customer)
                 .Include(p => p.Manager)
                 .Include(p => p.JobCards)
@@ -45,9 +45,37 @@ namespace AnchorPro.Controllers
                     OperationsCount = p.JobCards.Count + p.ShiftLogs.Count,
                     // Roll up costs from Job Cards, Shift Logs, Direct Expenses, and Vendor Bills (materials/subcontractors billed against this project's Purchase Orders)
                     TotalCost = p.JobCards.Sum(j => j.TotalCost) + p.ShiftLogs.SelectMany(s => s.CostEntries).Sum(c => c.Amount) + p.Expenses.Sum(e => e.Amount)
-                        + _context.VendorBills.Where(vb => vb.PurchaseOrder != null && vb.PurchaseOrder.ProjectId == p.Id).Sum(vb => (decimal?)vb.TotalAmount) ?? 0
+                        + _context.VendorBills.Where(vb => vb.PurchaseOrder != null && vb.PurchaseOrder.ProjectId == p.Id).Sum(vb => (decimal?)vb.TotalAmount) ?? 0,
+                    // Raw ingredients for progress — combined into CompletionPercentage below, in C#, rather
+                    // than as one giant translated expression.
+                    LatestBoqContractSum = _context.BillsOfQuantities
+                        .Where(b => b.ProjectId == p.Id)
+                        .OrderByDescending(b => b.VersionNumber)
+                        .Select(b => (decimal?)b.TotalContractSum)
+                        .FirstOrDefault() ?? 0,
+                    LatestCertGrossValuation = _context.PaymentCertificates
+                        .Where(c => c.ProjectId == p.Id && c.Status != CertificateStatus.Draft)
+                        .OrderByDescending(c => c.PeriodEndDate)
+                        .Select(c => (decimal?)c.GrossValuationToDate)
+                        .FirstOrDefault() ?? 0
                 })
                 .ToListAsync();
+
+            // Real progress for a construction project: the latest certified valuation against the contract
+            // sum, matching DashboardService.GetProjectSnapshotAsync's formula exactly (prefers the approved
+            // BOQ's own TotalContractSum, falling back to project.Budget). Project.CompletionPercentage is a
+            // stored column nothing ever writes to — it just sits at 0 forever, so it's replaced here.
+            var projects = rows.Select(p =>
+            {
+                var contractSum = p.LatestBoqContractSum > 0 ? p.LatestBoqContractSum : p.Budget;
+                var completionPercentage = contractSum > 0 ? Math.Round(p.LatestCertGrossValuation / contractSum * 100, 1) : 0;
+                return new
+                {
+                    p.Id, p.Name, p.Description, p.Status, p.StartDate, p.EndDate, p.Budget,
+                    p.CustomerName, p.ManagerName, p.OperationsCount, p.TotalCost,
+                    CompletionPercentage = completionPercentage
+                };
+            });
 
             return Ok(projects);
         }
