@@ -49,6 +49,15 @@ namespace AnchorPro.Data.Entities
         /// <summary>Editable narrative summarising key works executed — auto-seeded from diary entries on generation.</summary>
         public string KeyWorksNarrative { get; set; } = string.Empty;
 
+        /// <summary>Number of Schedule activities behind their planned end date as of PeriodEndDate. Purely
+        /// computed at generation, like the other numeric fields — not user-editable.</summary>
+        public int BehindScheduleActivitiesCount { get; set; }
+
+        /// <summary>Auto-generated list of which Schedule activities were behind and by how many days, as of
+        /// PeriodEndDate — this is the "progress against the program" the real weekly report is built to show.
+        /// Recomputed on every generate, like KeyWorksNarrative; not user-editable.</summary>
+        public string? ProgramStatusNarrative { get; set; }
+
         /// <summary>Editable two-week lookahead narrative — authored by the user, no automated source exists yet.</summary>
         public string? LookaheadNarrative { get; set; }
 

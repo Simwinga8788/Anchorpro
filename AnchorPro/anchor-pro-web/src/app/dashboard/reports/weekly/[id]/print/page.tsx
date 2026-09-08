@@ -102,8 +102,13 @@ export default function PrintWeeklyReportPage() {
           <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.keyWorksNarrative}</p>
         </div>
 
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>2. Progress Against the Program</h3>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.programStatusNarrative || 'No Schedule data available for this project.'}</p>
+        </div>
+
         <div>
-          <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>2. Two-Week Lookahead Program</h3>
+          <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>3. Two-Week Lookahead Program</h3>
           <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.lookaheadNarrative || 'Not specified.'}</p>
         </div>
 

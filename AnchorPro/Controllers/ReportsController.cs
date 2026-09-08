@@ -110,6 +110,19 @@ namespace AnchorPro.Controllers
                     .Select(d => $"{d.DiaryDate:dd MMM}: {d.WorkPerformedSummary}"))
                 : "No Site Diary entries were logged for this period.";
 
+            // "Progress against the program" — Schedule activities behind their planned end date as of the
+            // period end, the same isLate() rule the Schedule page itself uses (status != Complete and
+            // plannedEndDate has passed), just anchored to the report's period rather than "today".
+            var behindActivities = await db.ProjectMilestones
+                .Where(m => m.ProjectId == dto.ProjectId && m.Status != MilestoneStatus.Complete && m.PlannedEndDate < periodEnd)
+                .OrderBy(m => m.PlannedEndDate)
+                .ToListAsync();
+
+            var programStatusNarrative = behindActivities.Count > 0
+                ? string.Join("\n", behindActivities.Select(m =>
+                    $"{m.Title}{(string.IsNullOrWhiteSpace(m.Trade) ? "" : $" ({m.Trade})")} — {(int)(periodEnd - m.PlannedEndDate).TotalDays} day(s) behind schedule (planned end {m.PlannedEndDate:dd MMM yyyy})."))
+                : "No activities behind schedule as of this period.";
+
             if (existing != null)
             {
                 existing.TotalManHours = totalManHours;
@@ -119,6 +132,8 @@ namespace AnchorPro.Controllers
                 existing.WeatherDowntimeDays = weatherDowntimeDays;
                 existing.SafetyIncidentsCount = safetyIncidents;
                 existing.NearMissesCount = nearMisses;
+                existing.BehindScheduleActivitiesCount = behindActivities.Count;
+                existing.ProgramStatusNarrative = programStatusNarrative;
 
                 await db.SaveChangesAsync();
                 return Ok(existing);
@@ -140,7 +155,9 @@ namespace AnchorPro.Controllers
                 WeatherDowntimeDays = weatherDowntimeDays,
                 SafetyIncidentsCount = safetyIncidents,
                 NearMissesCount = nearMisses,
-                KeyWorksNarrative = autoNarrative
+                KeyWorksNarrative = autoNarrative,
+                BehindScheduleActivitiesCount = behindActivities.Count,
+                ProgramStatusNarrative = programStatusNarrative
             };
 
             db.WeeklyReports.Add(report);

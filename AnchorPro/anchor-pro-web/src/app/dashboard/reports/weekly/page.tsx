@@ -250,7 +250,7 @@ export default function WeeklyReportPage() {
             </div>
 
             {/* Executive Summary Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 28 }}>
               <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Man-Hours Worked</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6', marginTop: 4 }}>{Number(selectedReport.totalManHours).toLocaleString()} hrs</div>
@@ -276,6 +276,13 @@ export default function WeeklyReportPage() {
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{selectedReport.nearMissesCount} near misses</div>
               </div>
+              <div style={{ padding: 14, background: 'var(--bg-hover)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Behind Schedule</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: selectedReport.behindScheduleActivitiesCount > 0 ? '#ef4444' : '#10b981', marginTop: 4 }}>
+                  {selectedReport.behindScheduleActivitiesCount ?? 0}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>Program activities, as of this period</div>
+              </div>
             </div>
 
             {/* Key Works Executed */}
@@ -296,10 +303,18 @@ export default function WeeklyReportPage() {
               )}
             </div>
 
+            {/* Progress against the program — auto-computed from Schedule, not user-editable */}
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
+                2. Progress Against the Program
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedReport.programStatusNarrative || 'No Schedule data available for this project.'}</p>
+            </div>
+
             {/* Lookahead */}
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
-                2. Two-Week Lookahead Program
+                3. Two-Week Lookahead Program
               </h3>
               {isDraft ? (
                 <textarea
