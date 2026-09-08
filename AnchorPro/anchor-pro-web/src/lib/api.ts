@@ -881,6 +881,7 @@ export const siteDiaryApi = {
     return apiFetch<any[]>(`/api/sitediary/project/${projectId}${qs ? `?${qs}` : ''}`);
   },
   getById: (id: number) => apiFetch<any>(`/api/sitediary/${id}`),
+  getToday: () => apiFetch<any[]>('/api/sitediary/today'),
   create: (data: any) => apiPost<any>('/api/sitediary', data),
   addPhoto: (id: number, data: { photoUrl: string; caption?: string }) => 
     apiPost<any>(`/api/sitediary/${id}/photos`, data),
@@ -901,6 +902,11 @@ export const certificatesApi = {
   approve: (id: number) => apiPost<any>(`/api/certificates/${id}/approve`, {}),
   issue: (id: number) => apiPost<any>(`/api/certificates/${id}/issue`, {}),
   markPaid: (id: number) => apiPost<any>(`/api/certificates/${id}/pay`, {}),
+  // kind: 0 = WorkEvidence, 1 = ProofOfPayment (PaymentCertificateAttachmentKind enum — the API has no
+  // string-enum converter registered, so it binds/serializes as the raw int, not the name)
+  addPhoto: (id: number, data: { photoUrl: string; caption?: string; kind: 0 | 1 }) =>
+    apiPost<any>(`/api/certificates/${id}/photos`, data),
+  deletePhoto: (id: number, photoId: number) => apiDelete(`/api/certificates/${id}/photos/${photoId}`),
 };
 
 // ─── Variations & Claims API ── /api/variations ─────────────────────────────────
@@ -929,8 +935,8 @@ export const reportsApi = {
     getById: (id: number) => apiFetch<any>(`/api/reports/monthly/${id}`),
     generate: (data: { projectId: number; year: number; month: number }) =>
       apiPost<any>('/api/reports/monthly/generate', data),
-    updateNarrative: (id: number, narrative: string) =>
-      apiPut<any>(`/api/reports/monthly/${id}`, { narrative }),
+    updateNarrative: (id: number, data: { narrative: string; challengesNarrative?: string; nextMonthPlanNarrative?: string }) =>
+      apiPut<any>(`/api/reports/monthly/${id}`, data),
     approve: (id: number) => apiPost<any>(`/api/reports/monthly/${id}/approve`, {}),
     issue: (id: number) => apiPost<any>(`/api/reports/monthly/${id}/issue`, {}),
   },
