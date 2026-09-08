@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { siteDiaryApi, projectsApi, equipmentApi, uploadApi, hrApi } from '@/lib/api';
 import {
   ClipboardList, Building2, Plus, Sun, CloudRain, Cloud, Wind,
-  Users, Truck, ShieldAlert, Camera, CheckCircle2, Calendar, PackageCheck, Loader2
+  Users, Truck, ShieldAlert, Camera, CheckCircle2, Calendar, PackageCheck, Loader2, Printer
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 
@@ -285,6 +285,16 @@ export default function SiteDiaryPage() {
                     }}>
                       {entry.status === 2 ? 'Approved Site Log' : 'Draft / Submitted'}
                     </span>
+
+                    <a
+                      href={`/dashboard/site-diary/${entry.id}/print`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-sm btn-secondary"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <Printer size={13} /> Print
+                    </a>
                   </div>
 
                   {/* Summary Badges */}
@@ -506,6 +516,14 @@ export default function SiteDiaryPage() {
               <span style={{ fontSize: 13, fontWeight: 700 }}>Labour Headcount by Trade</span>
               <button type="button" className="btn btn-sm btn-secondary" onClick={addLabourRow}>+ Add Trade</button>
             </div>
+            {form.labour.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 0.8fr 1.4fr', gap: 8, marginBottom: 4 }}>
+                <span className="field-col-label">Trade / Crew</span>
+                <span className="field-col-label">Headcount</span>
+                <span className="field-col-label">Hours</span>
+                <span className="field-col-label">Employee (optional)</span>
+              </div>
+            )}
             {form.labour.map((l, idx) => (
               <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 0.8fr 1.4fr', gap: 8, marginBottom: 6 }}>
                 <input
@@ -587,6 +605,12 @@ export default function SiteDiaryPage() {
                   />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  <span className="field-col-label">Operating Hrs</span>
+                  <span className="field-col-label">Idle Hrs</span>
+                  <span className="field-col-label">Breakdown Hrs</span>
+                  <span className="field-col-label">Fuel (L)</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   <input
                     type="number" step="0.5" className="form-input" placeholder="Operating hrs"
                     value={p.operatingHours}
@@ -657,6 +681,12 @@ export default function SiteDiaryPage() {
                     }}
                     required
                   />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+                  <span className="field-col-label">Quantity</span>
+                  <span className="field-col-label">Unit</span>
+                  <span className="field-col-label">Delivery Note #</span>
+                  <span className="field-col-label">Verified By</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
                   <input
