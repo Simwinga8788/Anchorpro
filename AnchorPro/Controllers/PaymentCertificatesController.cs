@@ -59,6 +59,8 @@ namespace AnchorPro.Controllers
                         .ThenInclude(b => b.BoqSection)
                 .Include(c => c.Variations)
                     .ThenInclude(v => v.Variation)
+                .Include(c => c.Photos)
+                    .ThenInclude(p => p.UploadedBy)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cert == null) return NotFound();
@@ -322,6 +324,11 @@ namespace AnchorPro.Controllers
             if (cert.Status != CertificateStatus.Issued)
                 return BadRequest("Only an issued certificate can be marked as paid.");
 
+            var hasProofOfPayment = await db.PaymentCertificatePhotos
+                .AnyAsync(p => p.PaymentCertificateId == id && p.Kind == PaymentCertificateAttachmentKind.ProofOfPayment);
+            if (!hasProofOfPayment)
+                return BadRequest("Attach proof of payment (bank confirmation, EFT receipt, or remittance advice) before marking this certificate as paid.");
+
             cert.Status = CertificateStatus.Paid;
             await db.SaveChangesAsync();
 
@@ -329,6 +336,51 @@ namespace AnchorPro.Controllers
             await _financialService.PostCertificatePaymentAsync(cert.Id, userId);
 
             return Ok(new { message = "Payment Certificate marked as paid." });
+        }
+
+        /// <summary>
+        /// POST /api/certificates/{id}/photos
+        /// Attach a work-evidence photo or proof-of-payment file (uploaded separately via /api/upload) to a certificate.
+        /// </summary>
+        [HttpPost("{id}/photos")]
+        public async Task<IActionResult> AddPhoto(int id, [FromBody] AddCertificatePhotoDto dto)
+        {
+            using var db = _factory.CreateDbContext();
+            var cert = await db.PaymentCertificates.FindAsync(id);
+            if (cert == null) return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var photo = new PaymentCertificatePhoto
+            {
+                PaymentCertificateId = id,
+                PhotoUrl = dto.PhotoUrl,
+                Caption = dto.Caption,
+                Kind = dto.Kind,
+                UploadedById = userId
+            };
+
+            db.PaymentCertificatePhotos.Add(photo);
+            await db.SaveChangesAsync();
+
+            return Ok(photo);
+        }
+
+        /// <summary>
+        /// DELETE /api/certificates/{id}/photos/{photoId}
+        /// Remove an evidence attachment. The underlying file on disk is left in place (matches the
+        /// Site Diary photo pattern) — only the record linking it to the certificate is removed.
+        /// </summary>
+        [HttpDelete("{id}/photos/{photoId}")]
+        public async Task<IActionResult> DeletePhoto(int id, int photoId)
+        {
+            using var db = _factory.CreateDbContext();
+            var photo = await db.PaymentCertificatePhotos.FirstOrDefaultAsync(p => p.Id == photoId && p.PaymentCertificateId == id);
+            if (photo == null) return NotFound();
+
+            db.PaymentCertificatePhotos.Remove(photo);
+            await db.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 
@@ -338,6 +390,13 @@ namespace AnchorPro.Controllers
         public DateTime PeriodStartDate { get; set; }
         public DateTime PeriodEndDate { get; set; }
         public decimal RetentionPercentage { get; set; } = 5.00m;
+    }
+
+    public class AddCertificatePhotoDto
+    {
+        public string PhotoUrl { get; set; } = string.Empty;
+        public string? Caption { get; set; }
+        public PaymentCertificateAttachmentKind Kind { get; set; } = PaymentCertificateAttachmentKind.WorkEvidence;
     }
 
     public class UpdateMeasurementDto

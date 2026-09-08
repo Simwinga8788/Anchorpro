@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { certificatesApi, projectsApi, boqApi } from '@/lib/api';
+import { certificatesApi, projectsApi, boqApi, uploadApi } from '@/lib/api';
 import {
   FileText, Building2, Plus, CheckCircle2, AlertCircle,
-  DollarSign, Calculator, ChevronRight, FileCheck, Layers, Printer
+  DollarSign, Calculator, ChevronRight, FileCheck, Layers, Printer,
+  Camera, Receipt, X, Loader2
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -32,6 +33,11 @@ export default function CertificatesPage() {
   const [showQueryModal, setShowQueryModal] = useState(false);
   const [queryNotes, setQueryNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Evidence & proof-of-payment uploads. Kind: 0 = WorkEvidence, 1 = ProofOfPayment.
+  const [uploadingKind, setUploadingKind] = useState<0 | 1 | null>(null);
+  const workEvidenceInputRef = useRef<HTMLInputElement>(null);
+  const proofOfPaymentInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     projectsApi.getProjects()
@@ -176,6 +182,32 @@ export default function CertificatesPage() {
     }
   };
 
+  const handleEvidenceFileSelected = async (e: React.ChangeEvent<HTMLInputElement>, kind: 0 | 1) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !selectedCert) return;
+    setUploadingKind(kind);
+    try {
+      const uploaded: any = await uploadApi.upload(file);
+      await certificatesApi.addPhoto(selectedCert.id, { photoUrl: uploaded.url, caption: file.name, kind });
+      loadCertDetails(selectedCert.id);
+    } catch (err: any) {
+      alert(err.message || 'Upload failed.');
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
+  const handleDeleteEvidence = async (photoId: number) => {
+    if (!selectedCert || !confirm('Remove this attachment?')) return;
+    try {
+      await certificatesApi.deletePhoto(selectedCert.id, photoId);
+      loadCertDetails(selectedCert.id);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const CERT_STATUS: Record<number, { label: string; badge: string }> = {
     0: { label: 'Draft', badge: 'badge-muted' },
     1: { label: 'Submitted', badge: 'badge-blue' },
@@ -185,6 +217,11 @@ export default function CertificatesPage() {
     5: { label: 'Paid', badge: 'badge-violet' },
   };
   const statusInfo = (status: number) => CERT_STATUS[status] || CERT_STATUS[0];
+
+  const certPhotos: any[] = selectedCert ? (selectedCert.photos || selectedCert.Photos || []) : [];
+  const workEvidencePhotos = certPhotos.filter((p: any) => (p.kind ?? p.Kind) === 0);
+  const proofOfPaymentPhotos = certPhotos.filter((p: any) => (p.kind ?? p.Kind) === 1);
+  const hasProofOfPayment = proofOfPaymentPhotos.length > 0;
 
   return (
     <div className="page-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -376,8 +413,9 @@ export default function CertificatesPage() {
                   {selectedCert.status === 4 && (
                     <button
                       className="btn btn-sm btn-primary"
-                      disabled={actionLoading}
+                      disabled={actionLoading || !hasProofOfPayment}
                       onClick={() => handleMarkPaidCert(selectedCert.id)}
+                      title={hasProofOfPayment ? undefined : 'Attach proof of payment below before marking this certificate as paid'}
                       style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                     >
                       <DollarSign size={14} /> Mark as Paid
@@ -484,6 +522,78 @@ export default function CertificatesPage() {
                 </div>
               </div>
             )}
+
+            {/* Evidence & Proof of Payment */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Evidence &amp; Proof of Payment</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  Photos backing up the measured work, and proof the certified amount was actually paid.
+                </p>
+              </div>
+
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Work evidence */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Work Evidence ({workEvidencePhotos.length})
+                    </span>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      disabled={uploadingKind !== null}
+                      onClick={() => workEvidenceInputRef.current?.click()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      {uploadingKind === 0 ? <Loader2 size={14} className="spin" /> : <Camera size={14} />}
+                      {uploadingKind === 0 ? 'Uploading...' : 'Add Photo'}
+                    </button>
+                    <input ref={workEvidenceInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => handleEvidenceFileSelected(e, 0)} />
+                  </div>
+                  {workEvidencePhotos.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                      {workEvidencePhotos.map((p: any) => (
+                        <EvidenceThumb key={p.id} photo={p} onDelete={() => handleDeleteEvidence(p.id)} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>No work-evidence photos attached yet.</p>
+                  )}
+                </div>
+
+                {/* Proof of payment */}
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Proof of Payment ({proofOfPaymentPhotos.length})
+                    </span>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      disabled={uploadingKind !== null}
+                      onClick={() => proofOfPaymentInputRef.current?.click()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      {uploadingKind === 1 ? <Loader2 size={14} className="spin" /> : <Receipt size={14} />}
+                      {uploadingKind === 1 ? 'Uploading...' : 'Add Proof of Payment'}
+                    </button>
+                    <input ref={proofOfPaymentInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => handleEvidenceFileSelected(e, 1)} />
+                  </div>
+                  {proofOfPaymentPhotos.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                      {proofOfPaymentPhotos.map((p: any) => (
+                        <EvidenceThumb key={p.id} photo={p} onDelete={() => handleDeleteEvidence(p.id)} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                      {selectedCert.status === 4
+                        ? 'Required before this certificate can be marked as paid — attach a bank confirmation, EFT receipt, or remittance advice.'
+                        : 'No proof of payment attached yet.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="card" style={{ padding: 40, textAlign: 'center' }}>
@@ -561,5 +671,45 @@ export default function CertificatesPage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function EvidenceThumb({ photo, onDelete }: { photo: any; onDelete: () => void }) {
+  const url = photo.photoUrl || photo.PhotoUrl;
+  const caption = photo.caption || photo.Caption || '';
+  const isPdf = /\.pdf($|\?)/i.test(url || caption);
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title={caption}
+      style={{
+        position: 'relative', display: 'block', aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
+        border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', textDecoration: 'none',
+      }}
+    >
+      {isPdf ? (
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--text-muted)' }}>
+          <FileText size={22} />
+          <span style={{ fontSize: 10, textAlign: 'center', padding: '0 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{caption || 'PDF'}</span>
+        </div>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      )}
+      <button
+        onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete(); }}
+        title="Remove"
+        style={{
+          position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <X size={12} />
+      </button>
+    </a>
   );
 }

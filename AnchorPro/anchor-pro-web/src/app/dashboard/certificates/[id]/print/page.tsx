@@ -202,6 +202,43 @@ export default function PrintCertificatePage() {
           </div>
         )}
 
+        {/* Photographic evidence */}
+        {(() => {
+          const photos: any[] = cert.photos || cert.Photos || [];
+          const workEvidence = photos.filter((p: any) => (p.kind ?? p.Kind) === 0);
+          const hasPop = photos.some((p: any) => (p.kind ?? p.Kind) === 1);
+          if (workEvidence.length === 0 && !hasPop) return null;
+          return (
+            <div style={{ marginBottom: '30px' }}>
+              <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>Photographic Evidence</h3>
+              {workEvidence.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                  {workEvidence.map((p: any) => {
+                    const url = p.photoUrl || p.PhotoUrl;
+                    const caption = p.caption || p.Caption || '';
+                    const isPdf = /\.pdf($|\?)/i.test(url || caption);
+                    return (
+                      <div key={p.id} style={{ border: '1px solid #e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
+                        {isPdf ? (
+                          <div style={{ height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#6b7280', padding: '6px', textAlign: 'center' }}>{caption || 'PDF document'}</div>
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt={caption} style={{ width: '100%', height: '90px', objectFit: 'cover', display: 'block' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {hasPop && (
+                <p style={{ margin: '10px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+                  Proof of payment is on file in Anchor Pro for this certificate.
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Summary sheet */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
           <div style={{ width: '300px', fontSize: '13px' }}>

@@ -65,6 +65,37 @@ namespace AnchorPro.Data.Entities
 
         public ICollection<PaymentCertificateItem> Items { get; set; } = new List<PaymentCertificateItem>();
         public ICollection<PaymentCertificateVariation> Variations { get; set; } = new List<PaymentCertificateVariation>();
+        public ICollection<PaymentCertificatePhoto> Photos { get; set; } = new List<PaymentCertificatePhoto>();
+    }
+
+    public enum PaymentCertificateAttachmentKind
+    {
+        /// <summary>Photos of the measured work, backing up the valuation — the contractor's own evidence.</summary>
+        WorkEvidence,
+        /// <summary>Proof the certified amount was actually paid (bank confirmation, EFT receipt, remittance advice).</summary>
+        ProofOfPayment
+    }
+
+    /// <summary>An evidence attachment on a certificate — either work-progress photos or proof of payment. Despite the name,
+    /// any file type UploadController accepts is allowed (a POP is often a PDF bank statement, not a photo).</summary>
+    public class PaymentCertificatePhoto : BaseEntity
+    {
+        public int PaymentCertificateId { get; set; }
+        public PaymentCertificate? PaymentCertificate { get; set; }
+
+        [Required]
+        public string PhotoUrl { get; set; } = string.Empty;
+
+        [MaxLength(255)]
+        public string? Caption { get; set; }
+
+        public PaymentCertificateAttachmentKind Kind { get; set; } = PaymentCertificateAttachmentKind.WorkEvidence;
+
+        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(85)]
+        public string? UploadedById { get; set; }
+        public ApplicationUser? UploadedBy { get; set; }
     }
 
     /// <summary>Links an approved Variation into the certificate it was first certified on, with the value carried at inclusion time.</summary>

@@ -93,6 +93,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Entities.PaymentCertificate> PaymentCertificates { get; set; }
     public DbSet<Entities.PaymentCertificateItem> PaymentCertificateItems { get; set; }
     public DbSet<Entities.PaymentCertificateVariation> PaymentCertificateVariations { get; set; }
+    public DbSet<Entities.PaymentCertificatePhoto> PaymentCertificatePhotos { get; set; }
     public DbSet<Entities.Variation> Variations { get; set; }
     public DbSet<Entities.VariationStatusHistory> VariationStatusHistories { get; set; }
     public DbSet<Entities.WeeklyReport> WeeklyReports { get; set; }
