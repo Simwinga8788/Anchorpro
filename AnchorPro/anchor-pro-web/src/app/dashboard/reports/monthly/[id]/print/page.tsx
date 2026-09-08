@@ -142,6 +142,20 @@ export default function PrintMonthlyReportPage() {
           <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.narrative}</p>
         </div>
 
+        {report.challengesNarrative && (
+          <div style={{ marginTop: '24px' }}>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>3. Challenges</h3>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.challengesNarrative}</p>
+          </div>
+        )}
+
+        {report.nextMonthPlanNarrative && (
+          <div style={{ marginTop: '24px' }}>
+            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px 0', letterSpacing: '0.5px' }}>4. Plan for the Coming Month</h3>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap' }}>{report.nextMonthPlanNarrative}</p>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', borderTop: '1px solid #e5e7eb', marginTop: '30px', paddingTop: '24px', fontSize: '12px', color: '#4b5563' }}>
           <div>
             <p style={{ margin: '0 0 30px 0' }}>Prepared By: _______________________</p>

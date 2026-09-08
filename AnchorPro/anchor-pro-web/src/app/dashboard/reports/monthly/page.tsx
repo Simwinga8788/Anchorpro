@@ -31,6 +31,8 @@ export default function MonthlyReportPage() {
   const [genForm, setGenForm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
 
   const [narrative, setNarrative] = useState('');
+  const [challenges, setChallenges] = useState('');
+  const [nextMonthPlan, setNextMonthPlan] = useState('');
 
   useEffect(() => {
     projectsApi.getProjects()
@@ -70,6 +72,8 @@ export default function MonthlyReportPage() {
       const detail = await reportsApi.monthly.getById(id);
       setSelectedReport(detail);
       setNarrative(detail.narrative || '');
+      setChallenges(detail.challengesNarrative || '');
+      setNextMonthPlan(detail.nextMonthPlanNarrative || '');
     } catch (err: any) {
       alert(err.message);
     }
@@ -99,7 +103,7 @@ export default function MonthlyReportPage() {
     if (!selectedReport) return;
     setActionLoading(true);
     try {
-      await reportsApi.monthly.updateNarrative(selectedReport.id, narrative);
+      await reportsApi.monthly.updateNarrative(selectedReport.id, { narrative, challengesNarrative: challenges, nextMonthPlanNarrative: nextMonthPlan });
       await selectReport(selectedReport.id);
     } catch (err: any) {
       alert(err.message);
@@ -113,7 +117,7 @@ export default function MonthlyReportPage() {
     if (!confirm('Approve this monthly report? Save any narrative edits first.')) return;
     setActionLoading(true);
     try {
-      await reportsApi.monthly.updateNarrative(selectedReport.id, narrative);
+      await reportsApi.monthly.updateNarrative(selectedReport.id, { narrative, challengesNarrative: challenges, nextMonthPlanNarrative: nextMonthPlan });
       await reportsApi.monthly.approve(selectedReport.id);
       await loadReports(selectedProjectId!);
     } catch (err: any) {
@@ -337,6 +341,48 @@ export default function MonthlyReportPage() {
                 />
               ) : (
                 <p style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedReport.narrative}</p>
+              )}
+            </div>
+
+            {/* Challenges */}
+            <div style={{ marginBottom: 12 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
+                3. Challenges
+              </h3>
+              {isDraft ? (
+                <textarea
+                  className="form-input"
+                  rows={5}
+                  placeholder="Problems, delays, or blockers this month — e.g. late deliveries, weather stoppages, access issues."
+                  value={challenges}
+                  onChange={e => setChallenges(e.target.value)}
+                  style={{ width: '100%', fontSize: 13.5, lineHeight: 1.6 }}
+                />
+              ) : selectedReport.challengesNarrative ? (
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedReport.challengesNarrative}</p>
+              ) : (
+                <p style={{ color: 'var(--text-tertiary)', fontSize: 13, fontStyle: 'italic' }}>No challenges recorded for this month.</p>
+              )}
+            </div>
+
+            {/* Plan for the coming month */}
+            <div style={{ marginBottom: 12 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 12 }}>
+                4. Plan for the Coming Month
+              </h3>
+              {isDraft ? (
+                <textarea
+                  className="form-input"
+                  rows={5}
+                  placeholder="Key works planned for next month, resourcing changes, and any recovery actions for delayed items."
+                  value={nextMonthPlan}
+                  onChange={e => setNextMonthPlan(e.target.value)}
+                  style={{ width: '100%', fontSize: 13.5, lineHeight: 1.6 }}
+                />
+              ) : selectedReport.nextMonthPlanNarrative ? (
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedReport.nextMonthPlanNarrative}</p>
+              ) : (
+                <p style={{ color: 'var(--text-tertiary)', fontSize: 13, fontStyle: 'italic' }}>No plan recorded for next month.</p>
               )}
             </div>
           </div>

@@ -106,6 +106,12 @@ namespace AnchorPro.Data.Entities
         /// <summary>Editable narrative — auto-seeded by rolling up the month's issued weekly report narratives.</summary>
         public string Narrative { get; set; } = string.Empty;
 
+        /// <summary>Editable narrative — problems/delays/blockers this month. Authored by the user, no automated source exists yet.</summary>
+        public string? ChallengesNarrative { get; set; }
+
+        /// <summary>Editable narrative — the plan for the coming month. Authored by the user, no automated source exists yet.</summary>
+        public string? NextMonthPlanNarrative { get; set; }
+
         public DateTime? ApprovedAt { get; set; }
 
         [MaxLength(85)]

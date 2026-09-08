@@ -243,6 +243,8 @@ namespace AnchorPro.Controllers
                 report.ActivePermitsCount,
                 report.PermitCompliancePercent,
                 report.Narrative,
+                report.ChallengesNarrative,
+                report.NextMonthPlanNarrative,
                 report.ApprovedAt,
                 ApprovedBy = report.ApprovedBy,
                 report.IssuedAt,
@@ -355,6 +357,8 @@ namespace AnchorPro.Controllers
                 return BadRequest("Only a Draft monthly report can be edited.");
 
             report.Narrative = dto.Narrative;
+            report.ChallengesNarrative = dto.ChallengesNarrative;
+            report.NextMonthPlanNarrative = dto.NextMonthPlanNarrative;
 
             await db.SaveChangesAsync();
             return Ok(report);
@@ -482,5 +486,7 @@ namespace AnchorPro.Controllers
     public class UpdateMonthlyNarrativeDto
     {
         public string Narrative { get; set; } = string.Empty;
+        public string? ChallengesNarrative { get; set; }
+        public string? NextMonthPlanNarrative { get; set; }
     }
 }
