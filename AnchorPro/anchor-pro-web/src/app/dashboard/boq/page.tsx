@@ -6,7 +6,7 @@ import { boqApi, projectsApi } from '@/lib/api';
 import {
   Building2, Plus, Upload, Trash2, Edit2, CheckCircle2,
   FileSpreadsheet, AlertCircle, Save, X, ChevronRight, Layers, DollarSign, Loader2,
-  Lock, GitBranch, History
+  Lock, GitBranch, History, Printer
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -269,6 +269,18 @@ export default function BoqPage() {
           >
             <History size={14} /> Version History
           </button>
+
+          {selectedProjectId && boq && (
+            <a
+              href={`/dashboard/boq/${selectedProjectId}/print`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Printer size={14} /> Print / Export PDF
+            </a>
+          )}
 
           {!isLocked && (
             <>
