@@ -225,7 +225,7 @@ export default function SettingsPage() {
   const [savingPw, setSavingPw] = useState(false);
 
   // ── Workspace ────────────────────────────────────────────────────────────────
-  const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW', logoUrl: '', address: '', contactEmail: '', contactPhone: '' });
+  const [orgForm, setOrgForm] = useState({ name: '', currency: 'ZMW', logoUrl: '', address: '', contactEmail: '', contactPhone: '', defaultRetentionPercentage: '5.00' });
   const [savingOrg, setSavingOrg] = useState(false);
   const [tenantMode, setTenantMode] = useState<number>(0);
 
@@ -344,6 +344,7 @@ export default function SettingsPage() {
         ...prev,
         name: g('Org.Name', prev.name || ''),
         currency: g('Org.Currency', prev.currency || 'ZMW'),
+        defaultRetentionPercentage: g('Org.DefaultRetentionPercentage', prev.defaultRetentionPercentage || '5.00'),
       }));
       setFinForm({
         partsMarkup: g('Fin.DefaultPartsMarkupPercent', '20.0'),
@@ -455,6 +456,7 @@ export default function SettingsPage() {
       });
       await settingsApi.upsert('Org.Name', orgForm.name, 'Organisation name', 'Org');
       await settingsApi.upsert('Org.Currency', orgForm.currency, 'Default currency', 'Org');
+      await settingsApi.upsert('Org.DefaultRetentionPercentage', orgForm.defaultRetentionPercentage, 'Default retention percentage applied to new Interim Payment Certificates', 'Org');
       await refreshDictionary();
       show('Workspace settings saved');
     } catch (e: any) { show(e.message || 'Failed to save', 'error'); }
@@ -772,6 +774,14 @@ export default function SettingsPage() {
                   <option value="GBP">British Pound (GBP)</option>
                 </select>
               </FormRow>
+
+              {user?.operationMode === 3 && (
+                <FormRow label="Default Retention Percentage" hint="Applied to every new Interim Payment Certificate unless overridden on generation — typically 5% or 10% under JBCC/FIDIC">
+                  <input className="form-input" type="number" step="0.1" min="0" max="100" style={{ maxWidth: 160 }}
+                    value={orgForm.defaultRetentionPercentage}
+                    onChange={e => setOrgForm(f => ({ ...f, defaultRetentionPercentage: e.target.value }))} />
+                </FormRow>
+              )}
             </div>
           </SectionCard>
 

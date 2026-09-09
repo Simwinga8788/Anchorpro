@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { certificatesApi, projectsApi, boqApi, uploadApi } from '@/lib/api';
+import { certificatesApi, projectsApi, boqApi, uploadApi, settingsApi } from '@/lib/api';
 import {
   FileText, Building2, Plus, CheckCircle2, AlertCircle,
   DollarSign, Calculator, ChevronRight, FileCheck, Layers, Printer,
@@ -28,6 +28,7 @@ export default function CertificatesPage() {
     periodEndDate: new Date().toISOString().split('T')[0],
     retentionPercentage: 5.0
   });
+  const [defaultRetentionPercentage, setDefaultRetentionPercentage] = useState(5.0);
 
   // Query Certificate Modal
   const [showQueryModal, setShowQueryModal] = useState(false);
@@ -49,6 +50,16 @@ export default function CertificatesPage() {
         else if (list.length > 0) setSelectedProjectId(list[0].id);
       })
       .catch(() => setError('Failed to load projects.'));
+
+    settingsApi.getByKey('Org.DefaultRetentionPercentage')
+      .then((res: any) => {
+        const pct = parseFloat(res?.value);
+        if (!isNaN(pct) && pct > 0) {
+          setDefaultRetentionPercentage(pct);
+          setCertForm(f => ({ ...f, retentionPercentage: pct }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -254,9 +265,12 @@ export default function CertificatesPage() {
             </select>
           </div>
 
-          <button 
+          <button
             className="btn btn-primary"
-            onClick={() => setShowGenerateModal(true)}
+            onClick={() => {
+              setCertForm(f => ({ ...f, retentionPercentage: defaultRetentionPercentage }));
+              setShowGenerateModal(true);
+            }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
           >
             <Plus size={14} /> Generate New Certificate

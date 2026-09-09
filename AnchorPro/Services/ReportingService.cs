@@ -205,6 +205,175 @@ namespace AnchorPro.Services
             }
         }
 
+        public async Task SendConstructionDailyDigestAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            context.IgnoreTenantFilter = true;
+
+            var today = DateTime.UtcNow.Date;
+
+            var recipientSettings = await context.SystemSettings
+                .Where(s => s.Key == "Notify.EmailRecipients" && s.TenantId != null && s.Value != "")
+                .ToListAsync();
+
+            foreach (var setting in recipientSettings)
+            {
+                try
+                {
+                    var tenantId = setting.TenantId!.Value;
+                    var recipients = setting.Value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim()).Where(r => r.Length > 0).ToArray();
+                    if (recipients.Length == 0) continue;
+
+                    var lastSent = await context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == "Notify.LastDigestSentDate" && s.TenantId == tenantId);
+                    if (lastSent != null && DateTime.TryParse(lastSent.Value, out var lastSentDate) && lastSentDate.Date == today)
+                        continue; // Already sent today's digest for this tenant.
+
+                    var projects = await context.Projects
+                        .Where(p => p.TenantId == tenantId)
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.Name,
+                            p.Budget,
+                            LatestBoqContractSum = context.BillsOfQuantities
+                                .Where(b => b.ProjectId == p.Id)
+                                .OrderByDescending(b => b.VersionNumber)
+                                .Select(b => (decimal?)b.TotalContractSum)
+                                .FirstOrDefault() ?? 0,
+                            LatestCertGrossValuation = context.PaymentCertificates
+                                .Where(c => c.ProjectId == p.Id && c.Status != CertificateStatus.Draft)
+                                .OrderByDescending(c => c.PeriodEndDate)
+                                .Select(c => (decimal?)c.GrossValuationToDate)
+                                .FirstOrDefault() ?? 0
+                        })
+                        .ToListAsync();
+
+                    if (projects.Count == 0) continue; // Nothing to report for this tenant yet.
+
+                    var projectIds = projects.Select(p => p.Id).ToList();
+
+                    var certsAwaitingAction = await context.PaymentCertificates
+                        .CountAsync(c => projectIds.Contains(c.ProjectId) &&
+                            (c.Status == CertificateStatus.SubmittedToConsultant || c.Status == CertificateStatus.Queried));
+
+                    var overdueActivities = await context.ProjectMilestones
+                        .CountAsync(m => projectIds.Contains(m.ProjectId) && m.Status != MilestoneStatus.Complete && m.PlannedEndDate < today);
+
+                    var diaryEntriesToday = await context.SiteDiaryEntries
+                        .CountAsync(d => projectIds.Contains(d.ProjectId) && d.DiaryDate == today);
+
+                    var projectSummaries = projects
+                        .Select(p =>
+                        {
+                            var contractSum = p.LatestBoqContractSum > 0 ? p.LatestBoqContractSum : p.Budget;
+                            var pct = contractSum > 0 ? Math.Round(p.LatestCertGrossValuation / contractSum * 100, 1) : 0;
+                            return (p.Name, Pct: pct);
+                        })
+                        .OrderBy(p => p.Name)
+                        .ToList();
+
+                    var html = BuildConstructionDigestHtml(projectSummaries, certsAwaitingAction, overdueActivities, diaryEntriesToday, today);
+
+                    foreach (var to in recipients)
+                        await _emailService.SendEmailAsync(to, $"[Anchor Pro] Daily Site Digest — {today:MMM dd, yyyy}", html);
+
+                    if (lastSent == null)
+                    {
+                        context.SystemSettings.Add(new SystemSetting
+                        {
+                            Key = "Notify.LastDigestSentDate",
+                            Value = today.ToString("O"),
+                            Description = "Internal — last date the daily digest was sent for this tenant",
+                            Group = "Notifications",
+                            TenantId = tenantId
+                        });
+                    }
+                    else
+                    {
+                        lastSent.Value = today.ToString("O");
+                    }
+                    await context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send construction daily digest for tenant {TenantId}", setting.TenantId);
+                }
+            }
+        }
+
+        private static string BuildConstructionDigestHtml(
+            List<(string Name, decimal Pct)> projects, int certsAwaitingAction, int overdueActivities, int diaryEntriesToday, DateTime date)
+        {
+            var sb = new StringBuilder();
+            sb.Append($@"
+<html>
+<head>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body, table, td, p, div {{ font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #334155; line-height: 1.5; margin: 0; padding: 0; }}
+        body {{ background-color: #f1f5f9; padding: 20px 0; }}
+        .content {{ max-width: 640px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }}
+        .header {{ background-color: #0f172a; color: #ffffff; padding: 30px 40px; text-align: center; }}
+        .header h1 {{ color: #ffffff; font-size: 22px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }}
+        .header p {{ color: #94a3b8; font-size: 14px; margin-top: 6px; }}
+        .section {{ padding: 24px 40px; border-bottom: 1px solid #e2e8f0; }}
+        .section-title {{ font-size: 16px; color: #334155; margin-bottom: 14px; border-left: 4px solid #3b82f6; padding-left: 10px; }}
+        .kpi-table {{ width: 100%; border-spacing: 8px 0; }}
+        .kpi-cell {{ width: 25%; text-align: center; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; }}
+        .kpi-value {{ font-size: 24px; font-weight: 700; color: #3b82f6; display: block; margin-bottom: 4px; }}
+        .kpi-label {{ font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }}
+        .kpi-cell.alert .kpi-value {{ color: #ef4444; }}
+        .data-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+        .data-table th {{ background-color: #f8fafc; color: #475569; text-align: left; padding: 10px 15px; font-weight: 600; border-bottom: 2px solid #e2e8f0; }}
+        .data-table td {{ padding: 10px 15px; border-bottom: 1px solid #e2e8f0; }}
+        .data-table tr:last-child td {{ border-bottom: none; }}
+        .footer {{ background-color: #f8fafc; padding: 24px 40px; text-align: center; font-size: 12px; color: #94a3b8; }}
+    </style>
+</head>
+<body>
+    <div class='content'>
+        <div class='header'>
+            <h1>Daily Site Digest</h1>
+            <p>{date:dddd, MMMM dd, yyyy}</p>
+        </div>
+        <div class='section'>
+            <h3 class='section-title'>Today's Numbers</h3>
+            <table class='kpi-table'>
+                <tr>
+                    <td class='kpi-cell'><span class='kpi-value'>{projects.Count}</span><span class='kpi-label'>Active Projects</span></td>
+                    <td class='kpi-cell {(certsAwaitingAction > 0 ? "alert" : "")}'><span class='kpi-value'>{certsAwaitingAction}</span><span class='kpi-label'>Certificates Awaiting Action</span></td>
+                    <td class='kpi-cell {(overdueActivities > 0 ? "alert" : "")}'><span class='kpi-value'>{overdueActivities}</span><span class='kpi-label'>Overdue Activities</span></td>
+                    <td class='kpi-cell'><span class='kpi-value'>{diaryEntriesToday}</span><span class='kpi-label'>Diary Entries Today</span></td>
+                </tr>
+            </table>
+        </div>
+        <div class='section'>
+            <h3 class='section-title'>Project Progress</h3>
+            <table class='data-table'>
+                <thead><tr><th>Project</th><th style='text-align:right;'>Certified Progress</th></tr></thead>
+                <tbody>");
+
+            foreach (var p in projects)
+            {
+                sb.Append($@"<tr><td>{p.Name}</td><td style='text-align:right;font-weight:700;'>{p.Pct}%</td></tr>");
+            }
+
+            sb.Append(@"
+                </tbody>
+            </table>
+        </div>
+        <div class='footer'>
+            <p>Generated by <strong>Anchor Pro</strong> &bull; Automated Daily Digest</p>
+        </div>
+    </div>
+</body>
+</html>");
+
+            return sb.ToString();
+        }
+
         private DateTime CalculateNextRun(string schedule)
         {
             // MVP: Simple predefined schedules

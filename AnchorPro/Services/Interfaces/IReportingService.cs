@@ -16,8 +16,13 @@ namespace AnchorPro.Services.Interfaces
 
         // Process due reports (called by scheduler)
         Task ProcessDueReportsAsync();
-        
+
         // Manually trigger a report
         Task RunReportAsync(int reportId);
+
+        // Emails each tenant's construction daily digest (project progress, certificates awaiting
+        // action, overdue schedule activities, diary entries logged today) to Notify.EmailRecipients,
+        // once per calendar day. Called by the scheduler; no-ops for tenants with no recipients set.
+        Task SendConstructionDailyDigestAsync();
     }
 }

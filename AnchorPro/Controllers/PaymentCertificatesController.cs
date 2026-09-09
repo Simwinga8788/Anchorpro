@@ -19,11 +19,13 @@ namespace AnchorPro.Controllers
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
         private readonly IFinancialService _financialService;
+        private readonly ISettingsService _settingsService;
 
-        public CertificatesController(IDbContextFactory<ApplicationDbContext> factory, IFinancialService financialService)
+        public CertificatesController(IDbContextFactory<ApplicationDbContext> factory, IFinancialService financialService, ISettingsService settingsService)
         {
             _factory = factory;
             _financialService = financialService;
+            _settingsService = settingsService;
         }
 
         /// <summary>
@@ -91,6 +93,10 @@ namespace AnchorPro.Controllers
             decimal previousPaid = previousCerts.Sum(c => c.NetAmountDue);
             int nextCertNumber = await db.PaymentCertificates.CountAsync(c => c.ProjectId == dto.ProjectId) + 1;
 
+            decimal retentionPercentage = dto.RetentionPercentage > 0
+                ? dto.RetentionPercentage
+                : await _settingsService.GetSettingAsync<decimal>("Org.DefaultRetentionPercentage", 5.00m);
+
             var cert = new PaymentCertificate
             {
                 ProjectId = dto.ProjectId,
@@ -98,7 +104,7 @@ namespace AnchorPro.Controllers
                 CertificateNumber = $"IPC-{nextCertNumber:D2}",
                 PeriodStartDate = dto.PeriodStartDate,
                 PeriodEndDate = dto.PeriodEndDate,
-                RetentionPercentage = dto.RetentionPercentage > 0 ? dto.RetentionPercentage : 5.00m,
+                RetentionPercentage = retentionPercentage,
                 PreviousCertificatesPaid = previousPaid,
                 Status = CertificateStatus.Draft
             };
@@ -389,7 +395,8 @@ namespace AnchorPro.Controllers
         public int ProjectId { get; set; }
         public DateTime PeriodStartDate { get; set; }
         public DateTime PeriodEndDate { get; set; }
-        public decimal RetentionPercentage { get; set; } = 5.00m;
+        // 0 means "not specified" — Create() falls back to Org.DefaultRetentionPercentage.
+        public decimal RetentionPercentage { get; set; } = 0m;
     }
 
     public class AddCertificatePhotoDto

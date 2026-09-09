@@ -25,6 +25,7 @@ namespace AnchorPro.Services
                     {
                         var reportingService = scope.ServiceProvider.GetRequiredService<IReportingService>();
                         await reportingService.ProcessDueReportsAsync();
+                        await reportingService.SendConstructionDailyDigestAsync();
 
                         var alertService = scope.ServiceProvider.GetRequiredService<IAlertService>();
                         await alertService.CheckForLowMarginJobsAsync();
