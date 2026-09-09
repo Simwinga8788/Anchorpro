@@ -10,9 +10,6 @@ import {
 
 interface ConstructionOrgData {
   companyName: string;
-  contractorCategory: string;
-  contractorGrade: string;
-  standardContract: string;
   timezone: string;
 }
 
@@ -24,29 +21,6 @@ interface AdminData {
   password: string;
   confirm: string;
 }
-
-const CONTRACTOR_CATEGORIES = [
-  'General Building & Structural Civil',
-  'Roads, Highways & Earthworks',
-  'Mining Infrastructure & Concrete',
-  'Commercial Fitout & Industrial Turnkey',
-  'Mechanical, Electrical & Plumbing (MEP)'
-];
-
-const CONTRACTOR_GRADES = [
-  'National Reg: Grade 1 (Unlimited / Large Scale)',
-  'National Reg: Grade 2 ($5M - $20M)',
-  'National Reg: Grade 3 ($1M - $5M)',
-  'Regional Specialist Contractor',
-  'Independent General Contractor'
-];
-
-const CONTRACT_STANDARDS = [
-  'JBCC (Joint Building Contracts Committee - Standard)',
-  'FIDIC Conditions of Contract (Red / Yellow Book)',
-  'GCC (General Conditions of Contract for Civil Engineering)',
-  'NEC4 Engineering and Construction Contract'
-];
 
 const TIMEZONES = [
   'Africa/Lusaka', 'Africa/Johannesburg', 'Africa/Harare', 'Africa/Nairobi',
@@ -68,9 +42,6 @@ export default function RegisterPage() {
 
   const [org, setOrg] = useState<ConstructionOrgData>({
     companyName: '',
-    contractorCategory: CONTRACTOR_CATEGORIES[0],
-    contractorGrade: CONTRACTOR_GRADES[0],
-    standardContract: CONTRACT_STANDARDS[0],
     timezone: 'Africa/Lusaka'
   });
 
@@ -118,7 +89,6 @@ export default function RegisterPage() {
         body: JSON.stringify({
           companyName: org.companyName,
           industry: 'Construction',
-          size: org.contractorGrade,
           timezone: org.timezone,
           firstName: admin.firstName,
           lastName: admin.lastName,
@@ -191,8 +161,8 @@ export default function RegisterPage() {
                     width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '13px', fontWeight: 600,
-                    background: state === 'done' ? '#10b981' : state === 'active' ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                    color: state === 'idle' ? '#64748b' : '#fff',
+                    background: state === 'done' ? '#10b981' : state === 'active' ? '#3b82f6' : 'var(--bg-hover)',
+                    color: state === 'idle' ? 'var(--text-tertiary)' : '#fff',
                     boxShadow: state === 'active' ? '0 0 0 4px rgba(59,130,246,0.2)' : 'none',
                     transition: 'all 0.25s',
                   }}>
@@ -200,14 +170,14 @@ export default function RegisterPage() {
                   </div>
                   <span style={{
                     marginLeft: '10px', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap',
-                    color: state === 'active' ? '#f8fafc' : state === 'done' ? '#10b981' : '#64748b',
+                    color: state === 'active' ? 'var(--text-primary)' : state === 'done' ? '#10b981' : 'var(--text-tertiary)',
                   }}>
                     {s.label}
                   </span>
                   {i < STEPS.length - 1 && (
                     <div style={{
                       flex: 1, height: '2px', margin: '0 14px',
-                      background: state === 'done' ? '#10b981' : 'rgba(255,255,255,0.1)',
+                      background: state === 'done' ? '#10b981' : 'var(--border-default)',
                     }} />
                   )}
                 </div>
@@ -216,7 +186,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Card */}
-          <div className="card" style={{ padding: '32px', background: 'var(--bg-surface, #1e293b)', borderRadius: 12, border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))' }}>
+          <div className="card" style={{ padding: '32px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
             {error && (
               <div style={{ 
                 display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', 
@@ -244,66 +214,25 @@ export default function RegisterPage() {
                   <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
                     Construction Company Legal Name *
                   </label>
-                  <input 
-                    className="input-field" 
+                  <input
+                    className="form-input"
                     placeholder="e.g. Anchor Civil & Building Contractors Ltd"
-                    value={org.companyName} 
-                    onChange={e => setOrg({ ...org, companyName: e.target.value })} 
+                    value={org.companyName}
+                    onChange={e => setOrg({ ...org, companyName: e.target.value })}
                     required
                   />
                 </div>
 
-                <div className="input-group" style={{ marginBottom: '16px' }}>
-                  <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Contractor Category / Sector
-                  </label>
-                  <select 
-                    className="input-field" 
-                    value={org.contractorCategory} 
-                    onChange={e => setOrg({ ...org, contractorCategory: e.target.value })}
-                  >
-                    {CONTRACTOR_CATEGORIES.map(c => <option key={c} value={c} style={{ background: '#1e293b' }}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
-                  <div className="input-group">
-                    <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                      Contractor Grading / Capacity
-                    </label>
-                    <select 
-                      className="input-field" 
-                      value={org.contractorGrade} 
-                      onChange={e => setOrg({ ...org, contractorGrade: e.target.value })}
-                    >
-                      {CONTRACTOR_GRADES.map(g => <option key={g} value={g} style={{ background: '#1e293b' }}>{g}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                      Timezone
-                    </label>
-                    <select 
-                      className="input-field" 
-                      value={org.timezone} 
-                      onChange={e => setOrg({ ...org, timezone: e.target.value })}
-                    >
-                      {TIMEZONES.map(t => <option key={t} value={t} style={{ background: '#1e293b' }}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-
                 <div className="input-group" style={{ marginBottom: '24px' }}>
                   <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Standard Contract Standard (Commercial & IPC Valuation)
+                    Timezone
                   </label>
-                  <select 
-                    className="input-field" 
-                    value={org.standardContract} 
-                    onChange={e => setOrg({ ...org, standardContract: e.target.value })}
+                  <select
+                    className="form-select"
+                    value={org.timezone}
+                    onChange={e => setOrg({ ...org, timezone: e.target.value })}
                   >
-                    {CONTRACT_STANDARDS.map(cs => <option key={cs} value={cs} style={{ background: '#1e293b' }}>{cs}</option>)}
+                    {TIMEZONES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
 
@@ -330,14 +259,14 @@ export default function RegisterPage() {
                   </h2>
                 </div>
                 <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #94a3b8)', marginBottom: '24px' }}>
-                  Creating primary credentials for <strong style={{ color: '#fff' }}>{org.companyName}</strong>.
+                  Creating primary credentials for <strong style={{ color: 'var(--text-primary)' }}>{org.companyName}</strong>.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
                   <div className="input-group">
                     <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>First Name *</label>
                     <input 
-                      className="input-field" placeholder="Felix"
+                      className="form-input" placeholder="Felix"
                       value={admin.firstName} onChange={e => setAdmin({ ...admin, firstName: e.target.value })} 
                       required
                     />
@@ -345,7 +274,7 @@ export default function RegisterPage() {
                   <div className="input-group">
                     <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Last Name *</label>
                     <input 
-                      className="input-field" placeholder="Simwinga"
+                      className="form-input" placeholder="Simwinga"
                       value={admin.lastName} onChange={e => setAdmin({ ...admin, lastName: e.target.value })} 
                       required
                     />
@@ -355,7 +284,7 @@ export default function RegisterPage() {
                 <div className="input-group" style={{ marginBottom: '16px' }}>
                   <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Work Email (Username) *</label>
                   <input 
-                    className="input-field" type="email" placeholder="director@anchorconstruction.com"
+                    className="form-input" type="email" placeholder="director@anchorconstruction.com"
                     value={admin.email} onChange={e => setAdmin({ ...admin, email: e.target.value })} 
                     required
                   />
@@ -365,7 +294,7 @@ export default function RegisterPage() {
                   <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Password *</label>
                   <div style={{ position: 'relative' }}>
                     <input 
-                      className="input-field" type={showPw ? 'text' : 'password'} placeholder="Min 8 characters"
+                      className="form-input" type={showPw ? 'text' : 'password'} placeholder="Min 8 characters"
                       value={admin.password} onChange={e => setAdmin({ ...admin, password: e.target.value })}
                       style={{ paddingRight: '40px' }} 
                       required
@@ -383,7 +312,7 @@ export default function RegisterPage() {
                   <label className="form-label" style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Confirm Password *</label>
                   <div style={{ position: 'relative' }}>
                     <input 
-                      className="input-field" type={showCpw ? 'text' : 'password'} placeholder="Repeat password"
+                      className="form-input" type={showCpw ? 'text' : 'password'} placeholder="Repeat password"
                       value={admin.confirm} onChange={e => setAdmin({ ...admin, confirm: e.target.value })}
                       style={{ paddingRight: '40px' }} 
                       required
