@@ -212,9 +212,9 @@ export default function SettingsPage() {
   // ── Billing ─────────────────────────────────────────────────────────────────
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
-  const [upgrading, setUpgrading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showProofModal, setShowProofModal] = useState(false);
+  const [selectedPlanForProof, setSelectedPlanForProof] = useState<any>(null);
   const [proofForm, setProofForm] = useState({ amount: '', paymentMethod: 'Bank Transfer', transactionReference: '', notes: '' });
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
@@ -588,15 +588,14 @@ export default function SettingsPage() {
 
 
 
-  const handleUpgrade = async (planId: number) => {
-    setUpgrading(true);
-    try {
-      const res = await subscriptionsApi.upgrade({ newPlanId: planId });
-      show((res as any)?.message || 'Plan upgrade requested');
-      setShowUpgradeModal(false);
-      subscriptionsApi.getCurrent().then(setSubscriptionData).catch(() => {});
-    } catch (e: any) { show(e.message || 'Upgrade failed', 'error'); }
-    finally { setUpgrading(false); }
+  // Selecting a plan never activates it directly — there's no payment gateway, so every plan
+  // change (including a tenant's very first plan) has to go through proof + Platform Owner
+  // approval, same as a renewal. This just hands off to that flow, pre-filled with the plan's price.
+  const handleSelectPlan = (plan: any) => {
+    setSelectedPlanForProof(plan);
+    setProofForm(f => ({ ...f, amount: String(plan.monthlyPrice ?? 0) }));
+    setShowUpgradeModal(false);
+    setShowProofModal(true);
   };
 
   const handleSubmitProof = async (e: React.FormEvent) => {
@@ -611,9 +610,13 @@ export default function SettingsPage() {
         paymentMethod: proofForm.paymentMethod,
         transactionReference: proofForm.transactionReference || undefined,
         notes: proofForm.notes || undefined,
+        requestedPlanId: selectedPlanForProof?.id,
       });
-      show('Payment proof submitted — a Platform Owner will review it shortly.');
+      show(selectedPlanForProof
+        ? `Request to switch to ${selectedPlanForProof.name} submitted — a Platform Owner will review it shortly.`
+        : 'Payment proof submitted — a Platform Owner will review it shortly.');
       setShowProofModal(false);
+      setSelectedPlanForProof(null);
       setProofForm({ amount: '', paymentMethod: 'Bank Transfer', transactionReference: '', notes: '' });
       setProofFile(null);
     } catch (e: any) { show(e.message || 'Failed to submit payment proof', 'error'); }
@@ -1169,7 +1172,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setShowProofModal(true)}>Submit Proof of Payment</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedPlanForProof(null); setShowProofModal(true); }}>Submit Proof of Payment</button>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Change Plan</button>
               </div>
             </div>
@@ -1308,7 +1311,7 @@ export default function SettingsPage() {
       <ToastContainer toasts={toasts} />
 
       {/* Upgrade Modal */}
-      <SlideOver open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="Change Plan" subtitle="Select a tier that matches your scale.">
+      <SlideOver open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="Change Plan" subtitle="No payment gateway yet — selecting a plan submits a request for Platform Owner approval, it doesn't activate immediately.">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {allPlans.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>Loading plans...</div>
@@ -1328,8 +1331,8 @@ export default function SettingsPage() {
                     K {(plan.monthlyPrice ?? 0).toLocaleString()} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>/ mo</span>
                   </div>
                   <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`}
-                    onClick={() => handleUpgrade(plan.id)} disabled={active || upgrading} style={{ minWidth: 90 }}>
-                    {active ? 'Active' : upgrading ? 'Wait...' : 'Select'}
+                    onClick={() => handleSelectPlan(plan)} disabled={active} style={{ minWidth: 90 }}>
+                    {active ? 'Active' : 'Request'}
                   </button>
                 </div>
               </div>
@@ -1339,8 +1342,17 @@ export default function SettingsPage() {
       </SlideOver>
 
       {/* Submit Proof of Payment */}
-      <SlideOver open={showProofModal} onClose={() => setShowProofModal(false)} title="Submit Proof of Payment" subtitle="There's no payment gateway yet — pay by bank transfer or mobile money, then attach your receipt here for a Platform Owner to verify.">
+      <SlideOver open={showProofModal} onClose={() => { setShowProofModal(false); setSelectedPlanForProof(null); }}
+        title={selectedPlanForProof ? `Request: ${selectedPlanForProof.name}` : 'Submit Proof of Payment'}
+        subtitle={selectedPlanForProof
+          ? `No payment gateway yet — pay by bank transfer or mobile money, then attach your receipt. A Platform Owner will switch you to ${selectedPlanForProof.name} once verified.`
+          : "There's no payment gateway yet — pay by bank transfer or mobile money, then attach your receipt here for a Platform Owner to verify."}>
         <form onSubmit={handleSubmitProof} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {selectedPlanForProof && (
+            <div style={{ padding: 12, borderRadius: 8, background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue)', fontSize: 12.5, color: 'var(--text-primary)' }}>
+              Requesting <strong>{selectedPlanForProof.name}</strong> — K {(selectedPlanForProof.monthlyPrice ?? 0).toLocaleString()}/mo
+            </div>
+          )}
           <div className="form-field">
             <label className="form-label">Amount Paid (ZMW)</label>
             <input className="form-input" type="number" step="0.01" min="0.01" required

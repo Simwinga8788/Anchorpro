@@ -608,6 +608,10 @@ export const settingsApi = {
 // ─── Subscriptions API ── /api/subscriptions ───────────────────────────────────
 export const subscriptionsApi = {
   getPlans:          ()                                  => apiFetch<any[]>('/api/subscriptions/plans'),
+  getPlansForAdmin:  ()                                  => apiFetch<any[]>('/api/subscriptions/plans/admin'),
+  createPlan:        (data: any)                         => apiPost<any>('/api/subscriptions/plans', data),
+  updatePlan:        (id: number, data: any)              => apiPut<any>(`/api/subscriptions/plans/${id}`, data),
+  setPlanActive:     (id: number, isActive: boolean)      => apiPost<any>(`/api/subscriptions/plans/${id}/set-active`, { isActive }),
   getCurrent:        ()                                  => apiFetch<any>('/api/subscriptions/current'),
   getMrrTrend:       ()                                  => apiFetch<any[]>('/api/subscriptions/mrr-trend'),
   upgrade:           (data: any)                         => apiPost<any>('/api/subscriptions/upgrade', data),
@@ -618,8 +622,7 @@ export const subscriptionsApi = {
   reactivate:        (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/reactivate`, data),
   cancel:            (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/cancel`, data),
   convertTrial:      (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/convert-trial`, data),
-  updatePlanPrice:   (id: number, price: number)         => apiPut<any>(`/api/subscriptions/plans/${id}/price`, { price }),
-  submitPaymentProof:(data: { amount: number; proofUrl: string; paymentMethod?: string; transactionReference?: string; notes?: string }) =>
+  submitPaymentProof:(data: { amount: number; proofUrl: string; paymentMethod?: string; transactionReference?: string; notes?: string; requestedPlanId?: number }) =>
     apiPost<any>('/api/subscriptions/payment-proof', data),
   getPaymentProofs:  (status?: string)                   => apiFetch<any[]>(`/api/subscriptions/payment-proofs${status ? `?status=${status}` : ''}`),
   approvePaymentProof:(id: number)                       => apiPost<any>(`/api/subscriptions/payment-proofs/${id}/approve`, {}),

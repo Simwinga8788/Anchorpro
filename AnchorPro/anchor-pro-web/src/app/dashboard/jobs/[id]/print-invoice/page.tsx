@@ -83,7 +83,7 @@ export default function PrintInvoicePage() {
                 {tenant?.name?.toUpperCase() || 'ANCHOR PRO'}
               </h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#4b5563', fontWeight: 500 }}>
-                {tenant?.name ? 'Production Planning & Service Operation' : 'Production Planning & Service Operation Tool'}
+                {tenant?.name ? 'Construction Management Platform' : 'Construction Management Platform'}
               </p>
               <p style={{ margin: '3px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
                 {tenant?.address || 'Lusaka, Zambia'} {tenant?.contactEmail ? `· ${tenant.contactEmail}` : ''} {tenant?.contactPhone ? `· ${tenant.contactPhone}` : ''}

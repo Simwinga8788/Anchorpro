@@ -176,8 +176,15 @@ export default function PaymentsPage() {
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.tenantName ?? `Tenant #${p.id}`} — {p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  {p.requestedPlanName ? (
+                    <div style={{ fontSize: 11.5, color: 'var(--accent-blue)', fontWeight: 600 }}>
+                      {p.isNewSubscription ? 'New subscription request' : 'Plan change requested'}: {p.currentPlanName ? `${p.currentPlanName} → ` : ''}{p.requestedPlanName}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{p.currentPlanName ?? 'Plan N/A'} (renewal)</div>
+                  )}
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
-                    {p.planName ?? 'Plan N/A'} · {p.paymentMethod}{p.transactionReference ? ` · Ref: ${p.transactionReference}` : ''} · {new Date(p.createdAt).toLocaleDateString()}
+                    {p.paymentMethod}{p.transactionReference ? ` · Ref: ${p.transactionReference}` : ''} · {new Date(p.createdAt).toLocaleDateString()}
                   </div>
                   {p.notes && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontStyle: 'italic' }}>“{p.notes}”</div>}
                 </div>

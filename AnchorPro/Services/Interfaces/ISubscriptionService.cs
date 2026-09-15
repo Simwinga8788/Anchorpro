@@ -9,10 +9,14 @@ public interface ISubscriptionService
     Task<TenantSubscription?> GetCurrentSubscriptionAsync(int? tenantId = null);
     Task<SubscriptionPlan?> GetCurrentPlanAsync(int? tenantId = null);
     Task<List<SubscriptionPlan>> GetAllPlansAsync();
+    // Platform Owner plan management — includes inactive plans, unlike GetAllPlansAsync (tenant-facing).
+    Task<List<SubscriptionPlan>> GetAllPlansForAdminAsync();
+    Task<SubscriptionPlan> CreatePlanAsync(SubscriptionPlan plan, string userId);
+    Task<SubscriptionPlan?> UpdatePlanAsync(int planId, SubscriptionPlan updated, string userId);
+    Task<bool> SetPlanActiveAsync(int planId, bool isActive, string userId);
     Task<bool> UpgradeSubscriptionAsync(int tenantId, int newPlanId, string userId);
     Task<bool> IsFeatureEnabledAsync(string featureName, int? tenantId = null);
     Task<bool> CheckLimitAsync(string limitType, int currentCount, int? tenantId = null);
     Task<bool> IsTrialExpiredAsync(int? tenantId = null);
     Task<int> GetDaysRemainingAsync(int? tenantId = null);
-    Task<bool> UpdatePlanPriceAsync(int planId, decimal monthlyPrice);
 }

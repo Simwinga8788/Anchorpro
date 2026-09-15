@@ -35,7 +35,7 @@ namespace AnchorPro.Controllers
             _configuration = configuration;
         }
 
-        /// <summary>
+/// <summary>
         /// Returns the currently authenticated user's profile and roles.
         /// Used by the React frontend to determine what to show.
         /// </summary>

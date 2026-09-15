@@ -17,8 +17,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     // freezes CurrentTenantId at null for the rest of the request even once the real user (and
     // their claim) is fully authenticated. Reading it live avoids that race.
     public int? CurrentTenantId => tenantService.TenantId;
-    // Single-tenancy: IgnoreTenantFilter is always true so all data is accessible to the company without tenant partitioning
-    public bool IgnoreTenantFilter { get; set; } = true;
+
+    private bool? _ignoreTenantFilterOverride;
+
+    /// <summary>
+    /// Whether the per-tenant query filter is bypassed. Defaults to bypassed ONLY when there's
+    /// no real tenant context — a Platform Owner (no TenantId), an anonymous request, or a
+    /// background job with no HttpContext. A genuine tenant-scoped user gets the filter enforced
+    /// by default, so one company's data is never visible to another's. Any explicit assignment
+    /// (background workers doing legitimate cross-tenant work, Platform Owner endpoints reading
+    /// across tenants) still forces the value either way, exactly as before.
+    /// </summary>
+    public bool IgnoreTenantFilter
+    {
+        get => _ignoreTenantFilterOverride ?? !CurrentTenantId.HasValue;
+        set => _ignoreTenantFilterOverride = value;
+    }
 
     public DbSet<Entities.Equipment> Equipment { get; set; }
     public DbSet<Entities.JobType> JobTypes { get; set; }
@@ -147,14 +161,30 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
+                 // TenantSubscription hides TenantId with its own non-nullable `new int TenantId` —
+                 // going through the generic T:BaseEntity constraint binds to the base (nullable)
+                 // property instead of the real mapped column, so the filter would silently exclude
+                 // every row once actually enforced. Handled explicitly, below the loop, instead.
+                 if (entityType.ClrType == typeof(TenantSubscription)) continue;
+
+                 // SubscriptionPlan is a global catalog by design (TenantId is always null — see
+                 // DbSeeder and SubscriptionService.CreatePlanAsync) — every tenant browses the same
+                 // plan list. The generic filter would otherwise hide every plan from a real tenant
+                 // context, since null never equals a real CurrentTenantId. No filter = always visible.
+                 if (entityType.ClrType == typeof(SubscriptionPlan)) continue;
+
                  // Use reflection to invoke 'SetTenantFilter<T>'
                  var method = typeof(ApplicationDbContext)
                      .GetMethod(nameof(SetTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
                      ?.MakeGenericMethod(entityType.ClrType);
-                 
+
                  method?.Invoke(this, new object[] { builder });
             }
         }
+
+        // TenantSubscription's own filter, bound to its concrete (non-nullable) TenantId directly
+        // rather than through the generic constraint above.
+        builder.Entity<TenantSubscription>().HasQueryFilter(e => IgnoreTenantFilter || e.TenantId == CurrentTenantId);
 
         // SystemSetting Configuration
         builder.Entity<SystemSetting>().HasQueryFilter(s => IgnoreTenantFilter || s.TenantId == CurrentTenantId);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Edit2, RefreshCw, Loader2 } from 'lucide-react';
+import { CheckCircle2, Edit2, Plus, RefreshCw, Loader2, EyeOff, Eye } from 'lucide-react';
 import { subscriptionsApi } from '@/lib/api';
 import Modal from '@/components/Modal';
 import { formatCurrency } from '@/lib/currency';
@@ -14,6 +14,12 @@ const PLAN_GRADIENTS = [
   'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))',
 ];
 
+const BLANK_FORM = {
+  name: '', description: '', monthlyPrice: '0', annualPrice: '0', currency: 'ZMW',
+  maxTechnicians: '5', maxEquipment: '10', maxActiveJobs: '20', storageLimitMB: '500',
+  allowExports: true, allowPredictiveEngine: false, allowMobileAccess: true,
+};
+
 function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
   return <div style={{ height: h, width: w, borderRadius: 6, background: 'rgba(255,255,255,0.07)', animation: 'pulse 1.5s ease-in-out infinite' }} />;
 }
@@ -23,44 +29,88 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
-  const [editingPlan, setEditingPlan] = useState<any>(null);
-  const [priceInput, setPriceInput] = useState('');
+  const [editingPlan, setEditingPlan] = useState<any>(null); // null = closed, {} = creating new
+  const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
-    subscriptionsApi.getPlans()
+    subscriptionsApi.getPlansForAdmin()
       .then(data => { setPlans(Array.isArray(data) ? data : []); setError(null); })
-      .catch(() => setError('Could not load plans from /api/subscriptions/plans'))
+      .catch(() => setError('Could not load plans from /api/subscriptions/plans/admin'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
 
-  const handleEditClick = (plan: any) => {
-    setEditingPlan(plan);
-    setPriceInput((plan.monthlyPrice ?? plan.price ?? plan.amount ?? 0).toString());
+  const handleNewClick = () => {
+    setEditingPlan({});
+    setForm(BLANK_FORM);
   };
 
-  const handleSavePrice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingPlan) return;
+  const handleEditClick = (plan: any) => {
+    setEditingPlan(plan);
+    setForm({
+      name: plan.name ?? '',
+      description: plan.description ?? '',
+      monthlyPrice: String(plan.monthlyPrice ?? 0),
+      annualPrice: String(plan.annualPrice ?? 0),
+      currency: plan.currency ?? 'ZMW',
+      maxTechnicians: String(plan.maxTechnicians ?? 0),
+      maxEquipment: String(plan.maxEquipment ?? 0),
+      maxActiveJobs: String(plan.maxActiveJobs ?? 0),
+      storageLimitMB: String(plan.storageLimitMB ?? 0),
+      allowExports: !!plan.allowExports,
+      allowPredictiveEngine: !!plan.allowPredictiveEngine,
+      allowMobileAccess: !!plan.allowMobileAccess,
+    });
+  };
 
-    const price = parseFloat(priceInput);
-    if (isNaN(price) || price < 0) {
-      alert('Please enter a valid non-negative price');
-      return;
-    }
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) { alert('Plan name is required'); return; }
+
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      monthlyPrice: parseFloat(form.monthlyPrice) || 0,
+      annualPrice: parseFloat(form.annualPrice) || 0,
+      currency: form.currency,
+      maxTechnicians: parseInt(form.maxTechnicians) || 0,
+      maxEquipment: parseInt(form.maxEquipment) || 0,
+      maxActiveJobs: parseInt(form.maxActiveJobs) || 0,
+      storageLimitMB: parseInt(form.storageLimitMB) || 0,
+      allowExports: form.allowExports,
+      allowPredictiveEngine: form.allowPredictiveEngine,
+      allowMobileAccess: form.allowMobileAccess,
+    };
 
     setSaving(true);
     try {
-      await subscriptionsApi.updatePlanPrice(editingPlan.id, price);
+      if (editingPlan?.id) {
+        await subscriptionsApi.updatePlan(editingPlan.id, payload);
+      } else {
+        await subscriptionsApi.createPlan(payload);
+      }
       setEditingPlan(null);
       load();
     } catch (err: any) {
-      alert(err.message || 'Failed to update plan price');
+      alert(err.message || 'Failed to save plan');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (plan: any) => {
+    setTogglingId(plan.id);
+    try {
+      await subscriptionsApi.setPlanActive(plan.id, !plan.isActive);
+      load();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update plan');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -69,9 +119,12 @@ export default function PlansPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: -0.5, marginBottom: 4 }}>Subscription Plans</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Configure tiers, features and pricing · GET /api/subscriptions/plans</p>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Create, edit, and retire tiers — everything here is live, nothing is hardcoded.</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={load}><RefreshCw size={13}/> Refresh</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={load}><RefreshCw size={13}/> Refresh</button>
+          <button className="btn btn-primary btn-sm" onClick={handleNewClick}><Plus size={13}/> New Plan</button>
+        </div>
       </div>
 
       {error && (
@@ -93,42 +146,56 @@ export default function PlansPage() {
         </div>
       ) : plans.length === 0 ? (
         <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 14, marginBottom: 8 }}>No plans returned from the API</div>
-          <div style={{ fontSize: 12 }}>Seed subscription plans in the database via the backend</div>
+          <div style={{ fontSize: 14, marginBottom: 8 }}>No plans yet</div>
+          <button className="btn btn-primary btn-sm" onClick={handleNewClick} style={{ marginTop: 12 }}><Plus size={13}/> Create your first plan</button>
         </div>
       ) : (
         <div className="stats-grid-3" style={{ marginBottom: 28, alignItems: 'start' }}>
           {plans.map((plan: any, idx: number) => {
             const color    = PLAN_COLORS[idx % PLAN_COLORS.length];
             const gradient = PLAN_GRADIENTS[idx % PLAN_GRADIENTS.length];
-            const price    = plan.monthlyPrice ?? plan.price ?? plan.amount ?? 0;
-            const features: string[] = plan.features ?? plan.featureList ?? [];
-            const tenantCount = plan.tenantCount ?? plan.subscriberCount ?? 0;
+            const price    = plan.monthlyPrice ?? 0;
+            const limits = [
+              `${plan.maxTechnicians} technicians`,
+              `${plan.maxEquipment} equipment`,
+              `${plan.maxActiveJobs} active jobs`,
+              `${plan.storageLimitMB} MB storage`,
+            ];
+            const features = [
+              plan.allowExports && 'Exports',
+              plan.allowPredictiveEngine && 'Predictive engine',
+              plan.allowMobileAccess && 'Mobile access',
+            ].filter(Boolean) as string[];
             return (
-              <div key={plan.id ?? plan.name} style={{ background: gradient, border: `1px solid ${color}30`, borderRadius: 'var(--radius-xl)', padding: 24 }}>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
-                    {plan.name ?? plan.planName ?? `Plan ${idx + 1}`}
+              <div key={plan.id} style={{ background: plan.isActive ? gradient : 'var(--bg-hover)', border: `1px solid ${plan.isActive ? color + '30' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-xl)', padding: 24, opacity: plan.isActive ? 1 : 0.6 }}>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                      {plan.name}
+                    </div>
+                    {!plan.isActive && <span className="badge badge-gray" style={{ fontSize: 9 }}>Inactive</span>}
                   </div>
-                  <div style={{ fontSize: price === 0 ? 18 : 32, fontWeight: 800, color, letterSpacing: -1, lineHeight: 1 }}>
-                    {price === 0 ? 'Custom' : formatCurrency(price, plan.currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  <div style={{ fontSize: price === 0 ? 18 : 32, fontWeight: 800, color: plan.isActive ? color : 'var(--text-muted)', letterSpacing: -1, lineHeight: 1 }}>
+                    {price === 0 ? 'Free' : formatCurrency(price, plan.currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>per month</div>
+                  {plan.description && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>{plan.description}</div>}
                 </div>
-                {features.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
-                    {features.map((f: string) => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <CheckCircle2 size={13} style={{ color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ paddingTop: 16, borderTop: `1px solid ${color}20`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    <strong style={{ color }}>{tenantCount}</strong> tenants
-                  </span>
+                <div style={{ marginBottom: 16 }}>
+                  {limits.map(l => (
+                    <div key={l} style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginBottom: 4 }}>{l}</div>
+                  ))}
+                  {features.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                      <CheckCircle2 size={13} style={{ color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ paddingTop: 16, borderTop: `1px solid ${color}20`, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" disabled={togglingId === plan.id} onClick={() => handleToggleActive(plan)}>
+                    {plan.isActive ? <EyeOff size={11}/> : <Eye size={11}/>} {plan.isActive ? 'Deactivate' : 'Activate'}
+                  </button>
                   <button className="btn btn-secondary btn-sm" onClick={() => handleEditClick(plan)}><Edit2 size={11}/> Edit</button>
                 </div>
               </div>
@@ -148,43 +215,76 @@ export default function PlansPage() {
       <Modal
         open={editingPlan !== null}
         onClose={() => setEditingPlan(null)}
-        title="Update Subscription Price"
-        subtitle={`Modify the monthly subscription rate for the "${editingPlan?.name}" tier.`}
-        width={400}
+        title={editingPlan?.id ? 'Edit Plan' : 'New Plan'}
+        subtitle={editingPlan?.id ? `Update every field on the "${editingPlan?.name}" tier.` : 'Create a new subscription tier.'}
+        width={480}
       >
-        <form onSubmit={handleSavePrice} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Monthly Price ({editingPlan?.currency || 'ZMW'})</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className="form-input"
-              value={priceInput}
-              onChange={e => setPriceInput(e.target.value)}
-              placeholder="e.g. 4500"
-              required
-              disabled={saving}
-              autoFocus
-            />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Plan Name</label>
+            <input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Starter" required disabled={saving} autoFocus />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
+            <textarea className="form-input" style={{ minHeight: 50 }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this tier is for and who it suits" disabled={saving} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Monthly Price</label>
+              <input type="number" step="0.01" min="0" className="form-input" value={form.monthlyPrice} onChange={e => setForm(f => ({ ...f, monthlyPrice: e.target.value }))} disabled={saving} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Annual Price</label>
+              <input type="number" step="0.01" min="0" className="form-input" value={form.annualPrice} onChange={e => setForm(f => ({ ...f, annualPrice: e.target.value }))} disabled={saving} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Currency</label>
+              <select className="form-select" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} disabled={saving}>
+                <option value="ZMW">ZMW</option>
+                <option value="USD">USD</option>
+                <option value="ZAR">ZAR</option>
+                <option value="KES">KES</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>Limits</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Max Technicians</label>
+              <input type="number" min="0" className="form-input" value={form.maxTechnicians} onChange={e => setForm(f => ({ ...f, maxTechnicians: e.target.value }))} disabled={saving} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Max Equipment</label>
+              <input type="number" min="0" className="form-input" value={form.maxEquipment} onChange={e => setForm(f => ({ ...f, maxEquipment: e.target.value }))} disabled={saving} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Max Active Jobs</label>
+              <input type="number" min="0" className="form-input" value={form.maxActiveJobs} onChange={e => setForm(f => ({ ...f, maxActiveJobs: e.target.value }))} disabled={saving} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Storage (MB)</label>
+              <input type="number" min="0" className="form-input" value={form.storageLimitMB} onChange={e => setForm(f => ({ ...f, storageLimitMB: e.target.value }))} disabled={saving} />
+            </div>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 }}>Features</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { key: 'allowExports' as const, label: 'Exports' },
+              { key: 'allowPredictiveEngine' as const, label: 'Predictive engine' },
+              { key: 'allowMobileAccess' as const, label: 'Mobile access' },
+            ].map(({ key, label }) => (
+              <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} disabled={saving} />
+                {label}
+              </label>
+            ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setEditingPlan(null)}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary btn-sm"
-              disabled={saving}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-            >
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingPlan(null)} disabled={saving}>Cancel</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {saving && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
-              Save Changes
+              {editingPlan?.id ? 'Save Changes' : 'Create Plan'}
             </button>
           </div>
         </form>
@@ -193,4 +293,3 @@ export default function PlansPage() {
     </div>
   );
 }
-

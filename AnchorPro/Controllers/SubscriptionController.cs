@@ -73,11 +73,15 @@ namespace AnchorPro.Controllers
         public async Task<ActionResult> Upgrade([FromBody] UpgradeRequest req)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "API_User";
-            var sub = await _subscriptionService.GetCurrentSubscriptionAsync();
-            if (sub == null) return BadRequest("No active subscription found.");
 
-            var success = await _subscriptionService.UpgradeSubscriptionAsync(sub.TenantId, req.NewPlanId, userId);
-            return success ? Ok(new { message = "Subscription upgraded." }) : BadRequest("Upgrade failed.");
+            // Resolve from the caller's own tenant context, not an existing subscription — a
+            // tenant selecting a plan for the first time (no TenantSubscription row yet) is a
+            // normal case, not an error. UpgradeSubscriptionAsync creates one if missing.
+            var tenantId = _context.CurrentTenantId;
+            if (tenantId == null) return BadRequest("No tenant context for this account.");
+
+            var success = await _subscriptionService.UpgradeSubscriptionAsync(tenantId.Value, req.NewPlanId, userId);
+            return success ? Ok(new { message = "Subscription updated." }) : BadRequest("Update failed.");
         }
 
         // ── FEATURE FLAGS ─────────────────────────────────────────────────────
@@ -203,16 +207,53 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
+        // ── PLAN MANAGEMENT (Platform Owner) ────────────────────────────────────
+
         /// <summary>
-        /// PUT /api/subscriptions/plans/{id}/price
-        /// Body: { "price": 4500.00 }
+        /// GET /api/subscriptions/plans/admin — every plan including inactive ones, for the
+        /// Platform Owner's own management page. GetPlans (tenant-facing) only shows active ones.
         /// </summary>
-        [HttpPut("plans/{id}/price")]
+        [HttpGet("plans/admin")]
         [Authorize(Policy = "PlatformOwner")]
-        public async Task<ActionResult> UpdatePlanPrice(int id, [FromBody] UpdatePlanPriceRequest req)
+        public async Task<ActionResult> GetPlansForAdmin()
+            => Ok(await _subscriptionService.GetAllPlansForAdminAsync());
+
+        /// <summary>
+        /// POST /api/subscriptions/plans — create a new plan.
+        /// </summary>
+        [HttpPost("plans")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> CreatePlan([FromBody] SavePlanRequest req)
         {
-            var success = await _subscriptionService.UpdatePlanPriceAsync(id, req.Price);
-            return success ? Ok(new { message = "Plan price updated." }) : NotFound("Plan not found.");
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var plan = await _subscriptionService.CreatePlanAsync(req.ToEntity(), userId);
+            return Ok(plan);
+        }
+
+        /// <summary>
+        /// PUT /api/subscriptions/plans/{id} — update every field on an existing plan.
+        /// </summary>
+        [HttpPut("plans/{id}")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> UpdatePlan(int id, [FromBody] SavePlanRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var plan = await _subscriptionService.UpdatePlanAsync(id, req.ToEntity(), userId);
+            return plan == null ? NotFound("Plan not found.") : Ok(plan);
+        }
+
+        /// <summary>
+        /// POST /api/subscriptions/plans/{id}/set-active
+        /// Body: { "isActive": false } — deactivating hides it from tenants without deleting it
+        /// (plans are referenced by existing subscriptions/payment records, so hard delete isn't safe).
+        /// </summary>
+        [HttpPost("plans/{id}/set-active")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> SetPlanActive(int id, [FromBody] SetPlanActiveRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var success = await _subscriptionService.SetPlanActiveAsync(id, req.IsActive, userId);
+            return success ? Ok(new { message = req.IsActive ? "Plan activated." : "Plan deactivated." }) : NotFound("Plan not found.");
         }
 
         // ── PAYMENT PROOFS (no payment gateway — every payment is manually verified) ────────────
@@ -227,21 +268,32 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,PlatformOwner")]
         public async Task<ActionResult> SubmitPaymentProof([FromBody] SubmitPaymentProofRequest req)
         {
+            // No existing subscription yet is a normal case — a tenant choosing their first plan
+            // still has to go through proof + approval, same as a renewal or a plan change.
+            var tenantId = _context.CurrentTenantId;
+            if (tenantId == null) return BadRequest("No tenant context for this account.");
+
             var subscription = await _subscriptionService.GetCurrentSubscriptionAsync();
-            if (subscription == null)
-                return BadRequest("No subscription found for your workspace — contact support.");
 
             if (string.IsNullOrWhiteSpace(req.ProofUrl))
                 return BadRequest("A proof document (receipt/screenshot) is required.");
+
+            SubscriptionPlan? requestedPlan = null;
+            if (req.RequestedPlanId.HasValue)
+            {
+                requestedPlan = await _context.SubscriptionPlans.FindAsync(req.RequestedPlanId.Value);
+                if (requestedPlan == null) return BadRequest("The selected plan was not found.");
+            }
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
 
             var transaction = new PaymentTransaction
             {
-                TenantId = subscription.TenantId,
-                TenantSubscriptionId = subscription.Id,
+                TenantId = tenantId,
+                TenantSubscriptionId = subscription?.Id,
+                RequestedPlanId = req.RequestedPlanId,
                 Amount = req.Amount,
-                Currency = subscription.SubscriptionPlan?.Currency ?? "ZMW",
+                Currency = requestedPlan?.Currency ?? subscription?.SubscriptionPlan?.Currency ?? "ZMW",
                 PaymentMethod = string.IsNullOrWhiteSpace(req.PaymentMethod) ? "Bank Transfer" : req.PaymentMethod,
                 TransactionReference = req.TransactionReference,
                 Status = "Pending",
@@ -269,6 +321,7 @@ namespace AnchorPro.Controllers
             var query = _context.PaymentTransactions
                 .Include(p => p.Tenant)
                 .Include(p => p.TenantSubscription!).ThenInclude(s => s!.SubscriptionPlan)
+                .Include(p => p.RequestedPlan)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -288,8 +341,10 @@ namespace AnchorPro.Controllers
                     p.Notes,
                     p.CreatedAt,
                     p.ApprovedAt,
+                    RequestedPlanName = p.RequestedPlan != null ? p.RequestedPlan.Name : null,
+                    IsNewSubscription = p.TenantSubscriptionId == null,
                     TenantName = p.Tenant != null ? p.Tenant.Name : null,
-                    PlanName = p.TenantSubscription != null ? p.TenantSubscription.SubscriptionPlan!.Name : null
+                    CurrentPlanName = p.TenantSubscription != null ? p.TenantSubscription.SubscriptionPlan!.Name : null
                 })
                 .ToListAsync();
 
@@ -312,6 +367,7 @@ namespace AnchorPro.Controllers
                 .FirstOrDefaultAsync(p => p.Id == id);
             if (transaction == null) return NotFound();
             if (transaction.Status != "Pending") return BadRequest($"This proof was already {transaction.Status.ToLower()}.");
+            if (transaction.TenantId == null) return BadRequest("This proof has no tenant attached.");
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
             var now = DateTime.UtcNow;
@@ -319,10 +375,18 @@ namespace AnchorPro.Controllers
             transaction.Status = "Approved";
             transaction.ApprovedAt = now;
             transaction.ApprovedByUserId = userId;
+            await _context.SaveChangesAsync();
 
-            var subscription = transaction.TenantSubscription;
-            if (subscription != null)
+            if (transaction.RequestedPlanId.HasValue)
             {
+                // Plan change (or first-ever plan selection) — creates the subscription if the
+                // tenant didn't have one yet, or switches the existing one to the requested plan.
+                await _subscriptionService.UpgradeSubscriptionAsync(transaction.TenantId.Value, transaction.RequestedPlanId.Value, userId);
+            }
+            else if (transaction.TenantSubscription != null)
+            {
+                // Plain renewal on the current plan — just confirm payment and extend billing.
+                var subscription = transaction.TenantSubscription;
                 subscription.LastPaymentDate = now;
                 subscription.NextBillingDate = now.AddMonths(1);
                 subscription.PaymentRetryCount = 0;
@@ -349,9 +413,9 @@ namespace AnchorPro.Controllers
 
                 subscription.UpdatedAt = now;
                 subscription.UpdatedBy = userId;
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return Ok(new { message = "Payment confirmed and subscription updated." });
         }
 
@@ -394,9 +458,42 @@ namespace AnchorPro.Controllers
         public string Reason { get; set; } = string.Empty;
     }
 
-    public class UpdatePlanPriceRequest
+    public class SavePlanRequest
     {
-        public decimal Price { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal MonthlyPrice { get; set; }
+        public decimal AnnualPrice { get; set; }
+        public string Currency { get; set; } = "ZMW";
+        public int MaxTechnicians { get; set; }
+        public int MaxEquipment { get; set; }
+        public int MaxActiveJobs { get; set; }
+        public int StorageLimitMB { get; set; }
+        public bool AllowExports { get; set; }
+        public bool AllowPredictiveEngine { get; set; }
+        public bool AllowMobileAccess { get; set; }
+
+        public SubscriptionPlan ToEntity() => new()
+        {
+            Name = Name,
+            Description = Description,
+            MonthlyPrice = MonthlyPrice,
+            AnnualPrice = AnnualPrice,
+            Currency = Currency,
+            MaxTechnicians = MaxTechnicians,
+            MaxEquipment = MaxEquipment,
+            MaxActiveJobs = MaxActiveJobs,
+            StorageLimitMB = StorageLimitMB,
+            AllowExports = AllowExports,
+            AllowPredictiveEngine = AllowPredictiveEngine,
+            AllowMobileAccess = AllowMobileAccess,
+            IsActive = true
+        };
+    }
+
+    public class SetPlanActiveRequest
+    {
+        public bool IsActive { get; set; }
     }
 
     public class SubmitPaymentProofRequest
@@ -406,5 +503,8 @@ namespace AnchorPro.Controllers
         public string? PaymentMethod { get; set; }
         public string? TransactionReference { get; set; }
         public string? Notes { get; set; }
+        /// <summary>Set when this proof is for choosing a new plan (first selection or a change),
+        /// not just renewing the current one.</summary>
+        public int? RequestedPlanId { get; set; }
     }
 }

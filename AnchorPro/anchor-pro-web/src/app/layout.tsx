@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Anchor Pro — Production Planning & Service Operation Tool",
-  description: "Production & Service Operations Management System",
+  title: "Anchor Pro — Construction Management Platform",
+  description: "Site diary, schedule, BOQ, certificates, and project reporting for construction contractors",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
