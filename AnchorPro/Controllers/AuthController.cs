@@ -76,7 +76,6 @@ namespace AnchorPro.Controllers
             });
         }
 
-
         /// <summary>
         /// Login endpoint for the React frontend (cookie-based, same as Blazor).
         /// </summary>
@@ -336,6 +335,39 @@ namespace AnchorPro.Controllers
                     new SystemSetting { TenantId = tenant.Id, Key = "Dict.MiningDashboard", Value = "Site Performance", Group = "Dictionary" }
                 };
                 _db.SystemSettings.AddRange(dictSettings);
+            }
+
+            // Every tenant needs a subscription from day one — without one, GetCurrentPlanAsync
+            // returns null and every feature-flag/limit check silently fails closed. An explicit
+            // PlanId (a Platform Owner setting a customer up directly) activates immediately;
+            // self-service signup with no PlanId starts a 14-day trial on the cheapest active plan.
+            var planId = req.PlanId;
+            if (planId == null)
+            {
+                planId = await _db.SubscriptionPlans
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.MonthlyPrice)
+                    .Select(p => (int?)p.Id)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (planId.HasValue && planId.Value > 0)
+            {
+                var isTrial = req.PlanId == null;
+                var now = DateTime.UtcNow;
+                _db.TenantSubscriptions.Add(new TenantSubscription
+                {
+                    TenantId = tenant.Id,
+                    SubscriptionPlanId = planId.Value,
+                    Status = isTrial ? "Trial" : "Active",
+                    IsTrial = isTrial,
+                    StartDate = now,
+                    TrialEndDate = isTrial ? now.AddDays(14) : null,
+                    NextBillingDate = isTrial ? null : now.AddMonths(1),
+                    AutoRenew = !isTrial,
+                    CreatedAt = now,
+                    CreatedBy = user.Id
+                });
             }
 
             await _db.SaveChangesAsync();

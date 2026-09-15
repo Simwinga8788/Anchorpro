@@ -23,7 +23,6 @@ const CONSTRUCTION_NAV_SECTIONS = [
     label: 'Site & Field Operations',
     items: [
       { href: '/dashboard',               label: 'Site Overview',         icon: LayoutDashboard },
-      { href: '/dashboard/site-diary',    label: 'Daily Site Diary',      icon: ClipboardList },
       { href: '/dashboard/schedule',      label: 'Program & Schedule',    icon: Calendar },
       { href: '/dashboard/safety',        label: 'Safety & Incidents',    icon: ShieldCheck },
     ],
@@ -41,6 +40,7 @@ const CONSTRUCTION_NAV_SECTIONS = [
     label: 'Project Management & Reporting',
     items: [
       { href: '/dashboard/projects',          label: 'Projects Portfolio',   icon: Building2 },
+      { href: '/dashboard/site-diary',        label: 'Daily Site Diary',      icon: ClipboardList },
       { href: '/dashboard/reports/weekly',    label: 'Weekly Progress Report', icon: BarChart3 },
       { href: '/dashboard/reports/monthly',   label: 'Monthly Client Report', icon: FileText },
     ],

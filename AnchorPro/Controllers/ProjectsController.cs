@@ -335,7 +335,9 @@ namespace AnchorPro.Controllers
             {
                 ProjectId = id,
                 FileName = file.FileName,
-                FileUrl = $"/uploads/{fileName}",
+                // Absolute URL — the frontend is served from a different origin (Vercel) than this
+                // API (Railway), so a bare "/uploads/..." path would resolve against the wrong host.
+                FileUrl = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}",
                 UploadedById = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
                 Category = category,
                 RevisionNumber = string.IsNullOrWhiteSpace(revisionNumber) ? null : revisionNumber.Trim(),

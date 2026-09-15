@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using AnchorPro.Data;
+using AnchorPro.Data.Entities;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,13 +18,16 @@ namespace AnchorPro.Controllers
     {
         private readonly ISubscriptionService _subscriptionService;
         private readonly ISubscriptionLifecycleService _lifecycleService;
+        private readonly ApplicationDbContext _context;
 
         public SubscriptionController(
             ISubscriptionService subscriptionService,
-            ISubscriptionLifecycleService lifecycleService)
+            ISubscriptionLifecycleService lifecycleService,
+            ApplicationDbContext context)
         {
             _subscriptionService = subscriptionService;
             _lifecycleService = lifecycleService;
+            _context = context;
         }
 
         // ── PLANS ─────────────────────────────────────────────────────────────
@@ -117,16 +123,18 @@ namespace AnchorPro.Controllers
         /// </summary>
         [HttpGet("mrr-trend")]
         [Authorize(Policy = "PlatformOwner")]
-        public async Task<ActionResult> GetMrrTrend([FromServices] AnchorPro.Data.ApplicationDbContext context)
+        public async Task<ActionResult> GetMrrTrend()
         {
-            context.IgnoreTenantFilter = true;
+            _context.IgnoreTenantFilter = true;
             var now = DateTime.UtcNow;
             var sixMonthsAgo = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-5);
 
-            // Real cash collected per calendar month from InvoicePayments
-            var payments = await context.InvoicePayments
-                .Where(p => p.PaymentDate >= sixMonthsAgo)
-                .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
+            // Real cash collected per calendar month from verified subscription payments.
+            // (InvoicePayments is Feligo's own client billing — a different revenue stream entirely
+            // from what AnchorPro collects from tenants for their subscription.)
+            var payments = await _context.PaymentTransactions
+                .Where(p => p.Status == "Approved" && p.ApprovedAt.HasValue && p.ApprovedAt.Value >= sixMonthsAgo)
+                .GroupBy(p => new { p.ApprovedAt!.Value.Year, p.ApprovedAt!.Value.Month })
                 .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(p => p.Amount) })
                 .ToListAsync();
 
@@ -206,6 +214,172 @@ namespace AnchorPro.Controllers
             var success = await _subscriptionService.UpdatePlanPriceAsync(id, req.Price);
             return success ? Ok(new { message = "Plan price updated." }) : NotFound("Plan not found.");
         }
+
+        // ── PAYMENT PROOFS (no payment gateway — every payment is manually verified) ────────────
+
+        /// <summary>
+        /// POST /api/subscriptions/payment-proof — a tenant Admin submits proof of having paid their
+        /// subscription (bank transfer confirmation, mobile money receipt). Upload the file via
+        /// /api/upload first and pass the returned URL here. Stays Pending until a Platform Owner
+        /// approves or rejects it — nothing changes on the subscription until then.
+        /// </summary>
+        [HttpPost("payment-proof")]
+        [Authorize(Roles = "Admin,PlatformOwner")]
+        public async Task<ActionResult> SubmitPaymentProof([FromBody] SubmitPaymentProofRequest req)
+        {
+            var subscription = await _subscriptionService.GetCurrentSubscriptionAsync();
+            if (subscription == null)
+                return BadRequest("No subscription found for your workspace — contact support.");
+
+            if (string.IsNullOrWhiteSpace(req.ProofUrl))
+                return BadRequest("A proof document (receipt/screenshot) is required.");
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+
+            var transaction = new PaymentTransaction
+            {
+                TenantId = subscription.TenantId,
+                TenantSubscriptionId = subscription.Id,
+                Amount = req.Amount,
+                Currency = subscription.SubscriptionPlan?.Currency ?? "ZMW",
+                PaymentMethod = string.IsNullOrWhiteSpace(req.PaymentMethod) ? "Bank Transfer" : req.PaymentMethod,
+                TransactionReference = req.TransactionReference,
+                Status = "Pending",
+                ProofDocumentUrl = req.ProofUrl,
+                Notes = req.Notes,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            _context.PaymentTransactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Payment proof submitted — a Platform Owner will review it shortly.", id = transaction.Id });
+        }
+
+        /// <summary>
+        /// GET /api/subscriptions/payment-proofs?status=Pending — Platform Owner review queue.
+        /// Omit status to see all.
+        /// </summary>
+        [HttpGet("payment-proofs")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> GetPaymentProofs([FromQuery] string? status = null)
+        {
+            _context.IgnoreTenantFilter = true;
+            var query = _context.PaymentTransactions
+                .Include(p => p.Tenant)
+                .Include(p => p.TenantSubscription!).ThenInclude(s => s!.SubscriptionPlan)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(p => p.Status == status);
+
+            var results = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Amount,
+                    p.Currency,
+                    p.PaymentMethod,
+                    p.TransactionReference,
+                    p.Status,
+                    p.ProofDocumentUrl,
+                    p.Notes,
+                    p.CreatedAt,
+                    p.ApprovedAt,
+                    TenantName = p.Tenant != null ? p.Tenant.Name : null,
+                    PlanName = p.TenantSubscription != null ? p.TenantSubscription.SubscriptionPlan!.Name : null
+                })
+                .ToListAsync();
+
+            return Ok(results);
+        }
+
+        /// <summary>
+        /// POST /api/subscriptions/payment-proofs/{id}/approve
+        /// Confirms the payment: records it (feeds the MRR trend), extends the subscription's next
+        /// billing date by a month, resets any suspension/grace-period/dunning state back to Active,
+        /// and converts a trial to paid.
+        /// </summary>
+        [HttpPost("payment-proofs/{id}/approve")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> ApprovePaymentProof(int id)
+        {
+            _context.IgnoreTenantFilter = true;
+            var transaction = await _context.PaymentTransactions
+                .Include(p => p.TenantSubscription)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (transaction == null) return NotFound();
+            if (transaction.Status != "Pending") return BadRequest($"This proof was already {transaction.Status.ToLower()}.");
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+            var now = DateTime.UtcNow;
+
+            transaction.Status = "Approved";
+            transaction.ApprovedAt = now;
+            transaction.ApprovedByUserId = userId;
+
+            var subscription = transaction.TenantSubscription;
+            if (subscription != null)
+            {
+                subscription.LastPaymentDate = now;
+                subscription.NextBillingDate = now.AddMonths(1);
+                subscription.PaymentRetryCount = 0;
+
+                if (subscription.IsTrial)
+                {
+                    subscription.IsTrial = false;
+                    subscription.ConvertedFromTrial = true;
+                    subscription.TrialConvertedAt = now;
+                    subscription.TrialEndDate = null;
+                }
+
+                if (subscription.Status is "Suspended" or "GracePeriod" or "PastDue" or "Trial")
+                {
+                    subscription.Status = "Active";
+                    subscription.SuspendedAt = null;
+                    subscription.SuspensionReason = null;
+                    subscription.GracePeriodStartDate = null;
+                    subscription.GracePeriodEndDate = null;
+                    subscription.ReactivatedAt = now;
+                    subscription.ReactivatedByUserId = userId;
+                    subscription.ReactivationNotes = "Reactivated on payment proof approval";
+                }
+
+                subscription.UpdatedAt = now;
+                subscription.UpdatedBy = userId;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Payment confirmed and subscription updated." });
+        }
+
+        /// <summary>
+        /// POST /api/subscriptions/payment-proofs/{id}/reject
+        /// Body: { "reason": "Amount doesn't match the plan price" }
+        /// </summary>
+        [HttpPost("payment-proofs/{id}/reject")]
+        [Authorize(Policy = "PlatformOwner")]
+        public async Task<ActionResult> RejectPaymentProof(int id, [FromBody] LifecycleActionRequest req)
+        {
+            _context.IgnoreTenantFilter = true;
+            var transaction = await _context.PaymentTransactions.FirstOrDefaultAsync(p => p.Id == id);
+            if (transaction == null) return NotFound();
+            if (transaction.Status != "Pending") return BadRequest($"This proof was already {transaction.Status.ToLower()}.");
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "API_User";
+
+            transaction.Status = "Rejected";
+            transaction.ApprovedAt = DateTime.UtcNow;
+            transaction.ApprovedByUserId = userId;
+            transaction.Notes = string.IsNullOrWhiteSpace(transaction.Notes)
+                ? $"Rejected: {req.Reason}"
+                : $"{transaction.Notes}\n[Rejected: {req.Reason}]";
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Payment proof rejected." });
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
@@ -223,5 +397,14 @@ namespace AnchorPro.Controllers
     public class UpdatePlanPriceRequest
     {
         public decimal Price { get; set; }
+    }
+
+    public class SubmitPaymentProofRequest
+    {
+        public decimal Amount { get; set; }
+        public string ProofUrl { get; set; } = string.Empty;
+        public string? PaymentMethod { get; set; }
+        public string? TransactionReference { get; set; }
+        public string? Notes { get; set; }
     }
 }

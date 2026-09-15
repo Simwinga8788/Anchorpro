@@ -11,7 +11,12 @@ namespace AnchorPro.Data;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentTenantService tenantService) : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
-    public int? CurrentTenantId { get; } = tenantService.TenantId;
+    // Computed live (not captured once at construction): the cookie-auth pipeline resolves this
+    // same scoped DbContext to look up the user *during* authentication, before HttpContext.User
+    // carries the "TenantId" claim yet — capturing tenantService.TenantId at construction time
+    // freezes CurrentTenantId at null for the rest of the request even once the real user (and
+    // their claim) is fully authenticated. Reading it live avoids that race.
+    public int? CurrentTenantId => tenantService.TenantId;
     // Single-tenancy: IgnoreTenantFilter is always true so all data is accessible to the company without tenant partitioning
     public bool IgnoreTenantFilter { get; set; } = true;
 

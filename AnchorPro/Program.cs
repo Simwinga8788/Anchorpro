@@ -126,6 +126,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IReferenceDataService, 
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDowntimeService, AnchorPro.Services.DowntimeService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IReportingService, AnchorPro.Services.ReportingService>();
 builder.Services.AddHostedService<AnchorPro.Services.ReportingWorker>();
+builder.Services.AddHostedService<AnchorPro.Services.SubscriptionLifecycleWorker>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IDashboardService, AnchorPro.Services.DashboardService>();
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IInventoryService, AnchorPro.Services.InventoryService>();

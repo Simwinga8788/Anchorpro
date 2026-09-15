@@ -19,6 +19,13 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return;
     }
 
+    // A Platform Owner has no tenant of their own — /dashboard/* is tenant-operational data
+    // (jobs, sites, projects) that doesn't apply to them. Keep them on the platform console.
+    if (user.isPlatformOwner && pathname?.startsWith('/dashboard')) {
+      router.replace('/platform');
+      return;
+    }
+
     // Logged in but no access to this route
     if (!canAccess(pathname, user.allowedRoutes || [], user.isPlatformOwner)) {
       router.replace('/unauthorized');

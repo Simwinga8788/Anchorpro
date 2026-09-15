@@ -16,15 +16,22 @@ public class SubscriptionService : ISubscriptionService
         _emailService = emailService;
     }
 
-    public async Task<TenantSubscription?> GetCurrentSubscriptionAsync(int tenantId = 1)
+    public async Task<TenantSubscription?> GetCurrentSubscriptionAsync(int? tenantId = null)
     {
+        var effectiveTenantId = tenantId ?? _context.CurrentTenantId;
+        if (effectiveTenantId == null) return null;
+
+        // A tenant can accumulate multiple subscription rows over its lifetime (trial, then
+        // upgrades) — only cancelled/superseded ones stay behind, so the newest row is current.
         return await _context.TenantSubscriptions
             .Include(s => s.SubscriptionPlan)
             .Include(s => s.Tenant)
-            .FirstOrDefaultAsync(s => s.TenantId == tenantId);
+            .Where(s => s.TenantId == effectiveTenantId)
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<SubscriptionPlan?> GetCurrentPlanAsync(int tenantId = 1)
+    public async Task<SubscriptionPlan?> GetCurrentPlanAsync(int? tenantId = null)
     {
         var subscription = await GetCurrentSubscriptionAsync(tenantId);
         return subscription?.SubscriptionPlan;
@@ -113,7 +120,7 @@ public class SubscriptionService : ISubscriptionService
         return true;
     }
 
-    public async Task<bool> IsFeatureEnabledAsync(string featureName, int tenantId = 1)
+    public async Task<bool> IsFeatureEnabledAsync(string featureName, int? tenantId = null)
     {
         var plan = await GetCurrentPlanAsync(tenantId);
         if (plan == null) return false;
@@ -127,7 +134,7 @@ public class SubscriptionService : ISubscriptionService
         };
     }
 
-    public async Task<bool> CheckLimitAsync(string limitType, int currentCount, int tenantId = 1)
+    public async Task<bool> CheckLimitAsync(string limitType, int currentCount, int? tenantId = null)
     {
         var plan = await GetCurrentPlanAsync(tenantId);
         if (plan == null) return false;
@@ -143,16 +150,16 @@ public class SubscriptionService : ISubscriptionService
         return currentCount < limit;
     }
 
-    public async Task<bool> IsTrialExpiredAsync(int tenantId = 1)
+    public async Task<bool> IsTrialExpiredAsync(int? tenantId = null)
     {
         var subscription = await GetCurrentSubscriptionAsync(tenantId);
         if (subscription == null || !subscription.IsTrial) return false;
 
-        return subscription.TrialEndDate.HasValue && 
+        return subscription.TrialEndDate.HasValue &&
                subscription.TrialEndDate.Value < DateTime.UtcNow;
     }
 
-    public async Task<int> GetDaysRemainingAsync(int tenantId = 1)
+    public async Task<int> GetDaysRemainingAsync(int? tenantId = null)
     {
         var subscription = await GetCurrentSubscriptionAsync(tenantId);
         if (subscription == null) return 0;

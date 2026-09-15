@@ -337,7 +337,9 @@ namespace AnchorPro.Controllers
 
         /// <summary>
         /// POST /api/boq/{boqId}/import-csv
-        /// Bulk import BOQ from CSV spreadsheet (columns: SectionCode, SectionName, ItemNumber, Description, Unit, Quantity, Rate)
+        /// Bulk import BOQ from pasted spreadsheet rows (columns: SectionCode, SectionName, ItemNumber,
+        /// Description, Unit, Quantity, Rate). Accepts either comma- or tab-separated rows (Excel/Sheets
+        /// copy-paste is tab-separated) and works with or without a header row.
         /// </summary>
         [HttpPost("{boqId}/import-csv")]
         public async Task<IActionResult> ImportCsv(int boqId, [FromBody] BoqImportCsvDto dto)
@@ -352,8 +354,22 @@ namespace AnchorPro.Controllers
                 return BadRequest("This Bill of Quantities is approved and can no longer be edited directly — start a revision instead.");
 
             var lines = dto.CsvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length <= 1)
-                return BadRequest("CSV requires header and at least one data row.");
+            if (lines.Length == 0)
+                return BadRequest("No rows found to import.");
+
+            // Excel/Google Sheets copy-paste produces tab-separated text, not comma-separated —
+            // detect whichever delimiter the pasted content actually uses.
+            char delimiter = lines[0].Contains('\t') ? '\t' : ',';
+
+            // A header row is optional: if the Quantity column of the first line doesn't parse as a
+            // number, treat it as a header and skip it; otherwise every line is data.
+            var firstRow = lines[0].Split(delimiter);
+            bool firstRowIsData = firstRow.Length >= 6 &&
+                decimal.TryParse(firstRow[firstRow.Length >= 7 ? 5 : 4].Trim(), out _);
+            int startLine = firstRowIsData ? 0 : 1;
+
+            if (lines.Length <= startLine)
+                return BadRequest("No data rows found to import.");
 
             var sections = await db.BoqSections.Where(s => s.BillOfQuantitiesId == boqId).ToListAsync();
             var itemsToAdd = new List<BoqItem>();
@@ -362,9 +378,9 @@ namespace AnchorPro.Controllers
             int sectionOrder = sections.Count;
             int itemOrder = 0;
 
-            for (int i = 1; i < lines.Length; i++)
+            for (int i = startLine; i < lines.Length; i++)
             {
-                var row = lines[i].Split(',');
+                var row = lines[i].Split(delimiter);
                 if (row.Length < 6) continue;
 
                 var secCode = row[0].Trim();

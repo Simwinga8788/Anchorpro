@@ -1,10 +1,34 @@
 'use client';
 import "../globals.css";
-import { AuthProvider } from "@/lib/AuthContext";
-import { useState } from "react";
+import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { useEffect, useState } from "react";
 import { Menu, X, LayoutDashboard, Building2, CreditCard, ClipboardList, Settings, Shield, LogOut } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+
+function PlatformGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { router.push('/login'); return; }
+    // Only Platform Owners belong in the platform console — a tenant Admin/user has no
+    // business here even though the backend already rejects their API calls.
+    if (!user.isPlatformOwner) { router.replace('/dashboard'); }
+  }, [user, loading, router]);
+
+  if (loading || !user || !user.isPlatformOwner) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--border-default)', borderTopColor: 'var(--accent-blue)', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -12,6 +36,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   return (
     <AuthProvider>
+      <PlatformGuard>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
 
         {/* Mobile overlay */}
@@ -179,6 +204,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           }
         }
       `}</style>
+      </PlatformGuard>
     </AuthProvider>
   );
 }

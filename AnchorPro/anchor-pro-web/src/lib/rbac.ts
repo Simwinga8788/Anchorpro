@@ -32,5 +32,8 @@ export function hasPermission(
 }
 
 export function getDefaultRoute(roles: string[], isPlatformOwner: boolean): string {
-  return '/dashboard';
+  // A Platform Owner has no tenant of their own — /dashboard is tenant-operational data
+  // (jobs, sites, projects) that literally doesn't apply to them. Land them on the
+  // platform console (tenants, subscriptions, payment proofs) instead.
+  return isPlatformOwner ? '/platform' : '/dashboard';
 }

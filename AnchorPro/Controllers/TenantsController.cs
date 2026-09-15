@@ -233,11 +233,13 @@ namespace AnchorPro.Controllers
             var plan = await _context.SubscriptionPlans.FindAsync(req.PlanId);
             if (plan == null) return NotFound(new { message = $"Plan {req.PlanId} not found." });
 
-            // Cancel any existing active subscription
-            var existing = await _context.TenantSubscriptions
-                .Where(s => s.TenantId == id && s.Status == "Active")
-                .FirstOrDefaultAsync();
-            if (existing != null)
+            // Supersede any subscription this tenant already has (trial or active) — GetCurrentSubscriptionAsync
+            // picks the newest row by CreatedAt, but leaving an old one as "Active"/"Trial" would still show
+            // up in tenant lists/audits as if it were current.
+            var existingSubs = await _context.TenantSubscriptions
+                .Where(s => s.TenantId == id && s.Status != "Cancelled")
+                .ToListAsync();
+            foreach (var existing in existingSubs)
             {
                 existing.Status = "Cancelled";
                 existing.CancelledAt = DateTime.UtcNow;

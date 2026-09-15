@@ -619,6 +619,11 @@ export const subscriptionsApi = {
   cancel:            (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/cancel`, data),
   convertTrial:      (id: number, data: any)             => apiPost<any>(`/api/subscriptions/${id}/convert-trial`, data),
   updatePlanPrice:   (id: number, price: number)         => apiPut<any>(`/api/subscriptions/plans/${id}/price`, { price }),
+  submitPaymentProof:(data: { amount: number; proofUrl: string; paymentMethod?: string; transactionReference?: string; notes?: string }) =>
+    apiPost<any>('/api/subscriptions/payment-proof', data),
+  getPaymentProofs:  (status?: string)                   => apiFetch<any[]>(`/api/subscriptions/payment-proofs${status ? `?status=${status}` : ''}`),
+  approvePaymentProof:(id: number)                       => apiPost<any>(`/api/subscriptions/payment-proofs/${id}/approve`, {}),
+  rejectPaymentProof: (id: number, reason: string)       => apiPost<any>(`/api/subscriptions/payment-proofs/${id}/reject`, { reason }),
 };
 
 // ─── Departments API ── /api/departments ───────────────────────────────────────

@@ -600,11 +600,18 @@ export default function BoqPage() {
       {/* Import CSV Modal */}
       <Modal open={showImportCsv} onClose={() => setShowImportCsv(false)} title="Import Takeoff (CSV / Excel)">
         <form onSubmit={handleImportCsv} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>New to this? Start from the standard template.</span>
+            <a href="/templates/BOQ_Import_Template.xlsx" download
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              <FileSpreadsheet size={14} /> Download Excel Template
+            </a>
+          </div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-            Paste CSV rows in the format: <br />
+            Fill in the template in Excel, then select and copy your item rows (with or without the header row) and paste them below. Columns: <br />
             <code>SectionCode, SectionName, ItemNumber, Description, Unit, Quantity, Rate</code>
           </p>
-          <textarea 
+          <textarea
             className="form-input" 
             rows={8} 
             placeholder="A, Preliminaries, A.1, Site Establishment, sum, 1, 15000&#10;B, Earthworks, B.1, Bulk Excavation, m3, 450, 22.50" 

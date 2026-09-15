@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Plus, Users, Trash2,
-  Layers, FileCheck, GitBranch, Calendar, ClipboardList, ShieldCheck, BarChart3, ChevronRight, Link2
+  Layers, FileCheck, GitBranch, Calendar, ClipboardList, ShieldCheck, BarChart3, ChevronRight, Link2, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SlideOver from '@/components/SlideOver';
@@ -26,6 +26,24 @@ const CONSTRUCTION_MODULES = [
 
 // Must match the backend ProjectDocumentCategory enum (Data/Entities/ProjectDocument.cs) order exactly.
 const DOCUMENT_CATEGORIES = ['Drawing', 'Specification', 'Contract', 'Photo', 'Other'];
+
+// Documents uploaded before this fix stored a bare "/uploads/..." path, which resolves against the
+// wrong origin (the frontend and API are on different domains) — resolve it against the API host.
+const API_ORIGIN_FALLBACK = 'https://anchorpro-production.up.railway.app';
+function resolveFileUrl(url: string): string {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_ORIGIN_FALLBACK}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+type PreviewKind = 'pdf' | 'image' | 'office' | 'unsupported';
+function getPreviewKind(fileName: string): PreviewKind {
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'].includes(ext)) return 'image';
+  if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) return 'office';
+  return 'unsupported'; // CAD (.dwg/.dxf), .heic and anything else — no in-browser renderer exists
+}
 
 function HealthBar({ current, total }: { current: number, total: number }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
@@ -64,6 +82,7 @@ export default function ProjectDetailsPage() {
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [docForm, setDocForm] = useState({ category: 'Other', revisionNumber: '', boqSectionId: '' });
   const [boqSections, setBoqSections] = useState<any[]>([]);
+  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
 
   useEffect(() => {
     loadProject();
@@ -627,7 +646,16 @@ export default function ProjectDetailsPage() {
                       <td>{new Date(doc.uploadedAt).toLocaleString()}</td>
                       <td>{doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>Download</a>
+                        <div style={{ display: 'flex', gap: 14, justifyContent: 'flex-end' }}>
+                          <button onClick={() => setPreviewDoc(doc)}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent-blue)', fontWeight: 600, fontSize: 13 }}>
+                            Preview
+                          </button>
+                          <a href={resolveFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer"
+                            style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+                            Download
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -860,6 +888,71 @@ export default function ProjectDetailsPage() {
           </div>
         </form>
       </SlideOver>
+
+      {previewDoc && (
+        <DocumentPreviewOverlay doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+      )}
+    </div>
+  );
+}
+
+function DocumentPreviewOverlay({ doc, onClose }: { doc: any; onClose: () => void }) {
+  const url = resolveFileUrl(doc.fileUrl);
+  const kind = getPreviewKind(doc.fileName);
+  const ext = (doc.fileName.split('.').pop() || '').toUpperCase();
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
+  }, [onClose]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', flexDirection: 'column', padding: 20 }} onClick={onClose}>
+      <div className="card-elevated" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.fileName}</div>
+            {doc.revisionNumber && <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{doc.revisionNumber}</div>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+            <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'none' }}>Open in new tab</a>
+            <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: 6 }} aria-label="Close"><X size={16} /></button>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-page)', display: 'flex', alignItems: kind === 'image' ? 'center' : 'stretch', justifyContent: 'center' }}>
+          {kind === 'pdf' && (
+            <iframe src={url} title={doc.fileName} style={{ width: '100%', height: '100%', border: 'none' }} />
+          )}
+          {kind === 'image' && (
+            <img src={url} alt={doc.fileName} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          )}
+          {kind === 'office' && (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', padding: '8px 16px', background: 'var(--bg-hover)', borderBottom: '1px solid var(--border-subtle)' }}>
+                Previewing via Microsoft Office Online — this needs the file to be reachable over the internet. If it doesn't load, use "Open in new tab" or download it instead.
+              </div>
+              <iframe
+                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+                title={doc.fileName} style={{ flex: 1, border: 'none' }} />
+            </div>
+          )}
+          {kind === 'unsupported' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 40, textAlign: 'center' }}>
+              <FileCheck size={32} style={{ color: 'var(--text-muted)' }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>No inline preview for {ext} files</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', maxWidth: 380 }}>
+                {ext === 'DWG' || ext === 'DXF'
+                  ? 'CAD drawings need to be opened in AutoCAD or a compatible CAD viewer.'
+                  : 'This file type can’t be rendered in the browser.'} Download it to view the full file.
+              </div>
+              <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm" style={{ marginTop: 6 }}>Download {doc.fileName}</a>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

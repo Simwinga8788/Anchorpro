@@ -214,6 +214,10 @@ export default function SettingsPage() {
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [upgrading, setUpgrading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofForm, setProofForm] = useState({ amount: '', paymentMethod: 'Bank Transfer', transactionReference: '', notes: '' });
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [submittingProof, setSubmittingProof] = useState(false);
 
   // ── Profile ──────────────────────────────────────────────────────────────────
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '' });
@@ -593,6 +597,27 @@ export default function SettingsPage() {
       subscriptionsApi.getCurrent().then(setSubscriptionData).catch(() => {});
     } catch (e: any) { show(e.message || 'Upgrade failed', 'error'); }
     finally { setUpgrading(false); }
+  };
+
+  const handleSubmitProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proofFile) { show('Attach a receipt or screenshot first', 'error'); return; }
+    setSubmittingProof(true);
+    try {
+      const uploaded: any = await uploadApi.upload(proofFile);
+      await subscriptionsApi.submitPaymentProof({
+        amount: parseFloat(proofForm.amount) || 0,
+        proofUrl: uploaded.url,
+        paymentMethod: proofForm.paymentMethod,
+        transactionReference: proofForm.transactionReference || undefined,
+        notes: proofForm.notes || undefined,
+      });
+      show('Payment proof submitted — a Platform Owner will review it shortly.');
+      setShowProofModal(false);
+      setProofForm({ amount: '', paymentMethod: 'Bank Transfer', transactionReference: '', notes: '' });
+      setProofFile(null);
+    } catch (e: any) { show(e.message || 'Failed to submit payment proof', 'error'); }
+    finally { setSubmittingProof(false); }
   };
 
   // ─── Tab content ──────────────────────────────────────────────────────────
@@ -1130,17 +1155,21 @@ export default function SettingsPage() {
       case 'billing': return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <SectionCard title={`Current Plan: ${subscriptionData?.plan?.name || 'Anchor Pro'}`} subtitle={subscriptionData?.plan?.description || 'Full Access'} icon={<CreditCard size={16} />}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, fontFamily: 'Barlow Condensed, sans-serif' }}>
-                  K {(subscriptionData?.plan?.priceMonthly || 0).toLocaleString()}
+                  K {(subscriptionData?.plan?.monthlyPrice || 0).toLocaleString()}
                   <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>/mo</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginTop: 6, fontWeight: 600 }}>
-                  {subscriptionData?.subscription?.status === 'Trial' ? `Trial active · ${subscriptionData.daysRemaining} days remaining` : 'Billed monthly · Cancel anytime'}
+                <div style={{ fontSize: 11, color: subscriptionData?.subscription?.status === 'Suspended' ? 'var(--accent-rose)' : 'var(--accent-blue)', marginTop: 6, fontWeight: 600 }}>
+                  {subscriptionData?.subscription?.status === 'Trial' ? `Trial active · ${subscriptionData.daysRemaining} days remaining` :
+                   subscriptionData?.subscription?.status === 'Suspended' ? 'Subscription suspended — submit proof of payment to restore access' :
+                   subscriptionData?.subscription?.status === 'GracePeriod' ? `Payment overdue · grace period ends in ${subscriptionData.daysRemaining} days` :
+                   'Billed monthly · No payment gateway — pay by bank transfer / mobile money and submit proof below'}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowProofModal(true)}>Submit Proof of Payment</button>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowUpgradeModal(true)}>Change Plan</button>
               </div>
             </div>
@@ -1307,6 +1336,48 @@ export default function SettingsPage() {
             );
           })}
         </div>
+      </SlideOver>
+
+      {/* Submit Proof of Payment */}
+      <SlideOver open={showProofModal} onClose={() => setShowProofModal(false)} title="Submit Proof of Payment" subtitle="There's no payment gateway yet — pay by bank transfer or mobile money, then attach your receipt here for a Platform Owner to verify.">
+        <form onSubmit={handleSubmitProof} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="form-field">
+            <label className="form-label">Amount Paid (ZMW)</label>
+            <input className="form-input" type="number" step="0.01" min="0.01" required
+              value={proofForm.amount} onChange={e => setProofForm(f => ({ ...f, amount: e.target.value }))} />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Payment Method</label>
+            <select className="form-select" value={proofForm.paymentMethod} onChange={e => setProofForm(f => ({ ...f, paymentMethod: e.target.value }))}>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="MobileMoney">Mobile Money</option>
+              <option value="Cash">Cash</option>
+              <option value="Cheque">Cheque</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Transaction Reference</label>
+            <input className="form-input" value={proofForm.transactionReference}
+              onChange={e => setProofForm(f => ({ ...f, transactionReference: e.target.value }))}
+              placeholder="e.g. Bank ref, MTN Money transaction ID" />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Receipt / Screenshot</label>
+            <input className="form-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
+              onChange={e => setProofFile(e.target.files?.[0] || null)} required />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Notes (optional)</label>
+            <textarea className="form-input" style={{ minHeight: 60 }} value={proofForm.notes}
+              onChange={e => setProofForm(f => ({ ...f, notes: e.target.value }))} />
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingProof}>
+              {submittingProof ? 'Submitting...' : 'Submit for Review'}
+            </button>
+          </div>
+        </form>
       </SlideOver>
 
       {/* Delete Confirm */}

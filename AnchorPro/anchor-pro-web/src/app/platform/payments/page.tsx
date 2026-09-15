@@ -1,8 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Clock, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, RefreshCw, AlertTriangle, FileCheck, X } from 'lucide-react';
 import { platformApi, subscriptionsApi } from '@/lib/api';
+
+function ProofPreviewModal({ url, onClose }: { url: string; onClose: () => void }) {
+  const isPdf = /\.pdf($|\?)/i.test(url);
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', flexDirection: 'column', padding: 20 }} onClick={onClose}>
+      <div className="card-elevated" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'none' }}>Open in new tab</a>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: 6 }} aria-label="Close"><X size={16} /></button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-page)', display: 'flex', alignItems: isPdf ? 'stretch' : 'center', justifyContent: 'center' }}>
+          {isPdf ? <iframe src={url} title="Proof of payment" style={{ width: '100%', height: '100%', border: 'none' }} /> : <img src={url} alt="Proof of payment" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const statusConfig: Record<string, { badge: string; icon: React.ReactNode }> = {
   Active:    { badge: 'badge-green', icon: <CheckCircle2 size={11}/> },
@@ -22,6 +39,11 @@ export default function PaymentsPage() {
   const [actionId, setActionId] = useState<number | null>(null);
   const [search,   setSearch]   = useState('');
 
+  const [proofs, setProofs] = useState<any[]>([]);
+  const [proofsLoading, setProofsLoading] = useState(true);
+  const [proofActionId, setProofActionId] = useState<number | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -35,7 +57,45 @@ export default function PaymentsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadProofs = async () => {
+    setProofsLoading(true);
+    try {
+      const data = await subscriptionsApi.getPaymentProofs('Pending');
+      setProofs(Array.isArray(data) ? data : []);
+    } catch {
+      setProofs([]);
+    } finally {
+      setProofsLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); loadProofs(); }, []);
+
+  const handleApproveProof = async (id: number) => {
+    setProofActionId(id);
+    try {
+      await subscriptionsApi.approvePaymentProof(id);
+      await Promise.all([loadProofs(), load()]);
+    } catch (e: any) {
+      alert(e.message || 'Failed to approve payment');
+    } finally {
+      setProofActionId(null);
+    }
+  };
+
+  const handleRejectProof = async (id: number) => {
+    const reason = prompt('Reason for rejecting this payment proof:');
+    if (reason === null) return;
+    setProofActionId(id);
+    try {
+      await subscriptionsApi.rejectPaymentProof(id, reason);
+      await loadProofs();
+    } catch (e: any) {
+      alert(e.message || 'Failed to reject payment');
+    } finally {
+      setProofActionId(null);
+    }
+  };
 
   const handleSuspend = async (subscriptionId: number) => {
     if (!subscriptionId) { alert('No active subscription found'); return; }
@@ -96,6 +156,45 @@ export default function PaymentsPage() {
           <AlertTriangle size={14}/> {error}
         </div>
       )}
+
+      <div className="card" style={{ padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileCheck size={16} style={{ color: 'var(--accent-blue)' }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Payment Proofs Awaiting Review</span>
+            {proofs.length > 0 && <span className="badge badge-amber" style={{ fontSize: 10 }}>{proofs.length} pending</span>}
+          </div>
+        </div>
+
+        {proofsLoading ? (
+          <Skeleton h={40} />
+        ) : proofs.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', padding: '8px 0' }}>No payment proofs waiting for review.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {proofs.map((p: any) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 200 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.tenantName ?? `Tenant #${p.id}`} — {p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                    {p.planName ?? 'Plan N/A'} · {p.paymentMethod}{p.transactionReference ? ` · Ref: ${p.transactionReference}` : ''} · {new Date(p.createdAt).toLocaleDateString()}
+                  </div>
+                  {p.notes && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontStyle: 'italic' }}>“{p.notes}”</div>}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button className="btn btn-secondary btn-sm" style={{ fontSize: 11 }} onClick={() => setPreviewUrl(p.proofDocumentUrl)}>View Proof</button>
+                  <button className="btn btn-success btn-sm" style={{ fontSize: 11 }} disabled={proofActionId === p.id} onClick={() => handleApproveProof(p.id)}>
+                    {proofActionId === p.id ? '...' : 'Approve'}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, color: 'var(--accent-rose)' }} disabled={proofActionId === p.id} onClick={() => handleRejectProof(p.id)}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div style={{ marginBottom: 16 }}>
         <input
@@ -199,6 +298,7 @@ export default function PaymentsPage() {
         </div>
       </div>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      {previewUrl && <ProofPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

@@ -4,13 +4,15 @@ namespace AnchorPro.Services.Interfaces;
 
 public interface ISubscriptionService
 {
-    Task<TenantSubscription?> GetCurrentSubscriptionAsync(int tenantId = 1);
-    Task<SubscriptionPlan?> GetCurrentPlanAsync(int tenantId = 1);
+    // tenantId: null resolves to the current request's tenant (ApplicationDbContext.CurrentTenantId).
+    // Pass explicitly only from background/system contexts that have no ambient tenant.
+    Task<TenantSubscription?> GetCurrentSubscriptionAsync(int? tenantId = null);
+    Task<SubscriptionPlan?> GetCurrentPlanAsync(int? tenantId = null);
     Task<List<SubscriptionPlan>> GetAllPlansAsync();
     Task<bool> UpgradeSubscriptionAsync(int tenantId, int newPlanId, string userId);
-    Task<bool> IsFeatureEnabledAsync(string featureName, int tenantId = 1);
-    Task<bool> CheckLimitAsync(string limitType, int currentCount, int tenantId = 1);
-    Task<bool> IsTrialExpiredAsync(int tenantId = 1);
-    Task<int> GetDaysRemainingAsync(int tenantId = 1);
+    Task<bool> IsFeatureEnabledAsync(string featureName, int? tenantId = null);
+    Task<bool> CheckLimitAsync(string limitType, int currentCount, int? tenantId = null);
+    Task<bool> IsTrialExpiredAsync(int? tenantId = null);
+    Task<int> GetDaysRemainingAsync(int? tenantId = null);
     Task<bool> UpdatePlanPriceAsync(int planId, decimal monthlyPrice);
 }
