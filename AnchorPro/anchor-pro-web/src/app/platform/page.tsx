@@ -8,6 +8,7 @@ import {
   ChevronRight, MoreHorizontal, Circle
 } from 'lucide-react';
 import { platformApi, subscriptionsApi, auditLogApi } from '@/lib/api';
+import Link from 'next/link';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -106,22 +107,25 @@ export default function PlatformDashboard() {
   const [health,    setHealth]    = useState<any>(null);
   const [mrrTrend,  setMrrTrend]  = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [pendingProofs, setPendingProofs] = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [offline,   setOffline]   = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [t, h, mrr, audit] = await Promise.all([
+      const [t, h, mrr, audit, proofs] = await Promise.all([
         platformApi.getTenants().catch(() => []),
         platformApi.getHealth().catch(() => null),
         subscriptionsApi.getMrrTrend().catch(() => []),
         auditLogApi.getLogs({ pageSize: '12' }).catch(() => null),
+        subscriptionsApi.getPaymentProofs('Pending').catch(() => []),
       ]);
       setTenants(Array.isArray(t) ? t : []);
       setHealth(h);
       setMrrTrend(Array.isArray(mrr) ? mrr : []);
       setAuditLogs(audit?.logs ?? []);
+      setPendingProofs(Array.isArray(proofs) ? proofs : []);
       setOffline(false);
     } catch {
       setOffline(true);
@@ -180,6 +184,35 @@ export default function PlatformDashboard() {
           </a>
         </div>
       </div>
+
+      {/* ── Needs your attention ──────────────────────────────────────────── */}
+      {!loading && pendingProofs.length > 0 && (
+        <Link href="/platform/payments" style={{ textDecoration: 'none' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            background: 'linear-gradient(135deg, rgba(245,158,11,0.14), rgba(245,158,11,0.05))',
+            border: '1px solid rgba(245,158,11,0.35)', borderRadius: 12, padding: '14px 20px', cursor: 'pointer',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CreditCard size={16} style={{ color: '#f59e0b' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {pendingProofs.length} payment {pendingProofs.length === 1 ? 'proof needs' : 'proofs need'} your review
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>
+                  {pendingProofs.slice(0, 3).map((p: any) => p.tenantName).filter(Boolean).join(', ')}
+                  {pendingProofs.length > 3 ? ` and ${pendingProofs.length - 3} more` : ''}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>
+              Review now <ArrowRight size={13} />
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* ── KPI strip ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>

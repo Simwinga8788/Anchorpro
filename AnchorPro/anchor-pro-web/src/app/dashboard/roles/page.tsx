@@ -12,51 +12,35 @@ import { roleDisplayName } from '@/lib/roleDisplayNames';
 import { useAuth } from '@/lib/AuthContext';
 
 const getModuleRoutes = (t: (k: string, d: string) => string, mode: number) => {
-  const routes = [
-    { id: '/dashboard', label: 'Dashboard Overview', category: 'Operations & Planning' },
-    { id: '/dashboard/jobs', label: 'Job Cards', category: 'Operations & Planning' },
-    { id: '/dashboard/my-jobs', label: 'My Assignments', category: 'Operations & Planning' },
-    { id: '/dashboard/planning', label: 'Planning Board', category: 'Operations & Planning' },
-    { id: '/dashboard/time-tracking', label: 'Time Tracking', category: 'Operations & Planning' },
-    { id: '/dashboard/downtime', label: 'Down Time Log', category: 'Operations & Planning' },
-    { id: '/dashboard/safety', label: 'Safety & Compliance', category: 'Operations & Planning' },
-    
-    // Mining Operations (Mode 1)
-    ...(mode === 1 ? [
-      { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Shift Production Logs'), category: t('MiningOperations', 'Mining Operations') },
-      { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Shift Planner'), category: t('MiningOperations', 'Mining Operations') },
-      { id: '/dashboard/performance', label: t('MiningDashboard', 'Mining Dashboard / Performance'), category: t('MiningOperations', 'Mining Operations') },
-      { id: '/dashboard/contractors', label: t('ContractorsTitle', 'Mining Contractors'), category: t('MiningOperations', 'Mining Operations') },
-    ] : []),
-    
-    // Construction (Mode 3)
-    ...(mode === 3 ? [
-      { id: '/dashboard/shift-logs', label: t('ShiftLogsTitle', 'Site Daily Logs'), category: t('ConstructionOperations', 'Construction Operations') },
-      { id: '/dashboard/shift-planning', label: t('ShiftPlanningTitle', 'Site Planner'), category: t('ConstructionOperations', 'Construction Operations') },
-    ] : []),
-    
-    { id: '/dashboard/projects', label: 'Project Management', category: 'Project Management' },
-  { id: '/dashboard/projects/my-tasks', label: 'My Project Tasks', category: 'Project Management' },
-  
-  { id: '/dashboard/hr', label: 'HR & Team', category: 'Human Resources' },
-  { id: '/dashboard/roles', label: 'Roles & Permissions', category: 'Human Resources' },
-  
-  { id: '/dashboard/finance', label: 'Cashbook & Payables', category: 'Finance' },
-  { id: '/dashboard/invoices', label: 'Invoices & Billing', category: 'Finance' },
-  { id: '/dashboard/intelligence', label: 'Intelligence', category: 'Finance' },
-  
-  { id: '/dashboard/customers', label: 'CRM & Customers', category: 'Sales & Customer' },
-  { id: '/dashboard/contracts', label: 'Client Contracts', category: 'Sales & Customer' },
-  
-  { id: '/dashboard/assets', label: 'Asset Registry', category: 'Enterprise Asset Mgt' },
-  { id: '/dashboard/inventory', label: 'Inventory & Parts', category: 'Enterprise Asset Mgt' },
-  { id: '/dashboard/tools', label: 'Tools Registry', category: 'Enterprise Asset Mgt' },
-  { id: '/dashboard/my-tools', label: 'My Tools', category: 'Enterprise Asset Mgt' },
-  { id: '/dashboard/procurement', label: 'Procurement', category: 'Enterprise Asset Mgt' },
-  
-    { id: '/dashboard/settings', label: 'System Settings', category: 'Settings' }
+  // Mirrors Sidebar.tsx's CONSTRUCTION_NAV_SECTIONS — the app is single-vertical construction,
+  // so the permission editor's route catalog must match exactly what the Sidebar actually links to.
+  return [
+    { id: '/dashboard', label: 'Site Overview', category: 'Site & Field Operations' },
+    { id: '/dashboard/schedule', label: 'Program & Schedule', category: 'Site & Field Operations' },
+    { id: '/dashboard/safety', label: 'Safety & Incidents', category: 'Site & Field Operations' },
+
+    { id: '/dashboard/boq', label: 'Bill of Quantities (BOQ)', category: 'Commercial & Quantity Surveying' },
+    { id: '/dashboard/certificates', label: 'Payment Certificates', category: 'Commercial & Quantity Surveying' },
+    { id: '/dashboard/variations', label: 'Variations & Claims', category: 'Commercial & Quantity Surveying' },
+    { id: '/dashboard/contracts', label: 'Contracts & Terms', category: 'Commercial & Quantity Surveying' },
+
+    { id: '/dashboard/projects', label: 'Projects Portfolio', category: 'Project Management & Reporting' },
+    { id: '/dashboard/site-diary', label: 'Daily Site Diary', category: 'Project Management & Reporting' },
+    { id: '/dashboard/reports/weekly', label: 'Weekly Progress Report', category: 'Project Management & Reporting' },
+    { id: '/dashboard/reports/monthly', label: 'Monthly Client Report', category: 'Project Management & Reporting' },
+
+    { id: '/dashboard/assets', label: 'Plant & Equipment', category: 'Plant, Materials & Procurement' },
+    { id: '/dashboard/procurement', label: 'Material Procurement', category: 'Plant, Materials & Procurement' },
+    { id: '/dashboard/inventory', label: 'Site Materials Store', category: 'Plant, Materials & Procurement' },
+    { id: '/dashboard/tools', label: 'Small Tools Registry', category: 'Plant, Materials & Procurement' },
+
+    { id: '/dashboard/finance', label: 'Project Cost & Ledger', category: 'Finance & Administration' },
+    { id: '/dashboard/customers', label: 'Clients & Consultants', category: 'Finance & Administration' },
+    { id: '/dashboard/hr', label: 'Site Team & HR', category: 'Finance & Administration' },
+    { id: '/dashboard/roles', label: 'Roles & Permissions', category: 'Finance & Administration' },
+
+    { id: '/dashboard/settings', label: 'System Settings', category: 'Settings' },
   ];
-  return routes;
 };
 
 interface Role {
@@ -67,11 +51,6 @@ interface Role {
 }
 
 const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> = {
-  '/dashboard/shift-logs': [
-    { label: 'Create Shift Logs', token: '/dashboard/shift-logs:create' },
-    { label: 'Approve / Reject Shift Logs', token: '/dashboard/shift-logs:approve' },
-    { label: 'Edit Shift Logs', token: '/dashboard/shift-logs:edit' },
-  ],
   '/dashboard/hr': [
     { label: 'View Employment Contracts', token: '/dashboard/hr:view_contracts' },
     { label: 'View & Run Payroll', token: '/dashboard/hr:view_payroll' },
@@ -79,16 +58,6 @@ const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> =
     { label: 'View Department Assets', token: '/dashboard/hr:view_department_assets' },
     { label: 'View Department Procurement', token: '/dashboard/hr:view_department_procurement' },
     { label: 'View Department Financials', token: '/dashboard/hr:view_department_financials' },
-  ],
-  '/dashboard/jobs': [
-    { label: 'Create Job Cards', token: '/dashboard/jobs:create' },
-    { label: 'Edit Job Card Details', token: '/dashboard/jobs:edit' },
-    { label: 'Assign Technicians', token: '/dashboard/jobs:assign_technicians' },
-    { label: 'Log Hours & Overtime', token: '/dashboard/jobs:log_hours' },
-    { label: 'Allocate Stock Parts', token: '/dashboard/jobs:log_parts' },
-    { label: 'Log Equipment Photos', token: '/dashboard/jobs:upload_photos' },
-    { label: 'Complete & Close Jobs', token: '/dashboard/jobs:close_job' },
-    { label: 'Delete Work Orders', token: '/dashboard/jobs:delete' },
   ],
   '/dashboard/procurement': [
     { label: 'Raise Purchase Requisitions', token: '/dashboard/procurement:create_requisitions' },
@@ -98,7 +67,6 @@ const GRANULAR_PERMISSIONS: Record<string, { label: string; token: string }[]> =
   ],
   '/dashboard/finance': [
     { label: 'Record Ad-Hoc Expenses', token: '/dashboard/finance:record_expense' },
-    { label: 'Pay Vendor Bills', token: '/dashboard/finance:record_payment' },
   ],
 };
 

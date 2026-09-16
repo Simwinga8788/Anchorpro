@@ -6,6 +6,26 @@ import { Menu, X, LayoutDashboard, Building2, CreditCard, ClipboardList, Setting
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
+function LogoutButton() {
+  const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="sidebar-nav-item"
+      style={{ color: 'var(--accent-rose)', background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+    >
+      <LogOut size={15} /> <span>Log Out</span>
+    </button>
+  );
+}
+
 function PlatformGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -138,11 +158,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
-          {/* Exit console */}
+          {/* Log out */}
           <div style={{ padding: '8px 6px' }}>
-            <Link href="/dashboard" className="sidebar-nav-item" style={{ color: 'var(--accent-rose)' }}>
-              <LogOut size={15} /> <span>Exit Console</span>
-            </Link>
+            <LogoutButton />
           </div>
         </aside>
 

@@ -110,7 +110,6 @@ const NAV_GROUPS = [
     label: 'Workspace',
     items: [
       { id: 'workspace',    icon: <Building2 size={15} />, label: 'General' },
-      { id: 'templates',    icon: <FileText size={15} />,  label: 'Contract Template' },
       { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Terminology' },
     ],
   },
@@ -170,32 +169,6 @@ function RuleRow({ label, desc, checked, onChange }: { label: string; desc: stri
   );
 }
 
-const DEFAULT_CONTRACT_TEMPLATE = `EMPLOYMENT CONTRACT
-
-This Employment Contract ("Contract") is made on {{CurrentDate}},
-
-Employer: {{Company}} (the "Company")
-Employee: {{EmployeeName}} (the "Employee")
-
-1. POSITION AND DUTIES
-The Employer agrees to employ the Employee as a {{JobTitle}}. The Employee will perform duties as assigned by the Employer.
-
-2. COMPENSATION
-The Employee will be paid a monthly salary of ZMW {{Salary}}.
-
-3. WORKING HOURS
-Standard working hours are {{WorkingHours}} hours per month.
-
-4. TERM OF EMPLOYMENT
-This contract commences on {{StartDate}} {{EndDateClause}}.
-
-5. TERMINATION
-Either party may terminate this contract by giving {{NoticePeriod}} days' written notice.
-
-6. CONFIDENTIALITY
-The Employee agrees to keep confidential all proprietary information of the Employer.
-
-IN WITNESS WHEREOF, the parties have executed this Contract as of the date first above written.`;
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
@@ -238,10 +211,6 @@ export default function SettingsPage() {
     setShowDeleteConfirm(false);
   };
 
-  // ── Contract Template ────────────────────────────────────────────────────────
-  const [contractTemplate, setContractTemplate] = useState('');
-  const [savingTemplate, setSavingTemplate] = useState(false);
-
   // ── Financial & Markups ──────────────────────────────────────────────────────
   const [finForm, setFinForm] = useState({ partsMarkup: '20.0', laborBillingRate: '400.0', laborMarkup: '10.0' });
   const [savingFin, setSavingFin] = useState(false);
@@ -257,18 +226,6 @@ export default function SettingsPage() {
       show(e.message || 'Failed to save financial settings', 'error');
     } finally {
       setSavingFin(false);
-    }
-  };
-
-  const handleSaveTemplate = async () => {
-    setSavingTemplate(true);
-    try {
-      await settingsApi.upsert('Hr.ContractTemplate', contractTemplate, 'Default employment contract template', 'Hr');
-      show('Contract template saved');
-    } catch (e: any) {
-      show(e.message || 'Failed to save', 'error');
-    } finally {
-      setSavingTemplate(false);
     }
   };
 
@@ -389,7 +346,6 @@ export default function SettingsPage() {
         Email_From_Name: g('Email_From_Name', ''),
         Email_From_Address: g('Email_From_Address', ''),
       });
-      setContractTemplate(g('Hr.ContractTemplate', DEFAULT_CONTRACT_TEMPLATE));
       setIsSmtpConfigured(!!g('Smtp_Host', ''));
     }).catch(() => {});
 
@@ -854,42 +810,7 @@ export default function SettingsPage() {
       // ── Departments ────────────────────────────────────────────────────────
       
 
-      // ── Contract Template ──────────────────────────────────────────────────
-      case 'templates': return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title="Default Contract Template" subtitle="Customize the template text used when drafting contracts for employees" icon={<FileText size={16} />}
-            footer={<SaveBtn loading={savingTemplate} onClick={handleSaveTemplate} />}>
-            <div style={{ display: 'flex', gap: 24, flexDirection: 'column' }}>
-              <div style={{ padding: '12px 16px', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-blue)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Info size={14} /> Merge Tags Cheat-Sheet
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  You can use the following tags inside the template. The system will dynamically replace them with actual values when generating a draft:
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px 16px', marginTop: 12 }}>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{EmployeeName}}"}</code> — Full Name of employee</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{Company}}"}</code> — Tenant organization name</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{JobTitle}}"}</code> — Employee's role/job title</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{Salary}}"}</code> — Agreed monthly salary</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{WorkingHours}}"}</code> — Standard hours per month</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{StartDate}}"}</code> — Employment start date</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{EndDateClause}}"}</code> — Fixed term end date clause</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{NoticePeriod}}"}</code> — Required days notice</div>
-                  <div style={{ fontSize: 11.5 }}><code style={{ background: 'var(--bg-hover)', padding: '2px 4px', borderRadius: 4 }}>{"{{CurrentDate}}"}</code> — Today's current date</div>
-                </div>
-              </div>
-              <FormRow label="Template Body">
-                <textarea className="form-input" style={{ minHeight: '350px', fontFamily: 'monospace', fontSize: 13, lineHeight: '1.6' }}
-                  value={contractTemplate} onChange={e => setContractTemplate(e.target.value)}
-                  placeholder="Type your contract template here..." />
-              </FormRow>
-            </div>
-          </SectionCard>
-        </div>
-      );
-
-      // ── Terminology ───────────────────────────────────────────────────────
+// ── Terminology ───────────────────────────────────────────────────────
       case 'dictionary': return (
         <SectionCard title="Custom Terminology" subtitle="Rename core terms to match your industry — changes apply everywhere in the platform"
           icon={<BookA size={16} />}
@@ -1332,7 +1253,7 @@ export default function SettingsPage() {
                   </div>
                   <button className={`btn btn-sm ${active ? 'btn-secondary' : 'btn-primary'}`}
                     onClick={() => handleSelectPlan(plan)} disabled={active} style={{ minWidth: 90 }}>
-                    {active ? 'Active' : 'Request'}
+                    {active ? 'Active' : 'Upgrade'}
                   </button>
                 </div>
               </div>

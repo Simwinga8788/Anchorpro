@@ -218,91 +218,87 @@ namespace AnchorPro.Controllers
             return NoContent();
         }
 
+        // The Sidebar (Sidebar.tsx: CONSTRUCTION_NAV_SECTIONS) only ever renders these routes —
+        // the app is single-vertical construction today, there is no Mining/Workshop nav anymore.
+        // "Base" routes gate the Sidebar link itself (canAccess); "Granular" strings gate a
+        // specific button/tab inside a shared page (hasPermission) and must stay in sync with
+        // every hasPermission(...) call site in the frontend or a role silently loses a button.
+        private static readonly List<string> AllConstructionBaseRoutes = new()
+        {
+            "/dashboard", "/dashboard/schedule", "/dashboard/safety",
+            "/dashboard/boq", "/dashboard/certificates", "/dashboard/variations", "/dashboard/contracts",
+            "/dashboard/projects", "/dashboard/site-diary", "/dashboard/reports/weekly", "/dashboard/reports/monthly",
+            "/dashboard/assets", "/dashboard/procurement", "/dashboard/inventory", "/dashboard/tools",
+            "/dashboard/finance", "/dashboard/customers", "/dashboard/hr", "/dashboard/roles",
+            "/dashboard/settings",
+        };
+
+        private static readonly List<string> AllGranularPermissions = new()
+        {
+            "/dashboard/procurement:approve_reject", "/dashboard/procurement:create_requisitions",
+            "/dashboard/procurement:create_orders", "/dashboard/procurement:receive_goods",
+            "/dashboard/finance:record_expense",
+            "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
+            "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
+        };
+
         private List<string> GetDefaultRoutesForRole(string roleName)
         {
-            // Standard backward compatible defaults based on previous rbac.ts
             return roleName switch
             {
-                "Admin" => new List<string> { 
-                    "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", 
-                    "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", 
-                    "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", 
-                    "/dashboard/roles", "/dashboard/settings", "/dashboard/customers", "/dashboard/tools", 
-                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs",
-                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
-                    "/dashboard/projects", "/dashboard/projects/my-tasks",
-                    // HR Granular
+                // Admin: everything — every base route and every granular permission.
+                "Admin" => AllConstructionBaseRoutes.Concat(AllGranularPermissions).Distinct().ToList(),
+
+                // HR: staff, contracts, payroll, department views. No commercial/QS or roles admin.
+                "HR" => new List<string> {
+                    "/dashboard", "/dashboard/hr", "/dashboard/customers", "/dashboard/assets",
+                    "/dashboard/procurement", "/dashboard/finance",
                     "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
                     "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
-                    // Jobs Granular
-                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
-                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
-                    "/dashboard/jobs:close_job", "/dashboard/jobs:delete",
-                    // Procurement Granular
-                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:approve_reject", 
-                    "/dashboard/procurement:create_orders", "/dashboard/procurement:receive_goods",
-                    // Finance Granular
-                    "/dashboard/finance:record_expense", "/dashboard/finance:record_payment"
                 },
-                "HR" => new List<string> { 
-                    "/dashboard", "/dashboard/intelligence", "/dashboard/jobs", "/dashboard/planning", 
-                    "/dashboard/time-tracking", "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", 
-                    "/dashboard/team", "/dashboard/hr", "/dashboard/reports", "/dashboard/safety", "/dashboard/contracts", 
-                    "/dashboard/customers", "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/invoices", "/dashboard/my-jobs",
-                    // HR Granular
-                    "/dashboard/hr:view_contracts", "/dashboard/hr:view_payroll", "/dashboard/hr:view_user_management",
-                    "/dashboard/hr:view_department_assets", "/dashboard/hr:view_department_procurement", "/dashboard/hr:view_department_financials",
-                    // Jobs Granular
-                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos"
+
+                // Planner: runs the program/schedule, BOQ and commercial docs, and reporting.
+                "Planner" => new List<string> {
+                    "/dashboard", "/dashboard/schedule", "/dashboard/boq", "/dashboard/certificates",
+                    "/dashboard/variations", "/dashboard/contracts", "/dashboard/projects",
+                    "/dashboard/reports/weekly", "/dashboard/reports/monthly", "/dashboard/safety",
+                    "/dashboard/assets", "/dashboard/procurement", "/dashboard/inventory", "/dashboard/tools",
+                    "/dashboard/procurement:create_requisitions",
                 },
-                "Planner" => new List<string> { 
-                    "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", 
-                    "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
-                    "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
-                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
-                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
-                    "/dashboard/projects", "/dashboard/projects/my-tasks",
-                    // Jobs Granular
-                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
-                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
-                    "/dashboard/jobs:close_job"
+
+                // Supervisor: on-site — diary, safety, schedule visibility, materials/plant on site.
+                "Supervisor" => new List<string> {
+                    "/dashboard", "/dashboard/site-diary", "/dashboard/schedule", "/dashboard/safety",
+                    "/dashboard/projects", "/dashboard/reports/weekly", "/dashboard/assets",
+                    "/dashboard/procurement", "/dashboard/inventory", "/dashboard/tools",
+                    "/dashboard/procurement:create_requisitions",
                 },
-                "Supervisor" => new List<string> { 
-                    "/dashboard", "/dashboard/jobs", "/dashboard/planning", "/dashboard/time-tracking", 
-                    "/dashboard/assets", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/reports", 
-                    "/dashboard/safety", "/dashboard/roles", "/dashboard/customers", "/dashboard/tools", 
-                    "/dashboard/my-tools", "/dashboard/downtime", "/dashboard/my-jobs",
-                    "/dashboard/shift-logs", "/dashboard/shift-planning", "/dashboard/contractors",
-                    "/dashboard/projects", "/dashboard/projects/my-tasks",
-                    // Jobs Granular
-                    "/dashboard/jobs:create", "/dashboard/jobs:edit", "/dashboard/jobs:assign_technicians", 
-                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos", 
-                    "/dashboard/jobs:close_job"
+
+                // Technician: field-level — diary entries, safety, small tools.
+                "Technician" => new List<string> {
+                    "/dashboard/site-diary", "/dashboard/safety", "/dashboard/tools", "/dashboard/procurement",
+                    "/dashboard/procurement:create_requisitions",
                 },
-                "Technician" => new List<string> { 
-                    "/dashboard/jobs", "/dashboard/procurement", "/dashboard/safety", "/dashboard/my-tools", "/dashboard/my-jobs",
-                    // Jobs Granular
-                    "/dashboard/jobs:log_hours", "/dashboard/jobs:log_parts", "/dashboard/jobs:upload_photos",
-                    // Procurement Granular
-                    "/dashboard/procurement:create_requisitions"
+
+                // Purchasing: the full procurement lifecycle plus what it touches.
+                "Purchasing" => new List<string> {
+                    "/dashboard", "/dashboard/procurement", "/dashboard/inventory", "/dashboard/assets", "/dashboard/tools",
+                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:create_orders",
                 },
-                "Purchasing" => new List<string> { 
-                    "/dashboard/procurement",
-                    // Procurement Granular
-                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:create_orders"
+
+                // Storeman: goods-in and stock on hand.
+                "Storeman" => new List<string> {
+                    "/dashboard", "/dashboard/inventory", "/dashboard/procurement", "/dashboard/tools", "/dashboard/assets",
+                    "/dashboard/procurement:receive_goods",
                 },
-                "Storeman" => new List<string> { 
-                    "/dashboard/inventory", "/dashboard/procurement", "/dashboard/my-tools",
-                    // Procurement Granular
-                    "/dashboard/procurement:create_requisitions", "/dashboard/procurement:receive_goods"
+
+                // Finance: cost/ledger, procurement approvals, certificates, client accounts.
+                "Finance" => new List<string> {
+                    "/dashboard", "/dashboard/finance", "/dashboard/procurement", "/dashboard/certificates",
+                    "/dashboard/customers", "/dashboard/contracts",
+                    "/dashboard/procurement:approve_reject", "/dashboard/finance:record_expense",
                 },
-                "Finance" => new List<string> { 
-                    "/dashboard/procurement", "/dashboard/finance", "/dashboard/invoices", "/dashboard/intelligence",
-                    // Procurement Granular
-                    "/dashboard/procurement:approve_reject",
-                    // Finance Granular
-                    "/dashboard/finance:record_expense", "/dashboard/finance:record_payment"
-                },
+
                 _ => new List<string>()
             };
         }
