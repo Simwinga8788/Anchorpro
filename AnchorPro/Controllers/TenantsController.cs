@@ -78,6 +78,16 @@ namespace AnchorPro.Controllers
                     MRR = _context.TenantSubscriptions
                         .Where(s => s.TenantId == t.Id && s.Status == "Active")
                         .Select(s => s.SubscriptionPlan != null ? s.SubscriptionPlan.MonthlyPrice : 0)
+                        .FirstOrDefault(),
+                    TrialEndDate = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .OrderByDescending(s => s.CreatedAt)
+                        .Select(s => s.TrialEndDate)
+                        .FirstOrDefault(),
+                    GracePeriodEndDate = _context.TenantSubscriptions
+                        .Where(s => s.TenantId == t.Id)
+                        .OrderByDescending(s => s.CreatedAt)
+                        .Select(s => s.GracePeriodEndDate)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
