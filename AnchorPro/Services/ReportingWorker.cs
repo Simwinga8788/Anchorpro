@@ -30,6 +30,7 @@ namespace AnchorPro.Services
                         var alertService = scope.ServiceProvider.GetRequiredService<IAlertService>();
                         await alertService.CheckForLowMarginJobsAsync();
                         await alertService.CheckForOverdueJobsAsync();
+                        await alertService.CheckForOverdueActivitiesAsync();
                     }
                 }
                 catch (Exception ex)

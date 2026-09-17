@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  User, Building2, Bell, Key, Database, Loader2, BookA, ExternalLink,
+  User, Building2, Bell, Key, Database, Loader2, ExternalLink,
   Sliders, Plus, Trash2, Smartphone, CreditCard, Shield, CheckCircle2,
-  AlertTriangle, Users, ChevronRight, Copy, Eye, EyeOff, X,
+  AlertTriangle, Users, Copy, Eye, EyeOff, X,
   Save, RefreshCw, Lock, Globe, Clock, Settings, Zap, Link2, FileText, Info
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -110,7 +110,6 @@ const NAV_GROUPS = [
     label: 'Workspace',
     items: [
       { id: 'workspace',    icon: <Building2 size={15} />, label: 'General' },
-      { id: 'dictionary',   icon: <BookA size={15} />,     label: 'Terminology' },
     ],
   },
   {
@@ -174,7 +173,7 @@ function RuleRow({ label, desc, checked, onChange }: { label: string; desc: stri
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const isAdmin = user?.roles?.includes('Admin') || user?.roles?.includes('PlatformOwner');
-  const { refreshDictionary, dict } = useDictionary();
+  const { refreshDictionary } = useDictionary();
   const { toasts, show } = useToast();
 
   const [activeTab, setActiveTab] = useState('profile');
@@ -234,10 +233,6 @@ export default function SettingsPage() {
   
   
 
-  // ── Nomenclature ─────────────────────────────────────────────────────────────
-  const [dictState, setDictState] = useState<Record<string, string>>({});
-  const [savingDict, setSavingDict] = useState(false);
-
   // ── Operations ───────────────────────────────────────────────────────────────
   const [opSettings, setOpSettings] = useState({
     defaultSlaHours: '24', criticalSlaHours: '4', overdueWarningHours: '8',
@@ -260,6 +255,7 @@ export default function SettingsPage() {
   const [notifSettings, setNotifSettings] = useState({
     emailRecipients: '',
     notifyLowStock: false,
+    notifyActivityOverdue: true,
   });
   const [savingNotif, setSavingNotif] = useState(false);
 
@@ -325,6 +321,7 @@ export default function SettingsPage() {
         ...p,
         emailRecipients:          g('Notify.EmailRecipients',       ''),
         notifyLowStock:           g('Notify.LowStock',              'false') === 'true',
+        notifyActivityOverdue:    g('Notify.ActivityOverdue',       'true')  === 'true',
       }));
       setSmtpForm({
         Smtp_Host: g('Smtp_Host', ''),
@@ -357,14 +354,6 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'dictionary') {
-      setDictState({
-        'Equipment':       dict['Equipment']       || 'Equipment',
-        'Job Cards':       dict['Job Cards']       || 'Job Cards',
-        'Technicians':     dict['Technicians']     || 'Technicians',
-        'Inventory & Parts': dict['Inventory & Parts'] || 'Inventory & Parts',
-      });
-    }
     if (activeTab === 'billing') {
       usersApi.getAll().then(list => setUsersCount(list?.length ?? 0)).catch(() => {});
     }
@@ -415,17 +404,6 @@ export default function SettingsPage() {
 
   
 
-  const handleSaveDictionary = async () => {
-    setSavingDict(true);
-    try {
-      for (const [key, value] of Object.entries(dictState)) {
-        await settingsApi.upsert(`Dict.${key}`, value);
-      }
-      await refreshDictionary();
-      show('Terminology updated across the application');
-    } catch (e: any) { show(e.message || 'Failed', 'error'); }
-    finally { setSavingDict(false); }
-  };
 
   const handleSaveOpSettings = async () => {
     setSavingOp(true);
@@ -517,6 +495,7 @@ export default function SettingsPage() {
       const entries: [string, string][] = [
         ['Notify.EmailRecipients',    notifSettings.emailRecipients],
         ['Notify.LowStock',           String(notifSettings.notifyLowStock)],
+        ['Notify.ActivityOverdue',    String(notifSettings.notifyActivityOverdue)],
       ];
       for (const [k, v] of entries) await settingsApi.upsert(k, v, '', 'Notifications');
       show('Notification settings saved');
@@ -789,42 +768,6 @@ export default function SettingsPage() {
         </div>
       );
 
-      // ── Departments ────────────────────────────────────────────────────────
-      
-
-// ── Terminology ───────────────────────────────────────────────────────
-      case 'dictionary': return (
-        <SectionCard title="Custom Terminology" subtitle="Rename core terms to match your industry — changes apply everywhere in the platform"
-          icon={<BookA size={16} />}
-          footer={<SaveBtn loading={savingDict} onClick={handleSaveDictionary} label="Apply Changes" />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { key: 'Equipment',        default: 'Equipment',        hint: 'e.g. Vehicles, Medical Devices, Machines' },
-              { key: 'Job Cards',        default: 'Job Cards',        hint: 'e.g. Work Orders, Procedures, Tickets' },
-              { key: 'Technicians',      default: 'Technicians',      hint: 'e.g. Drivers, Engineers, Nurses' },
-              { key: 'Inventory & Parts',default: 'Inventory & Parts',hint: 'e.g. Supplies, Fuel, Ad Spend' },
-            ].map(term => (
-              <div key={term.key} className="settings-grid-2" style={{
-                padding: '14px 16px', borderRadius: 8, background: 'var(--bg-hover)',
-                border: '1px solid var(--border-subtle)', alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>&quot;{term.default}&quot;</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{term.hint}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  <input className="form-input" style={{ flex: 1 }}
-                    value={dictState[term.key] || ''}
-                    onChange={e => setDictState({ ...dictState, [term.key]: e.target.value })}
-                    placeholder={term.default} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      );
-
       // ── Operations ─────────────────────────────────────────────────────────
       case 'operations': return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -960,6 +903,7 @@ export default function SettingsPage() {
             footer={<SaveBtn loading={savingNotif} onClick={handleSaveNotifications} />}>
             <div style={{ marginTop: -4 }}>
               {[
+                { label: 'Overdue Schedule Activity', key: 'notifyActivityOverdue',  desc: 'Alert when a program activity passes its planned end date' },
                 { label: 'Low Inventory Warning',   key: 'notifyLowStock',           desc: 'When stock drops below the defined reorder threshold' },
               ].map(n => (
                 <RuleRow key={n.key} label={n.label} desc={n.desc}

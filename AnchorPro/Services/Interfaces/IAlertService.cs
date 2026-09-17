@@ -7,6 +7,7 @@ namespace AnchorPro.Services.Interfaces
         // ── Background fire-and-forget checks ─────────────────────────────────
         Task CheckForLowMarginJobsAsync();
         Task CheckForOverdueJobsAsync();
+        Task CheckForOverdueActivitiesAsync();
         Task NotifyTechnicianDelayAsync(string jobNumber, string technicianName, string reason);
 
         // ── Persistent alert read/write ────────────────────────────────────────

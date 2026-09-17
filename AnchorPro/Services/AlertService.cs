@@ -124,6 +124,74 @@ namespace AnchorPro.Services
             }
         }
 
+        /// <summary>
+        /// Real construction equivalent of <see cref="CheckForOverdueJobsAsync"/> — JobCards
+        /// aren't reachable from the construction Sidebar at all, so that check never fires for
+        /// any current tenant. This one covers ProjectMilestone ("Program Activity"), the entity
+        /// actually behind /dashboard/schedule.
+        /// </summary>
+        public async Task CheckForOverdueActivitiesAsync()
+        {
+            using var context = _factory.CreateDbContext();
+            var overdue = await context.ProjectMilestones
+                .Where(m => m.Status != MilestoneStatus.Complete
+                         && m.ActualEndDate == null
+                         && m.PlannedEndDate < DateTime.UtcNow)
+                .Include(m => m.Project)
+                .ToListAsync();
+
+            if (!overdue.Any()) return;
+
+            var overdueGroups = overdue.GroupBy(m => m.TenantId);
+            foreach (var group in overdueGroups)
+            {
+                var tenantId = group.Key;
+                var tenantActivities = group.ToList();
+
+                // Background loop across every tenant — no ambient tenant context, so look the
+                // setting up explicitly per tenant rather than through ISettingsService.
+                var notifySetting = await context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == "Notify.ActivityOverdue" && s.TenantId == tenantId);
+                if (notifySetting?.Value?.ToLower() == "false") continue;
+
+                var projectNames = tenantActivities
+                    .Select(m => m.Project?.Name)
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .Distinct()
+                    .Take(3)
+                    .ToList();
+                var projectSummary = projectNames.Count > 0 ? $" on {string.Join(", ", projectNames)}" : "";
+
+                await CreateAlertAsync(
+                    title: $"{tenantActivities.Count} Overdue Schedule {(tenantActivities.Count == 1 ? "Activity" : "Activities")}",
+                    message: $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past its planned end date{projectSummary}.",
+                    severity: "Critical",
+                    category: "OverdueActivity",
+                    tenantId: tenantId);
+
+                string? recipient = null;
+                if (tenantId.HasValue)
+                {
+                    var emails = await (from u in context.Users
+                                         join ur in context.UserRoles on u.Id equals ur.UserId
+                                         join r in context.Roles on ur.RoleId equals r.Id
+                                         where u.TenantId == tenantId && (r.Name == "Admin" || r.Name == "Planner" || r.Name == "Supervisor")
+                                         select u.Email).ToListAsync();
+                    recipient = emails.FirstOrDefault(e => !string.IsNullOrEmpty(e));
+                    if (string.IsNullOrEmpty(recipient))
+                    {
+                        var tenant = await context.Tenants.FindAsync(tenantId.Value);
+                        recipient = tenant?.ContactEmail;
+                    }
+                }
+                recipient ??= "ops@anchorpro.com";
+
+                await _emailService.SendEmailAsync(recipient,
+                    $"Schedule Alert: {tenantActivities.Count} Overdue {(tenantActivities.Count == 1 ? "Activity" : "Activities")}",
+                    $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past its planned end date{projectSummary}. Review the Program & Schedule for details.");
+            }
+        }
+
         public async Task NotifyTechnicianDelayAsync(string jobNumber, string technicianName, string reason)
         {
             await CreateAlertAsync(
