@@ -108,7 +108,7 @@ export default function RegisterPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manNumber: admin.email, password: admin.password }),
+        body: JSON.stringify({ identifier: admin.email, password: admin.password }),
       });
 
       router.push(loginRes.ok ? '/dashboard' : '/login?registered=1');

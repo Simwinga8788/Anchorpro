@@ -18,25 +18,25 @@ namespace AnchorPro.Services
 
         public async Task SendEmailAsync(string to, string subject, string body, Dictionary<string, byte[]>? attachments = null)
         {
-            // ... (keep fallback)
-            bool enabled = false;
+            // Defaults to true (email sends) when nobody has touched this setting — matches the
+            // behavior every existing tenant already has today, so wiring this up doesn't
+            // silently go dark for anyone who's never opened Platform Settings.
+            bool enabled = true;
             var enabledStr = await _settings.GetSettingAsync("Email_Enabled");
-            if (!string.IsNullOrEmpty(enabledStr)) 
+            if (!string.IsNullOrEmpty(enabledStr))
             {
                  bool.TryParse(enabledStr, out enabled);
             }
             else
             {
-                enabled = await _settings.GetGlobalSettingAsync<bool>("Email_Enabled", false);
+                enabled = await _settings.GetGlobalSettingAsync<bool>("Email_Enabled", true);
             }
 
-            /*
             if (!enabled)
             {
                 _logger.LogInformation("Email sending is disabled. To: {to}", to);
                 return;
             }
-            */
 
              try
             {

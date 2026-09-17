@@ -9,11 +9,13 @@ namespace AnchorPro.Services
     {
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
         private readonly IEmailService _emailService;
+        private readonly ISettingsService _settingsService;
 
-        public InventoryService(IDbContextFactory<ApplicationDbContext> factory, IEmailService emailService)
+        public InventoryService(IDbContextFactory<ApplicationDbContext> factory, IEmailService emailService, ISettingsService settingsService)
         {
             _factory = factory;
             _emailService = emailService;
+            _settingsService = settingsService;
         }
 
         public async Task<List<InventoryItem>> GetAllItemsAsync()
@@ -93,8 +95,10 @@ namespace AnchorPro.Services
 
                 // TODO: Record transaction log/history here if we add that entity later
 
-                // Check Low Stock
-                if (item.QuantityOnHand <= item.ReorderLevel)
+                // Check Low Stock (opt-in — defaults to off, matching the Settings toggle's
+                // documented default, since a low-stock email on every adjustment can get noisy)
+                var notifyLowStock = await _settingsService.GetSettingAsync("Notify.LowStock", "false");
+                if (notifyLowStock.ToLower() == "true" && item.QuantityOnHand <= item.ReorderLevel)
                 {
                     // Trigger Low Stock Alert (Safely)
                     try

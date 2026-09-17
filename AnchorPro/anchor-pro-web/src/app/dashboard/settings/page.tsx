@@ -259,13 +259,7 @@ export default function SettingsPage() {
   // ── Notifications ─────────────────────────────────────────────────────────────
   const [notifSettings, setNotifSettings] = useState({
     emailRecipients: '',
-    notifyJobCreated: true,
-    notifyJobCompleted: true,
-    notifyJobOverdue: true,
     notifyLowStock: false,
-    notifyTechnicianAssigned: true,
-    notifyWeeklySummary: true,
-    notifyCriticalAsset: true,
   });
   const [savingNotif, setSavingNotif] = useState(false);
 
@@ -330,13 +324,7 @@ export default function SettingsPage() {
       setNotifSettings(p => ({
         ...p,
         emailRecipients:          g('Notify.EmailRecipients',       ''),
-        notifyJobCreated:         g('Notify.JobCreated',            'true') === 'true',
-        notifyJobCompleted:       g('Notify.JobCompleted',          'true') === 'true',
-        notifyJobOverdue:         g('Notify.JobOverdue',            'true') === 'true',
         notifyLowStock:           g('Notify.LowStock',              'false') === 'true',
-        notifyTechnicianAssigned: g('Notify.TechnicianAssigned',    'true') === 'true',
-        notifyWeeklySummary:      g('Notify.WeeklySummary',         'true') === 'true',
-        notifyCriticalAsset:      g('Notify.CriticalAsset',         'true') === 'true',
       }));
       setSmtpForm({
         Smtp_Host: g('Smtp_Host', ''),
@@ -528,13 +516,7 @@ export default function SettingsPage() {
     try {
       const entries: [string, string][] = [
         ['Notify.EmailRecipients',    notifSettings.emailRecipients],
-        ['Notify.JobCreated',         String(notifSettings.notifyJobCreated)],
-        ['Notify.JobCompleted',       String(notifSettings.notifyJobCompleted)],
-        ['Notify.JobOverdue',         String(notifSettings.notifyJobOverdue)],
         ['Notify.LowStock',           String(notifSettings.notifyLowStock)],
-        ['Notify.TechnicianAssigned', String(notifSettings.notifyTechnicianAssigned)],
-        ['Notify.WeeklySummary',      String(notifSettings.notifyWeeklySummary)],
-        ['Notify.CriticalAsset',      String(notifSettings.notifyCriticalAsset)],
       ];
       for (const [k, v] of entries) await settingsApi.upsert(k, v, '', 'Notifications');
       show('Notification settings saved');
@@ -978,13 +960,7 @@ export default function SettingsPage() {
             footer={<SaveBtn loading={savingNotif} onClick={handleSaveNotifications} />}>
             <div style={{ marginTop: -4 }}>
               {[
-                { label: 'New Job Created',         key: 'notifyJobCreated',         desc: 'Notify when a new service order is created' },
-                { label: 'Job Completed',           key: 'notifyJobCompleted',       desc: 'Notify when a technician marks a job as completed' },
-                { label: 'Overdue Job Alert',       key: 'notifyJobOverdue',         desc: 'Alert when a job exceeds its SLA deadline' },
                 { label: 'Low Inventory Warning',   key: 'notifyLowStock',           desc: 'When stock drops below the defined reorder threshold' },
-                { label: 'Technician Assigned',     key: 'notifyTechnicianAssigned', desc: 'Notify technician when a job is assigned to them' },
-                { label: 'Weekly Summary Email',    key: 'notifyWeeklySummary',      desc: 'Receive a weekly digest of jobs, downtime, and KPIs' },
-                { label: 'Critical Asset Alert',    key: 'notifyCriticalAsset',      desc: 'Immediate alert when a high-priority asset fails' },
               ].map(n => (
                 <RuleRow key={n.key} label={n.label} desc={n.desc}
                   checked={(notifSettings as any)[n.key]}

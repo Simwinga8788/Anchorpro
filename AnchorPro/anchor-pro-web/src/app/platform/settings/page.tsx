@@ -1,6 +1,6 @@
 'use client';
 
-import { Save, Globe, Mail, Shield, Database, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Bot, Eye, EyeOff, X } from 'lucide-react';
+import { Save, Globe, Mail, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Bot, X } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { settingsApi } from '@/lib/api';
 
@@ -46,44 +46,26 @@ export default function PlatformSettingsPage() {
   const [loadedOk, setLoadedOk] = useState(false);
 
   const [settings, setSettings] = useState({
-    platformName:          'Anchor Pro',
     ownerEmail:            '',
-    supportEmail:          'support@anchorpro.co.zm',
     trialDays:             '14',
-    maxTenantsPerNode:     '100',
-    defaultPlanId:         '1',
-    maintenanceMode:       false,
     emailNotifications:    true,
     allowSelfSignup:       true,
-    requireEmailVerify:    false,
-    sessionTimeout:        '60',
-    failedLoginLimit:      '5',
-    jwtExpiryHours:        '24',
     smtpHost:              '',
     smtpPort:              '587',
     smtpUser:              '',
     smtpPass:              '',
     smtpFromName:          'Anchor Pro',
     smtpFromAddress:       '',
-    stripePublicKey:       '',
-    stripeWebhookSecret:   '',
     geminiApiKey:          '',
   });
 
   const KEY_MAP: Record<string, string> = {
-    platformName:          'Platform.Name',
     ownerEmail:            'Platform.OwnerEmail',
-    supportEmail:          'Platform.SupportEmail',
     trialDays:             'Platform.TrialDays',
-    maxTenantsPerNode:     'Platform.MaxTenants',
-    defaultPlanId:         'Platform.DefaultPlanId',
-    maintenanceMode:       'Platform.MaintenanceMode',
-    emailNotifications:    'Platform.EmailNotifications',
+    // Reads/writes the same key Services/SmtpEmailService.cs actually checks before
+    // sending — not a dead platform-only flag.
+    emailNotifications:    'Email_Enabled',
     allowSelfSignup:       'Platform.AllowSelfSignup',
-    requireEmailVerify:    'Platform.RequireEmailVerify',
-    sessionTimeout:        'Security.SessionTimeoutMinutes',
-    failedLoginLimit:      'Security.FailedLoginLimit',
-    jwtExpiryHours:        'Security.JwtExpiryHours',
     // NOTE: these map to the underscore-named keys Services/SmtpEmailService.cs
     // actually reads at send time — NOT the old "Email.Smtp*" dot-named keys this
     // page used to write, which the email service never looked at (so SMTP could
@@ -94,8 +76,6 @@ export default function PlatformSettingsPage() {
     smtpPass:              'Smtp_Pass',
     smtpFromName:          'Email_From_Name',
     smtpFromAddress:       'Email_From_Address',
-    stripePublicKey:       'Stripe.PublicKey',
-    stripeWebhookSecret:   'Stripe.WebhookSecret',
     geminiApiKey:          'Integration.Gemini.ApiKey',
   };
 
@@ -108,27 +88,16 @@ export default function PlatformSettingsPage() {
         const get = (key: string, fallback: string) =>
           all.find((s: any) => s.key === key)?.value ?? fallback;
         setSettings(prev => ({
-          platformName:          get('Platform.Name',                 prev.platformName),
           ownerEmail:            get('Platform.OwnerEmail',           prev.ownerEmail),
-          supportEmail:          get('Platform.SupportEmail',         prev.supportEmail),
           trialDays:             get('Platform.TrialDays',            prev.trialDays),
-          maxTenantsPerNode:     get('Platform.MaxTenants',           prev.maxTenantsPerNode),
-          defaultPlanId:         get('Platform.DefaultPlanId',        prev.defaultPlanId),
-          maintenanceMode:       get('Platform.MaintenanceMode',      'false') === 'true',
-          emailNotifications:    get('Platform.EmailNotifications',   'true')  === 'true',
+          emailNotifications:    get('Email_Enabled',                 'true')  === 'true',
           allowSelfSignup:       get('Platform.AllowSelfSignup',      'true')  === 'true',
-          requireEmailVerify:    get('Platform.RequireEmailVerify',   'false') === 'true',
-          sessionTimeout:        get('Security.SessionTimeoutMinutes',prev.sessionTimeout),
-          failedLoginLimit:      get('Security.FailedLoginLimit',     prev.failedLoginLimit),
-          jwtExpiryHours:        get('Security.JwtExpiryHours',       prev.jwtExpiryHours),
           smtpHost:              get('Smtp_Host',                     prev.smtpHost),
           smtpPort:              get('Smtp_Port',                     prev.smtpPort),
           smtpUser:              get('Smtp_User',                     prev.smtpUser),
           smtpPass:              get('Smtp_Pass',                     prev.smtpPass),
           smtpFromName:          get('Email_From_Name',               prev.smtpFromName),
           smtpFromAddress:       get('Email_From_Address',            prev.smtpFromAddress),
-          stripePublicKey:       get('Stripe.PublicKey',              prev.stripePublicKey),
-          stripeWebhookSecret:   get('Stripe.WebhookSecret',         prev.stripeWebhookSecret),
           geminiApiKey:          get('Integration.Gemini.ApiKey',    get('Gemini.ApiKey', prev.geminiApiKey)),
         }));
         setLoadedOk(true);
@@ -221,31 +190,16 @@ export default function PlatformSettingsPage() {
             <Globe size={15} style={{ color: 'var(--accent-blue)' }} />
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: 0.5 }}>General</span>
           </div>
-          <Field label="Platform Name" sub="Displayed in all tenant portals and email headers">
-            <input style={inputStyle} value={settings.platformName}
-              onChange={e => setSettings(s => ({ ...s, platformName: e.target.value }))} />
-          </Field>
           <Field label="Platform Owner Email" sub="Receives critical platform alerts and billing notifications">
             <input style={inputStyle} value={settings.ownerEmail} placeholder="platform@anchorpro.com"
               onChange={e => setSettings(s => ({ ...s, ownerEmail: e.target.value }))} />
           </Field>
-          <Field label="Support Email" sub="Where tenant support requests are forwarded">
-            <input style={inputStyle} value={settings.supportEmail}
-              onChange={e => setSettings(s => ({ ...s, supportEmail: e.target.value }))} />
-          </Field>
-          <Field label="Default Trial Period (days)" sub="Days given to new tenants before billing starts">
+          <Field label="Default Trial Period (days)" sub="Days given to new self-service sign-ups before billing starts">
             <input style={{ ...inputStyle, width: 100 }} type="number" value={settings.trialDays}
               onChange={e => setSettings(s => ({ ...s, trialDays: e.target.value }))} />
           </Field>
-          <Field label="Max Tenants per Node" sub="Soft limit before scaling is recommended">
-            <input style={{ ...inputStyle, width: 100 }} type="number" value={settings.maxTenantsPerNode}
-              onChange={e => setSettings(s => ({ ...s, maxTenantsPerNode: e.target.value }))} />
-          </Field>
-          <Field label="Allow Self-Signup" sub="Let companies register without a platform invitation">
+          <Field label="Allow Self-Signup" sub="Let companies register without a platform invitation — Platform Owner tenant creation always works regardless">
             <Toggle value={settings.allowSelfSignup} onChange={v => setSettings(s => ({ ...s, allowSelfSignup: v }))} />
-          </Field>
-          <Field label="Require Email Verification" sub="New accounts must verify email before accessing the platform">
-            <Toggle value={settings.requireEmailVerify} onChange={v => setSettings(s => ({ ...s, requireEmailVerify: v }))} />
           </Field>
         </div>
 
@@ -391,72 +345,6 @@ export default function PlatformSettingsPage() {
             </div>
           </Field>
         </div>
-        <div className="card" style={{ padding: '4px 24px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
-            <span style={{ fontSize: 12 }}>💳</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stripe / Payments</span>
-          </div>
-          <Field label="Stripe Publishable Key" sub="pk_live_... or pk_test_... from your Stripe dashboard">
-            <input style={inputStyle} placeholder="pk_..." value={settings.stripePublicKey}
-              onChange={e => setSettings(s => ({ ...s, stripePublicKey: e.target.value }))} />
-          </Field>
-          <Field label="Stripe Webhook Secret" sub="whsec_... — used to verify incoming webhook events">
-            <input style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 11 }} type="password" placeholder="whsec_..." value={settings.stripeWebhookSecret}
-              onChange={e => setSettings(s => ({ ...s, stripeWebhookSecret: e.target.value }))} />
-          </Field>
-        </div>
-
-        {/* Security */}
-        <div className="card" style={{ padding: '4px 24px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
-            <Shield size={15} style={{ color: 'var(--accent-amber)' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-amber)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Security</span>
-          </div>
-          <Field label="Session Timeout (minutes)" sub="Automatically log users out after inactivity">
-            <select style={{ ...inputStyle, width: 160 }} value={settings.sessionTimeout}
-              onChange={e => setSettings(s => ({ ...s, sessionTimeout: e.target.value }))}>
-              <option value="30">30 minutes</option>
-              <option value="60">60 minutes</option>
-              <option value="240">4 hours</option>
-              <option value="480">8 hours</option>
-              <option value="0">Never</option>
-            </select>
-          </Field>
-          <Field label="Failed Login Limit" sub="Block accounts after N consecutive failed attempts">
-            <select style={{ ...inputStyle, width: 160 }} value={settings.failedLoginLimit}
-              onChange={e => setSettings(s => ({ ...s, failedLoginLimit: e.target.value }))}>
-              <option value="3">3 attempts</option>
-              <option value="5">5 attempts</option>
-              <option value="10">10 attempts</option>
-            </select>
-          </Field>
-          <Field label="JWT Token Expiry (hours)" sub="How long authentication tokens remain valid">
-            <select style={{ ...inputStyle, width: 160 }} value={settings.jwtExpiryHours}
-              onChange={e => setSettings(s => ({ ...s, jwtExpiryHours: e.target.value }))}>
-              <option value="1">1 hour</option>
-              <option value="8">8 hours</option>
-              <option value="24">24 hours</option>
-              <option value="72">72 hours</option>
-            </select>
-          </Field>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="card" style={{ padding: '4px 24px 20px', border: '1px solid rgba(244,63,94,0.2)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0 4px' }}>
-            <Database size={15} style={{ color: 'var(--accent-rose)' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-rose)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Danger Zone</span>
-          </div>
-          <Field label="Maintenance Mode" sub="Disables all tenant access and shows a maintenance page">
-            <Toggle value={settings.maintenanceMode} onChange={v => setSettings(s => ({ ...s, maintenanceMode: v }))} />
-          </Field>
-          {settings.maintenanceMode && (
-            <div style={{ background: 'var(--accent-rose-dim)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 12, color: 'var(--accent-rose)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertTriangle size={14} /> Maintenance mode is ON — all tenants are currently locked out
-            </div>
-          )}
-        </div>
-
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'center' }}>
           {saved && (
             <div style={{ color: 'var(--accent-emerald, #10b981)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, marginRight: 10, animation: 'fadeIn 0.2s ease-out' }}>

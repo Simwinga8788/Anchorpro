@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { getDefaultRoute } from '@/lib/rbac';
-import { Lock, Mail, Loader2, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { Lock, Mail, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function RegisteredBanner() {
@@ -18,7 +18,7 @@ function RegisteredBanner() {
 }
 
 function LoginForm() {
-  const [manNumber, setManNumber] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const res = await login(manNumber, password);
+    const res = await login(identifier, password);
     if (res.ok) {
       const dest = getDefaultRoute(res.user?.roles ?? [], res.user?.isPlatformOwner ?? false);
       router.push(dest);
@@ -91,19 +91,19 @@ function LoginForm() {
             )}
 
             <div className="input-group">
-              <label className="form-label" htmlFor="manNumber">Man Number</label>
+              <label className="form-label" htmlFor="identifier">Email</label>
               <div style={{ position: 'relative' }}>
-                <Users size={14} style={{
+                <Mail size={14} style={{
                   position: 'absolute', left: '12px', top: '50%',
                   transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none',
                 }} />
                 <input
-                  id="manNumber"
+                  id="identifier"
                   type="text"
                   className="form-input"
-                  placeholder="e.g. MAN-102"
-                  value={manNumber}
-                  onChange={(e) => setManNumber(e.target.value)}
+                  placeholder="you@company.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   style={{ paddingLeft: '36px' }}
                   required
                   autoComplete="username"

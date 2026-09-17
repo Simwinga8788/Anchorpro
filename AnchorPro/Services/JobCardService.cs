@@ -255,7 +255,7 @@ namespace AnchorPro.Services
 
                     // Notify Supervisor (Check Settings)
                     bool notifyCompletion = true;
-                    var setting = await _settingsService.GetSettingAsync("Notify.JobCompletion");
+                    var setting = await _settingsService.GetSettingAsync("Notify.JobCompleted");
                     if (setting?.ToLower() == "false") notifyCompletion = false;
 
                     if (notifyCompletion)
@@ -363,7 +363,7 @@ namespace AnchorPro.Services
 
                 // Notify Technician (Check Settings)
                 bool notifyAssignment = true;
-                var setting = await _settingsService.GetSettingAsync("Notify.JobAssignment");
+                var setting = await _settingsService.GetSettingAsync("Notify.TechnicianAssigned");
                 if (setting?.ToLower() == "false") notifyAssignment = false;
 
                 if (notifyAssignment)

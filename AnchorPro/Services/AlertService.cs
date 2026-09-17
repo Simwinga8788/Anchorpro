@@ -40,7 +40,8 @@ namespace AnchorPro.Services
                     message: $"Job #{job.JobNumber} completed with {job.ProfitMarginPercent}% margin.",
                     severity: "Warning",
                     category: "LowMargin",
-                    jobCardId: job.Id);
+                    jobCardId: job.Id,
+                    tenantId: job.TenantId);
 
                 // Fetch tenant admins / supervisors
                 var tenantId = job.TenantId;
@@ -85,11 +86,19 @@ namespace AnchorPro.Services
                     var tenantId = group.Key;
                     var tenantJobs = group.ToList();
 
+                    // This loop runs across every tenant with no ambient tenant context, so the
+                    // Notify.JobOverdue toggle must be looked up explicitly per tenant rather
+                    // than through ISettingsService (which reads the ambient current tenant).
+                    var notifySetting = await context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == "Notify.JobOverdue" && s.TenantId == tenantId);
+                    if (notifySetting?.Value?.ToLower() == "false") continue;
+
                     await CreateAlertAsync(
                         title: $"{tenantJobs.Count} Overdue Jobs",
                         message: $"There are {tenantJobs.Count} jobs past their scheduled completion date.",
                         severity: "Critical",
-                        category: "OverdueJob");
+                        category: "OverdueJob",
+                        tenantId: tenantId);
 
                     string? recipient = null;
                     if (tenantId.HasValue)
@@ -179,12 +188,12 @@ namespace AnchorPro.Services
 
         public async Task<Alert> CreateAlertAsync(
             string title, string message, string severity, string category,
-            int? jobCardId = null, int? customerId = null)
+            int? jobCardId = null, int? customerId = null, int? tenantId = null)
         {
             using var context = _factory.CreateDbContext();
             var alert = new Alert
             {
-                TenantId = _tenantService.TenantId,
+                TenantId = tenantId ?? _tenantService.TenantId,
                 Title = title,
                 Message = message,
                 Severity = severity,

@@ -22,7 +22,7 @@ export interface UserProfile {
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
-  login: (manNumber: string, password: string) => Promise<{ ok: boolean; user?: UserProfile; error?: string }>;
+  login: (identifier: string, password: string) => Promise<{ ok: boolean; user?: UserProfile; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (...roles: string[]) => boolean;
   isAdmin: boolean;
@@ -45,13 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (manNumber: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manNumber, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       if (!res.ok) {
         const err = await res.json();

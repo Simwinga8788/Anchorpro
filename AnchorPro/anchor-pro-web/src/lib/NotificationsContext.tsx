@@ -19,33 +19,10 @@ interface NotificationsContextValue {
   refresh: () => void;
 }
 
-// Fallback shown when API is unreachable — all read so they don't inflate the badge
-const FALLBACK: Notification[] = [
-  {
-    id: '1',
-    title: 'Down Time Alert',
-    message: 'Compressor Unit #3 has been flagged for immediate corrective maintenance.',
-    type: 'error',
-    time: '5 min ago',
-    read: true,
-  },
-  {
-    id: '2',
-    title: 'Stock Low Alert',
-    message: 'Hydraulic Oil (5L) is below minimum stock level. Review Procurement Hub.',
-    type: 'warning',
-    time: '1 hr ago',
-    read: true,
-  },
-  {
-    id: '3',
-    title: 'Job Completed',
-    message: 'JC-0041 — Preventive maintenance on Pump Station A marked complete.',
-    type: 'success',
-    time: '3 hr ago',
-    read: true,
-  },
-];
+// Shown when the alerts API is unreachable. Deliberately empty — showing fabricated
+// equipment/stock alerts here would look like real data and could mislead someone into
+// acting on a maintenance issue that doesn't exist.
+const FALLBACK: Notification[] = [];
 
 // Map API alert severity → notification type
 function severityToType(severity?: string): Notification['type'] {

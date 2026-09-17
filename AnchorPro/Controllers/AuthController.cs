@@ -18,6 +18,7 @@ namespace AnchorPro.Controllers
         private readonly ApplicationDbContext _db;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly ISettingsService _settingsService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
@@ -25,7 +26,8 @@ namespace AnchorPro.Controllers
             RoleManager<IdentityRole> roleManager,
             ApplicationDbContext db,
             IEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ISettingsService settingsService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -33,6 +35,7 @@ namespace AnchorPro.Controllers
             _db = db;
             _emailService = emailService;
             _configuration = configuration;
+            _settingsService = settingsService;
         }
 
 /// <summary>
@@ -82,13 +85,14 @@ namespace AnchorPro.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest request)
         {
-            // Search by EmployeeNumber (Man Number) first
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeNumber == request.ManNumber);
+            // Most users log in by email; some tenants also assign an EmployeeNumber ("Man
+            // Number") as an alternate login identifier — try that first since it's the more
+            // specific match, then fall back to email.
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeNumber == request.Identifier);
 
-            // Fallback: search by Email (so standard admin/platform owner accounts without EmployeeNumber can log in)
             if (user == null)
             {
-                user = await _userManager.FindByEmailAsync(request.ManNumber);
+                user = await _userManager.FindByEmailAsync(request.Identifier);
             }
 
             if (user == null) return Unauthorized(new { message = "Invalid credentials" });
@@ -222,6 +226,19 @@ namespace AnchorPro.Controllers
         [HttpPost("register")]
         public async Task<ActionResult> Register([FromBody] RegisterRequest req)
         {
+            // This anonymous endpoint serves both the public self-service signup page AND the
+            // Platform Owner's "New Tenant" button (called with their session cookie already
+            // attached). Only gate the former — a Platform Owner provisioning a customer directly
+            // must always work regardless of whether public signups are paused.
+            var isPlatformOwnerCreating = User.Identity?.IsAuthenticated == true
+                && (await _userManager.GetUserAsync(User))?.TenantId == null;
+            if (!isPlatformOwnerCreating)
+            {
+                var allowSelfSignup = await _settingsService.GetGlobalSettingAsync("Platform.AllowSelfSignup", "true");
+                if (allowSelfSignup.ToLower() == "false")
+                    return StatusCode(403, new { message = "Self-service sign-up is currently disabled. Please contact us to get set up." });
+            }
+
             // Check email not already taken
             if (await _userManager.FindByEmailAsync(req.Email) != null)
                 return Conflict(new { message = "An account with that email already exists." });
@@ -345,6 +362,8 @@ namespace AnchorPro.Controllers
             {
                 var isTrial = req.PlanId == null;
                 var now = DateTime.UtcNow;
+                var trialDaysStr = await _settingsService.GetGlobalSettingAsync("Platform.TrialDays", "14");
+                if (!int.TryParse(trialDaysStr, out var trialDays) || trialDays <= 0) trialDays = 14;
                 _db.TenantSubscriptions.Add(new TenantSubscription
                 {
                     TenantId = tenant.Id,
@@ -352,7 +371,7 @@ namespace AnchorPro.Controllers
                     Status = isTrial ? "Trial" : "Active",
                     IsTrial = isTrial,
                     StartDate = now,
-                    TrialEndDate = isTrial ? now.AddDays(14) : null,
+                    TrialEndDate = isTrial ? now.AddDays(trialDays) : null,
                     NextBillingDate = isTrial ? null : now.AddMonths(1),
                     AutoRenew = !isTrial,
                     CreatedAt = now,
@@ -366,7 +385,7 @@ namespace AnchorPro.Controllers
         }
     }
 
-    public record LoginRequest(string ManNumber, string Password);
+    public record LoginRequest(string Identifier, string Password);
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Email, string Token, string NewPassword);
     public record RegisterRequest(string CompanyName, string Email, string Password, string FirstName, string LastName, string? Industry = null, string? Size = null, string? Timezone = null, int? PlanId = null);
