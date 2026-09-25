@@ -101,7 +101,7 @@ export default function SiteDiaryPage() {
     e.preventDefault();
     if (!selectedProjectId) return;
     try {
-      await siteDiaryApi.create({
+      const created: any = await siteDiaryApi.create({
         projectId: selectedProjectId,
         diaryDate: form.diaryDate,
         weatherCondition: form.weatherCondition,
@@ -117,7 +117,13 @@ export default function SiteDiaryPage() {
       });
       setShowCreateModal(false);
       setSelectedMilestoneIds([]);
-      loadEntries(selectedProjectId);
+      if (created?._offline) {
+        // No signal — the entry is safely queued (see src/lib/db.ts) but won't come back from a
+        // real fetch until it syncs, so show it immediately instead of it looking like it vanished.
+        setEntries(prev => [created, ...prev]);
+      } else {
+        loadEntries(selectedProjectId);
+      }
     } catch (err: any) {
       alert(err.message);
     }
@@ -285,20 +291,33 @@ export default function SiteDiaryPage() {
                       <span>{entry.weatherCondition} ({entry.temperatureCelsius ?? 22}°C)</span>
                     </div>
 
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
-                      background: entry.status === 2 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                      color: entry.status === 2 ? '#10b981' : '#f59e0b'
-                    }}>
-                      {entry.status === 2 ? 'Approved Site Log' : 'Draft / Submitted'}
-                    </span>
+                    {entry._offline ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                        background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                      }}>
+                        <Loader2 size={11} style={{ animation: 'spin 1.4s linear infinite' }} />
+                        Saved on this device — pending sync
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                        background: entry.status === 2 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        color: entry.status === 2 ? '#10b981' : '#f59e0b'
+                      }}>
+                        {entry.status === 2 ? 'Approved Site Log' : 'Draft / Submitted'}
+                      </span>
+                    )}
 
                     <a
-                      href={`/dashboard/site-diary/${entry.id}/print`}
+                      href={entry._offline ? undefined : `/dashboard/site-diary/${entry.id}/print`}
                       target="_blank"
                       rel="noreferrer"
+                      aria-disabled={entry._offline || undefined}
+                      title={entry._offline ? 'Available once this entry has synced' : undefined}
                       className="btn btn-sm btn-secondary"
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: entry._offline ? 0.5 : 1, pointerEvents: entry._offline ? 'none' : undefined }}
                     >
                       <Printer size={13} /> Print
                     </a>

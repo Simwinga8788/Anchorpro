@@ -8,6 +8,9 @@ using System.Text.Json.Serialization.Metadata;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// QuestPDF Community license — free under $1M USD annual gross revenue (questpdf.com/license).
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 // Fix PostgreSQL DateTime offset issues for non-UTC timestamps
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -149,6 +152,7 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IIntelligenceService, A
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFinancialService, AnchorPro.Services.FinancialService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IQuotationService, AnchorPro.Services.QuotationService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IOrgService, AnchorPro.Services.OrgService>();
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.ICertificatePdfService, AnchorPro.Services.CertificatePdfService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IProcurementService, AnchorPro.Services.ProcurementService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IContractService, AnchorPro.Services.ContractService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ILabelService, AnchorPro.Services.LabelService>();
@@ -240,6 +244,7 @@ app.UseCors("ReactAppPolicy");
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AnchorPro.Middleware.IdempotencyMiddleware>();
 
 // Public health check
 app.MapGet("/ping", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

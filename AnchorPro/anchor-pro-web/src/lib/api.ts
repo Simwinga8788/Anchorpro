@@ -1,30 +1,104 @@
 // Always use relative paths — Next.js rewrites proxy /api/* to backend
 const API_BASE = '';
 
-import { setOfflineData, getOfflineData, enqueueSync, getSyncQueue, dequeueSync } from './db';
+import { setOfflineData, getOfflineData, enqueueSync, enqueueUpload, getSyncQueue, dequeueSync } from './db';
+
+// Replace every occurrence of a resolved placeholder ("local:<uuid>") in a queued item's url/body
+// with the real server id, now that the request that created it has actually synced.
+function resolvePlaceholders(value: string, placeholderMap: Record<string, string>): string {
+  let result = value;
+  for (const [placeholder, real] of Object.entries(placeholderMap)) {
+    result = result.split(placeholder).join(real);
+  }
+  return result;
+}
+
+// A JSON create resolves its placeholder to the new record's id; a file upload resolves it to
+// the uploaded file's url — different field, same resolution mechanism either way.
+function extractResolvedValue(responseBody: string, kind: 'json' | 'upload'): string | null {
+  try {
+    const parsed = JSON.parse(responseBody);
+    const value = kind === 'upload' ? (parsed?.url ?? parsed?.Url) : (parsed?.id ?? parsed?.Id);
+    return value != null ? String(value) : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Flush the offline sync queue
+ * Flush the offline sync queue, oldest first. Stops at the first item that still references an
+ * unresolved placeholder (its parent create hasn't synced yet — shouldn't normally happen since
+ * items are created in dependency order, but this keeps replay safe either way) or the first
+ * genuine failure, so nothing gets sent out of order.
  */
+let flushing = false;
 export async function flushSyncQueue() {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-  const queue = await getSyncQueue();
-  for (const item of queue) {
-    try {
-      await fetch(item.url, {
-        method: item.method,
-        headers: item.headers,
-        body: item.body ? JSON.stringify(item.body) : undefined,
-      });
-      await dequeueSync(item.id);
-    } catch (err) {
-      console.error('Failed to sync offline item', item.id, err);
+  if (flushing) return; // avoid overlapping drains from the 'online' event + periodic timer firing together
+  flushing = true;
+  try {
+    const queue = await getSyncQueue();
+    const placeholderMap: Record<string, string> = {};
+
+    for (const item of queue) {
+      const url = resolvePlaceholders(item.url, placeholderMap);
+
+      if (/local:[0-9a-f-]+/i.test(url)) {
+        // Still references a placeholder nothing has resolved yet this pass — its parent must be
+        // ahead of it but failed, or isn't in this batch. Stop rather than send a broken request.
+        break;
+      }
+
+      try {
+        let res: Response;
+        if (item.kind === 'upload' && item.fileBlob) {
+          const form = new FormData();
+          form.append(item.fileFieldName || 'file', item.fileBlob);
+          res = await fetch(url, {
+            method: item.method,
+            credentials: 'include',
+            headers: { 'Idempotency-Key': item.idempotencyKey },
+            body: form,
+          });
+        } else {
+          const bodyStr = item.body ? resolvePlaceholders(JSON.stringify(item.body), placeholderMap) : undefined;
+          res = await fetch(url, {
+            method: item.method,
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+            body: bodyStr,
+          });
+        }
+
+        if (!res.ok) {
+          console.error(`Failed to sync offline item ${item.id}: ${res.status}`);
+          break; // don't skip ahead — a later item may depend on this one
+        }
+
+        if (item.placeholderId) {
+          const text = await res.text().catch(() => '');
+          const resolved = extractResolvedValue(text, item.kind);
+          if (resolved) placeholderMap[item.placeholderId] = resolved;
+        }
+
+        await dequeueSync(item.id);
+      } catch (err) {
+        console.error('Failed to sync offline item', item.id, err);
+        break; // network dropped again mid-drain — stop, the 'online' handler / periodic timer will retry
+      }
     }
+  } finally {
+    flushing = false;
   }
 }
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', flushSyncQueue);
+  // Catches two gaps the 'online' event alone misses: (1) the app was reopened already connected
+  // with items still queued from a previous offline session, and (2) 'online' not firing reliably
+  // on every OS/browser combination.
+  flushSyncQueue();
+  setInterval(flushSyncQueue, 30_000);
 }
 
 async function apiFetch<T>(path: string): Promise<T> {
@@ -96,13 +170,22 @@ function sanitizeRequestBody(body: any): any {
   return clean(body);
 }
 
-async function apiPost<T>(path: string, body: any): Promise<T> {
+// A stable per-call id used both as the client's own placeholder for whatever this request
+// creates AND as the Idempotency-Key sent to the server, so a retry after a lost connection can
+// never double-create the same record. "local:" is the marker flushSyncQueue scans for.
+function newLocalId(): string {
+  return `local:${crypto.randomUUID()}`;
+}
+
+async function apiPost<T>(path: string, body: any, opts?: { idempotencyKey?: string }): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
   const url = `${API_BASE}${path}`;
-  
+  const idempotencyKey = opts?.idempotencyKey || crypto.randomUUID();
+  const placeholderId = newLocalId();
+
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' });
-    return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
+    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey, placeholderId });
+    return { id: placeholderId, _offline: true, ...sanitized } as T;
   }
 
   let res;
@@ -110,7 +193,7 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     res = await fetch(url, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(sanitized),
     });
   } catch (err) {
@@ -118,8 +201,8 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
     if (path.includes('/auth/')) {
       throw new Error('Cannot reach server to authenticate.');
     }
-    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' });
-    return { id: 'offline-' + Date.now(), _offline: true, ...sanitized } as T;
+    await enqueueSync(url, 'POST', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey, placeholderId });
+    return { id: placeholderId, _offline: true, ...sanitized } as T;
   }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login') && !path.includes('/auth/me')) {
@@ -141,9 +224,10 @@ async function apiPost<T>(path: string, body: any): Promise<T> {
 async function apiPut<T>(path: string, body: any): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
   const url = `${API_BASE}${path}`;
+  const idempotencyKey = crypto.randomUUID();
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' });
+    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey });
     return { _offline: true, ...sanitized } as T;
   }
 
@@ -152,11 +236,11 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
     res = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(sanitized),
     });
   } catch (err) {
-    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' });
+    await enqueueSync(url, 'PUT', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey });
     return { _offline: true, ...sanitized } as T;
   }
   if (!res.ok) {
@@ -179,16 +263,23 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
 async function apiPatch<T>(path: string, body: any): Promise<T> {
   const sanitized = sanitizeRequestBody(body);
   const url = `${API_BASE}${path}`;
+  const idempotencyKey = crypto.randomUUID();
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await enqueueSync(url, 'PATCH', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey });
+    return { _offline: true, ...sanitized } as T;
+  }
+
   let res;
   try {
     res = await fetch(url, {
       method: 'PATCH',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(sanitized),
     });
   } catch (err) {
-    await enqueueSync(url, 'PATCH', sanitized, { 'Content-Type': 'application/json' });
+    await enqueueSync(url, 'PATCH', sanitized, { 'Content-Type': 'application/json' }, { idempotencyKey });
     return { _offline: true, ...sanitized } as T;
   }
   if (!res.ok) {
@@ -210,8 +301,9 @@ async function apiPatch<T>(path: string, body: any): Promise<T> {
 
 async function apiDelete(path: string): Promise<void> {
   const url = `${API_BASE}${path}`;
+  const idempotencyKey = crypto.randomUUID();
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' });
+    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' }, { idempotencyKey });
     return;
   }
 
@@ -220,10 +312,10 @@ async function apiDelete(path: string): Promise<void> {
     res = await fetch(url, {
       method: 'DELETE',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
     });
   } catch (err) {
-    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' });
+    await enqueueSync(url, 'DELETE', null, { 'Content-Type': 'application/json' }, { idempotencyKey });
     return;
   }
   if (!res.ok) {
@@ -746,20 +838,39 @@ export const toolsApi = {
   deleteTool:    (id: number)              => apiDelete(`/api/tools/${id}`),
 };
 
+// Offline-aware file upload — mirrors apiPost's placeholder/idempotency pattern so a photo taken
+// with no signal queues instead of failing, and any dependent action (e.g. "attach this photo to
+// the diary entry") that uses the returned url works transparently once the real upload syncs.
+async function offlineAwareUpload(url: string, file: File): Promise<any> {
+  const idempotencyKey = crypto.randomUUID();
+  const placeholderId = newLocalId();
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await enqueueUpload(url, file, 'file', { idempotencyKey, placeholderId });
+    return { url: placeholderId, fileName: file.name, _offline: true };
+  }
+
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: form,
+    });
+    if (!res.ok) throw new Error(`Upload error ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    await enqueueUpload(url, file, 'file', { idempotencyKey, placeholderId });
+    return { url: placeholderId, fileName: file.name, _offline: true };
+  }
+}
+
 // ─── Upload API ── /api/upload ─────────────────────────────────────────────────
 export const uploadApi = {
-  upload:               (file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    return fetch(`${API_BASE}/api/upload`, { method: 'POST', credentials: 'include', body: form })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`Upload error ${r.status}`)));
-  },
-  uploadJobAttachment:  (jobId: number, file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    return fetch(`${API_BASE}/api/upload/job/${jobId}`, { method: 'POST', credentials: 'include', body: form })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`Upload error ${r.status}`)));
-  },
+  upload:               (file: File) => offlineAwareUpload(`${API_BASE}/api/upload`, file),
+  uploadJobAttachment:  (jobId: number, file: File) => offlineAwareUpload(`${API_BASE}/api/upload/job/${jobId}`, file),
   deleteJobAttachment:  (jobId: number, attachmentId: number) =>
     apiDelete(`/api/upload/job/${jobId}/attachments/${attachmentId}`),
 };
@@ -910,6 +1021,7 @@ export const certificatesApi = {
   approve: (id: number) => apiPost<any>(`/api/certificates/${id}/approve`, {}),
   issue: (id: number) => apiPost<any>(`/api/certificates/${id}/issue`, {}),
   markPaid: (id: number) => apiPost<any>(`/api/certificates/${id}/pay`, {}),
+  sendEmail: (id: number) => apiPost<any>(`/api/certificates/${id}/send-email`, {}),
   // kind: 0 = WorkEvidence, 1 = ProofOfPayment (PaymentCertificateAttachmentKind enum — the API has no
   // string-enum converter registered, so it binds/serializes as the raw int, not the name)
   addPhoto: (id: number, data: { photoUrl: string; caption?: string; kind: 0 | 1 }) =>

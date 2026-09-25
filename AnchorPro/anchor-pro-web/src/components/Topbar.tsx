@@ -1,12 +1,13 @@
 'use client';
 
-import { Bell, Search, ChevronDown, Menu, Check, RefreshCw, LogOut, Settings, WifiOff } from 'lucide-react';
+import { Bell, Search, ChevronDown, Menu, Check, RefreshCw, LogOut, Settings, WifiOff, CloudUpload } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { adminAccessApi } from '@/lib/api';
 import { roleDisplayName } from '@/lib/roleDisplayNames';
+import { getPendingSyncCount, offlineQueueEvents } from '@/lib/db';
 
 interface TopbarProps {
   title: string;
@@ -30,6 +31,8 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
   const [isOffline, setIsOffline] = useState(false);
+  const [pendingSync, setPendingSync] = useState(0);
+  const [justSynced, setJustSynced] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -55,6 +58,31 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
       };
     }
   }, [isPlatformOwner]);
+
+  // Pending-sync visibility — the offline queue itself was already real (IndexedDB-backed), it
+  // just had no UI surfacing at all, so a user had no way to know if a queued diary entry ever
+  // actually made it to the server. This subscribes to the same event the queue fires on every
+  // enqueue/dequeue, no polling needed.
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const count = await getPendingSyncCount();
+      if (cancelled) return;
+      setPendingSync(prev => {
+        if (prev > 0 && count === 0) {
+          setJustSynced(true);
+          setTimeout(() => setJustSynced(false), 4000);
+        }
+        return count;
+      });
+    };
+    refresh();
+    offlineQueueEvents?.addEventListener('change', refresh);
+    return () => {
+      cancelled = true;
+      offlineQueueEvents?.removeEventListener('change', refresh);
+    };
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -171,6 +199,35 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
           }}>
             <WifiOff size={12} />
             <span className="hidden sm:inline">Offline Mode</span>
+          </div>
+        )}
+
+        {pendingSync > 0 && (
+          <div
+            title={isOffline
+              ? `${pendingSync} ${pendingSync === 1 ? 'change' : 'changes'} saved on this device — will sync once you're back online`
+              : `Syncing ${pendingSync} pending ${pendingSync === 1 ? 'change' : 'changes'}…`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)',
+              padding: '4px 8px', borderRadius: '4px',
+              fontSize: 11, fontWeight: 600,
+            }}
+          >
+            <CloudUpload size={12} style={{ animation: isOffline ? 'none' : 'spin 1.4s linear infinite' }} />
+            <span className="hidden sm:inline">{pendingSync} pending</span>
+          </div>
+        )}
+
+        {justSynced && pendingSync === 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'var(--accent-emerald-dim)', color: 'var(--accent-emerald)',
+            padding: '4px 8px', borderRadius: '4px',
+            fontSize: 11, fontWeight: 600,
+          }}>
+            <Check size={12} />
+            <span className="hidden sm:inline">Synced</span>
           </div>
         )}
 

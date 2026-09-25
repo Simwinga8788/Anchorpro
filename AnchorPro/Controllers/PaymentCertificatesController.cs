@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using AnchorPro.Data;
 using AnchorPro.Data.Entities;
+using AnchorPro.Services;
 using AnchorPro.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,24 @@ namespace AnchorPro.Controllers
         private readonly IDbContextFactory<ApplicationDbContext> _factory;
         private readonly IFinancialService _financialService;
         private readonly ISettingsService _settingsService;
+        private readonly ICertificatePdfService _pdfService;
+        private readonly IEmailService _emailService;
+        private readonly ICurrentTenantService _tenantService;
 
-        public CertificatesController(IDbContextFactory<ApplicationDbContext> factory, IFinancialService financialService, ISettingsService settingsService)
+        public CertificatesController(
+            IDbContextFactory<ApplicationDbContext> factory,
+            IFinancialService financialService,
+            ISettingsService settingsService,
+            ICertificatePdfService pdfService,
+            IEmailService emailService,
+            ICurrentTenantService tenantService)
         {
             _factory = factory;
             _financialService = financialService;
             _settingsService = settingsService;
+            _pdfService = pdfService;
+            _emailService = emailService;
+            _tenantService = tenantService;
         }
 
         /// <summary>
@@ -67,6 +80,61 @@ namespace AnchorPro.Controllers
 
             if (cert == null) return NotFound();
             return Ok(cert);
+        }
+
+        /// <summary>
+        /// POST /api/certificates/{id}/send-email
+        /// Generates a PDF of the certificate and emails it to the project's Customer contact.
+        /// </summary>
+        [HttpPost("{id}/send-email")]
+        public async Task<IActionResult> SendEmail(int id)
+        {
+            using var db = _factory.CreateDbContext();
+            var cert = await db.PaymentCertificates
+                .Include(c => c.Project!)
+                    .ThenInclude(p => p.Customer)
+                .Include(c => c.Items)
+                    .ThenInclude(i => i.BoqItem)
+                .Include(c => c.Variations)
+                    .ThenInclude(v => v.Variation)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (cert == null) return NotFound();
+            if (cert.Project == null) return BadRequest("This certificate is not linked to a project.");
+            if (cert.Status < CertificateStatus.Approved)
+                return BadRequest("Only an Approved, Issued, or Paid certificate can be emailed to the client.");
+
+            var recipientEmail = cert.Project.Customer?.Email;
+            if (string.IsNullOrWhiteSpace(recipientEmail))
+                return BadRequest("This project has no client/consultant contact email on file. Add one under Clients & Consultants first.");
+
+            var tenant = await db.Tenants.FindAsync(_tenantService.TenantId);
+            if (tenant == null) return BadRequest("Tenant not found.");
+
+            var currency = await _settingsService.GetSettingAsync("Org.Currency", "ZMW");
+            var pdfBytes = _pdfService.GenerateCertificatePdf(cert, tenant, currency);
+
+            var fileName = $"{cert.CertificateNumber}_{cert.Project.Name}.pdf".Replace(" ", "_");
+            var attachments = new Dictionary<string, byte[]> { [fileName] = pdfBytes };
+
+            var contactName = string.IsNullOrWhiteSpace(cert.Project.Customer?.ContactPerson)
+                ? cert.Project.Customer?.Name : cert.Project.Customer.ContactPerson;
+
+            var body = $@"
+                <p>Dear {System.Net.WebUtility.HtmlEncode(contactName ?? "Sir/Madam")},</p>
+                <p>Please find attached Payment Certificate <strong>{cert.CertificateNumber}</strong> for
+                <strong>{System.Net.WebUtility.HtmlEncode(cert.Project.Name)}</strong>,
+                covering the period {cert.PeriodStartDate:d MMM yyyy} – {cert.PeriodEndDate:d MMM yyyy}.</p>
+                <p>Net amount due this period: <strong>{CertificatePdfService.Money(cert.NetAmountDue, currency)}</strong></p>
+                <p>Regards,<br/>{System.Net.WebUtility.HtmlEncode(tenant.Name)}</p>";
+
+            await _emailService.SendEmailAsync(
+                recipientEmail,
+                $"Payment Certificate {cert.CertificateNumber} — {cert.Project.Name}",
+                body,
+                attachments);
+
+            return Ok(new { message = $"Certificate emailed to {recipientEmail}.", recipient = recipientEmail });
         }
 
         /// <summary>

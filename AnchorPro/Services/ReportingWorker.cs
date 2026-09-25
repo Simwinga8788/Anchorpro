@@ -1,4 +1,6 @@
+using AnchorPro.Data;
 using AnchorPro.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnchorPro.Services
 {
@@ -31,6 +33,13 @@ namespace AnchorPro.Services
                         await alertService.CheckForLowMarginJobsAsync();
                         await alertService.CheckForOverdueJobsAsync();
                         await alertService.CheckForOverdueActivitiesAsync();
+
+                        // Idempotency records only need to outlive how long a device might realistically
+                        // sit offline before reconnecting — 48h comfortably covers a weekend-long outage
+                        // while keeping the table from growing forever.
+                        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        var cutoff = DateTime.UtcNow.AddHours(-48);
+                        await db.IdempotencyRecords.Where(r => r.CreatedAt < cutoff).ExecuteDeleteAsync(stoppingToken);
                     }
                 }
                 catch (Exception ex)

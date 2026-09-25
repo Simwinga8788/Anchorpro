@@ -6,7 +6,7 @@ import { certificatesApi, projectsApi, boqApi, uploadApi, settingsApi } from '@/
 import {
   FileText, Building2, Plus, CheckCircle2, AlertCircle,
   DollarSign, Calculator, ChevronRight, FileCheck, Layers, Printer,
-  Camera, Receipt, X, Loader2
+  Camera, Receipt, X, Loader2, Mail
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useDictionary } from '@/lib/DictionaryContext';
@@ -186,6 +186,18 @@ export default function CertificatesPage() {
       await certificatesApi.markPaid(id);
       loadCertDetails(id);
       if (selectedProjectId) loadCertificates(selectedProjectId);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSendEmailCert = async (id: number) => {
+    setActionLoading(true);
+    try {
+      const res: any = await certificatesApi.sendEmail(id);
+      alert(res?.message || 'Certificate emailed.');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -422,6 +434,17 @@ export default function CertificatesPage() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                     >
                       <FileCheck size={14} /> Issue Certificate
+                    </button>
+                  )}
+                  {selectedCert.status >= 3 && (
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      disabled={actionLoading}
+                      onClick={() => handleSendEmailCert(selectedCert.id)}
+                      title="Emails a PDF of this certificate to the project's client/consultant contact"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                    >
+                      <Mail size={14} /> Send via Email
                     </button>
                   )}
                   {selectedCert.status === 4 && (
