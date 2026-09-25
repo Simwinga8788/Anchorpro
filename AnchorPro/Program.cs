@@ -66,6 +66,12 @@ builder.Services.ConfigureApplicationCookie(o =>
         o.Cookie.SameSite = SameSiteMode.None;
         o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     }
+    // Default is 14 days — extended so a device logged in once before heading to a remote
+    // site (often with no signal for days/weeks at a time) stays usable offline for longer
+    // without needing to find connectivity just to re-authenticate. Sliding: every request
+    // made while online resets the 30-day countdown, so an actively-used device never expires.
+    o.ExpireTimeSpan = TimeSpan.FromDays(30);
+    o.SlidingExpiration = true;
     o.Events.OnRedirectToLogin = ctx =>
     {
         ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
