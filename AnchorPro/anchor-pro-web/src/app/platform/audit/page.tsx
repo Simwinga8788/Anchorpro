@@ -32,7 +32,10 @@ const categoryIcon: Record<string, React.ReactNode> = {
 };
 
 function timeAgo(ts: string): string {
-  const diff = Date.now() - new Date(ts).getTime();
+  // The backend sometimes returns a naive UTC timestamp with no Z/offset (after a DB round-trip
+  // the DateTime's Kind is lost) — parsing that as-is treats it as local time, not UTC.
+  const normalized = /(?:Z|[+-]\d{2}:\d{2})$/.test(ts) ? ts : `${ts}Z`;
+  const diff = Date.now() - new Date(normalized).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1)  return 'just now';
   if (mins < 60) return `${mins}m ago`;

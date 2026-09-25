@@ -21,7 +21,10 @@ function fmrr(v: number) {
 }
 
 function timeAgo(ts: string) {
-  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  // The backend sometimes returns a naive UTC timestamp with no Z/offset (after a DB round-trip
+  // the DateTime's Kind is lost) — parsing that as-is treats it as local time, not UTC.
+  const normalized = /(?:Z|[+-]\d{2}:\d{2})$/.test(ts) ? ts : `${ts}Z`;
+  const diff = Math.floor((Date.now() - new Date(normalized).getTime()) / 1000);
   if (diff < 60)    return `${diff}s ago`;
   if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

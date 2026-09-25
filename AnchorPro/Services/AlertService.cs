@@ -93,12 +93,33 @@ namespace AnchorPro.Services
                         .FirstOrDefaultAsync(s => s.Key == "Notify.JobOverdue" && s.TenantId == tenantId);
                     if (notifySetting?.Value?.ToLower() == "false") continue;
 
-                    await CreateAlertAsync(
-                        title: $"{tenantJobs.Count} Overdue Jobs",
-                        message: $"There are {tenantJobs.Count} jobs past their scheduled completion date.",
-                        severity: "Critical",
-                        category: "OverdueJob",
-                        tenantId: tenantId);
+                    var title = $"{tenantJobs.Count} Overdue Jobs";
+                    var message = $"There are {tenantJobs.Count} jobs past their scheduled completion date.";
+
+                    // Same reasoning as CheckForOverdueActivitiesAsync — without this, the same
+                    // unresolved backlog re-alerts (and re-emails) every single hour forever.
+                    var existingAlert = await context.Alerts
+                        .Where(a => a.TenantId == tenantId && a.Category == "OverdueJob" && !a.IsRead)
+                        .OrderByDescending(a => a.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (existingAlert != null)
+                    {
+                        if (existingAlert.Title == title) continue;
+                        existingAlert.Title = title;
+                        existingAlert.Message = message;
+                        existingAlert.CreatedAt = DateTime.UtcNow;
+                        await context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        await CreateAlertAsync(
+                            title: title,
+                            message: message,
+                            severity: "Critical",
+                            category: "OverdueJob",
+                            tenantId: tenantId);
+                    }
 
                     string? recipient = null;
                     if (tenantId.HasValue)
@@ -161,13 +182,36 @@ namespace AnchorPro.Services
                     .Take(3)
                     .ToList();
                 var projectSummary = projectNames.Count > 0 ? $" on {string.Join(", ", projectNames)}" : "";
+                var title = $"{tenantActivities.Count} Overdue Schedule {(tenantActivities.Count == 1 ? "Activity" : "Activities")}";
+                var message = $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past {(tenantActivities.Count == 1 ? "its" : "their")} planned end date{projectSummary}.";
 
-                await CreateAlertAsync(
-                    title: $"{tenantActivities.Count} Overdue Schedule {(tenantActivities.Count == 1 ? "Activity" : "Activities")}",
-                    message: $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past its planned end date{projectSummary}.",
-                    severity: "Critical",
-                    category: "OverdueActivity",
-                    tenantId: tenantId);
+                // This runs every hour for as long as the same activities stay overdue — without
+                // this check it created (and emailed) a fresh "N Overdue Activities" alert on every
+                // single run, spamming the same unresolved condition hourly forever. Only notify
+                // again when the count actually changes (or there's no still-unread alert at all).
+                var existingAlert = await context.Alerts
+                    .Where(a => a.TenantId == tenantId && a.Category == "OverdueActivity" && !a.IsRead)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (existingAlert != null)
+                {
+                    if (existingAlert.Title == title) continue; // same state already surfaced — nothing new to say
+
+                    existingAlert.Title = title;
+                    existingAlert.Message = message;
+                    existingAlert.CreatedAt = DateTime.UtcNow;
+                    await context.SaveChangesAsync();
+                }
+                else
+                {
+                    await CreateAlertAsync(
+                        title: title,
+                        message: message,
+                        severity: "Critical",
+                        category: "OverdueActivity",
+                        tenantId: tenantId);
+                }
 
                 string? recipient = null;
                 if (tenantId.HasValue)
@@ -188,7 +232,7 @@ namespace AnchorPro.Services
 
                 await _emailService.SendEmailAsync(recipient,
                     $"Schedule Alert: {tenantActivities.Count} Overdue {(tenantActivities.Count == 1 ? "Activity" : "Activities")}",
-                    $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past its planned end date{projectSummary}. Review the Program & Schedule for details.");
+                    $"{tenantActivities.Count} program {(tenantActivities.Count == 1 ? "activity is" : "activities are")} past {(tenantActivities.Count == 1 ? "its" : "their")} planned end date{projectSummary}. Review the Program & Schedule for details.");
             }
         }
 

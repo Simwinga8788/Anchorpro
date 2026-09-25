@@ -141,8 +141,16 @@ builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IInventoryService, AnchorPro.Services.InventoryService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IFileService, AnchorPro.Services.LocalFileService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IShiftPlanService, AnchorPro.Services.ShiftPlanService>();
-var smtpHost = builder.Configuration["Smtp_Host"] ?? "";
-if (string.IsNullOrWhiteSpace(smtpHost))
+// SmtpEmailService reads its actual host/user/password from SystemSettings at send time (see
+// Services/SmtpEmailService.cs), which is what the Platform Settings "Email (SMTP)" UI writes to
+// the database — so that decision has to be made per-send, not here. Choosing DevEmailService vs
+// SmtpEmailService at DI registration based on an env var (as this used to do) meant whatever
+// Felix configured through the UI was silently ignored for the whole life of the process: emails
+// always got written to a file on Railway's container instead of actually sending, no matter what
+// SMTP credentials were saved afterward. Development keeps writing to a local file for easy
+// testing; every other environment always uses the real sender, which fails gracefully (catches
+// and logs) if nothing has been configured yet.
+if (builder.Environment.IsDevelopment())
     builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.DevEmailService>();
 else
     builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.SmtpEmailService>();

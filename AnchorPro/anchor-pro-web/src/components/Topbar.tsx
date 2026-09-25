@@ -2,7 +2,8 @@
 
 import { Bell, Search, ChevronDown, Menu, Check, RefreshCw, LogOut, Settings, WifiOff, CloudUpload } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useNotifications } from '@/lib/NotificationsContext';
+import { useRouter } from 'next/navigation';
+import { useNotifications, NOTIFICATION_CATEGORY_ROUTES } from '@/lib/NotificationsContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useDictionary } from '@/lib/DictionaryContext';
 import { adminAccessApi } from '@/lib/api';
@@ -25,6 +26,7 @@ const notifDotColor: Record<string, string> = {
 export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps) {
   const { notifications, unreadCount, markAllRead, markRead, refresh: refreshNotifs } = useNotifications();
   const { user, logout, isPlatformOwner } = useAuth();
+  const router = useRouter();
   const { t, workspaceName } = useDictionary();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -323,23 +325,34 @@ export default function Topbar({ title, breadcrumb, onMenuToggle }: TopbarProps)
                 {notifications.length === 0 ? (
                   <div className="notif-empty">No notifications</div>
                 ) : (
-                  notifications.map(n => (
-                    <div
-                      key={n.id}
-                      className={`notif-item ${!n.read ? 'unread' : ''}`}
-                      onClick={() => markRead(n.id)}
-                    >
-                      <span
-                        className="notif-dot"
-                        style={{ background: !n.read ? notifDotColor[n.type] : 'var(--border-default)' }}
-                      />
-                      <div className="notif-content">
-                        <div className="notif-item-title">{n.title}</div>
-                        <div className="notif-item-msg">{n.message}</div>
-                        <div className="notif-item-time">{n.time}</div>
+                  notifications.map(n => {
+                    const target = n.category ? NOTIFICATION_CATEGORY_ROUTES[n.category] : undefined;
+                    return (
+                      <div
+                        key={n.id}
+                        className={`notif-item ${!n.read ? 'unread' : ''}`}
+                        style={{ cursor: target ? 'pointer' : 'default' }}
+                        title={target ? `Go to ${target}` : undefined}
+                        onClick={() => {
+                          markRead(n.id);
+                          if (target) {
+                            setNotifOpen(false);
+                            router.push(target);
+                          }
+                        }}
+                      >
+                        <span
+                          className="notif-dot"
+                          style={{ background: !n.read ? notifDotColor[n.type] : 'var(--border-default)' }}
+                        />
+                        <div className="notif-content">
+                          <div className="notif-item-title">{n.title}</div>
+                          <div className="notif-item-msg">{n.message}</div>
+                          <div className="notif-item-time">{n.time}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

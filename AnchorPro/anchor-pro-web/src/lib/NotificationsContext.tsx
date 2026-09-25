@@ -9,7 +9,17 @@ export interface Notification {
   type: 'info' | 'warning' | 'error' | 'success';
   time: string;
   read: boolean;
+  category?: string;
 }
+
+// Where clicking a notification of this category should take you — matches Alert.Category
+// values from Services/AlertService.cs. Categories with no entry here just mark read on click.
+export const NOTIFICATION_CATEGORY_ROUTES: Record<string, string> = {
+  OverdueActivity: '/dashboard/schedule',
+  OverdueJob: '/dashboard/jobs',
+  LowMargin: '/dashboard/finance',
+  TechnicianDelay: '/dashboard/jobs',
+};
 
 interface NotificationsContextValue {
   notifications: Notification[];
@@ -38,8 +48,12 @@ function timeAgo(dateStr?: string): string {
   if (!dateStr) return 'Recently';
   try {
     let cleanStr = dateStr;
-    // If there is no timezone offset indicator, append Z to force UTC parsing
-    if (!cleanStr.endsWith('Z') && !cleanStr.includes('+') && !cleanStr.includes('-')) {
+    // If there's no trailing timezone marker (Z, or a +HH:MM/-HH:MM offset), the backend sent a
+    // naive UTC timestamp — appending Z forces correct UTC parsing. The date itself always
+    // contains dashes ("2026-09-25"), so checking for "-" anywhere in the string (the previous
+    // version of this check) always matched and this Z never got appended, silently parsing
+    // every timestamp as local time instead of UTC — off by a fixed few hours for every alert.
+    if (!/(?:Z|[+-]\d{2}:\d{2})$/.test(cleanStr)) {
       cleanStr = cleanStr + 'Z';
     }
     const diff = Date.now() - new Date(cleanStr).getTime();
@@ -84,6 +98,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             type: severityToType(a.severity ?? a.level),
             time: timeAgo(a.createdAt ?? a.timestamp),
             read: !!(a.isRead ?? a.acknowledged ?? false),
+            category: a.category,
           }));
         setNotifications(alerts);
         setSeeded(true);
