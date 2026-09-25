@@ -119,5 +119,13 @@ namespace AnchorPro.Controllers
             var report = await _financialService.GetProfitAndLossAsync(month, year);
             return Ok(report);
         }
+
+        /// <summary>GET /api/finance/profit-by-project — how much each project has made, lifetime.</summary>
+        [HttpGet("profit-by-project")]
+        public async Task<IActionResult> GetProfitByProject()
+        {
+            var report = await _financialService.GetAllProjectsProfitAsync();
+            return Ok(report);
+        }
     }
 }

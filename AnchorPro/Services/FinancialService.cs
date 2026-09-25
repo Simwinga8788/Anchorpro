@@ -556,6 +556,59 @@ namespace AnchorPro.Services
             };
         }
 
+        /// <summary>
+        /// How much each project has actually made, plus the accumulative total across all of
+        /// them — the tenant-wide P&amp;L only ever showed one lump figure, with no way to see
+        /// whether a specific project was profitable.
+        /// </summary>
+        public async Task<List<ProjectProfitSummary>> GetAllProjectsProfitAsync()
+        {
+            using var context = _factory.CreateDbContext();
+
+            var projects = await context.Projects.AsNoTracking().ToListAsync();
+            if (projects.Count == 0) return new List<ProjectProfitSummary>();
+
+            // Ledger entries carry no ProjectId of their own — trace it through whichever origin
+            // link (Invoice / Expense / PaymentCertificate / VendorBill→PurchaseOrder) is set,
+            // same as GetProjectLedgerAsync does for a single project.
+            var entries = await context.LedgerEntries
+                .Include(e => e.Invoice)
+                .Include(e => e.Expense)
+                .Include(e => e.PaymentCertificate)
+                .Include(e => e.VendorBill!).ThenInclude(b => b!.PurchaseOrder)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var byProject = entries
+                .Select(e => new
+                {
+                    Entry = e,
+                    ProjectId = e.Invoice?.ProjectId
+                        ?? e.Expense?.ProjectId
+                        ?? e.PaymentCertificate?.ProjectId
+                        ?? e.VendorBill?.PurchaseOrder?.ProjectId
+                })
+                .Where(x => x.ProjectId.HasValue)
+                .GroupBy(x => x.ProjectId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = projects.Select(p =>
+            {
+                var forProject = byProject.TryGetValue(p.Id, out var list) ? list : new();
+                return new ProjectProfitSummary
+                {
+                    ProjectId = p.Id,
+                    ProjectName = p.Name,
+                    TotalIncome = forProject.Where(x => x.Entry.Type == LedgerTransactionType.Income).Sum(x => x.Entry.Amount),
+                    TotalExpense = forProject.Where(x => x.Entry.Type == LedgerTransactionType.Expense).Sum(x => x.Entry.Amount),
+                };
+            })
+            .OrderByDescending(r => r.NetProfit)
+            .ToList();
+
+            return result;
+        }
+
         public async Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year)
         {
             using var context = _factory.CreateDbContext();

@@ -967,6 +967,7 @@ export const financeApi = {
   },
   getProjectLedger:       (projectId: number) => apiFetch<any>(`/api/finance/ledger/project/${projectId}`),
   getProfitAndLoss:       (month: number, year: number) => apiFetch<any>(`/api/finance/profit-and-loss?month=${month}&year=${year}`),
+  getProfitByProject:     () => apiFetch<any[]>('/api/finance/profit-by-project'),
 };
 
 // ─── Copilot API ── /api/copilot ───────────────────────────────────────────────

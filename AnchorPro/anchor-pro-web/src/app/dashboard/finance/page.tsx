@@ -7,7 +7,7 @@ import { useDictionary } from '@/lib/DictionaryContext';
 import {
   DollarSign, FileText, Activity, CreditCard, ChevronRight, Plus,
   CheckCircle, Clock, ShieldCheck, XCircle, AlertTriangle, X,
-  ChevronDown, ChevronUp, AlertCircle, Download
+  ChevronDown, ChevronUp, AlertCircle, Download, Building2
 } from 'lucide-react';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import SlideOver from '@/components/SlideOver';
@@ -146,6 +146,8 @@ function ProfitAndLossTab() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
+  const [projectProfits, setProjectProfits] = useState<any[]>([]);
+  const [projectProfitsLoading, setProjectProfitsLoading] = useState(false);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -159,7 +161,28 @@ function ProfitAndLossTab() {
     }
   };
 
+  // Lifetime-to-date, not scoped to the selected month/year — "how much has each project
+  // actually made" is a running total, not a single period's snapshot.
+  const fetchProjectProfits = async () => {
+    setProjectProfitsLoading(true);
+    try {
+      const data = await financeApi.getProfitByProject();
+      setProjectProfits(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProjectProfitsLoading(false);
+    }
+  };
+
   useEffect(() => { fetchReport(); }, [month, year]);
+  useEffect(() => { fetchProjectProfits(); }, []);
+
+  const projectProfitsTotal = projectProfits.reduce((acc, p) => ({
+    income: acc.income + (p.totalIncome ?? 0),
+    expense: acc.expense + (p.totalExpense ?? 0),
+    profit: acc.profit + (p.netProfit ?? 0),
+  }), { income: 0, expense: 0, profit: 0 });
 
   // Calculations for enhanced visuals
   const totalIncome = report?.totalIncome ?? 0;
@@ -170,7 +193,6 @@ function ProfitAndLossTab() {
   const expenseRatio = totalIncome > 0 ? Math.round((totalExpenses / totalIncome) * 100) : 0;
 
   const vendorBillPct = totalExpenses > 0 ? Math.round((report?.totalVendorBills / totalExpenses) * 100) : 0;
-  const payrollPct = totalExpenses > 0 ? Math.round((report?.totalPayroll / totalExpenses) * 100) : 0;
   const adHocPct = totalExpenses > 0 ? Math.round((report?.totalAdHocExpenses / totalExpenses) * 100) : 0;
 
   return (
@@ -326,19 +348,6 @@ function ProfitAndLossTab() {
                   </div>
                 </div>
 
-                {/* Payroll */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Employee Payroll</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(report.totalPayroll)}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>({payrollPct}%)</span>
-                    </div>
-                  </div>
-                  <div style={{ width: '100%', height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${payrollPct}%`, height: '100%', background: 'var(--accent-amber)', borderRadius: 3, transition: 'width 0.5s ease-in-out' }} />
-                  </div>
-                </div>
 
                 {/* Ad-Hoc Expenses */}
                 <div>
@@ -437,23 +446,6 @@ function ProfitAndLossTab() {
                     </div>
                   )}
 
-                  {/* Insight 3: Payroll flag */}
-                  {report.totalPayroll === 0 ? (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
-                      <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        No payroll payouts have been recorded in the cashbook for this calendar period yet.
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
-                      <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        Payroll payments represent {payrollPct}% of your operational costs.
-                      </span>
-                    </div>
-                  )}
-
                 </div>
 
               </div>
@@ -466,6 +458,63 @@ function ProfitAndLossTab() {
           No records found for this period.
         </div>
       )}
+
+      {/* Project Profitability — lifetime-to-date, independent of the month/year filter above:
+          "how much has each project actually made" is a running total, not one period's snapshot. */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Building2 size={16} style={{ color: 'var(--accent-blue)' }} />
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Project Profitability</h3>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Lifetime income, cost, and net profit for every project — accumulative across all of them below</p>
+          </div>
+        </div>
+
+        {projectProfitsLoading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
+        ) : projectProfits.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No projects with recorded income or expenses yet.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th style={{ textAlign: 'right' }}>Income</th>
+                  <th style={{ textAlign: 'right' }}>Expense</th>
+                  <th style={{ textAlign: 'right' }}>Net Profit</th>
+                  <th style={{ textAlign: 'right' }}>Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectProfits.map((p) => {
+                  const margin = p.totalIncome > 0 ? Math.round((p.netProfit / p.totalIncome) * 100) : 0;
+                  return (
+                    <tr key={p.projectId}>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.projectName}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--accent-emerald)' }}>{formatMoney(p.totalIncome)}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--accent-rose)' }}>{formatMoney(p.totalExpense)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: p.netProfit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{formatMoney(p.netProfit)}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{margin}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--border-default)' }}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>All Projects (Accumulative)</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-emerald)' }}>{formatMoney(projectProfitsTotal.income)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-rose)' }}>{formatMoney(projectProfitsTotal.expense)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: projectProfitsTotal.profit >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{formatMoney(projectProfitsTotal.profit)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                    {projectProfitsTotal.income > 0 ? Math.round((projectProfitsTotal.profit / projectProfitsTotal.income) * 100) : 0}%
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

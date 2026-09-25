@@ -35,6 +35,7 @@ namespace AnchorPro.Services.Interfaces
         Task<List<LedgerEntry>> GetLedgerEntriesAsync(DateTime? from, DateTime? to);
         Task<ProjectLedgerReport> GetProjectLedgerAsync(int projectId);
         Task<ProfitAndLossReport> GetProfitAndLossAsync(int month, int year);
+        Task<List<ProjectProfitSummary>> GetAllProjectsProfitAsync();
 
         // Payment Certificates (Construction)
         Task PostCertificatePaymentAsync(int certificateId, string userId);
@@ -70,6 +71,17 @@ namespace AnchorPro.Services.Interfaces
         public decimal TotalExpense { get; set; }
         public decimal Net => TotalIncome - TotalExpense;
         public List<LedgerEntry> Entries { get; set; } = new();
+    }
+
+    /// <summary>One row of the per-project profitability breakdown — "how much did each project
+    /// actually make" — plus the lifetime total across all of them (see GetAllProjectsProfitAsync).</summary>
+    public class ProjectProfitSummary
+    {
+        public int ProjectId { get; set; }
+        public string ProjectName { get; set; } = string.Empty;
+        public decimal TotalIncome { get; set; }
+        public decimal TotalExpense { get; set; }
+        public decimal NetProfit => TotalIncome - TotalExpense;
     }
 
     public class ProfitAndLossReport
