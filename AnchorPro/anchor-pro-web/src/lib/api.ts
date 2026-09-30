@@ -695,6 +695,8 @@ export const settingsApi = {
   upsertGlobal:(key: string, value: string)            => apiPut<any>(`/api/settings/global/${key}`, { value }),
   updateMyTenant:(data: any)                           => apiPut<any>('/api/settings/my-tenant', data),
   deleteMyTenant:()                                    => apiDelete('/api/settings/my-tenant'),
+  sendTestEmail: (toEmail: string, subject?: string, body?: string) =>
+    apiPost<any>('/api/settings/test-email', { toEmail, subject, body }),
 };
 
 // ─── Subscriptions API ── /api/subscriptions ───────────────────────────────────

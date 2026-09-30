@@ -150,10 +150,8 @@ builder.Services.AddScoped<AnchorPro.Services.Interfaces.IShiftPlanService, Anch
 // SMTP credentials were saved afterward. Development keeps writing to a local file for easy
 // testing; every other environment always uses the real sender, which fails gracefully (catches
 // and logs) if nothing has been configured yet.
-if (builder.Environment.IsDevelopment())
-    builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.DevEmailService>();
-else
-    builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.SmtpEmailService>();
+// Always use SmtpEmailService so configured SMTP credentials send real emails across all environments
+builder.Services.AddScoped<AnchorPro.Services.Interfaces.IEmailService, AnchorPro.Services.SmtpEmailService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.IExportService, AnchorPro.Services.CsvExportService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ISettingsService, AnchorPro.Services.SettingsService>();
 builder.Services.AddScoped<AnchorPro.Services.Interfaces.ISubscriptionService, AnchorPro.Services.SubscriptionService>();

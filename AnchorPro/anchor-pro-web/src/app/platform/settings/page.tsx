@@ -37,6 +37,27 @@ export default function PlatformSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [editingGeminiKey, setEditingGeminiKey] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
+
+  const handleSendTestEmail = async () => {
+    if (!settings.smtpUser && !settings.smtpFromAddress) {
+      alert('Please configure and save SMTP username or from address first.');
+      return;
+    }
+    const targetEmail = prompt('Enter recipient email address for test:', settings.smtpUser || settings.ownerEmail || 'simwinga8788@gmail.com');
+    if (!targetEmail) return;
+    setTestingEmail(true);
+    setTestEmailStatus(null);
+    try {
+      await settingsApi.sendTestEmail(targetEmail, 'Anchor Pro — SMTP Verification Test', '<p>Your Anchor Pro SMTP email sending is fully operational!</p>');
+      setTestEmailStatus(`Test email successfully sent to ${targetEmail}`);
+    } catch (e: any) {
+      setTestEmailStatus(`Failed to send test email: ${e.message || 'Error'}`);
+    } finally {
+      setTestingEmail(false);
+    }
+  };
   const [newGeminiKey, setNewGeminiKey] = useState('');
   const [editingSmtpPass, setEditingSmtpPass] = useState(false);
   const [newSmtpPass, setNewSmtpPass] = useState('');
@@ -281,6 +302,21 @@ export default function PlatformSettingsPage() {
             <input style={inputStyle} placeholder="no-reply@anchorpro.com" value={settings.smtpFromAddress}
               onChange={e => setSettings(s => ({ ...s, smtpFromAddress: e.target.value }))} />
           </Field>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+            {testEmailStatus && (
+              <span style={{ fontSize: 12, color: testEmailStatus.startsWith('Failed') ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                {testEmailStatus}
+              </span>
+            )}
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleSendTestEmail}
+              disabled={testingEmail}
+            >
+              {testingEmail ? 'Sending Test...' : 'Send Test Email'}
+            </button>
+          </div>
         </div>
 
         {/* AI & Copilot */}

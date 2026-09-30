@@ -59,7 +59,7 @@ namespace AnchorPro.Controllers
         [Authorize(Roles = "Admin,PlatformOwner")]
         public async Task<ActionResult> Upsert(string key, [FromBody] UpsertSettingRequest req)
         {
-            await _settingsService.SetSettingAsync(key, req.Value, req.Description, req.Group);
+            await _settingsService.SetSettingAsync(key, req.Value ?? string.Empty, req.Description ?? string.Empty, req.Group ?? "General");
             return NoContent();
         }
 
@@ -73,7 +73,6 @@ namespace AnchorPro.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null || !user.TenantId.HasValue) return Unauthorized();
 
-            // We must find the tenant without tenant filters because Tenant entity itself isn't scoped to itself in a way that context filters
             _context.IgnoreTenantFilter = true;
             var tenant = await _context.Tenants.FindAsync(user.TenantId.Value);
             if (tenant == null) return NotFound();
@@ -144,6 +143,25 @@ namespace AnchorPro.Controllers
             await _settingsService.SetGlobalSettingAsync(key, req.Value ?? string.Empty, req.Description ?? string.Empty, req.Group ?? "General");
             return NoContent();
         }
+
+        /// <summary>
+        /// POST /api/settings/test-email — Send a test email to verify SMTP configuration.
+        /// </summary>
+        [HttpPost("test-email")]
+        [Authorize]
+        public async Task<ActionResult> SendTestEmail([FromBody] SendTestEmailRequest req, [FromServices] IEmailService emailService)
+        {
+            if (string.IsNullOrWhiteSpace(req.ToEmail))
+            {
+                return BadRequest("Recipient email address is required.");
+            }
+
+            var subject = req.Subject ?? "Anchor Pro — Test Email Notification";
+            var body = req.Body ?? $"<h3>Anchor Pro Test Email</h3><p>This is a test notification sent at {DateTime.UtcNow:u}. Your email notifications are functioning properly!</p>";
+
+            await emailService.SendEmailAsync(req.ToEmail, subject, body);
+            return Ok(new { message = $"Test email queued/sent to {req.ToEmail}" });
+        }
     }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
@@ -162,5 +180,12 @@ namespace AnchorPro.Controllers
         public string? Address { get; set; }
         public string? ContactEmail { get; set; }
         public string? ContactPhone { get; set; }
+    }
+
+    public class SendTestEmailRequest
+    {
+        public string ToEmail { get; set; } = string.Empty;
+        public string? Subject { get; set; }
+        public string? Body { get; set; }
     }
 }
