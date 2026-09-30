@@ -1296,10 +1296,24 @@ export default function SettingsPage() {
               <input className="form-input" type="email" value={smtpForm.Email_From_Address} onChange={e => setSmtpForm(f => ({ ...f, Email_From_Address: e.target.value }))} placeholder="no-reply@example.com" />
             </div>
           </div>
-          <button className="btn btn-primary" onClick={handleSaveSmtp} disabled={savingSmtp || !smtpForm.Smtp_Host}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
-            {savingSmtp ? <><Loader2 size={14} className="spin" />Saving...</> : <><Save size={14} />Save Configuration</>}
-          </button>
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button className="btn btn-secondary" type="button" style={{ flex: 1 }}
+              onClick={async () => {
+                const target = prompt('Enter recipient email for test:', smtpForm.Smtp_User || 'simwinga8788@gmail.com');
+                if (!target) return;
+                try {
+                  await settingsApi.sendTestEmail(target, 'Anchor Pro — SMTP Verification Test', '<p>Your SMTP email configuration is active and working!</p>');
+                  show(`Test email sent to ${target}`, 'success');
+                } catch (err: any) {
+                  show(err.message || 'Failed to send test email', 'error');
+                }
+              }}>
+              Send Test Email
+            </button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveSmtp} disabled={savingSmtp || !smtpForm.Smtp_Host}>
+              {savingSmtp ? <><Loader2 size={14} className="spin" />Saving...</> : <><Save size={14} />Save Configuration</>}
+            </button>
+          </div>
         </div>
       </SlideOver>
 
