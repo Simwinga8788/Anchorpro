@@ -60,7 +60,7 @@ namespace AnchorPro.Services
                         recipient = tenant?.ContactEmail;
                     }
                 }
-                recipient ??= "management@anchorpro.com";
+                recipient ??= await context.Users.Where(u => !string.IsNullOrEmpty(u.Email)).Select(u => u.Email).FirstOrDefaultAsync();
 
                 await _emailService.SendEmailAsync(recipient,
                     $"Low Margin Alert: Job #{job.JobNumber}",
@@ -136,7 +136,7 @@ namespace AnchorPro.Services
                             recipient = tenant?.ContactEmail;
                         }
                     }
-                    recipient ??= "ops@anchorpro.com";
+                    recipient ??= await context.Users.Where(u => !string.IsNullOrEmpty(u.Email)).Select(u => u.Email).FirstOrDefaultAsync();
 
                     await _emailService.SendEmailAsync(recipient,
                         $"Backlog Alert: {tenantJobs.Count} Overdue Jobs",
@@ -228,7 +228,7 @@ namespace AnchorPro.Services
                         recipient = tenant?.ContactEmail;
                     }
                 }
-                recipient ??= "ops@anchorpro.com";
+                recipient ??= await context.Users.Where(u => !string.IsNullOrEmpty(u.Email)).Select(u => u.Email).FirstOrDefaultAsync();
 
                 await _emailService.SendEmailAsync(recipient,
                     $"Schedule Alert: {tenantActivities.Count} Overdue {(tenantActivities.Count == 1 ? "Activity" : "Activities")}",
@@ -261,7 +261,7 @@ namespace AnchorPro.Services
                     recipient = tenant?.ContactEmail;
                 }
             }
-            recipient ??= "ops@anchorpro.com";
+            recipient ??= await context.Users.Where(u => !string.IsNullOrEmpty(u.Email)).Select(u => u.Email).FirstOrDefaultAsync();
 
             await _emailService.SendEmailAsync(recipient,
                 $"Active Delay Reported: Job #{jobNumber}",
